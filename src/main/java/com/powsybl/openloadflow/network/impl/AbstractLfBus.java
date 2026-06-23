@@ -106,10 +106,13 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     protected boolean forceTargetQInReactiveLimits;
 
-    protected AbstractLfBus(LfNetwork network, double v, double angle, LfNetworkParameters parameters) {
+    private final int numSC;
+
+    protected AbstractLfBus(LfNetwork network, double v, double angle, int numSC, LfNetworkParameters parameters) {
         super(network);
         this.v = v;
         this.angle = angle;
+        this.numSC = numSC;
         this.distributedOnConformLoad = parameters.isDistributedOnConformLoad();
         this.forceTargetQInReactiveLimits = parameters.isForceTargetQInReactiveLimits() && parameters.isReactiveLimits();
     }
@@ -967,4 +970,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         converters.add(converter);
     }
 
+    @Override
+    public int getNumSC() {
+        return numSC;
+    }
 }
