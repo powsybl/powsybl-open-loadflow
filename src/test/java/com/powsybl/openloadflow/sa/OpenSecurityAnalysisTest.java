@@ -15,9 +15,9 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.commons.test.TestUtil;
+import com.powsybl.contingency.*;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
-import com.powsybl.contingency.*;
 import com.powsybl.contingency.violations.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.criteria.AtLeastOneNominalVoltageCriterion;
@@ -32,7 +32,6 @@ import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.iidm.network.test.SecurityAnalysisTestNetworkFactory;
-import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -53,7 +52,9 @@ import com.powsybl.openloadflow.network.impl.OlfThreeWindingsTransformerResult;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
-import com.powsybl.security.*;
+import com.powsybl.security.PostContingencyComputationStatus;
+import com.powsybl.security.SecurityAnalysisParameters;
+import com.powsybl.security.SecurityAnalysisResult;
 import com.powsybl.security.comparator.LimitViolationComparator;
 import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
@@ -71,7 +72,8 @@ import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory.*;
+import static com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory.createWith3BusesNonImpedantSubNetwork;
+import static com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory.createWithNonImpedantThreeWindingsTransformer;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
@@ -2024,7 +2026,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     private AcLoadFlowResult buildTestAcLoadFlowResult(AcSolverStatus solverStatus, OuterLoopStatus outerLoopStatus) {
         LfNetwork lfNetwork = Mockito.mock(LfNetwork.class);
-        return new AcLoadFlowResult(lfNetwork, 0, 0, solverStatus, new OuterLoopResult("", outerLoopStatus), 0d, 0d);
+        return new AcLoadFlowResult(lfNetwork, 0, 0, solverStatus, new OuterLoopResult("", outerLoopStatus), Collections.singletonMap(0, 0d), Collections.singletonMap(0, 0d));
     }
 
     @Test
@@ -3202,7 +3204,15 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network);
         List<LimitViolation> limitViolations = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations();
         assertEquals(1, limitViolations.size());
-        assertEquals(LimitViolationUtils.PERMANENT_LIMIT_NAME, limitViolations.get(0).getLimitName());
+        assertEquals(LoadingLimits.DEFAULT_PERMANENT_LIMIT_NAME, limitViolations.getFirst().getLimitName());
+
+        String anotherName = "AnotherName";
+        network.getLine("NHV1_NHV2_1").getCurrentLimits1().orElseThrow()
+                .setPermanentLimitName(anotherName);
+        result = runSecurityAnalysis(network);
+        limitViolations = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations();
+        assertEquals(1, limitViolations.size());
+        assertEquals(anotherName, limitViolations.getFirst().getLimitName());
     }
 
     /**
@@ -4282,30 +4292,30 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LfNetworkList networks = new LfNetworkList(Networks.load(network, new LfNetworkParameters().setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED)));
         assertEquals(2, networks.getList().size());
         assertEquals(0, networks.getList().get(0).getNumCC());
-        assertEquals(0, networks.getList().get(0).getNumSC());
+        assertEquals(0, networks.getList().get(0).getSynchronousNetworks().getFirst().getNumSC());
         assertEquals(0, networks.getList().get(1).getNumCC());
-        assertEquals(1, networks.getList().get(1).getNumSC());
+        assertEquals(1, networks.getList().get(1).getSynchronousNetworks().getFirst().getNumSC());
 
         // Main connected component mode and all connected component mode should yield same result
         List<LfNetwork> componentMainConnected = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.MAIN_CONNECTED);
         assertEquals(2, componentMainConnected.size());
         assertEquals(0, componentMainConnected.get(0).getNumCC());
-        assertEquals(0, componentMainConnected.get(0).getNumSC());
+        assertEquals(0, componentMainConnected.get(0).getSynchronousNetworks().getFirst().getNumSC());
         assertEquals(0, componentMainConnected.get(1).getNumCC());
-        assertEquals(1, componentMainConnected.get(1).getNumSC());
+        assertEquals(1, componentMainConnected.get(1).getSynchronousNetworks().getFirst().getNumSC());
 
         List<LfNetwork> componentAll = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         assertEquals(2, componentAll.size());
         assertEquals(0, componentAll.get(0).getNumCC());
-        assertEquals(0, componentAll.get(0).getNumSC());
+        assertEquals(0, componentAll.get(0).getSynchronousNetworks().getFirst().getNumSC());
         assertEquals(0, componentAll.get(1).getNumCC());
-        assertEquals(1, componentAll.get(1).getNumSC());
+        assertEquals(1, componentAll.get(1).getSynchronousNetworks().getFirst().getNumSC());
 
         // Main synchronous component mode should return only one component
         List<LfNetwork> componentMainSynchronous = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS);
         assertEquals(1, componentMainSynchronous.size());
         assertEquals(0, componentMainSynchronous.get(0).getNumCC());
-        assertEquals(0, componentMainSynchronous.get(0).getNumSC());
+        assertEquals(0, componentMainSynchronous.get(0).getSynchronousNetworks().getFirst().getNumSC());
     }
 
     @Test
@@ -4315,29 +4325,29 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(2, networks.getList().size());
 
         assertEquals(0, networks.getList().get(0).getNumCC());
-        assertEquals(0, networks.getList().get(0).getNumSC());
+        assertEquals(0, networks.getList().get(0).getSynchronousNetworks().getFirst().getNumSC());
         assertEquals(1, networks.getList().get(1).getNumCC());
-        assertEquals(1, networks.getList().get(1).getNumSC());
+        assertEquals(1, networks.getList().get(1).getSynchronousNetworks().getFirst().getNumSC());
 
         // Main connected component mode should only select component associated to main CC
         List<LfNetwork> componentMainConnected = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.MAIN_CONNECTED);
         assertEquals(1, componentMainConnected.size());
         assertEquals(0, componentMainConnected.get(0).getNumCC());
-        assertEquals(0, componentMainConnected.get(0).getNumSC());
+        assertEquals(0, componentMainConnected.get(0).getSynchronousNetworks().getFirst().getNumSC());
 
         // Main synchronous component mode returns the same because the main CC has one single SC
         List<LfNetwork> componentMainSynchronous = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS);
         assertEquals(1, componentMainSynchronous.size());
         assertEquals(0, componentMainSynchronous.get(0).getNumCC());
-        assertEquals(0, componentMainSynchronous.get(0).getNumSC());
+        assertEquals(0, componentMainSynchronous.get(0).getSynchronousNetworks().getFirst().getNumSC());
 
         // All connected component mode should select all component
         List<LfNetwork> componentAll = AbstractSecurityAnalysis.getNetworksToSimulate(networks, LoadFlowParameters.ComponentMode.ALL_CONNECTED);
         assertEquals(2, componentAll.size());
         assertEquals(0, componentAll.get(0).getNumCC());
-        assertEquals(0, componentAll.get(0).getNumSC());
+        assertEquals(0, componentAll.get(0).getSynchronousNetworks().getFirst().getNumSC());
         assertEquals(1, componentAll.get(1).getNumCC());
-        assertEquals(1, componentAll.get(1).getNumSC());
+        assertEquals(1, componentAll.get(1).getSynchronousNetworks().getFirst().getNumSC());
     }
 
     @Test

@@ -17,12 +17,12 @@ public class ReferenceBusFirstSlackSelector implements ReferenceBusSelector {
     private static final String METHOD_NAME = "First slack";
 
     @Override
-    public SelectedReferenceBus select(LfNetwork lfNetwork) {
-        Objects.requireNonNull(lfNetwork);
-        List<LfBus> slackBuses = lfNetwork.getSlackBuses();
+    public SelectedReferenceBus select(LfSynchronousNetwork lfScNetwork) {
+        Objects.requireNonNull(lfScNetwork);
+        List<LfBus> slackBuses = lfScNetwork.getSlackBuses();
         Objects.requireNonNull(slackBuses);
         if (slackBuses.isEmpty()) {
-            throw new IllegalStateException("No slack bus for network " + lfNetwork);
+            throw new IllegalStateException("No slack bus for network " + lfScNetwork);
         }
         return new SelectedReferenceBus(slackBuses.get(0), METHOD_NAME);
     }
