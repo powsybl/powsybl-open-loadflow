@@ -253,8 +253,6 @@ class GeneratorRemoteControlPQSwitchTest {
                                 + Outer loop iteration 3
                                    Slack bus active power (-21.141636 MW) distributed in 1 distribution iteration(s)
                              Outer loop ReactiveLimits
-                             Outer loop DistributedSlack
-                             Outer loop ReactiveLimits
                              AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                     """;
 
@@ -302,8 +300,6 @@ class GeneratorRemoteControlPQSwitchTest {
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 3
                                    Slack bus active power (-22.091658 MW) distributed in 1 distribution iteration(s)
-                             Outer loop ReactiveLimits
-                             Outer loop DistributedSlack
                              Outer loop ReactiveLimits
                              AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                     """;
@@ -355,8 +351,6 @@ class GeneratorRemoteControlPQSwitchTest {
                                 + Outer loop iteration 3
                                    Slack bus active power (-18.01229 MW) distributed in 1 distribution iteration(s)
                              Outer loop ReactiveLimits
-                             Outer loop DistributedSlack
-                             Outer loop ReactiveLimits
                              AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                     """;
 
@@ -405,8 +399,6 @@ class GeneratorRemoteControlPQSwitchTest {
                              + Outer loop DistributedSlack
                                 + Outer loop iteration 3
                                    Slack bus active power (-17.327551 MW) distributed in 1 distribution iteration(s)
-                             Outer loop ReactiveLimits
-                             Outer loop DistributedSlack
                              Outer loop ReactiveLimits
                              AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                     """;

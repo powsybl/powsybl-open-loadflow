@@ -3988,7 +3988,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // The report should be the same with one or two threads
         // Let's just check the size here
-        assertEquals(7396, reportString.length());
+        assertEquals(7318, reportString.length());
         // Check also that the preCont report is before the postContResults in the second CC
         String expected =
                 """
