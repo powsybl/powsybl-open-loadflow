@@ -16,7 +16,6 @@ import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
-import org.anarres.graphviz.builder.GraphVizGraph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -865,12 +864,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     }
 
     public void writeGraphViz(Writer writer, LoadFlowModel loadFlowModel) {
-        try {
-            GraphVizGraph gvGraph = new GraphVizGraphBuilder(this).build(loadFlowModel);
-            gvGraph.writeTo(writer);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        new GraphVizGraphBuilder(this).write(writer, loadFlowModel);
     }
 
     public String getId() {
