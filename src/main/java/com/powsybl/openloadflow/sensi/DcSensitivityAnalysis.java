@@ -31,7 +31,10 @@ import com.powsybl.openloadflow.dc.fastdc.WoodburyEngine;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.*;
-import com.powsybl.openloadflow.network.impl.*;
+import com.powsybl.openloadflow.network.impl.LfNetworkList;
+import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -164,7 +167,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                               List<ParticipatingElement> participatingElements) {
         Map<LfBus, Double> slackParticipationByBus;
         if (participatingElements.isEmpty()) {
-            slackParticipationByBus = Map.of(loadFlowContext.getNetwork().getSlackBus(), -1d);
+            slackParticipationByBus = Map.of(loadFlowContext.getNetwork().getSynchronousNetworks().getFirst().getSlackBuses().getFirst(), -1d);
         } else {
             slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
                 ParticipatingElement::getLfBus,
@@ -229,6 +232,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         List<ComputedElement> actionElements = actions.stream()
                 .map(actionElementByLfAction::get)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfBranch().getId()))
                 .toList();
@@ -257,9 +261,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     .filter(LfBranch::hasPhaseControllerCapability)
                     .collect(Collectors.toSet());
 
-            // if a phase tap changer is lost, if the connectivity has changed, or if there are PST actions, we must recompute flows
+            // if a phase tap changer is lost, if the connectivity has changed, or if there are PST, generator or load actions, we must recompute load flows
             boolean hasPstActions = actions.stream().anyMatch(AbstractLfTapChangerAction.class::isInstance);
-            if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty() || hasPstActions) {
+            boolean hasGeneratorActions = actions.stream().anyMatch(LfGeneratorAction.class::isInstance);
+            boolean hasLoadActions = actions.stream().anyMatch(LfLoadAction.class::isInstance);
+            if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty() || hasPstActions || hasGeneratorActions || hasLoadActions) {
                 newFlowStates = calculateFlowStates(loadFlowContext, participatingElements, disabledNetwork, actions, reportNode);
             }
 
@@ -336,7 +342,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 if (!branchAction.getDisabledBranches().isEmpty()) {
                     disableBranchIds.addAll(branchAction.getDisabledBranches().stream().map(LfBranch::getId).toList());
                 }
-            } else if (!(action instanceof AbstractLfTapChangerAction<?>)) {
+            } else if (!(action instanceof LfPhaseTapChangerAction) && !(action instanceof LfGeneratorAction) && !(action instanceof LfLoadAction)) {
                 throw new PowsyblException("Unexpected action type: " + action.getClass().getSimpleName());
             }
         }

@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfLoad;
-import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfSynchronousNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
@@ -98,8 +98,8 @@ public final class ActivePowerDistribution {
         return step.getElementType();
     }
 
-    public Result run(LfNetwork network, double activePowerMismatch) {
-        return run(network.getReferenceGenerator(), network.getBuses(), activePowerMismatch);
+    public Result run(LfSynchronousNetwork lfScNetwork, double activePowerMismatch) {
+        return run(lfScNetwork.getReferenceGenerator(), lfScNetwork.getBuses(), activePowerMismatch);
     }
 
     public Result run(LfGenerator referenceGenerator, Collection<LfBus> buses, double activePowerMismatch) {

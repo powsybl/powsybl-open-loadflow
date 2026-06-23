@@ -15,7 +15,9 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
+import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -23,7 +25,13 @@ import java.util.Objects;
 public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public static AcLoadFlowResult createNoCalculationResult(LfNetwork network) {
-        return new AcLoadFlowResult(network, 0, 0, AcSolverStatus.NO_CALCULATION, OuterLoopResult.stable(), Double.NaN, Double.NaN);
+        Map<Integer, Double> emptySlackBusActivePowerMismatch = new TreeMap<>();
+        Map<Integer, Double> emptyDistributedActivePower = new TreeMap<>();
+        network.getSynchronousNetworks().forEach(lfScNetwork -> {
+            emptySlackBusActivePowerMismatch.put(lfScNetwork.getNumSC(), Double.NaN);
+            emptyDistributedActivePower.put(lfScNetwork.getNumSC(), Double.NaN);
+        });
+        return new AcLoadFlowResult(network, 0, 0, AcSolverStatus.NO_CALCULATION, OuterLoopResult.stable(), emptySlackBusActivePowerMismatch, emptyDistributedActivePower);
     }
 
     private final int solverIterations;
@@ -32,7 +40,7 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     public AcLoadFlowResult(LfNetwork network, int outerLoopIterations, int solverIterations,
                             AcSolverStatus solverStatus, OuterLoopResult outerLoopResult,
-                            double slackBusActivePowerMismatch, double distributedActivePower) {
+                            Map<Integer, Double> slackBusActivePowerMismatch, Map<Integer, Double> distributedActivePower) {
         super(network, slackBusActivePowerMismatch, outerLoopIterations, outerLoopResult, distributedActivePower);
         this.solverIterations = solverIterations;
         this.solverStatus = Objects.requireNonNull(solverStatus);
@@ -79,12 +87,17 @@ public class AcLoadFlowResult extends AbstractLoadFlowResult {
 
     @Override
     public String toString() {
+        TreeMap<Integer, Double> slackBusActivePowerMismatchRealUnit = new TreeMap<>(slackBusActivePowerMismatch);
+        slackBusActivePowerMismatchRealUnit.replaceAll((k, v) -> v * PerUnit.SB);
+        TreeMap<Integer, Double> distributedActivePowerRealUnit = new TreeMap<>(distributedActivePower);
+        distributedActivePowerRealUnit.replaceAll((k, v) -> v * PerUnit.SB);
+
         return "AcLoadFlowResult(outerLoopIterations=" + outerLoopIterations
                 + ", solverIterations=" + solverIterations
                 + ", solverStatus=" + solverStatus
                 + ", outerLoopStatus=" + outerLoopResult.status()
-                + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch * PerUnit.SB
-                + ", distributedActivePower=" + distributedActivePower * PerUnit.SB
+                + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatchRealUnit
+                + ", distributedActivePower=" + distributedActivePowerRealUnit
                 + ")";
     }
 }

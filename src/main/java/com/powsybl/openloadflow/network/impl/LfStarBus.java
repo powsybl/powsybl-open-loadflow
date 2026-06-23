@@ -24,8 +24,8 @@ public class LfStarBus extends AbstractLfBus {
 
     private final double nominalV;
 
-    public LfStarBus(LfNetwork network, ThreeWindingsTransformer t3wt, LfNetworkParameters parameters) {
-        super(network, Networks.getPropertyV(t3wt), Math.toRadians(Networks.getPropertyAngle(t3wt)), parameters);
+    public LfStarBus(LfNetwork network, ThreeWindingsTransformer t3wt, int numSC, LfNetworkParameters parameters) {
+        super(network, Networks.getPropertyV(t3wt), Math.toRadians(Networks.getPropertyAngle(t3wt)), numSC, parameters);
         this.t3wtRef = Ref.create(t3wt, parameters.isCacheEnabled());
         nominalV = t3wt.getRatedU0();
     }
