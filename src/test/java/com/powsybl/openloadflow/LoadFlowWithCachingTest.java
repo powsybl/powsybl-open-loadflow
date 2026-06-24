@@ -339,6 +339,17 @@ class LoadFlowWithCachingTest {
     }
 
     @Test
+    void testBoundaryLinePaired() {
+        Network network = BoundaryFactory.createWithTieLine();
+        BoundaryLine boundaryLine = network.getBoundaryLine("h1");
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        boundaryLine.setP0(90); // unsupported change because boundary line is paired
+        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+    }
+
+    @Test
     void testParameterChange() {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
 
@@ -575,9 +586,9 @@ class LoadFlowWithCachingTest {
     @ValueSource(booleans = {false, true})
     void testSwitchOpen(boolean isDc) {
         parameters.setDc(isDc);
-        var network = NodeBreakerNetworkFactory.create();
-        var l1 = network.getLine("L1");
-        var l2 = network.getLine("L2");
+        Network network = NodeBreakerNetworkFactory.create();
+        Line l1 = network.getLine("L1");
+        Line l2 = network.getLine("L2");
 
         parametersExt.setActionableSwitchesIds(Set.of("C"));
 
@@ -604,9 +615,9 @@ class LoadFlowWithCachingTest {
 
     @Test
     void testSwitchClose() {
-        var network = NodeBreakerNetworkFactory.create();
-        var l1 = network.getLine("L1");
-        var l2 = network.getLine("L2");
+        Network network = NodeBreakerNetworkFactory.create();
+        Line l1 = network.getLine("L1");
+        Line l2 = network.getLine("L2");
 
         parametersExt.setActionableSwitchesIds(Set.of("C"));
 
@@ -638,9 +649,9 @@ class LoadFlowWithCachingTest {
     @ValueSource(booleans = {false, true})
     void testSwitchOpenWithLostElements(boolean isDc) {
         parameters.setDc(isDc);
-        var network = NodeBreakerNetworkFactory.createWith4Bars();
-        var l1 = network.getLine("L1");
-        var l2 = network.getLine("L2");
+        Network network = NodeBreakerNetworkFactory.createWith4Bars();
+        Line l1 = network.getLine("L1");
+        Line l2 = network.getLine("L2");
 
         parametersExt.setSlackBusPMaxMismatch(0.0001)
                 .setNewtonRaphsonConvEpsPerEq(0.0001)
