@@ -18,7 +18,10 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BusResult;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -51,7 +54,7 @@ public class LfBusImpl extends AbstractLfBus {
 
     protected LfBusImpl(Bus bus, LfNetwork network, double v, double angle, LfNetworkParameters parameters,
                         boolean participating) {
-        super(network, v, angle, parameters);
+        super(network, v, angle, bus.getSynchronousComponent().getNum(), parameters);
         this.busRef = Ref.create(bus, parameters.isCacheEnabled());
         nominalV = bus.getVoltageLevel().getNominalV();
         lowVoltageLimit = bus.getVoltageLevel().getLowVoltageLimit();
@@ -141,7 +144,10 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         var bus = getBus();
-        bus.setV(Math.max(v, 0.0)).setAngle(Math.toDegrees(angle));
+        if (!parameters.isDc()) {
+            bus.setV(Math.max(v, 0.0));
+        }
+        bus.setAngle(Math.toDegrees(angle));
 
         // update slack bus
         if (slack && parameters.isWriteSlackBus()) {

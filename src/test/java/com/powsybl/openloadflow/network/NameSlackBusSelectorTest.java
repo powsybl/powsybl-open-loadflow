@@ -33,19 +33,19 @@ class NameSlackBusSelectorTest {
     void test() {
         List<LfNetwork> lfNetworks = Networks.load(network, new NameSlackBusSelector("VLGEN_0"));
         LfNetwork lfNetwork = lfNetworks.get(0);
-        assertEquals("VLGEN_0", lfNetwork.getSlackBus().getId());
+        assertEquals("VLGEN_0", lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst().getId());
 
         lfNetworks = Networks.load(network, new NameSlackBusSelector("VLLOAD_0"));
         lfNetwork = lfNetworks.get(0);
 
-        assertEquals("VLLOAD_0", lfNetwork.getSlackBus().getId());
+        assertEquals("VLLOAD_0", lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst().getId());
     }
 
     @Test
     void voltageLevelIdTest() {
         List<LfNetwork> lfNetworks = Networks.load(network, new NameSlackBusSelector("VLGEN"));
         LfNetwork lfNetwork = lfNetworks.get(0);
-        assertEquals("VLGEN_0", lfNetwork.getSlackBus().getId());
+        assertEquals("VLGEN_0", lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst().getId());
 
         // test with multiple buses
         var vlgen = network.getVoltageLevel("VLGEN");
@@ -70,6 +70,6 @@ class NameSlackBusSelectorTest {
                 .setBreakers(true);
         lfNetworks = Networks.load(network, parameters);
         lfNetwork = lfNetworks.get(0);
-        assertEquals("NGEN", lfNetwork.getSlackBus().getId());
+        assertEquals("NGEN", lfNetwork.getSynchronousNetworks().get(0).getSlackBuses().get(0).getId());
     }
 }

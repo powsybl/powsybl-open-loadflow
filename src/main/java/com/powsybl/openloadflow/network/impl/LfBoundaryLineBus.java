@@ -24,8 +24,8 @@ public class LfBoundaryLineBus extends AbstractLfBus {
 
     private final double nominalV;
 
-    public LfBoundaryLineBus(LfNetwork network, BoundaryLine boundaryLine, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        super(network, Networks.getPropertyV(boundaryLine), Math.toRadians(Networks.getPropertyAngle(boundaryLine)), parameters);
+    public LfBoundaryLineBus(LfNetwork network, BoundaryLine boundaryLine, int numSC, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
+        super(network, Networks.getPropertyV(boundaryLine), Math.toRadians(Networks.getPropertyAngle(boundaryLine)), numSC, parameters);
         this.distributedOnConformLoad = false; // AbstractLfBus sets by default distributedOnConformLoad = true, we set it to false for LfBoundaryLineBus
         this.boundaryLineRef = Ref.create(boundaryLine, parameters.isCacheEnabled());
         nominalV = boundaryLine.getTerminal().getVoltageLevel().getNominalV();
