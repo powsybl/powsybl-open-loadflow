@@ -231,11 +231,42 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
         // solve system
         DenseMatrix factorsStates = initFactorsRhs(context.getEquationSystem(), factorGroups, participationByBus); // this is the rhs for the moment
+        fillSvcPilotFactorsRhs(factorGroups, factorsStates, context);
         context.getJacobianMatrix().solveTransposed(factorsStates);
         setFunctionReferences(lfFactors);
 
         // calculate sensitivity values
         calculateSensitivityValues(lfFactors, factorGroups, factorsStates, contingencyIndex, resultWriter);
+    }
+
+    /**
+     * Fills the RHS columns for SVC_PILOT_TARGET_VOLTAGE factor groups: for each
+     * such group, the RHS becomes a linear combination of the controlled buses'
+     * BUS_TARGET_V columns, weighted by the closed-loop coordination coefficients
+     * (see {@link SvcPilotPointClosedLoopSensitivity}).  Other factor groups are untouched.
+     */
+    private static void fillSvcPilotFactorsRhs(
+            SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups,
+            DenseMatrix factorsStates,
+            AcLoadFlowContext context) {
+        Map<LfBus, Map<LfBus, Double>> weightsByPilot = new HashMap<>();
+        for (SensitivityFactorGroup<AcVariableType, AcEquationType> group : factorGroups.getList()) {
+            LfSensitivityFactor<AcVariableType, AcEquationType> probe = group.getFactors().isEmpty() ? null : group.getFactors().get(0);
+            if (probe == null || probe.getVariableType() != SensitivityVariableType.SVC_PILOT_POINT_TARGET_VOLTAGE) {
+                continue;
+            }
+            LfBus pilotBus = (LfBus) ((SingleVariableLfSensitivityFactor<AcVariableType, AcEquationType>) probe).getVariableElement();
+            Map<LfBus, Double> weights = weightsByPilot.computeIfAbsent(pilotBus, pb ->
+                    SvcPilotPointClosedLoopSensitivity.computeControlledBusWeights(pb, context));
+            int col = group.getIndex();
+            for (var entry : weights.entrySet()) {
+                LfBus controlled = entry.getKey();
+                double w = entry.getValue();
+                context.getEquationSystem()
+                        .getEquation(controlled.getNum(), AcEquationType.BUS_TARGET_V)
+                        .ifPresent(eq -> factorsStates.set(eq.getColumn(), col, w));
+            }
+        }
     }
 
     private static boolean runLoadFlow(AcLoadFlowContext context, boolean isRunningBaseSituation) {
@@ -346,6 +377,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .setMinPlausibleTargetVoltage(lfParametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage())
                 .setMinNominalVoltageTargetVoltageCheck(lfParametersExt.getMinNominalVoltageTargetVoltageCheck())
+                .setSecondaryVoltageControl(lfParametersExt.isSecondaryVoltageControl()) // load SVC zones for SVC_PILOT sensitivity
                 .setCacheEnabled(false) // force not caching as not supported in sensi analysis
                 .setSimulateAutomationSystems(false)
                 .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR) // not supported yet
@@ -445,6 +477,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
             // initialize right hand side from valid factors
             DenseMatrix factorsStates = initFactorsRhs(context.getEquationSystem(), factorGroups, slackParticipationByBus); // this is the rhs for the moment
+            fillSvcPilotFactorsRhs(factorGroups, factorsStates, context);
 
             // solve system
             context.getJacobianMatrix().solveTransposed(factorsStates);
