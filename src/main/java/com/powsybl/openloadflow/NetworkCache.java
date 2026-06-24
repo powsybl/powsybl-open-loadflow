@@ -697,32 +697,30 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                      "q3" -> result = CacheUpdateResult.ignoreUpdate(); // ignore because it is related to state update and won't affect LF calculation
                 default -> {
                     if (identifiable.getType() == IdentifiableType.GENERATOR) {
+                        // supports attribute: "targetV" or "targetP"
                         Generator generator = (Generator) identifiable;
-                        if (attribute.equals("targetV") || attribute.equals("targetP")) {
-                            result = onGeneratorUpdate(generator, attribute, oldValue, newValue);
-                        }
+                        result = onGeneratorUpdate(generator, attribute, oldValue, newValue);
                     } else if (identifiable.getType() == IdentifiableType.BATTERY) {
+                        // supports attribute: "targetP"
                         Battery battery = (Battery) identifiable;
-                        if (attribute.equals("targetP")) {
-                            result = onBatteryUpdate(battery, attribute, oldValue, newValue);
-                        }
+                        result = onBatteryUpdate(battery, attribute, oldValue, newValue);
                     } else if (identifiable.getType() == IdentifiableType.LOAD) {
+                        // supports attribute: "p0"
                         Load load = (Load) identifiable;
-                        if (attribute.equals("p0")) {
-                            result = onLoadUpdate(load, attribute, oldValue, newValue);
-                        }
+                        result = onLoadUpdate(load, attribute, oldValue, newValue);
                     } else if (identifiable.getType() == IdentifiableType.BOUNDARY_LINE) {
+                        // supports attribute: "p0"
                         BoundaryLine boundaryLine = (BoundaryLine) identifiable;
-                        if (attribute.equals("p0")) {
-                            result = onBoundaryLineUpdate(boundaryLine, attribute, oldValue, newValue);
-                        }
+                        result = onBoundaryLineUpdate(boundaryLine, attribute, oldValue, newValue);
                     } else if (identifiable.getType() == IdentifiableType.SHUNT_COMPENSATOR) {
+                        // supports attribute: "sectionCount"
                         ShuntCompensator shunt = (ShuntCompensator) identifiable;
-                        if (attribute.equals("sectionCount")) {
-                            result = onShuntUpdate(shunt, attribute);
-                        }
-                    } else if (identifiable.getType() == IdentifiableType.SWITCH
-                            && attribute.equals("open")) {
+                        result = onShuntUpdate(shunt, attribute);
+                    } else if (identifiable.getType() == IdentifiableType.HVDC_LINE) {
+                        // supports attribute: "activePowerSetpoint"
+                        HvdcLine hvdcLine = (HvdcLine) identifiable;
+                        result = onHvdcLineUpdate(hvdcLine, attribute, oldValue, newValue);
+                    } else if (identifiable.getType() == IdentifiableType.SWITCH && attribute.equals("open")) {
                         result = onSwitchUpdate(identifiable.getId(), (boolean) newValue);
                     } else if (identifiable.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER) {
                         if (attribute.equals("ratioTapChanger.regulationValue")) {
@@ -739,11 +737,6 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                                 result = onTransformerTapPositionUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (int) newValue);
                                 break;
                             }
-                        }
-                    } else if (identifiable.getType() == IdentifiableType.HVDC_LINE) {
-                        HvdcLine hvdcLine = (HvdcLine) identifiable;
-                        if (attribute.equals("activePowerSetpoint")) {
-                            result = onHvdcLineUpdate(hvdcLine, attribute, oldValue, newValue);
                         }
                     }
                 }
