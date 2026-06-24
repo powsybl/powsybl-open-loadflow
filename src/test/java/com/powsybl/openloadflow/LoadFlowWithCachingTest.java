@@ -22,11 +22,14 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.stream.Stream;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -243,67 +246,100 @@ class LoadFlowWithCachingTest {
         assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because of Load detail
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void testLccActivePowerSetpoint(boolean isDc) {
+    static Stream<Arguments> allModelAndHVDCSides() {
+        return Stream.of(
+                Arguments.of(true, true),
+                Arguments.of(true, false),
+                Arguments.of(false, true),
+                Arguments.of(false, false)
+        );
+    }
+
+    static void exchangeHvdcLineSides(Network network) {
+        network.getHvdcLine("hvdc23").remove();
+        network.newHvdcLine()
+                .setId("hvdc23")
+                .setConverterStationId1("cs3")
+                .setConverterStationId2("cs2")
+                .setNominalV(400)
+                .setR(0.1)
+                .setActivePowerSetpoint(50)
+                .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
+                .setMaxP(500)
+                .add();
+    }
+
+    @ParameterizedTest(name = "isDc : {0}, fromCs3toCs2 : {1}")
+    @MethodSource("allModelAndHVDCSides")
+    void testLccActivePowerSetpoint(boolean isDc, boolean fromCs3toCs2) {
         parameters.setDc(isDc);
         parametersExt.setMaxActivePowerMismatch(0.001) // finer tolerance because network cache can lead to slightly different active power distribution
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         Network network = HvdcNetworkFactory.createLcc();
+        if (fromCs3toCs2) { // Inverting to cover both modes SIDE_1_RECTIFIER_SIDE_2_INVERTER and SIDE_1_INVERTER_SIDE_2_RECTIFIER
+            exchangeHvdcLineSides(network);
+        }
         HvdcLine hvdcLine = network.getHvdcLine("hvdc23");
         Line line = network.getLine("l12");
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(isDc ? 0 : 3, result.getComponentResults().get(0).getIterationCount());
-        assertActivePowerEquals(50.0, hvdcLine.getConverterStation1().getTerminal());
-        assertActivePowerEquals(-49.399, hvdcLine.getConverterStation2().getTerminal());
+        var rectifier = fromCs3toCs2 ? hvdcLine.getConverterStation2() : hvdcLine.getConverterStation1();
+        var inverter = fromCs3toCs2 ? hvdcLine.getConverterStation1() : hvdcLine.getConverterStation2();
+        assertActivePowerEquals(50.0, rectifier.getTerminal());
+        assertActivePowerEquals(-49.399, inverter.getTerminal());
         assertActivePowerEquals(-100, line.getTerminal2());
 
         hvdcLine.setActivePowerSetpoint(30);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(isDc ? 0 : 3, result.getComponentResults().get(0).getIterationCount());
-        assertActivePowerEquals(30.0, hvdcLine.getConverterStation1().getTerminal());
-        assertActivePowerEquals(-29.639, hvdcLine.getConverterStation2().getTerminal());
+        assertActivePowerEquals(30.0, rectifier.getTerminal());
+        assertActivePowerEquals(-29.639, inverter.getTerminal());
         assertActivePowerEquals(50, network.getLoad("ld2").getTerminal());
         assertActivePowerEquals(isDc ? -80 : -80.049, network.getGenerator("g1").getTerminal());
         assertReactivePowerEquals(isDc ? 0 : -32.647, network.getGenerator("g1").getTerminal());
 
         // test unsupported update
-        hvdcLine.setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER);
+        hvdcLine.setConvertersMode(fromCs3toCs2 ? HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER : HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER);
         assertNull(findEntryFunction.apply(network, isDc).getValues());
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void testVscActivePowerSetpoint(boolean isDc) {
+    @ParameterizedTest(name = "isDc : {0}, fromCs3toCs2 : {1}")
+    @MethodSource("allModelAndHVDCSides")
+    void testVscActivePowerSetpoint(boolean isDc, boolean fromCs3toCs2) {
         parameters.setDc(isDc);
         parametersExt.setMaxActivePowerMismatch(0.001) // finer tolerance because network cache can lead to slightly different active power distribution
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA);
         Network network = HvdcNetworkFactory.createVsc(true);
+        if (fromCs3toCs2) { // Inverting to cover both modes SIDE_1_RECTIFIER_SIDE_2_INVERTER and SIDE_1_INVERTER_SIDE_2_RECTIFIER
+            exchangeHvdcLineSides(network);
+        }
         network.getGenerator("g3").setMaxP(20);
         HvdcLine hvdcLine = network.getHvdcLine("hvdc23");
         Line line = network.getLine("l12");
         var result = loadFlowRunner.run(network, parameters);
+        var rectifier = fromCs3toCs2 ? hvdcLine.getConverterStation2() : hvdcLine.getConverterStation1();
+        var inverter = fromCs3toCs2 ? hvdcLine.getConverterStation1() : hvdcLine.getConverterStation2();
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(isDc ? 0 : 2, result.getComponentResults().get(0).getIterationCount());
-        assertActivePowerEquals(50.0, hvdcLine.getConverterStation1().getTerminal());
-        assertActivePowerEquals(-49.349, hvdcLine.getConverterStation2().getTerminal());
+        assertActivePowerEquals(50.0, rectifier.getTerminal());
+        assertActivePowerEquals(-49.349, inverter.getTerminal());
         assertActivePowerEquals(-100, line.getTerminal2());
 
         hvdcLine.setActivePowerSetpoint(40);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(isDc ? 0 : 2, result.getComponentResults().get(0).getIterationCount());
-        assertActivePowerEquals(40.0, hvdcLine.getConverterStation1().getTerminal());
-        assertActivePowerEquals(-39.479, hvdcLine.getConverterStation2().getTerminal());
+        assertActivePowerEquals(40.0, rectifier.getTerminal());
+        assertActivePowerEquals(-39.479, inverter.getTerminal());
         assertActivePowerEquals(50, network.getLoad("ld2").getTerminal());
         assertActivePowerEquals(isDc ? -90 : -92.578, network.getGenerator("g1").getTerminal());
 
         // test unsupported update
-        hvdcLine.setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER);
+        hvdcLine.setConvertersMode(fromCs3toCs2 ? HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER : HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER);
         assertNull(findEntryFunction.apply(network, isDc).getValues());
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
