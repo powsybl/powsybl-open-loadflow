@@ -576,9 +576,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                     hvdcLine.getConverterStation1() : hvdcLine.getConverterStation2());
             LccConverterStation inverter = (LccConverterStation) (hvdcLine.getConvertersMode().equals(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER) ?
                     hvdcLine.getConverterStation2() : hvdcLine.getConverterStation1());
-            if (HvdcConverterStations.isHvdcDanglingInIidm(rectifier) || HvdcConverterStations.isHvdcDanglingInIidm(inverter)) {
-                return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(hvdcLine, attribute));
-            }
+
             // First updating rectifier station
             double oldRectifierTargetP = (double) oldValue;
             double oldRectifierTargetQ = HvdcConverterStations.getLccConverterStationLoadTargetQ(oldRectifierTargetP, rectifier.getPowerFactor());
@@ -621,9 +619,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                     hvdcLine.getConverterStation1() : hvdcLine.getConverterStation2());
             VscConverterStation inverter = (VscConverterStation) (hvdcLine.getConvertersMode().equals(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER) ?
                     hvdcLine.getConverterStation2() : hvdcLine.getConverterStation1());
-            if (HvdcConverterStations.isHvdcDanglingInIidm(rectifier) || HvdcConverterStations.isHvdcDanglingInIidm(inverter)) {
-                return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(hvdcLine, attribute));
-            }
+
             // First updating rectifier station
             double oldRectifierTargetP = -(double) oldValue;
             double newRectifierTargetP = -(double) newValue;

@@ -603,6 +603,11 @@ class LoadFlowWithCachingTest {
         loadFlowRunner.run(network, parameters);
         assertActivePowerEquals(0, shunt.getTerminal());
         assertReactivePowerEquals(-152.826, shunt.getTerminal());
+
+        // Unsupported change
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // cache has not been invalidated but updated
+        shunt.setTargetV(392);
+        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // cache has been invalidated but updated
     }
 
     @Test
