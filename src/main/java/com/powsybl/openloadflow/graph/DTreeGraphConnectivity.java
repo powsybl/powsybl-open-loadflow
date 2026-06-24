@@ -208,6 +208,8 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     public static final class Graph<V, E> implements GraphModel<V, E> {
 
+        public static boolean DEBUG = false;
+
         private final Map<V, DTNode> vertexToTreeNode = new HashMap<>();
         private final Map<E, Edge<V>> edges = new HashMap<>();
 
@@ -251,7 +253,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
             edges.put(e, new Edge<>(u, v, treeEdge));
 
-            // checkEdges();
+            check();
         }
 
         private boolean insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, E edge) {
@@ -324,7 +326,16 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 removeNonTreeEdge(nodeU, nodeV, e);
             }
 
-            // checkEdges();
+            check();
+        }
+
+        private void check() {
+            if (!DEBUG) {
+                return;
+            }
+
+            checkEdges();
+            checkParentChildRelation();
         }
 
         private void checkEdges() {
@@ -346,6 +357,29 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 } else {
                     assert src.nonTreeEdges.contains(e);
                     assert dest.nonTreeEdges.contains(e);
+                }
+            }
+        }
+
+        private void checkParentChildRelation() {
+            for (DTNode node : vertexToTreeNode.values()) {
+                DTNode child = node.firstChild;
+
+                while (child != null) {
+                    assert child.parent == node;
+                    child = child.nextSibling;
+                }
+
+                if (node.parent != null) {
+                    DTNode parentChild = node.parent.firstChild;
+                    boolean present = false;
+
+                    while (parentChild != null && !present) {
+                        present = parentChild == node;
+                        parentChild = parentChild.nextSibling;
+                    }
+
+                    assert present;
                 }
             }
         }
@@ -830,7 +864,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         }
 
         public V opposite(V vertex) {
-            if (u == vertex) {
+            if (u.equals(vertex)) {
                 return v;
             } else {
                 return u;
