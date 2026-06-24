@@ -246,7 +246,7 @@ class LoadFlowWithCachingTest {
         assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because of Load detail
     }
 
-    static Stream<Arguments> allModelAndHVDCSides() {
+    static Stream<Arguments> allModelAndHvdcSides() {
         return Stream.of(
                 Arguments.of(true, true),
                 Arguments.of(true, false),
@@ -270,7 +270,7 @@ class LoadFlowWithCachingTest {
     }
 
     @ParameterizedTest(name = "isDc : {0}, fromCs3toCs2 : {1}")
-    @MethodSource("allModelAndHVDCSides")
+    @MethodSource("allModelAndHvdcSides")
     void testLccActivePowerSetpoint(boolean isDc, boolean fromCs3toCs2) {
         parameters.setDc(isDc);
         parametersExt.setMaxActivePowerMismatch(0.001) // finer tolerance because network cache can lead to slightly different active power distribution
@@ -308,7 +308,7 @@ class LoadFlowWithCachingTest {
     }
 
     @ParameterizedTest(name = "isDc : {0}, fromCs3toCs2 : {1}")
-    @MethodSource("allModelAndHVDCSides")
+    @MethodSource("allModelAndHvdcSides")
     void testVscActivePowerSetpoint(boolean isDc, boolean fromCs3toCs2) {
         parameters.setDc(isDc);
         parametersExt.setMaxActivePowerMismatch(0.001) // finer tolerance because network cache can lead to slightly different active power distribution
