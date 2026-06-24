@@ -473,8 +473,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                         LOGGER.info("Load {} has a LoadDetail extension: not supported", load.getId());
                         return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(load, attribute));
                     }
-                    if (input.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
-                            || input.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD
+                    if ((input.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
+                            || input.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                             && input.getLoadFlowParameters().isDistributedSlack()) {
                         LOGGER.info("Load active power distribution is enabled: not supported");
                         return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(load, attribute));

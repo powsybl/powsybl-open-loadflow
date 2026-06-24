@@ -207,14 +207,21 @@ class LoadFlowWithCachingTest {
         load.setP0(620);
         assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because of PROPORTIONAL_TO_LOAD mode
 
+        parameters.setDistributedSlack(false);
+        loadFlowRunner.run(network, parameters);
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
+        load.setP0(610);
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues()); // cache is not invalidated (even if PROPORTIONAL_TO_LOAD) because slack distribution is disabled
+
         load.newExtension(LoadDetailAdder.class)
                 .withVariableActivePower(40)
                 .withFixedActivePower(20)
                 .add();
-        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        parameters.setDistributedSlack(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         loadFlowRunner.run(network, parameters);
         assertNotNull(findEntryFunction.apply(network, isDc).getValues());
-        load.setP0(35);
+        load.setP0(620);
         assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because of Load detail
     }
 
