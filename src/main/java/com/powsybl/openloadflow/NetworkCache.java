@@ -589,6 +589,9 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 updateLfLoadTargetQ(rectifier.getId(), oldRectifierTargetQ, newRectifierTargetQ, value, lfBus);
                 return CacheUpdateResult.elementUpdated(value);
             });
+            if (!result1.status.equals(CacheUpdateStatus.ELEMENT_UPDATED)) {
+                return result1;
+            }
 
             // Then updating inverter station
             double oldInverterTargetP = -HvdcConverterStations.getAbsoluteValueInverterPAc(oldRectifierTargetP, rectifier.getLossFactor(), inverter.getLossFactor(), hvdcLine);
@@ -600,12 +603,12 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 updateLfLoadTargetQ(inverter.getId(), oldInverterTargetQ, newInverterTargetQ, value, lfBus);
                 return CacheUpdateResult.elementUpdated(value);
             });
+            if (!result2.status.equals(CacheUpdateStatus.ELEMENT_UPDATED)) {
+                return result2;
+            }
 
             // Merging two values (that can be in two different LfNetworks) in one CacheUpdateResult
-            if (result1.status.equals(CacheUpdateStatus.ELEMENT_UPDATED) && result2.status.equals(CacheUpdateStatus.ELEMENT_UPDATED)) {
-                return CacheUpdateResult.multipleElementsUpdated(Set.of(result1.values.iterator().next(), result2.values.iterator().next()));
-            }
-            return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(hvdcLine, attribute));
+            return CacheUpdateResult.multipleElementsUpdated(Set.of(result1.values.iterator().next(), result2.values.iterator().next()));
         }
 
         private CacheUpdateResult<V> onHvdcLineWithVscActiveSetpointUpdate(HvdcLine hvdcLine, String attribute, Object oldValue, Object newValue) {
