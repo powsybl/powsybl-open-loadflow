@@ -571,7 +571,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             return CacheUpdateResult.elementNotFound();
         }
 
-        private CacheUpdateResult<V> onHvdcLineWithLccActiveSetpointUpdate(HvdcLine hvdcLine, String attribute, Object oldValue, Object newValue) {
+        private CacheUpdateResult<V> onHvdcLineWithLccActiveSetpointUpdate(HvdcLine hvdcLine, Object oldValue, Object newValue) {
             LccConverterStation rectifier = (LccConverterStation) (hvdcLine.getConvertersMode().equals(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER) ?
                     hvdcLine.getConverterStation1() : hvdcLine.getConverterStation2());
             LccConverterStation inverter = (LccConverterStation) (hvdcLine.getConvertersMode().equals(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER) ?
@@ -609,7 +609,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             return CacheUpdateResult.multipleElementsUpdated(Set.of(result1.values.iterator().next(), result2.values.iterator().next()));
         }
 
-        private CacheUpdateResult<V> onHvdcLineWithVscActiveSetpointUpdate(HvdcLine hvdcLine, Object oldValue, Object newValue) {
+        private CacheUpdateResult<V> onHvdcLineWithVscActiveSetpointUpdate(HvdcLine hvdcLine, String attribute, Object oldValue, Object newValue) {
             HvdcAngleDroopActivePowerControl droopControl = hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class);
             if (droopControl != null && droopControl.isEnabled() && input.getLoadFlowParameters().isHvdcAcEmulation()) {
                 LOGGER.info("HVDC {} is in AC emulation mode: not supported", hvdcLine.getId());
@@ -649,7 +649,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         private CacheUpdateResult<V> onHvdcLineUpdate(HvdcLine hvdcLine, String attribute, Object oldValue, Object newValue) {
             if (attribute.equals("activePowerSetpoint")) {
                 if (hvdcLine.getConverterStation1().getHvdcType().equals(HvdcConverterStation.HvdcType.LCC)) {
-                    return onHvdcLineWithLccActiveSetpointUpdate(hvdcLine, attribute, oldValue, newValue);
+                    return onHvdcLineWithLccActiveSetpointUpdate(hvdcLine, oldValue, newValue);
                 } else if (hvdcLine.getConverterStation1().getHvdcType().equals(HvdcConverterStation.HvdcType.VSC)) {
                     return onHvdcLineWithVscActiveSetpointUpdate(hvdcLine, attribute, oldValue, newValue);
                 }
