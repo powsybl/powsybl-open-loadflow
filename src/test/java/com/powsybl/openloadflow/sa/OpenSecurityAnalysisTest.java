@@ -212,9 +212,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(2, postContingencyLimitViolations.size());
         assertEquals(TwoSides.ONE, postContingencyLimitViolations.getFirst().getSideAsTwoSides());
         assertEquals("40'", postContingencyLimitViolations.getFirst().getLimitName());
+        assertEquals(30, postContingencyLimitViolations.getFirst().getAcceptableDuration()); // higher limit is 0.5'
         assertEquals(1008.9, postContingencyLimitViolations.getFirst().getValue(), LoadFlowAssert.DELTA_I);
         assertEquals(TwoSides.TWO, postContingencyLimitViolations.get(1).getSideAsTwoSides());
         assertEquals("10'", postContingencyLimitViolations.get(1).getLimitName());
+        assertEquals(0, postContingencyLimitViolations.get(1).getAcceptableDuration()); // no higher limit
         assertEquals(1047.8, postContingencyLimitViolations.get(1).getValue(), LoadFlowAssert.DELTA_I);
 
         List<LimitReduction> limitReductions = List.of(LimitReduction.builder(LimitType.CURRENT, 1.5)
@@ -244,9 +246,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(2, postContingencyLimitViolations.size());
         assertEquals(TwoSides.ONE, postContingencyLimitViolations.getFirst().getSideAsTwoSides());
         assertEquals("permanent", postContingencyLimitViolations.getFirst().getLimitName());
+        assertEquals(2400, postContingencyLimitViolations.getFirst().getAcceptableDuration()); // higher limit is 40'
         assertEquals(1008.9, postContingencyLimitViolations.getFirst().getValue(), LoadFlowAssert.DELTA_I);
         assertEquals(TwoSides.TWO, postContingencyLimitViolations.get(1).getSideAsTwoSides());
         assertEquals("permanent", postContingencyLimitViolations.get(1).getLimitName());
+        assertEquals(600, postContingencyLimitViolations.get(1).getAcceptableDuration()); // higher limit is 10'
         assertEquals(1047.8, postContingencyLimitViolations.get(1).getValue(), LoadFlowAssert.DELTA_I);
     }
 
@@ -288,9 +292,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(2, postContingencyLimitViolations.size());
         assertEquals(TwoSides.ONE, postContingencyLimitViolations.getFirst().getSideAsTwoSides());
         assertEquals("0.5'", postContingencyLimitViolations.getFirst().getLimitName());
+        assertEquals(0, postContingencyLimitViolations.getFirst().getAcceptableDuration()); // no higher limit
         assertEquals(1008.9, postContingencyLimitViolations.getFirst().getValue(), LoadFlowAssert.DELTA_I);
         assertEquals(TwoSides.TWO, postContingencyLimitViolations.get(1).getSideAsTwoSides());
         assertEquals("10'", postContingencyLimitViolations.get(1).getLimitName());
+        assertEquals(0, postContingencyLimitViolations.get(1).getAcceptableDuration()); // no higher limit
         assertEquals(1047.8, postContingencyLimitViolations.get(1).getValue(), LoadFlowAssert.DELTA_I);
     }
 
