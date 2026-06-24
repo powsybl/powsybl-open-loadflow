@@ -2353,7 +2353,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *  |                                                    |
      *  |--------------l12-----------------------------------|
      * </pre>
-     * @param id: Name of the network test case
+     *
+     * @param id:        Name of the network test case
      * @param swapOrder1 : Whether converter conv1 DC nodes should be DC1 and DC2 or DC2 and DC1
      * @param swapOrder2 : Whether converter conv2 DC nodes should be DC2 and DC3 or DC3 and DC2
      * @param swapOrder3 : Whether converter conv3 DC nodes should be DC1 and DC2 or DC2 and DC1
