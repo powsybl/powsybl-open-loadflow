@@ -45,10 +45,12 @@ public final class Actions {
 
         // verify there is no other action than pst tap change, switching, generator or load action
         actions.stream()
-                .filter(action -> !(action instanceof PhaseTapChangerTapPositionAction || action instanceof TerminalsConnectionAction || action instanceof SwitchAction || action instanceof GeneratorAction || action instanceof LoadAction))
+                .filter(action -> !(action instanceof PhaseTapChangerTapPositionAction || action instanceof TerminalsConnectionAction
+                    || action instanceof SwitchAction || action instanceof GeneratorAction || action instanceof LoadAction))
                 .findAny()
                 .ifPresent(e -> {
-                    throw new IllegalStateException("For now, only PhaseTapChangerTapPositionAction, TerminalsConnectionAction, SwitchAction, GeneratorAction and LoadAction are allowed in fast DC Security Analysis: " + e.getClass().getSimpleName());
+                    throw new IllegalStateException("For now, only PhaseTapChangerTapPositionAction, TerminalsConnectionAction, SwitchAction, " +
+                        "GeneratorAction and LoadAction are allowed in fast DC Security Analysis: " + e.getClass().getSimpleName());
                 });
     }
 

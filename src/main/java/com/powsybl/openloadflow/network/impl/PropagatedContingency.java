@@ -399,7 +399,9 @@ public class PropagatedContingency {
         return hvdcsWithoutFlow;
     }
 
-    private static ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, String contingencyId, Map<LfBranch, DisabledBranchStatus> branchesToOpen, boolean relocateSlackBus) {
+    private static ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, String contingencyId,
+                                                                                                           Map<LfBranch, DisabledBranchStatus> branchesToOpen,
+                                                                                                           boolean relocateSlackBus) {
         // update connectivity with triggered branches of this network
         // note that this will define the main component as the one containing the first slack bus
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();

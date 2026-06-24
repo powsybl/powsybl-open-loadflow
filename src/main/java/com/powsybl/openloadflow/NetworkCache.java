@@ -415,33 +415,36 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
 
         private CacheUpdateResult<V> onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue) {
-            return onInjectionUpdate(generator, (value, lfBus) -> {
-                if (attribute.equals("targetV")) {
-                    double valueShift = (double) newValue - (double) oldValue;
-                    GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
-                    double nominalV = voltageControl.getControlledBus().getNominalV();
-                    double newTargetV = voltageControl.getTargetValue() + valueShift / nominalV;
-                    LfNetworkParameters networkParameters = value.getNetworkParameters();
-                    if (AbstractLfGenerator.checkTargetV(generator.getId(), newTargetV, nominalV, networkParameters, null)) {
-                        voltageControl.setTargetValue(newTargetV);
-                    } else {
-                        value.getNetwork().getGeneratorById(generator.getId()).setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
-                        if (lfBus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
-                            lfBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(false);
-                        }
+            return onInjectionUpdate(generator, (value, lfBus) -> onGeneratorUpdate(generator, attribute, oldValue, newValue, value, lfBus));
+        }
+
+        private CacheUpdateResult<V> onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue,
+                                                       V value, LfBus lfBus) {
+            if ("targetV".equals(attribute)) {
+                double valueShift = (double) newValue - (double) oldValue;
+                GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
+                double nominalV = voltageControl.getControlledBus().getNominalV();
+                double newTargetV = voltageControl.getTargetValue() + valueShift / nominalV;
+                LfNetworkParameters networkParameters = value.getNetworkParameters();
+                if (AbstractLfGenerator.checkTargetV(generator.getId(), newTargetV, nominalV, networkParameters, null)) {
+                    voltageControl.setTargetValue(newTargetV);
+                } else {
+                    value.getNetwork().getGeneratorById(generator.getId()).setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+                    if (lfBus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
+                        lfBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(false);
                     }
-                    value.getNetwork().validate(input.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC, null);
-                    return CacheUpdateResult.elementUpdated(value);
-                } else if (attribute.equals("targetP")) {
-                    return updateLfGeneratorTargetP(generator.getId(), (double) oldValue, (double) newValue, value, lfBus);
                 }
-                return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(generator, attribute));
-            });
+                value.getNetwork().validate(input.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC, null);
+                return CacheUpdateResult.elementUpdated(value);
+            } else if ("targetP".equals(attribute)) {
+                return updateLfGeneratorTargetP(generator.getId(), (double) oldValue, (double) newValue, value, lfBus);
+            }
+            return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(generator, attribute));
         }
 
         private CacheUpdateResult<V> onBatteryUpdate(Battery battery, String attribute, Object oldValue, Object newValue) {
             return onInjectionUpdate(battery, (value, lfBus) -> {
-                if (attribute.equals("targetP")) {
+                if ("targetP".equals(attribute)) {
                     return updateLfGeneratorTargetP(battery.getId(), (double) oldValue, (double) newValue, value, lfBus);
                 }
                 return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(battery, attribute));
@@ -450,7 +453,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         private CacheUpdateResult<V> onShuntUpdate(ShuntCompensator shunt, String attribute) {
             return onInjectionUpdate(shunt, (value, lfBus) -> {
-                if (attribute.equals("sectionCount")) {
+                if ("sectionCount".equals(attribute)) {
                     if (lfBus.getControllerShunt().isEmpty()) {
                         LfShunt lfShunt = lfBus.getShunt().orElseThrow();
                         lfShunt.reInit();
@@ -552,34 +555,34 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 default -> {
                     if (identifiable.getType() == IdentifiableType.GENERATOR) {
                         Generator generator = (Generator) identifiable;
-                        if (attribute.equals("targetV") || attribute.equals("targetP")) {
+                        if ("targetV".equals(attribute) || "targetP".equals(attribute)) {
                             result = onGeneratorUpdate(generator, attribute, oldValue, newValue);
                         }
                     } else if (identifiable.getType() == IdentifiableType.BATTERY) {
                         Battery battery = (Battery) identifiable;
-                        if (attribute.equals("targetP")) {
+                        if ("targetP".equals(attribute)) {
                             result = onBatteryUpdate(battery, attribute, oldValue, newValue);
                         }
                     } else if (identifiable.getType() == IdentifiableType.SHUNT_COMPENSATOR) {
                         ShuntCompensator shunt = (ShuntCompensator) identifiable;
-                        if (attribute.equals("sectionCount")) {
+                        if ("sectionCount".equals(attribute)) {
                             result = onShuntUpdate(shunt, attribute);
                         }
                     } else if (identifiable.getType() == IdentifiableType.SWITCH
-                            && attribute.equals("open")) {
+                            && "open".equals(attribute)) {
                         result = onSwitchUpdate(identifiable.getId(), (boolean) newValue);
                     } else if (identifiable.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER) {
-                        if (attribute.equals("ratioTapChanger.regulationValue")) {
+                        if ("ratioTapChanger.regulationValue".equals(attribute)) {
                             result = onTransformerTargetVoltageUpdate(identifiable.getId(), (double) newValue);
-                        } else if (attribute.equals("ratioTapChanger.tapPosition")) {
+                        } else if ("ratioTapChanger.tapPosition".equals(attribute)) {
                             result = onTransformerTapPositionUpdate(identifiable.getId(), (int) newValue);
                         }
                     } else if (identifiable.getType() == IdentifiableType.THREE_WINDINGS_TRANSFORMER) {
                         for (ThreeSides side : ThreeSides.values()) {
-                            if (attribute.equals("ratioTapChanger" + side.getNum() + ".regulationValue")) {
+                            if (("ratioTapChanger" + side.getNum() + ".regulationValue").equals(attribute)) {
                                 result = onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (double) newValue);
                                 break;
-                            } else if (attribute.equals("ratioTapChanger" + side.getNum() + ".tapPosition")) {
+                            } else if (("ratioTapChanger" + side.getNum() + ".tapPosition").equals(attribute)) {
                                 result = onTransformerTapPositionUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (int) newValue);
                                 break;
                             }

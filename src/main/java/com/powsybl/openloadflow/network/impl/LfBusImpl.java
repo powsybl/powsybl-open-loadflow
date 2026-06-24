@@ -192,7 +192,8 @@ public class LfBusImpl extends AbstractLfBus {
         if (asym != null) {
             return getGenerationTargetP();
             // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
-            // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
+            // in this case, load target is set to zero and the constant-balanced load model (in 3 phased representation)
+            // is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
         }
         return super.getTargetP();
     }
@@ -202,7 +203,8 @@ public class LfBusImpl extends AbstractLfBus {
         if (asym != null) {
             return getGenerationTargetQ();
             // we use the detection of the asymmetry extension at bus to check if we are in asymmetrical calculation
-            // in this case, load target is set to zero and the constant power load model (in 3 phased representation) is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
+            // in this case, load target is set to zero and the constant power load model (in 3 phased representation)
+            // is replaced by a model depending on v1, v2, v0 (equivalent fortescue representation)
         }
         return super.getTargetQ();
     }
