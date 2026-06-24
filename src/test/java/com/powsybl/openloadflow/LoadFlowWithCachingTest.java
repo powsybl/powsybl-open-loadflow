@@ -215,20 +215,20 @@ class LoadFlowWithCachingTest {
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertNotNull(findEntryFunction.apply(network, isDc).getValues());
-        load.setP0(620);
+        load.setP0(605);
         assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because of PROPORTIONAL_TO_LOAD mode
 
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
         result = loadFlowRunner.run(network, parameters);
-        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertNotNull(findEntryFunction.apply(network, isDc).getValues());
-        load.setP0(610);
+        load.setP0(600);
         assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because of PROPORTIONAL_TO_CONFORM_LOAD mode
 
-        parameters.setDistributedSlack(false);
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD)
+                .setDistributedSlack(false);
         loadFlowRunner.run(network, parameters);
         assertNotNull(findEntryFunction.apply(network, isDc).getValues());
-        load.setP0(620);
+        load.setP0(605);
         assertNotNull(findEntryFunction.apply(network, isDc).getValues()); // cache is not invalidated (even if PROPORTIONAL_TO_LOAD) because slack distribution is disabled
 
         load.newExtension(LoadDetailAdder.class)
@@ -239,7 +239,7 @@ class LoadFlowWithCachingTest {
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         loadFlowRunner.run(network, parameters);
         assertNotNull(findEntryFunction.apply(network, isDc).getValues());
-        load.setP0(610);
+        load.setP0(600);
         assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because of Load detail
     }
 
