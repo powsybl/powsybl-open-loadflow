@@ -141,6 +141,11 @@ class LoadFlowWithCachingTest {
         assertActivePowerEquals(-170.0, g2.getTerminal()); // 200 -> 170
         assertActivePowerEquals(-60.0, g3.getTerminal()); // 90 -> 60
         assertActivePowerEquals(-60.0, g4.getTerminal()); // 90 -> 60
+
+        // test unsupported update
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
+        g1.setTargetQ(1);
+        assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because unsupported update
     }
 
     @ParameterizedTest
@@ -165,6 +170,11 @@ class LoadFlowWithCachingTest {
         assertEquals(isDc ? 0 : 2, result.getComponentResults().get(0).getIterationCount());
         assertActivePowerEquals(-4.0, b1.getTerminal());
         assertActivePowerEquals(3.016, b2.getTerminal());
+
+        // test unsupported update
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
+        b1.setTargetQ(1);
+        assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because unsupported update
     }
 
     @ParameterizedTest
@@ -188,6 +198,7 @@ class LoadFlowWithCachingTest {
         assertActivePowerEquals(620, load.getTerminal());
         assertActivePowerEquals(isDc ? -620 : -625.895, gen.getTerminal());
 
+        // test unsupported update
         assertNotNull(findEntryFunction.apply(network, isDc).getValues());
         load.setQ0(20);
         assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because unsupported update
@@ -207,10 +218,17 @@ class LoadFlowWithCachingTest {
         load.setP0(620);
         assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because of PROPORTIONAL_TO_LOAD mode
 
+        parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
+        load.setP0(610);
+        assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because of PROPORTIONAL_TO_CONFORM_LOAD mode
+
         parameters.setDistributedSlack(false);
         loadFlowRunner.run(network, parameters);
         assertNotNull(findEntryFunction.apply(network, isDc).getValues());
-        load.setP0(610);
+        load.setP0(620);
         assertNotNull(findEntryFunction.apply(network, isDc).getValues()); // cache is not invalidated (even if PROPORTIONAL_TO_LOAD) because slack distribution is disabled
 
         load.newExtension(LoadDetailAdder.class)
@@ -221,7 +239,7 @@ class LoadFlowWithCachingTest {
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         loadFlowRunner.run(network, parameters);
         assertNotNull(findEntryFunction.apply(network, isDc).getValues());
-        load.setP0(620);
+        load.setP0(610);
         assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because of Load detail
     }
 
@@ -566,7 +584,7 @@ class LoadFlowWithCachingTest {
         assertEquals(1, shunt.getSolvedSectionCount());
         assertEquals(0, shunt.getSectionCount());
 
-        shunt.setSolvedSectionCount(0);
+        shunt.setSectionCount(1);
         assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // cache has been invalidated
     }
 
