@@ -37,6 +37,8 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
 
     private final ModifiedMonitoredElementsParameters modifiedMonitoredElementsParameters;
 
+    private static final double THRESHOLD = 0.1;
+
     public PostContingencyNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension,
                                         PreContingencyNetworkResult preContingencyMonitorInfos, Contingency contingency, LoadFlowModel loadFlowModel, double dcPowerFactor,
                                         ModifiedMonitoredElementsParameters modifiedMonitoredElementsParameters) {
@@ -60,6 +62,9 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
     private void createBranchResults(LfBranch branch, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
         var preContingencyBranchResult = preContingencyMonitorInfos.getBranchResult(branch.getId());
         double preContingencyBranchP1 = preContingencyBranchResult != null ? preContingencyBranchResult.getP1() : Double.NaN;
+        double preContingencyBranchP2 = preContingencyBranchResult != null ? preContingencyBranchResult.getP2() : Double.NaN;
+        double preContingencyBranchQ1 = preContingencyBranchResult != null ? preContingencyBranchResult.getQ1() : Double.NaN;
+        double preContingencyBranchQ2 = preContingencyBranchResult != null ? preContingencyBranchResult.getQ2() : Double.NaN;
         double preContingencyBranchOfContingencyP1 = Double.NaN;
         if (contingency.getElements().size() == 1) {
             ContingencyElement contingencyElement = contingency.getElements().get(0);
@@ -73,8 +78,10 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
                 }
             }
         }
-        if (preContingencyBranchResult != null && Math.abs((preContingencyBranchP1 - branch.getP1().eval() * PerUnit.SB) / preContingencyBranchP1)
-                < modifiedMonitoredElementsParameters.getPowerModificationThreshold()) {
+        if (preContingencyBranchResult != null && Math.abs((preContingencyBranchP1 - branch.getP1().eval() * PerUnit.SB)) < THRESHOLD
+                && Math.abs((preContingencyBranchP2 - branch.getP2().eval() * PerUnit.SB)) < THRESHOLD
+                && Math.abs((preContingencyBranchQ1 - branch.getQ1().eval() * PerUnit.SB)) < THRESHOLD
+                && Math.abs((preContingencyBranchQ2 - branch.getQ2().eval() * PerUnit.SB)) < THRESHOLD) {
             return;
         }
         branchResults.addAll(branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension, zeroImpedanceFlows, loadFlowModel));
@@ -96,11 +103,22 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
 
     private void create3WTransformerResults(String id, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
         LfLegBranch leg1 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(id, 1));
+        LfLegBranch leg2 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(id, 2));
+        LfLegBranch leg3 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(id, 3));
         var preContingencyResult = preContingencyMonitorInfos.getThreeWindingsTransformerResult(id);
         double preContingencyLeg1P = preContingencyResult != null ? preContingencyResult.getP1() : Double.NaN;
+        double preContingencyLeg2P = preContingencyResult != null ? preContingencyResult.getP2() : Double.NaN;
+        double preContingencyLeg3P = preContingencyResult != null ? preContingencyResult.getP3() : Double.NaN;
+        double preContingencyLeg1Q = preContingencyResult != null ? preContingencyResult.getQ1() : Double.NaN;
+        double preContingencyLeg2Q = preContingencyResult != null ? preContingencyResult.getQ2() : Double.NaN;
+        double preContingencyLeg3Q = preContingencyResult != null ? preContingencyResult.getQ3() : Double.NaN;
 
-        if (preContingencyResult != null && Math.abs((preContingencyLeg1P - leg1.getP1().eval() * PerUnit.SB) / preContingencyLeg1P)
-                < modifiedMonitoredElementsParameters.getPowerModificationThreshold()) {
+        if (preContingencyResult != null && Math.abs(preContingencyLeg1P - leg1.getP1().eval() * PerUnit.SB) < THRESHOLD
+                && Math.abs(preContingencyLeg2P - leg2.getP1().eval() * PerUnit.SB) < THRESHOLD
+                && Math.abs(preContingencyLeg3P - leg3.getP1().eval() * PerUnit.SB) < THRESHOLD
+                && Math.abs(preContingencyLeg1Q - leg1.getQ1().eval() * PerUnit.SB) < THRESHOLD
+                && Math.abs(preContingencyLeg2Q - leg2.getQ1().eval() * PerUnit.SB) < THRESHOLD
+                && Math.abs(preContingencyLeg3Q - leg3.getQ1().eval() * PerUnit.SB) < THRESHOLD) {
             return;
         }
         threeWindingsTransformerResults.add(LfLegBranch.createThreeWindingsTransformerResult(network, id, createResultExtension, zeroImpedanceFlows, loadFlowModel));
