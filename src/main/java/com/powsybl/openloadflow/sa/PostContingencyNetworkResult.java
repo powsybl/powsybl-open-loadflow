@@ -10,18 +10,18 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.ContingencyElementType;
-import com.powsybl.iidm.network.PhaseTapChanger;
-import com.powsybl.iidm.network.PhaseTapChangerHolder;
-import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.Transformers;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LoadFlowModel;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
-import com.powsybl.security.results.PhaseShifterResultsExtension;
-import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -34,9 +34,9 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
 
     private final Contingency contingency;
 
-    public PostContingencyNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension,
+    public PostContingencyNetworkResult(LfNetwork network, Network iidmNetwork, StateMonitorIndexes monitorIndexes, boolean createResultExtension,
                                         PreContingencyNetworkResult preContingencyMonitorInfos, Contingency contingency, LoadFlowModel loadFlowModel, double dcPowerFactor) {
-        super(network, monitorIndexes, createResultExtension, loadFlowModel, dcPowerFactor);
+        super(network, iidmNetwork, monitorIndexes, createResultExtension, loadFlowModel, dcPowerFactor);
         this.preContingencyMonitorInfos = Objects.requireNonNull(preContingencyMonitorInfos);
         this.contingency = Objects.requireNonNull(contingency);
     }
@@ -83,6 +83,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
             Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getAllStateMonitor(), network);
             addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
         }
+        storeInitialPhaseTapChangerInfo();
         updateMovedPhaseShifters();
     }
 

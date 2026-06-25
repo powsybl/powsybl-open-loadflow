@@ -7,15 +7,12 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.iidm.network.PhaseTapChangerHolder;
+import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LoadFlowModel;
-import com.powsybl.openloadflow.network.impl.Transformers;
-import com.powsybl.openloadflow.sa.extensions.PhaseTapChangerResult;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
-import com.powsybl.security.results.PhaseShifterResultsExtension;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -27,8 +24,8 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
 
     private final Map<String, BranchResult> branchResults = new HashMap<>();
 
-    public PreContingencyNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
-        super(network, monitorIndexes, createResultExtension, loadFlowModel, dcPowerFactor);
+    public PreContingencyNetworkResult(LfNetwork network, Network iidmNetwork, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
+        super(network, iidmNetwork, monitorIndexes, createResultExtension, loadFlowModel, dcPowerFactor);
     }
 
     @Override
@@ -42,17 +39,6 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
             branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension, zeroImpedanceFlows, loadFlowModel)
                     .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult));
         }, isBranchDisabled, zeroImpedanceFlows);
-    }
-
-    private void storeInitialPhaseTapChangerInfo() {
-        phaseTapChangerResults = network.getBranches().stream()
-                    .filter(b -> b instanceof PhaseTapChangerHolder)
-                    .filter(b -> !b.isDisabled())
-                    .filter(b -> ((PhaseTapChangerHolder) b).hasPhaseTapChanger())
-                    .map(b -> new PhaseTapChangerResult(((PhaseTapChangerHolder) b).getPhaseTapChanger(),
-                            b.getMainOriginalId(),
-                            b.getPiModel(),
-                            ((PhaseTapChangerHolder) b).getPhaseTapChanger().getTapPosition())).toList();
     }
 
     @Override
