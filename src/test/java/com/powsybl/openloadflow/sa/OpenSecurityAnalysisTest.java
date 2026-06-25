@@ -75,7 +75,6 @@ import java.util.stream.Stream;
 import static com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory.createWith3BusesNonImpedantSubNetwork;
 import static com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory.createWithNonImpedantThreeWindingsTransformer;
 import static com.google.common.collect.testing.Helpers.assertEmpty;
-import static com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
@@ -5098,19 +5097,29 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         );
         SecurityAnalysisParameters parameters = new SecurityAnalysisParameters()
                 .setModifiedMonitoredElementsParameters(new SecurityAnalysisParameters.ModifiedMonitoredElementsParameters()
-                        .setPowerModificationThreshold(0.001));
+                        .setPowerModificationThreshold(0.0)); // no filtering
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
 
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
         assertEquals(1, preContingencyResult.getNetworkResult().getBranchResults().size());
         assertEquals(1, result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResults().size());
-        assert Math.abs((preContingencyResult.getNetworkResult().getBranchResult("NGEN_NHV1").getP1()
-                - result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("NGEN_NHV1").getP1()) /
-                preContingencyResult.getNetworkResult().getBranchResult("NGEN_NHV1").getP1()) > 0.001;
+        BranchResult preCtg = preContingencyResult.getNetworkResult().getBranchResult("NGEN_NHV1");
+        BranchResult postCtg = result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("NGEN_NHV1");
+        assertEquals(+605.5595, preCtg.getP1(), DELTA_POWER);
+        assertEquals(-604.8921, preCtg.getP2(), DELTA_POWER);
+        assertEquals(+225.2826, preCtg.getQ1(), DELTA_POWER);
+        assertEquals(-197.4804, preCtg.getQ2(), DELTA_POWER);
+        assertEquals(+611.3631, postCtg.getP1(), DELTA_POWER);
+        assertEquals(-610.5490, postCtg.getP2(), DELTA_POWER);
+        assertEquals(+367.9649, postCtg.getQ1(), DELTA_POWER);
+        assertEquals(-334.0551, postCtg.getQ2(), DELTA_POWER);
 
-        parameters.getModifiedMonitoredElementsParameters().setPowerModificationThreshold(0.01);
-        SecurityAnalysisResult resultFiltered = runSecurityAnalysis(network, contingencies, monitors, parameters);
+        parameters.getModifiedMonitoredElementsParameters().setPowerModificationThreshold(50); // MW-MVAr, there are larger Q changes
+        SecurityAnalysisResult resultFiltered1 = runSecurityAnalysis(network, contingencies, monitors, parameters);
+        assertEquals(1, resultFiltered1.getPostContingencyResults().getFirst().getNetworkResult().getBranchResults().size());
 
-        assertEmpty(resultFiltered.getPostContingencyResults().getFirst().getNetworkResult().getBranchResults());
+        parameters.getModifiedMonitoredElementsParameters().setPowerModificationThreshold(150); // MW-MVAr, this time should filter
+        SecurityAnalysisResult resultFiltered2 = runSecurityAnalysis(network, contingencies, monitors, parameters);
+        assertEmpty(resultFiltered2.getPostContingencyResults().getFirst().getNetworkResult().getBranchResults());
     }
 }
