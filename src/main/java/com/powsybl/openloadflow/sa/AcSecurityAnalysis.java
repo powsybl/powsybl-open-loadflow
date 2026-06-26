@@ -60,16 +60,31 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         return lfParameters.isShuntCompensatorVoltageControlOn();
     }
 
+    private void warnOverridenParameter(String parameterName, String wantedValue, String usedValue) {
+        LOGGER.warn("Load flow parameter {}={} is not handled in AC security analysis, using parameter value {} instead", parameterName, wantedValue, usedValue);
+    }
+
+    private void overrideUnsupportedParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, AcLoadFlowParameters acParameters) {
+        if (lfParametersExt.getMaxSlackBusCount() > 1) {
+            warnOverridenParameter("maxSlackBusCount", Integer.toString(lfParametersExt.getMaxSlackBusCount()), "1");
+        }
+        if (lfParametersExt.isNetworkCacheEnabled()) {
+            warnOverridenParameter("networkCacheEnabled", "true", "false");
+        }
+        if (lfParametersExt.getReferenceBusSelectionMode() != ReferenceBusSelector.DEFAULT_MODE) {
+            warnOverridenParameter("referenceBusSelectionMode", lfParametersExt.getReferenceBusSelectionMode().name(), ReferenceBusSelector.DEFAULT_MODE.name());
+        }
+        acParameters.getNetworkParameters()
+                .setMaxSlackBusCount(1)
+                .setCacheEnabled(false)
+                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR);
+    }
+
     @Override
     protected AcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers, boolean areas) {
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
-        if (acParameters.getNetworkParameters().getMaxSlackBusCount() > 1) {
-            LOGGER.warn("Multiple slack buses in a security analysis is not supported, force to 1");
-        }
+        overrideUnsupportedParameters(lfParameters, lfParametersExt, acParameters);
         acParameters.getNetworkParameters()
-                .setCacheEnabled(false) // force not caching as not supported in secu analysis
-                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR) // not supported yet
-                .setMaxSlackBusCount(1)
                 .setAreaInterchangeControl(areas);
         acParameters.setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));
         return acParameters;
