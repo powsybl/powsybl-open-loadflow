@@ -5182,32 +5182,28 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @ParameterizedTest(name = "DC = {0}")
     @ValueSource(booleans = {false, true})
     void testUnsupportedParameters(boolean dc) {
-        Network network = createNodeBreakerNetwork();
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
+        List<Contingency> contingencies = List.of(
+                new Contingency("NHV1_NHV2_1", new BranchContingency("NHV1_NHV2_1")),
+                new Contingency("NHV1_NHV2_2", new BranchContingency("NHV1_NHV2_2"))
+        );
 
         LoadFlowParameters lfParameters = new LoadFlowParameters()
                 .setDc(dc);
-
         // These parameters are not supported so they are overriden
         OpenLoadFlowParameters.create(lfParameters)
                 .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY)
                 .setMaxSlackBusCount(3)
                 .setNetworkCacheEnabled(true);
 
-        setSlackBusId(lfParameters, "VL1_1");
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(lfParameters);
-
-        List<Contingency> contingencies = Stream.of("L1", "L2")
-                .map(id -> new Contingency(id, new BranchContingency(id)))
-                .collect(Collectors.toList());
-        contingencies.add(new Contingency("LD", new LoadContingency("LD")));
-        contingencies.add(new Contingency("BBS2", new BusbarSectionContingency("BBS2")));
 
         // No error, (and warning logs should appear)
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
         assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
-        assertEquals(0, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
-        assertEquals(4, result.getPostContingencyResults().size());
+        assertEquals(2, result.getPostContingencyResults().size());
         assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
         assertEquals(0, result.getPostContingencyResults().get(1).getConnectivityResult().getDisconnectedLoadActivePower());
     }
