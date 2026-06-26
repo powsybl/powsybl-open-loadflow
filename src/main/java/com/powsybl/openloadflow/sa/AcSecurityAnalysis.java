@@ -64,7 +64,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         LOGGER.warn("Load flow parameter {}={} is not handled in AC security analysis, using parameter value {} instead", parameterName, wantedValue, usedValue);
     }
 
-    private void overrideUnsupportedParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, AcLoadFlowParameters acParameters) {
+    private void overrideUnsupportedParameters(OpenLoadFlowParameters lfParametersExt, AcLoadFlowParameters acParameters) {
         if (lfParametersExt.getMaxSlackBusCount() > 1) {
             warnOverridenParameter("maxSlackBusCount", Integer.toString(lfParametersExt.getMaxSlackBusCount()), "1");
         }
@@ -83,7 +83,7 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     @Override
     protected AcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers, boolean areas) {
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
-        overrideUnsupportedParameters(lfParameters, lfParametersExt, acParameters);
+        overrideUnsupportedParameters(lfParametersExt, acParameters);
         acParameters.getNetworkParameters()
                 .setAreaInterchangeControl(areas);
         acParameters.setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));

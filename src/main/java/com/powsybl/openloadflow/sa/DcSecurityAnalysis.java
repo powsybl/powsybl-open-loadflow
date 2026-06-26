@@ -55,7 +55,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         LOGGER.warn("Load flow parameter {}={} is not handled in DC security analysis, using parameter value {} instead", parameterName, wantedValue, usedValue);
     }
 
-    private void overrideUnsupportedParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, DcLoadFlowParameters dcParameters) {
+    private void overrideUnsupportedParameters(OpenLoadFlowParameters lfParametersExt, DcLoadFlowParameters dcParameters) {
         if (lfParametersExt.isNetworkCacheEnabled()) {
             warnOverridenParameter("networkCacheEnabled", "true", "false");
         }
@@ -71,7 +71,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
     protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers, boolean areas) {
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, lfParameters,
                 lfParametersExt, matrixFactory, connectivityFactory, false);
-        overrideUnsupportedParameters(lfParameters, lfParametersExt, dcParameters);
+        overrideUnsupportedParameters(lfParametersExt, dcParameters);
         dcParameters.getNetworkParameters()
                 .setBreakers(breakers)
                 .setAreaInterchangeControl(areas);
