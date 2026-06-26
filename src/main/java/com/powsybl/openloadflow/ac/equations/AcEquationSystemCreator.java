@@ -46,7 +46,7 @@ public class AcEquationSystemCreator {
     }
 
     protected void createBusEquation(LfBus bus,
-                                   EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         var p = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P);
         bus.setP(p);
         var q = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
@@ -944,14 +944,14 @@ public class AcEquationSystemCreator {
                                                 SingleEquationTerm<AcVariableType, AcEquationType> closedP2, SingleEquationTerm<AcVariableType, AcEquationType> closedI2) {
 
         if (closedI1 != null) {
-            equationSystem.getEquation(dcBus1.getNum(), com.powsybl.openloadflow.ac.equations.AcEquationType.DC_BUS_TARGET_I).orElseThrow()
+            equationSystem.getEquation(dcBus1.getNum(), AcEquationType.DC_BUS_TARGET_I).orElseThrow()
                     .addTerm(closedI1);
         }
         if (i1 != null) {
             dcLine.setI1(i1);
         }
         if (closedI2 != null) {
-            equationSystem.getEquation(dcBus2.getNum(), com.powsybl.openloadflow.ac.equations.AcEquationType.DC_BUS_TARGET_I).orElseThrow()
+            equationSystem.getEquation(dcBus2.getNum(), AcEquationType.DC_BUS_TARGET_I).orElseThrow()
                     .addTerm(closedI2);
         }
         if (i2 != null) {
@@ -1225,23 +1225,36 @@ public class AcEquationSystemCreator {
         return terms;
     }
 
+    /**
+     * Create equations specific for the multi-slack bus case.
+     * As the active power balance is disabled for these buses, we need to add a new equation connecting the slack buses active power.
+     * The equation ensures, for each slack bus (except the first one):
+     * branchInjectionAtSlackBus - branchInjectionAtFirstSlackBus = generatorLoadInjectionAtSlackBus - generatorLoadInjectionAtFirstSlackBus
+     */
     private void createMultipleSlackBusesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        List<LfBus> slackBuses = network.getSlackBuses();
-        if (slackBuses.size() > 1) {
-            LfBus firstSlackBus = slackBuses.get(0);
-            for (int i = 1; i < slackBuses.size(); i++) {
-                LfBus slackBus = slackBuses.get(i);
-                // example for 3 slack buses
-                // target_p2 - target_p1 = slack_p2 - slack_p1
-                // target_p3 - target_p1 = slack_p3 - slack_p1
-                equationSystem.createEquation(slackBus, AcEquationType.BUS_DISTR_SLACK_P)
-                        .addTerms(createActiveInjectionTerms(firstSlackBus, equationSystem.getVariableSet()).stream()
-                                .map(EquationTerm::minus)
-                                .toList())
-                        .addTerms(createActiveInjectionTerms(slackBus, equationSystem.getVariableSet()));
-                // to update open/close terms activation
-                for (LfBranch branch : slackBus.getBranches()) {
-                    updateBranchEquations(branch);
+        // In case of AC-DC load flow, there might be several synchronous component in the LfNetwork.
+        // As active power mismatch at slack buses is processed by each synchronous component individually, we must
+        // create equations for each synchronous component individually.
+        // In case of a classic load flow (with only AC components), this loop will therefore have only one iteration.
+        for (LfSynchronousNetwork lfScNetwork : network.getSynchronousNetworks()) {
+
+            List<LfBus> slackBuses = lfScNetwork.getSlackBuses();
+            if (slackBuses.size() > 1) {
+                LfBus firstSlackBus = slackBuses.get(0);
+                for (int i = 1; i < slackBuses.size(); i++) {
+                    LfBus slackBus = slackBuses.get(i);
+                    // example for 3 slack buses
+                    // target_p2 - target_p1 = slack_p2 - slack_p1
+                    // target_p3 - target_p1 = slack_p3 - slack_p1
+                    equationSystem.createEquation(slackBus, AcEquationType.BUS_DISTR_SLACK_P)
+                            .addTerms(createActiveInjectionTerms(firstSlackBus, equationSystem.getVariableSet()).stream()
+                                    .map(EquationTerm::minus)
+                                    .toList())
+                            .addTerms(createActiveInjectionTerms(slackBus, equationSystem.getVariableSet()));
+                    // to update open/close terms activation
+                    for (LfBranch branch : slackBus.getBranches()) {
+                        updateBranchEquations(branch);
+                    }
                 }
             }
         }

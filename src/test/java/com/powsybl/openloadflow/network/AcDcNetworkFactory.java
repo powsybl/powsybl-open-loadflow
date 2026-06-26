@@ -15,6 +15,10 @@ import com.powsybl.openloadflow.util.PerUnit;
  */
 public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
+    /**
+     * A simple network with 3 AC buses and an asymmetrical monopole DC connection.
+     * The network does not contain any AC-DC converter.
+     */
     public static Network createBaseNetwork() {
         Network network = Network.create("vsc", "test");
 
@@ -131,6 +135,10 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+    /**
+     * A simple network with 3 AC buses and a bipolar DC connection with metallic return.
+     * The network does not contain any AC-DC converter.
+     */
     public static Network createBipolarBaseNetwork() {
         Network network = Network.create("vsc", "test");
 
@@ -717,6 +725,121 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setVoltageRegulatorOn(true)
                 .setVoltageSetpoint(400.)
                 .add();
+        return network;
+    }
+
+    /**
+     * ACDC test case with 2 AC networks.
+     * <pre>
+     * g1                                    g2
+     * |                                      |
+     * b1-conv13-dn3--------------dn4-conv24-b2
+     * |                dl34                  |
+     * ld1                                   ld2
+     * </pre>
+     */
+    public static Network createAcDcNetworkWithTwoAcZones() {
+        Network network = Network.create("2ACzones", "test");
+        Bus b1 = createBus(network, "b1", 400);
+        createGenerator(b1, "g1", 50, 400);
+        createLoad(b1, "ld1", 20);
+
+        Bus b2 = createBus(network, "b2", 400);
+        createGenerator(b2, "g2", 50, 400);
+        createLoad(b2, "ld2", 100);
+
+        DcNode dn3p = createDcNode(network, "dn3p", 400);
+        DcNode dn3n = createDcNode(network, "dn3n", 400, true);
+        DcNode dn4p = createDcNode(network, "dn4p", 400);
+        DcNode dn4n = createDcNode(network, "dn4n", 400, true);
+
+        createVoltageSourceConverterPccQac(b1, dn3p, dn3n, "conv13", 70, 0);
+        createVoltageSourceConverterVdcQac(b2, dn4p, dn4n, "conv24", 525, 0);
+        createDcLine(network, dn3p, dn4p, "dl34", 0.1);
+        return network;
+    }
+
+    /**
+     * ACDC test case with 3 AC networks.
+     * <pre>
+     * g1                                               g2
+     * |              dl47           dl57               |
+     * b1-conv14-dn4-----------dn7----------dn5-conv25-b2
+     * |                        |                       |
+     * ld1                      | dl67                 ld2
+     *                         dn6
+     *                       conv36
+     *                    g3---b3---ld3
+     * </pre>
+     */
+    public static Network createMtDcNetworkWithThreeAcZones() {
+        Network network = Network.create("3ACzones", "test");
+        Bus b1 = createBus(network, "b1", 400);
+        createGenerator(b1, "g1", 50, 400);
+        createLoad(b1, "ld1", 20);
+
+        Bus b2 = createBus(network, "b2", 400);
+        createGenerator(b2, "g2", 50, 400);
+        createLoad(b2, "ld2", 100);
+
+        Bus b3 = createBus(network, "b3", 400);
+        createGenerator(b3, "g3", 50, 400);
+        createLoad(b3, "ld3", 50);
+
+        DcNode dn4p = createDcNode(network, "dn4p", 400);
+        DcNode dn4n = createDcNode(network, "dn4n", 400, true);
+        DcNode dn5p = createDcNode(network, "dn5p", 400);
+        DcNode dn5n = createDcNode(network, "dn5n", 400, true);
+        DcNode dn6p = createDcNode(network, "dn6p", 400);
+        DcNode dn6n = createDcNode(network, "dn6n", 400, true);
+        DcNode dn7 = createDcNode(network, "dn7", 400);
+
+        createVoltageSourceConverterPccQac(b1, dn4p, dn4n, "conv14", 70, 0);
+        createVoltageSourceConverterVdcQac(b2, dn5p, dn5n, "conv25", 525, 0);
+        createVoltageSourceConverterPccQac(b3, dn6p, dn6n, "conv36", -20, 0);
+        createDcLine(network, dn4p, dn7, "dl47", 0.1);
+        createDcLine(network, dn5p, dn7, "dl57", 0.1);
+        createDcLine(network, dn6p, dn7, "dl67", 0.1);
+        return network;
+    }
+
+    /**
+     * ACDC test case with MTDC and 2 AC networks (2 PCC converter in the first AC zone).
+     * <pre>
+     *      g1                                              g2
+     *      |              dl47           dl57              |
+     * ld1-b1-conv14-dn4-----------dn7----------dn5-conv25-b2
+     *      |                       |                       |
+     *      |                       | dl67                 ld2
+     *      |                      dn6
+     *      |        l13          conv36
+     *      |-----------------------b3---ld3
+     *                              g3
+     * </pre>
+     */
+    public static Network createMtDcNetworkWithTwoAcZones() {
+        Network network = createMtDcNetworkWithThreeAcZones();
+        createLine(network, network.getBusBreakerView().getBus("b1"), network.getBusBreakerView().getBus("b3"), "l13", 0.1, 0.1);
+        return network;
+    }
+
+    /**
+     * ACDC test case with MTDC and 2 AC networks (1 PPC converter and one VDC converter in the second AC zone)
+     * <pre>
+     * g1                                               g2
+     * |              dl47           dl57               |
+     * b1-conv14-dn4-----------dn7----------dn5-conv25-b2-ld2
+     * |                        |                       |
+     * ld1                      | dl67                  |
+     *                         dn6                      |
+     *                       conv36          l23        |
+     *                      g3-b3-----------------------|
+     *                         ld3
+     * </pre>
+     */
+    public static Network createMtDcNetworkWithTwoAcZonesV2() {
+        Network network = createMtDcNetworkWithThreeAcZones();
+        createLine(network, network.getBusBreakerView().getBus("b2"), network.getBusBreakerView().getBus("b3"), "l23", 0.1, 0.1);
         return network;
     }
 
@@ -2217,5 +2340,82 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setReactivePowerSetpoint(0.0)
                 .add();
         return network;
+    }
+
+    /**
+     * <pre>
+     *  g1                                                  ld2
+     *  |    conv3 DC1----dl14----DC4----dl47----DC7 conv7   |
+     *  |    conv1-|                               |-conv5   |
+     *  AC1 -|     DC2----dl25----DC5----dl58----DC8     |- AC2
+     *  |    conv2-|               g               |-conv6   |
+     *  |    conv4 DC3----dl36----DC6----dl69----DC9 conv8   |
+     *  |                                                    |
+     *  |--------------l12-----------------------------------|
+     * </pre>
+     * @param id: Name of the network test case
+     * @param swapOrder1 : Whether converter conv1 DC nodes should be DC1 and DC2 or DC2 and DC1
+     * @param swapOrder2 : Whether converter conv2 DC nodes should be DC2 and DC3 or DC3 and DC2
+     * @param swapOrder3 : Whether converter conv3 DC nodes should be DC1 and DC2 or DC2 and DC1
+     * @param swapOrder4 : Whether converter conv4 DC nodes should be DC2 and DC3 or DC3 and DC2
+     *
+     */
+    public static Network createFourConvertersBipole(String id, boolean swapOrder1, boolean swapOrder2, boolean swapOrder3, boolean swapOrder4) {
+
+        // Create AC network
+        Network net = Network.create(id, "test");
+        Bus b1 = createBus(net, "AC1", 400);
+        Bus b2 = createBus(net, "AC2", 400);
+        createGenerator(b1, "g1", 100, 400);
+        createLoad(b2, "ld2", 85);
+        createLine(net, b1, b2, "l12", 1, 1);
+
+        // Create DC network
+        DcNode dc1 = createDcNode(net, "DC1", 500);
+        DcNode dc2 = createDcNode(net, "DC2", 500);
+        DcNode dc3 = createDcNode(net, "DC3", 500);
+        DcNode dc4 = createDcNode(net, "DC4", 500);
+        DcNode dc5 = createDcNode(net, "DC5", 500, true);
+        DcNode dc6 = createDcNode(net, "DC6", 500);
+        DcNode dc7 = createDcNode(net, "DC7", 500);
+        DcNode dc8 = createDcNode(net, "DC8", 500);
+        DcNode dc9 = createDcNode(net, "DC9", 500);
+
+        createDcLine(net, dc1, dc4, "dl14", 1);
+        createDcLine(net, dc2, dc5, "dl25", 1);
+        createDcLine(net, dc3, dc6, "dl36", 1);
+        createDcLine(net, dc4, dc7, "dl47", 1);
+        createDcLine(net, dc5, dc8, "dl58", 1);
+        createDcLine(net, dc6, dc9, "dl69", 1);
+
+        // Create voltage source converters.
+        // For converters on the left side, we check the swap order parameter, which also impact targetVdc parameter
+        if (swapOrder1) {
+            createVoltageSourceConverterVdcQac(b1, dc2, dc1, "conv1", -500, 0);
+        } else {
+            createVoltageSourceConverterVdcQac(b1, dc1, dc2, "conv1", 500, 0);
+        }
+        if (swapOrder2) {
+            createVoltageSourceConverterVdcQac(b1, dc3, dc2, "conv2", -500, 0);
+        } else {
+            createVoltageSourceConverterVdcQac(b1, dc2, dc3, "conv2", 500, 0);
+        }
+        if (swapOrder3) {
+            createVoltageSourceConverterPccQac(b1, dc2, dc1, "conv3", -20, 0);
+        } else {
+            createVoltageSourceConverterPccQac(b1, dc1, dc2, "conv3", -20, 0);
+        }
+        if (swapOrder4) {
+            createVoltageSourceConverterPccQac(b1, dc3, dc2, "conv4", -20, 0);
+        } else {
+            createVoltageSourceConverterPccQac(b1, dc2, dc3, "conv4", -20, 0);
+        }
+
+        createVoltageSourceConverterPccQac(b2, dc7, dc8, "conv5", 20, 0);
+        createVoltageSourceConverterPccQac(b2, dc8, dc9, "conv6", 20, 0);
+        createVoltageSourceConverterPccQac(b2, dc8, dc7, "conv7", 20, 0);
+        createVoltageSourceConverterPccQac(b2, dc9, dc8, "conv8", 20, 0);
+
+        return net;
     }
 }
