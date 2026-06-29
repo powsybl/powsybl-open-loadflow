@@ -12,7 +12,6 @@ import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.ContingencyElementType;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
-import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.SecurityAnalysisParameters.ModifiedMonitoredElementsParameters;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
@@ -73,11 +72,28 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
                 }
             }
         }
-        if (preContingencyBranchResult != null && Math.abs((preContingencyBranchP1 - branch.getP1().eval() * PerUnit.SB) / preContingencyBranchP1)
-                < modifiedMonitoredElementsParameters.getPowerModificationThreshold()) {
-            return;
+        List<BranchResult> results = branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension, zeroImpedanceFlows, loadFlowModel);
+        BranchResult postContingencyBranchResult = results.getFirst(); // getFirst for the tie-line case, all others have only one BranchResult
+        if (changed(preContingencyBranchResult, postContingencyBranchResult)) {
+            branchResults.addAll(results);
         }
-        branchResults.addAll(branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension, zeroImpedanceFlows, loadFlowModel));
+    }
+
+    private static boolean changed(double pre, double post, double threshold) {
+        return Double.isNaN(pre) || Double.isNaN(post) || Math.abs(pre - post) > threshold;
+    }
+
+    private boolean changed(BranchResult preCtg, BranchResult postCtg) {
+        if (preCtg == null) {
+            return true;
+        }
+        Objects.requireNonNull(postCtg);
+        double threshold = modifiedMonitoredElementsParameters.getPowerModificationThreshold();
+        return threshold <= 0
+            || changed(preCtg.getP1(), postCtg.getP1(), threshold)
+            || changed(preCtg.getQ1(), postCtg.getQ1(), threshold)
+            || changed(preCtg.getP2(), postCtg.getP2(), threshold)
+            || changed(preCtg.getQ2(), postCtg.getQ2(), threshold);
     }
 
     private void createBusResults(LfBus bus) {
@@ -95,15 +111,26 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
     }
 
     private void create3WTransformerResults(String id, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
-        LfLegBranch leg1 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(id, 1));
         var preContingencyResult = preContingencyMonitorInfos.getThreeWindingsTransformerResult(id);
-        double preContingencyLeg1P = preContingencyResult != null ? preContingencyResult.getP1() : Double.NaN;
-
-        if (preContingencyResult != null && Math.abs((preContingencyLeg1P - leg1.getP1().eval() * PerUnit.SB) / preContingencyLeg1P)
-                < modifiedMonitoredElementsParameters.getPowerModificationThreshold()) {
-            return;
+        var postContingencyResult = LfLegBranch.createThreeWindingsTransformerResult(network, id, createResultExtension, zeroImpedanceFlows, loadFlowModel);
+        if (changed(preContingencyResult, postContingencyResult)) {
+            threeWindingsTransformerResults.add(postContingencyResult);
         }
-        threeWindingsTransformerResults.add(LfLegBranch.createThreeWindingsTransformerResult(network, id, createResultExtension, zeroImpedanceFlows, loadFlowModel));
+    }
+
+    private boolean changed(ThreeWindingsTransformerResult preCtg, ThreeWindingsTransformerResult postCtg) {
+        if (preCtg == null) {
+            return true;
+        }
+        Objects.requireNonNull(postCtg);
+        double threshold = modifiedMonitoredElementsParameters.getPowerModificationThreshold();
+        return threshold <= 0
+                || changed(preCtg.getP1(), postCtg.getP1(), threshold)
+                || changed(preCtg.getQ1(), postCtg.getQ1(), threshold)
+                || changed(preCtg.getP2(), postCtg.getP2(), threshold)
+                || changed(preCtg.getQ2(), postCtg.getQ2(), threshold)
+                || changed(preCtg.getP3(), postCtg.getP3(), threshold)
+                || changed(preCtg.getQ3(), postCtg.getQ3(), threshold);
     }
 
     @Override
