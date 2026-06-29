@@ -44,8 +44,7 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
                 .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult)),
                 isBranchDisabled,
                 bus -> bus.createBusResults().forEach(busResult -> busResults.put("%s_%s".formatted(busResult.getVoltageLevelId(), busResult.getBusId()), busResult)),
-                id -> threeWindingsTransformerResults.put(id, LfLegBranch.createThreeWindingsTransformerResult(network, id, createResultExtension, zeroImpedanceFlows, loadFlowModel)),
-                zeroImpedanceFlows);
+                id -> threeWindingsTransformerResults.put(id, LfLegBranch.createThreeWindingsTransformerResult(network, id, createResultExtension, zeroImpedanceFlows, loadFlowModel)));
     }
 
     @Override

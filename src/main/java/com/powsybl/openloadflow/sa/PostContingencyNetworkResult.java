@@ -53,7 +53,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
 
     public void addResults(StateMonitor monitor, Predicate<LfBranch> isBranchDisabled, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
         addResults(monitor, branch -> createBranchResults(branch, zeroImpedanceFlows), isBranchDisabled,
-                this::createBusResults, id -> create3WTransformerResults(id, zeroImpedanceFlows), zeroImpedanceFlows);
+                this::createBusResults, id -> create3WTransformerResults(id, zeroImpedanceFlows));
     }
 
     private void createBranchResults(LfBranch branch, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
@@ -61,7 +61,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
         double preContingencyBranchP1 = preContingencyBranchResult != null ? preContingencyBranchResult.getP1() : Double.NaN;
         double preContingencyBranchOfContingencyP1 = Double.NaN;
         if (contingency.getElements().size() == 1) {
-            ContingencyElement contingencyElement = contingency.getElements().get(0);
+            ContingencyElement contingencyElement = contingency.getElements().getFirst();
             if (contingencyElement.getType() == ContingencyElementType.BRANCH
                     || contingencyElement.getType() == ContingencyElementType.LINE
                     || contingencyElement.getType() == ContingencyElementType.BOUNDARY_LINE

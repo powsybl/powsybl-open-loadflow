@@ -57,8 +57,7 @@ public abstract class AbstractNetworkResult {
     }
 
     protected void addResults(StateMonitor monitor, Consumer<LfBranch> branchConsumer, Predicate<LfBranch> isBranchDisabled,
-                              Consumer<LfBus> busConsumer, Consumer<String> threeWindingsTransformerResultsConsumer,
-                              Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
+                              Consumer<LfBus> busConsumer, Consumer<String> threeWindingsTransformerResultsConsumer) {
         Objects.requireNonNull(monitor);
         if (!monitor.getBranchIds().isEmpty()) {
             network.getBranches().stream()
