@@ -523,7 +523,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 case SHUNT_COMPENSATOR_SUSCEPTANCE:
                     LfBus shuntLfBus = (LfBus) variableElement;
                     double vShunt = shuntLfBus.getV();
-                    addBusReactiveInjection(rhs, shuntLfBus, vShunt * vShunt);
+                    addBusReactiveInjection(rhs, shuntLfBus, vShunt * vShunt); // Injected reactive power = B * V²
                     break;
                 default:
                     throw createVariableTypeNotImplementedException(variableType);
@@ -1310,7 +1310,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 return bus.getNominalV();
             case SHUNT_COMPENSATOR_SUSCEPTANCE:
                 LfBus shuntBus = (LfBus) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
-                return 1 / (PerUnit.zb(shuntBus.getNominalV())); // sensi in kV/S
+                return 1 / (PerUnit.zb(shuntBus.getNominalV())); // sensi variable in S
             default:
                 throw new IllegalArgumentException("Unknown variable type " + factor.getVariableType());
         }
