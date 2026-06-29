@@ -425,6 +425,47 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
+    private void warnOverridenParameter(String parameterName, String wantedValue, String usedValue) {
+        LOGGER.warn("Load flow parameter {}={} is not handled in DC sensitivity analysis, using parameter value {} instead", parameterName, wantedValue, usedValue);
+    }
+
+    private LfNetworkParameters overrideUnsupportedParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
+        if (lfParameters.getComponentMode() != LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS) {
+            warnOverridenParameter("componentMode", lfParameters.getComponentMode().name(), LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS.name());
+        }
+        if (lfParametersExt.getLowImpedanceBranchMode() != OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE) {
+            warnOverridenParameter("lowImpedanceBranchMode", lfParametersExt.getLowImpedanceBranchMode().name(), OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE.name());
+        }
+        if (lfParameters.isPhaseShifterRegulationOn()) {
+            warnOverridenParameter("phaseShifterRegulationOn", "true", "false");
+        }
+        if (lfParameters.isHvdcAcEmulation()) {
+            warnOverridenParameter("hvdcAcEmulation", "true", "false");
+        }
+        if (lfParametersExt.isNetworkCacheEnabled()) {
+            warnOverridenParameter("networkCacheEnabled", "true", "false");
+        }
+        if (lfParametersExt.getReferenceBusSelectionMode() != ReferenceBusSelector.DEFAULT_MODE) {
+            warnOverridenParameter("referenceBusSelectionMode", lfParametersExt.getReferenceBusSelectionMode().name(), ReferenceBusSelector.DEFAULT_MODE.name());
+        }
+        return new LfNetworkParameters()
+                .setIncludeElementsReconnectingSmallComponents(false) // FIXME does not work yet with woodbury
+                .setLoadFlowModel(LoadFlowModel.DC)
+                .setGeneratorVoltageRemoteControl(false)        // not used in DC (no warning log needed)
+                .setTransformerVoltageControl(false)            // not used in DC (no warning log needed)
+                .setVoltagePerReactivePowerControl(false)       // not used in DC (no warning log needed)
+                .setGeneratorReactivePowerRemoteControl(false)  // not used in DC (no warning log needed)
+                .setTransformerReactivePowerControl(false)      // not used in DC (no warning log needed)
+                .setShuntVoltageControl(false)                  // not used in DC (no warning log needed)
+                .setReactiveLimits(false)                       // not used in DC (no warning log needed)
+                .setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS)
+                .setMinImpedance(true)
+                .setPhaseControl(false)
+                .setHvdcAcEmulation(false) // still not supported
+                .setCacheEnabled(false) // force not caching as not supported in sensi analysis
+                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR); // not supported yet
+    }
+
     @Override
     public void analyse(Network network, String workingVariantId, List<Contingency> contingencies, List<OperatorStrategy> configuredOperatorStrategies,
                         List<Action> configuredActions, PropagatedContingencyCreationParameters creationParameters,
@@ -475,29 +516,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         boolean breakers = topoConfig.isBreaker();
 
-        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
-                .setSlackBusSelector(slackBusSelector)
+        LfNetworkParameters lfNetworkParameters = overrideUnsupportedParameters(lfParameters, lfParametersExt);
+        lfNetworkParameters.setSlackBusSelector(slackBusSelector)
                 .setConnectivityFactory(connectivityFactory)
-                .setGeneratorVoltageRemoteControl(false)
-                .setMinImpedance(true)
+                .setLowImpedanceThreshold(lfParametersExt.getLowImpedanceThreshold())
                 .setTwtSplitShuntAdmittance(lfParameters.isTwtSplitShuntAdmittance())
                 .setBreakers(breakers)
                 .setPlausibleActivePowerLimit(lfParametersExt.getPlausibleActivePowerLimit())
-                .setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS)
                 .setCountriesToBalance(lfParameters.getCountriesToBalance())
                 .setDistributedOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
-                .setPhaseControl(false)
-                .setTransformerVoltageControl(false)
-                .setVoltagePerReactivePowerControl(false)
-                .setGeneratorReactivePowerRemoteControl(false)
-                .setTransformerReactivePowerControl(false)
-                .setLoadFlowModel(LoadFlowModel.DC)
-                .setShuntVoltageControl(false)
-                .setReactiveLimits(false)
-                .setHvdcAcEmulation(false) // still not supported
-                .setCacheEnabled(false) // force not caching as not supported in sensi analysis
-                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR) // not supported yet
-                .setIncludeElementsReconnectingSmallComponents(false) // FIXME does not work yet with woodbury
                 .setAllowNonLinearShuntZeroSection(lfParametersExt.isAllowNonLinearShuntZeroSection());
 
         // create networks including all necessary switches
