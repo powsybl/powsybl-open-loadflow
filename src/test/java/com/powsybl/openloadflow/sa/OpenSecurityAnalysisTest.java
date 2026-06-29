@@ -1482,8 +1482,18 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
     @Test
     void testViolationsWeakenedOrEquivalent() {
-        LimitViolation violation1 = new LimitViolation("voltageLevel1", LimitViolationType.HIGH_VOLTAGE, 420, 1, 421);
-        LimitViolation violation2 = new LimitViolation("voltageLevel1", LimitViolationType.HIGH_VOLTAGE, 420, 1, 425.20);
+        LimitViolation violation1 = new LimitViolationBuilder()
+                .subject("voltageLevel1")
+                .type(LimitViolationType.HIGH_VOLTAGE)
+                .limit(420)
+                .value(421)
+                .build();
+        LimitViolation violation2 = new LimitViolationBuilder()
+                .subject("voltageLevel1")
+                .type(LimitViolationType.HIGH_VOLTAGE)
+                .limit(420)
+                .value(425.20)
+                .build();
         SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters = new SecurityAnalysisParameters.IncreasedViolationsParameters();
         violationsParameters.setFlowProportionalThreshold(1.5);
         violationsParameters.setHighVoltageProportionalThreshold(0.1);
@@ -1493,8 +1503,18 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         violationsParameters.setHighVoltageAbsoluteThreshold(5);
         assertTrue(LimitViolationManager.violationWeakenedOrEquivalent(violation1, violation2, violationsParameters));
 
-        LimitViolation violation3 = new LimitViolation("voltageLevel1", LimitViolationType.LOW_VOLTAGE, 380, 1, 375);
-        LimitViolation violation4 = new LimitViolation("voltageLevel1", LimitViolationType.LOW_VOLTAGE, 380, 1, 371.26);
+        LimitViolation violation3 = new LimitViolationBuilder()
+                .subject("voltageLevel1")
+                .type(LimitViolationType.LOW_VOLTAGE)
+                .limit(380)
+                .value(375)
+                .build();
+        LimitViolation violation4 = new LimitViolationBuilder()
+                .subject("voltageLevel1")
+                .type(LimitViolationType.LOW_VOLTAGE)
+                .limit(380)
+                .value(371.26)
+                .build();
         violationsParameters.setFlowProportionalThreshold(1.5);
         violationsParameters.setLowVoltageProportionalThreshold(0.1);
         violationsParameters.setLowVoltageAbsoluteThreshold(3);
