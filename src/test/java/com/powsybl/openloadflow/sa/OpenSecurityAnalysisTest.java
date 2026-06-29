@@ -5122,4 +5122,49 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult resultFiltered2 = runSecurityAnalysis(network, contingencies, monitors, parameters);
         assertEmpty(resultFiltered2.getPostContingencyResults().getFirst().getNetworkResult().getBranchResults());
     }
+
+    @Test
+    void testFiltered3wtResults() {
+        Network network = T3wtFactory.create();
+        network.getShuntCompensator("sc3").setSectionCount(1); // to get some flow on leg 3
+        List<Contingency> contingencies = List.of(
+                Contingency.load("ld2")
+        );
+
+        // Monitor on branch and step-up transformer for all states
+        List<StateMonitor> monitors = List.of(
+                new StateMonitor(ContingencyContext.all(), emptySet(), emptySet(), Set.of("3wt"))
+        );
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters()
+                .setModifiedMonitoredElementsParameters(new SecurityAnalysisParameters.ModifiedMonitoredElementsParameters()
+                        .setPowerModificationThreshold(0.0)); // no filtering
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
+
+        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
+        assertEquals(1, preContingencyResult.getNetworkResult().getThreeWindingsTransformerResults().size());
+        assertEquals(1, result.getPostContingencyResults().getFirst().getNetworkResult().getThreeWindingsTransformerResults().size());
+        var preCtg = preContingencyResult.getNetworkResult().getThreeWindingsTransformerResult("3wt");
+        var postCtg = result.getPostContingencyResults().getFirst().getNetworkResult().getThreeWindingsTransformerResult("3wt");
+        double tol = 1.0; // DELTA_POWER at 1e-3 would require changing LF options to higher precision but is not useful for the test
+        assertEquals(+161., preCtg.getP1(), tol);
+        assertEquals(-161., preCtg.getP2(), tol);
+        assertEquals(0., preCtg.getP3(), tol);
+        assertEquals(+149., preCtg.getQ1(), tol);
+        assertEquals(-74., preCtg.getQ2(), tol);
+        assertEquals(-59., preCtg.getQ3(), tol);
+        assertEquals(+0., postCtg.getP1(), tol);
+        assertEquals(0., postCtg.getP2(), tol);
+        assertEquals(0., postCtg.getP3(), tol);
+        assertEquals(+67., postCtg.getQ1(), tol);
+        assertEquals(0., postCtg.getQ2(), tol);
+        assertEquals(-62., postCtg.getQ3(), tol);
+
+        parameters.getModifiedMonitoredElementsParameters().setPowerModificationThreshold(50); // MW-MVAr, there are larger p changes
+        SecurityAnalysisResult resultFiltered1 = runSecurityAnalysis(network, contingencies, monitors, parameters);
+        assertEquals(1, resultFiltered1.getPostContingencyResults().getFirst().getNetworkResult().getThreeWindingsTransformerResults().size());
+
+        parameters.getModifiedMonitoredElementsParameters().setPowerModificationThreshold(170); // MW-MVAr, this time should filter
+        SecurityAnalysisResult resultFiltered2 = runSecurityAnalysis(network, contingencies, monitors, parameters);
+        assertEmpty(resultFiltered2.getPostContingencyResults().getFirst().getNetworkResult().getThreeWindingsTransformerResults());
+    }
 }
