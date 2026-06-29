@@ -5178,4 +5178,33 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         networkResult.getBranchResults()
             .forEach(br -> assertEquals(0., br.getFlowTransfer(), DELTA_POWER));
     }
+
+    @ParameterizedTest(name = "DC = {0}")
+    @ValueSource(booleans = {false, true})
+    void testUnsupportedParameters(boolean dc) {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+
+        List<Contingency> contingencies = List.of(
+                new Contingency("NHV1_NHV2_1", new BranchContingency("NHV1_NHV2_1")),
+                new Contingency("NHV1_NHV2_2", new BranchContingency("NHV1_NHV2_2"))
+        );
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setDc(dc);
+        // These parameters are not supported so they are overriden
+        OpenLoadFlowParameters.create(lfParameters)
+                .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY)
+                .setMaxSlackBusCount(3)
+                .setNetworkCacheEnabled(true);
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+
+        // No error, (and warning logs should appear)
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertEquals(2, result.getPostContingencyResults().size());
+        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        assertEquals(0, result.getPostContingencyResults().get(1).getConnectivityResult().getDisconnectedLoadActivePower());
+    }
 }
