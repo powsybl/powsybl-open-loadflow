@@ -89,10 +89,13 @@ public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>
     }
 
     @Override
-    public void startTemporaryChanges() {
+    public void startTemporaryChanges(boolean quick) {
         ModificationsContext<V, E> modificationsContext = new ModificationsContext<>(this::getVerticesNotInMainComponent, defaultMainComponentVertex);
         modificationsContexts.add(modificationsContext);
-        modificationsContext.computeVerticesNotInMainComponentBefore();
+
+        if (!quick) {
+            modificationsContext.computeVerticesNotInMainComponentBefore();
+        }
     }
 
     @Override
