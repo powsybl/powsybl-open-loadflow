@@ -16,6 +16,7 @@ import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
+import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.extensions.VoltageRegulation;
@@ -34,13 +35,11 @@ import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
@@ -55,6 +54,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AcSensitivityAnalysisTest.class);
 
     AcSensitivityAnalysisTest(CommonTestConfig commonTestConfig) {
         super(commonTestConfig);
@@ -2269,5 +2270,434 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         // Make sur that runSync is a Callable. Only CompletableFutureTask.runAsync(Callable) handles correctly thread cancel. Not CompletableFutureTask.runAsync(Runnable)
         Callable t = () -> p.runSync(null, null, null, null, null, null, null, null, null, null, null);
         assertFalse(t instanceof Runnable);
+    }
+
+    @Test
+    void testShuntBSensi() {
+        Network network = ShuntNetworkFactory.create();
+        String shuntId = "SHUNT";
+        ShuntCompensator shunt = network.getShuntCompensator(shuntId);
+        Bus bus1 = network.getBusBreakerView().getBus("b1");
+        Bus bus2 = network.getBusBreakerView().getBus("b2");
+        Bus bus3 = network.getBusBreakerView().getBus("b3");
+
+        List<Bus> monitoredBuses = List.of(bus2, bus3);
+
+        shunt.setSectionCount(0);
+        runAcLf(network);
+        Map<Bus, Double> vBefore = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getV));
+
+        shunt.setSectionCount(1);
+        runAcLf(network);
+        Map<Bus, Double> vAfter = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getV));
+
+        shunt.setVoltageRegulatorOn(true);
+        shunt.setSectionCount(0);
+        runAcLf(network);
+
+        // Test with a bus view id vl3_0 and and busbar section ids
+        List<SensitivityFactor> factors = List.of(
+                createBusVoltagePerShuntB("vl3_0", shuntId),
+                createBusVoltagePerShuntB(bus2.getId(), shuntId),
+                createBusVoltagePerShuntB(bus1.getId(), shuntId));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(createParameters(false, bus2.getId(), true)));
+
+        // Sensi in kV/S — multiply sensitivity by delta B to get delta V
+        double deltaB = shunt.getB(1) - shunt.getB(0);
+        SensitivityVariableType varType = SensitivityVariableType.SHUNT_COMPENSATOR_SUSCEPTANCE;
+        double sVl3 = result.getBusVoltageSensitivityValue(shuntId, "vl3_0", varType);
+        double sB2 = result.getBusVoltageSensitivityValue(shuntId, bus2.getId(), varType);
+        double sB1 = result.getBusVoltageSensitivityValue(shuntId, bus1.getId(), varType);
+
+        StringBuilder out = new StringBuilder(System.lineSeparator());
+        out.append("=== testShuntBSensi (shunt ").append(shuntId).append(", deltaB=").append(deltaB).append(") ===").append(System.lineSeparator());
+        out.append(String.format("  %-7s sensi=%+14.4f  pred(sensi*deltaB)=%+10.5f  actual dV=%+10.5f%n",
+                "vl3_0", sVl3, sVl3 * deltaB, vAfter.get(bus3) - vBefore.get(bus3)));
+        out.append(String.format("  %-7s sensi=%+14.4f  pred(sensi*deltaB)=%+10.5f  actual dV=%+10.5f%n",
+                bus2.getId(), sB2, sB2 * deltaB, vAfter.get(bus2) - vBefore.get(bus2)));
+        out.append(String.format("  %-7s sensi=%+14.4f  pred(sensi*deltaB)=%+10.5f  (reference bus, expected 0)%n",
+                bus1.getId(), sB1, sB1 * deltaB));
+        LOGGER.info("{}", out);
+
+        assertEquals(vAfter.get(bus3) - vBefore.get(bus3), sVl3 * deltaB, 1e-1);
+        assertEquals(vAfter.get(bus2) - vBefore.get(bus2), sB2 * deltaB, 1e-1);
+        assertEquals(0.0, sB1 * deltaB, 1e-3);
+        assertEquals(2334.586, sVl3, DELTA_V);
+        assertEquals(1168.842, sB2, DELTA_V);
+        assertEquals(0.0, sB1, DELTA_V);
+
+        SensitivityAnalysisRunParameters runParametersDc = new SensitivityAnalysisRunParameters()
+                .setParameters(createParameters(true, bus2.getId(), false));
+        CompletionException ex = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParametersDc));
+        assertEquals("com.powsybl.commons.PowsyblException: Only variables of type TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2 and BRANCH_ACTIVE_POWER_3 are yet supported in DC", ex.getMessage());
+    }
+
+    @Test
+    void testShuntBSensiBis() {
+        Network network = ShuntNetworkFactory.create();
+        String shuntId = "SHUNT";
+        ShuntCompensator shunt = network.getShuntCompensator(shuntId);
+        List<Branch> monitoredBranches = List.of("l1", "l2").stream()
+                .map(network::getBranch)
+                .toList();
+        List<Bus> monitoredBuses = List.of("b1", "b2", "b3").stream()
+                .map(id -> network.getBusBreakerView().getBus(id))
+                .toList();
+
+        // Snapshot before: shunt at section 0
+        shunt.setSectionCount(0);
+        runAcLf(network);
+        Map<Bus, Double> qBefore = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getQ));
+        Map<Branch, double[]> branchBefore = monitoredBranches.stream().collect(Collectors.toMap(b -> b, b -> new double[]{
+                b.getTerminal1().getP(), b.getTerminal2().getP(),
+                b.getTerminal1().getI(), b.getTerminal2().getI()}));
+
+        // Snapshot after: shunt at section 1
+        shunt.setSectionCount(1);
+        runAcLf(network);
+        Map<Bus, Double> qAfter = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getQ));
+        Map<Branch, double[]> branchAfter = monitoredBranches.stream().collect(Collectors.toMap(b -> b, b -> new double[]{
+                b.getTerminal1().getP(), b.getTerminal2().getP(),
+                b.getTerminal1().getI(), b.getTerminal2().getI()}));
+
+        // Reset for sensitivity analysis
+        shunt.setVoltageRegulatorOn(true);
+        shunt.setSectionCount(0);
+        runAcLf(network);
+
+        // Build sensitivity factors
+        List<SensitivityFactor> factors = new ArrayList<>();
+        for (Bus bus : monitoredBuses) {
+            factors.add(createBusReactivePowerPerShuntB(bus.getId(), shuntId));
+        }
+        for (Branch branch : monitoredBranches) {
+            factors.add(createBranchFlowPerShuntB(branch.getId(), shuntId, TwoSides.ONE));
+            factors.add(createBranchFlowPerShuntB(branch.getId(), shuntId, TwoSides.TWO));
+            factors.add(createBranchIntensityPerShuntB(branch.getId(), shuntId, TwoSides.ONE));
+            factors.add(createBranchIntensityPerShuntB(branch.getId(), shuntId, TwoSides.TWO));
+        }
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(createParameters(false, "b1", false)));
+
+        double deltaB = shunt.getB(1) - shunt.getB(0);
+        SensitivityVariableType varType = SensitivityVariableType.SHUNT_COMPENSATOR_SUSCEPTANCE;
+
+        // Assert exact sensitivity values to catch drift
+        assertEquals(151898.236, result.getSensitivityValue(shuntId, "b1", SensitivityFunctionType.BUS_REACTIVE_POWER, varType), DELTA_POWER);
+        assertEquals(-150995.536, result.getSensitivityValue(shuntId, "b3", SensitivityFunctionType.BUS_REACTIVE_POWER, varType), DELTA_POWER);
+        assertEquals(-300.900, result.getBranchFlow2SensitivityValue(shuntId, "l1", varType), DELTA_POWER);
+        assertEquals(-186566.452, result.getBranchCurrent1SensitivityValue(shuntId, "l1", varType), DELTA_I);
+        assertEquals(-186566.452, result.getBranchCurrent2SensitivityValue(shuntId, "l1", varType), DELTA_I);
+        assertEquals(0.0, result.getBranchFlow1SensitivityValue(shuntId, "l2", varType), DELTA_POWER);
+        assertEquals(0.0, result.getBranchFlow2SensitivityValue(shuntId, "l2", varType), DELTA_POWER);
+
+        StringBuilder out = new StringBuilder(System.lineSeparator());
+        out.append("=== testShuntBSensiBis (shunt ").append(shuntId).append(", deltaB=").append(deltaB).append(") ===").append(System.lineSeparator());
+
+        // Assert bus reactive power sensitivities
+        for (Bus bus : monitoredBuses) {
+            double diff = qAfter.get(bus) - qBefore.get(bus);
+            double scaled = result.getSensitivityValue(shuntId, bus.getId(), SensitivityFunctionType.BUS_REACTIVE_POWER, varType) * deltaB;
+            out.append(String.format("  bus %-3s Q  : pred(sensi*deltaB)=%+14.4f  actual dQ=%+14.4f%n", bus.getId(), scaled, diff));
+            assertEquals(diff, scaled, 2.0);
+        }
+
+        // Assert branch P and I sensitivities
+        // l2 is directly connected to the shunt bus — P and I sensitivities have known issues:
+        //   p1_l2, p2_l2: scaled is 0 while diff is near-zero (shunt on same bus)
+        for (Branch branch : monitoredBranches) {
+            double[] before = branchBefore.get(branch);
+            double[] after = branchAfter.get(branch);
+            String branchId = branch.getId();
+
+            double diffP1 = after[0] - before[0];
+            double scaledP1 = result.getBranchFlow1SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-3s P1: pred(sensi*deltaB)=%+14.4f  actual dP1=%+14.4f%n", branchId, scaledP1, diffP1));
+            assertEquals(diffP1, scaledP1, 1.0);
+
+            double diffP2 = after[1] - before[1];
+            double scaledP2 = result.getBranchFlow2SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-3s P2: pred(sensi*deltaB)=%+14.4f  actual dP2=%+14.4f%n", branchId, scaledP2, diffP2));
+            assertEquals(diffP2, scaledP2, 1.0);
+
+            double diffI1 = after[2] - before[2];
+            double scaledI1 = result.getBranchCurrent1SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-3s I1: pred(sensi*deltaB)=%+14.4f  actual dI1=%+14.4f  sameSign=%b%n",
+                    branchId, scaledI1, diffI1, Math.signum(diffI1) == Math.signum(scaledI1)));
+            assertEquals(Math.signum(diffI1), Math.signum(scaledI1), "I1 sign mismatch on " + branchId);
+
+            double diffI2 = after[3] - before[3];
+            double scaledI2 = result.getBranchCurrent2SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-3s I2: pred(sensi*deltaB)=%+14.4f  actual dI2=%+14.4f  sameSign=%b%n",
+                    branchId, scaledI2, diffI2, Math.signum(diffI2) == Math.signum(scaledI2)));
+            assertEquals(Math.signum(diffI2), Math.signum(scaledI2), "I2 sign mismatch on " + branchId);
+        }
+        LOGGER.info("{}", out);
+    }
+
+    private Network createShuntTransformerNetwork(double bPerSection) {
+        Network network = Network.create("shunt-trafo-test", "test");
+        Substation s1 = network.newSubstation().setId("S1").add();
+        Substation s2 = network.newSubstation().setId("S2").add();
+
+        VoltageLevel vl1 = s1.newVoltageLevel().setId("vl1").setNominalV(400).setTopologyKind(TopologyKind.BUS_BREAKER).add();
+        vl1.getBusBreakerView().newBus().setId("b1").add();
+        vl1.newGenerator().setId("g1").setBus("b1").setConnectableBus("b1")
+                .setTargetP(10).setTargetV(400).setMinP(0).setMaxP(500).setVoltageRegulatorOn(true).add();
+
+        VoltageLevel vl2 = s1.newVoltageLevel().setId("vl2").setNominalV(20).setTopologyKind(TopologyKind.BUS_BREAKER).add();
+        vl2.getBusBreakerView().newBus().setId("b2").add();
+        vl2.newLoad().setId("ld1").setBus("b2").setConnectableBus("b2").setP0(10).setQ0(3).add();
+
+        VoltageLevel vl3 = s2.newVoltageLevel().setId("vl3").setNominalV(20).setTopologyKind(TopologyKind.BUS_BREAKER).add();
+        vl3.getBusBreakerView().newBus().setId("b3").add();
+        vl3.newShuntCompensator().setId("SHUNT").setBus("b3").setConnectableBus("b3")
+                .setSectionCount(0).setVoltageRegulatorOn(false)
+                .newLinearModel().setBPerSection(bPerSection).setMaximumSectionCount(1).add()
+                .add();
+
+        s1.newTwoWindingsTransformer().setId("tr1")
+                .setVoltageLevel1("vl1").setBus1("b1").setConnectableBus1("b1")
+                .setVoltageLevel2("vl2").setBus2("b2").setConnectableBus2("b2")
+                .setRatedU1(400).setRatedU2(20).setR(0.5).setX(10).add();
+
+        network.newLine().setId("l1").setBus1("b2").setBus2("b3").setR(0.1).setX(1).add();
+        return network;
+    }
+
+    @Test
+    void testShuntBSensiWithTransformer() {
+        // Small synthetic network: g1 (400kV) --transformer--> b2 (20kV) --line--> b3 (20kV, shunt)
+        // Sweep across increasing bPerSection values to see when linearization diverges
+        String shuntId = "SHUNT";
+        List<String> branchIds = List.of("tr1", "l1");
+        SensitivityVariableType varType = SensitivityVariableType.SHUNT_COMPENSATOR_SUSCEPTANCE;
+
+        // Run sensitivity on the base network (bPerSection doesn't matter for sensitivity computation)
+        Network baseNetwork = createShuntTransformerNetwork(1e-4);
+        baseNetwork.getShuntCompensator(shuntId).setSectionCount(0);
+        runAcLf(baseNetwork);
+
+        List<SensitivityFactor> factors = new ArrayList<>();
+        for (String branchId : branchIds) {
+            factors.add(createBranchIntensityPerShuntB(branchId, shuntId, TwoSides.ONE));
+            factors.add(createBranchIntensityPerShuntB(branchId, shuntId, TwoSides.TWO));
+        }
+        SensitivityAnalysisResult result = sensiRunner.run(baseNetwork, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(createParameters(false, "b1", false)));
+
+        // Assert exact sensitivity values to catch any drift
+        assertEquals(-364.498, result.getBranchCurrent1SensitivityValue(shuntId, "tr1", varType), DELTA_I);
+        assertEquals(-7289.966, result.getBranchCurrent2SensitivityValue(shuntId, "tr1", varType), DELTA_I);
+        assertEquals(9877.586, result.getBranchCurrent1SensitivityValue(shuntId, "l1", varType), DELTA_I);
+        assertEquals(9877.586, result.getBranchCurrent2SensitivityValue(shuntId, "l1", varType), DELTA_I);
+
+        // Sweep bPerSection values — accumulate rows to avoid interleaving with OLF console output
+        double[] bSteps = {1e-5, 1e-4, 1e-3, 5e-3, 1e-2};
+        List<String> sweepRows = new ArrayList<>();
+        sweepRows.add("bPerSection | branch | I1 diff      | I1 scaled    | I1 sign ok | I2 diff      | I2 scaled    | I2 sign ok");
+        for (double bStep : bSteps) {
+            Network net = createShuntTransformerNetwork(bStep);
+            ShuntCompensator shunt = net.getShuntCompensator(shuntId);
+
+            shunt.setSectionCount(0);
+            runAcLf(net);
+            double[] i1Before = {net.getBranch("tr1").getTerminal1().getI(), net.getBranch("l1").getTerminal1().getI()};
+            double[] i2Before = {net.getBranch("tr1").getTerminal2().getI(), net.getBranch("l1").getTerminal2().getI()};
+
+            shunt.setSectionCount(1);
+            runAcLf(net);
+            double[] i1After = {net.getBranch("tr1").getTerminal1().getI(), net.getBranch("l1").getTerminal1().getI()};
+            double[] i2After = {net.getBranch("tr1").getTerminal2().getI(), net.getBranch("l1").getTerminal2().getI()};
+
+            for (int i = 0; i < branchIds.size(); i++) {
+                String branchId = branchIds.get(i);
+                double diffI1 = i1After[i] - i1Before[i];
+                double scaledI1 = result.getBranchCurrent1SensitivityValue(shuntId, branchId, varType) * bStep;
+                boolean signOkI1 = diffI1 == 0 || Math.signum(diffI1) == Math.signum(scaledI1);
+                double diffI2 = i2After[i] - i2Before[i];
+                double scaledI2 = result.getBranchCurrent2SensitivityValue(shuntId, branchId, varType) * bStep;
+                boolean signOkI2 = diffI2 == 0 || Math.signum(diffI2) == Math.signum(scaledI2);
+                sweepRows.add(String.format("%-11.0e | %-6s | %+12.6f | %+12.6f | %-10s | %+12.6f | %+12.6f | %s",
+                        bStep, branchId, diffI1, scaledI1, signOkI1, diffI2, scaledI2, signOkI2));
+            }
+        }
+
+        // Assert that small steps (1e-4) have correct signs and close values
+        Network smallNet = createShuntTransformerNetwork(1e-4);
+        ShuntCompensator shuntSmall = smallNet.getShuntCompensator(shuntId);
+        shuntSmall.setSectionCount(0);
+        runAcLf(smallNet);
+        Map<String, double[]> smallBefore = branchIds.stream().collect(Collectors.toMap(id -> id, id -> new double[]{
+                smallNet.getBranch(id).getTerminal1().getI(), smallNet.getBranch(id).getTerminal2().getI()}));
+        shuntSmall.setSectionCount(1);
+        runAcLf(smallNet);
+        double smallDeltaB = 1e-4;
+        for (String branchId : branchIds) {
+            Branch branch = smallNet.getBranch(branchId);
+            double diffI1 = branch.getTerminal1().getI() - smallBefore.get(branchId)[0];
+            double scaledI1 = result.getBranchCurrent1SensitivityValue(shuntId, branchId, varType) * smallDeltaB;
+            double diffI2 = branch.getTerminal2().getI() - smallBefore.get(branchId)[1];
+            double scaledI2 = result.getBranchCurrent2SensitivityValue(shuntId, branchId, varType) * smallDeltaB;
+            assertEquals(Math.signum(diffI1), Math.signum(scaledI1), "I1 sign mismatch on " + branchId);
+            assertEquals(Math.signum(diffI2), Math.signum(scaledI2), "I2 sign mismatch on " + branchId);
+        }
+
+        LOGGER.info("=== testShuntBSensiWithTransformer : I1/I2 diff vs scaled sensitivity over bPerSection sweep ==={}{}",
+                System.lineSeparator(), String.join(System.lineSeparator(), sweepRows));
+    }
+
+    @Test
+    void testShuntBSensi2() {
+        Network network = IeeeCdfNetworkFactory.create14();
+        String shuntId = "B9-SH";
+        ShuntCompensator shunt = network.getShuntCompensator(shuntId);
+
+        List<Bus> monitoredBuses = List.of("B9", "B10", "B7", "B4", "B14").stream()
+                .map(id -> network.getBusBreakerView().getBus(id))
+                .toList();
+        List<Branch> monitoredBranches = List.of("L9-10-1", "L9-14-1", "L7-9-1", "T4-9-1", "T4-7-1", "T5-6-1").stream()
+                .map(network::getBranch)
+                .toList();
+
+        // Snapshot before: shunt disconnected (section count 0)
+        shunt.setSectionCount(0);
+        runAcLf(network);
+        Map<Bus, Double> vBefore = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getV));
+        Map<Bus, Double> qBefore = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getQ));
+        Map<Branch, double[]> branchBefore = monitoredBranches.stream().collect(Collectors.toMap(b -> b, b -> new double[]{
+                b.getTerminal1().getP(), b.getTerminal2().getP(),
+                b.getTerminal1().getI(), b.getTerminal2().getI()}));
+
+        // Snapshot after: shunt connected (section count 1)
+        shunt.setSectionCount(1);
+        runAcLf(network);
+        Map<Bus, Double> vAfter = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getV));
+        Map<Bus, Double> qAfter = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getQ));
+        Map<Branch, double[]> branchAfter = monitoredBranches.stream().collect(Collectors.toMap(b -> b, b -> new double[]{
+                b.getTerminal1().getP(), b.getTerminal2().getP(),
+                b.getTerminal1().getI(), b.getTerminal2().getI()}));
+
+        // Reset for sensitivity analysis
+        shunt.setSectionCount(0);
+        runAcLf(network);
+
+        // Build sensitivity factors
+        List<SensitivityFactor> factors = new ArrayList<>();
+        for (Bus bus : monitoredBuses) {
+            factors.add(createBusVoltagePerShuntB(bus.getId(), shuntId));
+            factors.add(createBusReactivePowerPerShuntB(bus.getId(), shuntId));
+        }
+        for (Branch branch : monitoredBranches) {
+            factors.add(createBranchFlowPerShuntB(branch.getId(), shuntId, TwoSides.ONE));
+            factors.add(createBranchFlowPerShuntB(branch.getId(), shuntId, TwoSides.TWO));
+            factors.add(createBranchIntensityPerShuntB(branch.getId(), shuntId, TwoSides.ONE));
+            factors.add(createBranchIntensityPerShuntB(branch.getId(), shuntId, TwoSides.TWO));
+        }
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(createParameters(false, "B1", false)));
+
+        double deltaB = shunt.getB(1) - shunt.getB(0);
+        SensitivityVariableType varType = SensitivityVariableType.SHUNT_COMPENSATOR_SUSCEPTANCE;
+
+        // Assert exact sensitivity values to catch drift
+        assertEquals(2.5347, result.getBusVoltageSensitivityValue(shuntId, "B9", varType), DELTA_V);
+        assertEquals(2.1022, result.getBusVoltageSensitivityValue(shuntId, "B10", varType), DELTA_V);
+        assertEquals(2.1065, result.getBusVoltageSensitivityValue(shuntId, "B7", varType), DELTA_V);
+        assertEquals(5.4944, result.getBusVoltageSensitivityValue(shuntId, "B4", varType), DELTA_V);
+        assertEquals(1.6228, result.getBusVoltageSensitivityValue(shuntId, "B14", varType), DELTA_V);
+        assertEquals(-153.728, result.getSensitivityValue(shuntId, "B9", SensitivityFunctionType.BUS_REACTIVE_POWER, varType), DELTA_POWER);
+        assertEquals(6.8015, result.getBranchFlow1SensitivityValue(shuntId, "L9-10-1", varType), DELTA_POWER);
+        assertEquals(-6.7951, result.getBranchFlow2SensitivityValue(shuntId, "L9-10-1", varType), DELTA_POWER);
+        assertEquals(6.4563, result.getBranchFlow1SensitivityValue(shuntId, "L9-14-1", varType), DELTA_POWER);
+        assertEquals(8.4005, result.getBranchFlow1SensitivityValue(shuntId, "L7-9-1", varType), DELTA_POWER);
+        assertEquals(4.8572, result.getBranchFlow1SensitivityValue(shuntId, "T4-9-1", varType), DELTA_POWER);
+        assertEquals(111.079, result.getBranchCurrent1SensitivityValue(shuntId, "L9-10-1", varType), DELTA_I);
+        assertEquals(111.079, result.getBranchCurrent2SensitivityValue(shuntId, "L9-10-1", varType), DELTA_I);
+        assertEquals(310.880, result.getBranchCurrent1SensitivityValue(shuntId, "L9-14-1", varType), DELTA_I);
+        assertEquals(-1003.505, result.getBranchCurrent1SensitivityValue(shuntId, "L7-9-1", varType), DELTA_I);
+        assertEquals(-1170.756, result.getBranchCurrent2SensitivityValue(shuntId, "L7-9-1", varType), DELTA_I);
+        assertEquals(-8.800, result.getBranchCurrent1SensitivityValue(shuntId, "T4-9-1", varType), DELTA_I);
+        assertEquals(-95.934, result.getBranchCurrent2SensitivityValue(shuntId, "T4-9-1", varType), DELTA_I);
+        assertEquals(75.942, result.getBranchCurrent1SensitivityValue(shuntId, "T4-7-1", varType), DELTA_I);
+        assertEquals(716.188, result.getBranchCurrent2SensitivityValue(shuntId, "T4-7-1", varType), DELTA_I);
+        assertEquals(-56.359, result.getBranchCurrent1SensitivityValue(shuntId, "T5-6-1", varType), DELTA_I);
+        assertEquals(-590.923, result.getBranchCurrent2SensitivityValue(shuntId, "T5-6-1", varType), DELTA_I);
+
+        // Sensitivity is a linear approximation; with a large delta B step (0.132 S), expect significant linearization error
+        double voltageTol = 5e-1;
+        double powerTol = 1.0;
+
+        StringBuilder out = new StringBuilder(System.lineSeparator());
+        out.append("=== testShuntBSensi2 (shunt ").append(shuntId).append(", deltaB=").append(deltaB).append(") ===").append(System.lineSeparator());
+
+        // Assert bus voltage sensitivities — same sign and close values
+        for (Bus bus : monitoredBuses) {
+            double diff = vAfter.get(bus) - vBefore.get(bus);
+            double scaled = result.getBusVoltageSensitivityValue(shuntId, bus.getId(), varType) * deltaB;
+            out.append(String.format("  bus %-4s V : pred(sensi*deltaB)=%+10.5f  actual dV=%+10.5f  sameSign=%b%n",
+                    bus.getId(), scaled, diff, Math.signum(diff) == Math.signum(scaled)));
+            assertEquals(diff, scaled, voltageTol);
+            assertEquals(Math.signum(diff), Math.signum(scaled), "V sign mismatch on " + bus.getId());
+        }
+
+        // Assert bus reactive power sensitivities — same sign and close values
+        for (Bus bus : monitoredBuses) {
+            double diff = qAfter.get(bus) - qBefore.get(bus);
+            double scaled = result.getSensitivityValue(shuntId, bus.getId(), SensitivityFunctionType.BUS_REACTIVE_POWER, varType) * deltaB;
+            out.append(String.format("  bus %-4s Q : pred(sensi*deltaB)=%+10.4f  actual dQ=%+10.4f%n", bus.getId(), scaled, diff));
+            assertEquals(diff, scaled, powerTol);
+        }
+
+        // Assert branch active power sensitivities — same sign and close values
+        // Current sensitivities have known sign mismatches on T4-9-1 due to non-linearity
+        Set<String> currentSignExceptions = Set.of("T4-9-1");
+        for (Branch branch : monitoredBranches) {
+            double[] before = branchBefore.get(branch);
+            double[] after = branchAfter.get(branch);
+            String branchId = branch.getId();
+            // P1
+            double diffP1 = after[0] - before[0];
+            double scaledP1 = result.getBranchFlow1SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-7s P1: pred(sensi*deltaB)=%+10.4f  actual dP1=%+10.4f  sameSign=%b%n",
+                    branchId, scaledP1, diffP1, Math.signum(diffP1) == Math.signum(scaledP1)));
+            assertEquals(diffP1, scaledP1, powerTol);
+            assertEquals(Math.signum(diffP1), Math.signum(scaledP1), "P1 sign mismatch on " + branchId);
+            // P2
+            double diffP2 = after[1] - before[1];
+            double scaledP2 = result.getBranchFlow2SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-7s P2: pred(sensi*deltaB)=%+10.4f  actual dP2=%+10.4f  sameSign=%b%n",
+                    branchId, scaledP2, diffP2, Math.signum(diffP2) == Math.signum(scaledP2)));
+            assertEquals(diffP2, scaledP2, powerTol);
+            assertEquals(Math.signum(diffP2), Math.signum(scaledP2), "P2 sign mismatch on " + branchId);
+            // I1
+            double diffI1 = after[2] - before[2];
+            double scaledI1 = result.getBranchCurrent1SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-7s I1: pred(sensi*deltaB)=%+10.4f  actual dI1=%+10.4f  sameSign=%b%s%n",
+                    branchId, scaledI1, diffI1, Math.signum(diffI1) == Math.signum(scaledI1),
+                    currentSignExceptions.contains(branchId) ? " (expected mismatch)" : ""));
+            if (currentSignExceptions.contains(branchId)) {
+                // Known sign mismatch due to current non-linearity with large delta B
+                assertNotEquals(Math.signum(diffI1), Math.signum(scaledI1), "Expected sign mismatch on I1 " + branchId);
+            } else {
+                assertEquals(Math.signum(diffI1), Math.signum(scaledI1), "I1 sign mismatch on " + branchId);
+            }
+            // I2
+            double diffI2 = after[3] - before[3];
+            double scaledI2 = result.getBranchCurrent2SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-7s I2: pred(sensi*deltaB)=%+10.4f  actual dI2=%+10.4f  sameSign=%b%s%n",
+                    branchId, scaledI2, diffI2, Math.signum(diffI2) == Math.signum(scaledI2),
+                    currentSignExceptions.contains(branchId) ? " (expected mismatch)" : ""));
+            if (currentSignExceptions.contains(branchId)) {
+                assertNotEquals(Math.signum(diffI2), Math.signum(scaledI2), "Expected sign mismatch on I2 " + branchId);
+            } else {
+                assertEquals(Math.signum(diffI2), Math.signum(scaledI2), "I2 sign mismatch on " + branchId);
+            }
+        }
+
     }
 }
