@@ -1324,7 +1324,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         createDcGrounds(lfNetwork, dcGrounds);
         createDcLines(lfNetwork, loadingContext, parameters);
 
-        // TO DO : Handle switches that have non zero impedance
+        // TO DO : Handle switches that have non zero resistance
         network.getDcSwitchStream().filter(s -> !s.isOpen() && s.getR() != 0)
                 .filter(s -> {
                     DcBus dcBus1 = s.getDcNode1().getDcBus();
