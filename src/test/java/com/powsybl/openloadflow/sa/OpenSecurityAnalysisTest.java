@@ -790,8 +790,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(fourBusNetwork, contingencies, monitors, securityAnalysisParameters);
 
         assertEquals(2, result.getPreContingencyResult().getNetworkResult().getBranchResults().size());
-        assertEquals("l12", result.getPreContingencyResult().getNetworkResult().getBranchResults().get(0).getBranchId());
-        assertEquals("l14", result.getPreContingencyResult().getNetworkResult().getBranchResults().get(1).getBranchId());
+        assertEquals("l14", result.getPreContingencyResult().getNetworkResult().getBranchResults().get(0).getBranchId());
+        assertEquals("l12", result.getPreContingencyResult().getNetworkResult().getBranchResults().get(1).getBranchId());
 
         assertEquals(5, result.getPostContingencyResults().size());
         assertEquals(4, getPostContingencyResult(result, "l14").getNetworkResult().getBranchResults().size());
@@ -3083,12 +3083,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, ReportNode.NO_OP);
         assertEquals(3, result.getPreContingencyResult().getNetworkResult().getBusResults().size());
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        assertEquals("BBS3", preContingencyResult.getNetworkResult().getBusResults().get(0).getBusId());
-        assertEquals(400.0, preContingencyResult.getNetworkResult().getBusResult("BBS3").getV(), LoadFlowAssert.DELTA_V);
+        assertEquals("BBS1", preContingencyResult.getNetworkResult().getBusResults().get(0).getBusId());
+        assertEquals(400.0, preContingencyResult.getNetworkResult().getBusResult("BBS1").getV(), LoadFlowAssert.DELTA_V);
         assertEquals("BBS2", preContingencyResult.getNetworkResult().getBusResults().get(1).getBusId());
         assertEquals(400.0, preContingencyResult.getNetworkResult().getBusResult("BBS2").getV(), LoadFlowAssert.DELTA_V);
-        assertEquals("BBS1", preContingencyResult.getNetworkResult().getBusResults().get(2).getBusId());
-        assertEquals(400.0, preContingencyResult.getNetworkResult().getBusResult("BBS1").getV(), LoadFlowAssert.DELTA_V);
+        assertEquals("BBS3", preContingencyResult.getNetworkResult().getBusResults().get(2).getBusId());
+        assertEquals(400.0, preContingencyResult.getNetworkResult().getBusResult("BBS3").getV(), LoadFlowAssert.DELTA_V);
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "C1");
         assertNull(postContingencyResult.getNetworkResult().getBusResult("BBS1"));
         assertEquals(400.0, postContingencyResult.getNetworkResult().getBusResult("BBS2").getV(), LoadFlowAssert.DELTA_V);
@@ -3110,12 +3110,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, ReportNode.NO_OP);
         assertEquals(3, result.getPreContingencyResult().getNetworkResult().getBusResults().size());
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        assertEquals("BBS3", preContingencyResult.getNetworkResult().getBusResults().get(0).getBusId());
-        assertEquals(400.0, preContingencyResult.getNetworkResult().getBusResult("BBS3").getV(), LoadFlowAssert.DELTA_V);
+        assertEquals("BBS1", preContingencyResult.getNetworkResult().getBusResults().get(0).getBusId());
+        assertEquals(400.0, preContingencyResult.getNetworkResult().getBusResult("BBS1").getV(), LoadFlowAssert.DELTA_V);
         assertEquals("BBS2", preContingencyResult.getNetworkResult().getBusResults().get(1).getBusId());
         assertEquals(400.0, preContingencyResult.getNetworkResult().getBusResult("BBS2").getV(), LoadFlowAssert.DELTA_V);
-        assertEquals("BBS1", preContingencyResult.getNetworkResult().getBusResults().get(2).getBusId());
-        assertEquals(400.0, preContingencyResult.getNetworkResult().getBusResult("BBS1").getV(), LoadFlowAssert.DELTA_V);
+        assertEquals("BBS3", preContingencyResult.getNetworkResult().getBusResults().get(2).getBusId());
+        assertEquals(400.0, preContingencyResult.getNetworkResult().getBusResult("BBS3").getV(), LoadFlowAssert.DELTA_V);
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "C1");
         assertEmpty(postContingencyResult.getNetworkResult().getBusResults());
     }

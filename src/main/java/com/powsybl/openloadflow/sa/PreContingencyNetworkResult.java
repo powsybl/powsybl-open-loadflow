@@ -24,9 +24,9 @@ import java.util.function.Predicate;
  */
 public class PreContingencyNetworkResult extends AbstractNetworkResult {
 
-    private final Map<String, BranchResult> branchResults = new HashMap<>();
-    private final Map<String, BusResult> busResults = new HashMap<>();
-    private final Map<String, ThreeWindingsTransformerResult> threeWindingsTransformerResults = new HashMap<>();
+    private final Map<String, BranchResult> branchResults = new LinkedHashMap<>();
+    private final Map<String, BusResult> busResults = new LinkedHashMap<>();
+    private final Map<String, ThreeWindingsTransformerResult> threeWindingsTransformerResults = new LinkedHashMap<>();
 
     public PreContingencyNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
         super(network, monitorIndexes, createResultExtension, loadFlowModel, dcPowerFactor);
