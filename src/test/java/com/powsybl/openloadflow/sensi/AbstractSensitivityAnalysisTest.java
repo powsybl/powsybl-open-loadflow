@@ -274,6 +274,24 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
         return createBusVoltagePerTargetV(functionId, variableId, null);
     }
 
+    protected static SensitivityFactor createBusVoltagePerShuntB(String functionId, String variableId) {
+        return new SensitivityFactor(SensitivityFunctionType.BUS_VOLTAGE, functionId, SensitivityVariableType.SHUNT_COMPENSATOR_SUSCEPTANCE, variableId, false, ContingencyContext.all());
+    }
+
+    protected static SensitivityFactor createBranchFlowPerShuntB(String functionId, String variableId, TwoSides side) {
+        SensitivityFunctionType ftype = side.equals(TwoSides.ONE) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
+        return new SensitivityFactor(ftype, functionId, SensitivityVariableType.SHUNT_COMPENSATOR_SUSCEPTANCE, variableId, false, ContingencyContext.all());
+    }
+
+    protected static SensitivityFactor createBranchIntensityPerShuntB(String functionId, String variableId, TwoSides side) {
+        SensitivityFunctionType ftype = side.equals(TwoSides.ONE) ? SensitivityFunctionType.BRANCH_CURRENT_1 : SensitivityFunctionType.BRANCH_CURRENT_2;
+        return new SensitivityFactor(ftype, functionId, SensitivityVariableType.SHUNT_COMPENSATOR_SUSCEPTANCE, variableId, false, ContingencyContext.all());
+    }
+
+    protected static SensitivityFactor createBusReactivePowerPerShuntB(String functionId, String variableId) {
+        return new SensitivityFactor(SensitivityFunctionType.BUS_REACTIVE_POWER, functionId, SensitivityVariableType.SHUNT_COMPENSATOR_SUSCEPTANCE, variableId, false, ContingencyContext.all());
+    }
+
     protected static SensitivityFactor createHvdcInjection(String functionId, String variableId, TwoSides side) {
         SensitivityFunctionType ftype = side.equals(TwoSides.ONE) ? SensitivityFunctionType.BRANCH_ACTIVE_POWER_1 : SensitivityFunctionType.BRANCH_ACTIVE_POWER_2;
         return new SensitivityFactor(ftype, functionId, SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, variableId, false, ContingencyContext.all());
