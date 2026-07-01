@@ -40,7 +40,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -337,13 +336,15 @@ class AcSvcPilotPointSensitivityTest extends AbstractSensitivityAnalysisTest {
     }
 
     // ------------------------------------------------------------------------------------------------------------
-    // Error handling — querying a pilot-target sensitivity on a network with no active SVC zone
+    // Querying a pilot-target sensitivity on a network with no active SVC zone yields a zero (empty-weight) result
+    // rather than failing the whole analysis
     // ------------------------------------------------------------------------------------------------------------
 
     @Test
     void testSvcPilotSensitivityWithoutSecondaryVoltageControl() {
-        // IEEE-14 without any secondary voltage control extension: no SVC zone is loaded, so the closed-loop
-        // pilot-target sensitivity cannot be computed and the coordination builder must reject the query.
+        // IEEE-14 without any secondary voltage control extension: no SVC zone is loaded, so the queried pilot
+        // bus belongs to no active zone. Perturbing its target has no closed-loop effect, so the coordination
+        // builder returns no controlled-bus weights (identically-zero sensitivity) instead of failing.
         Network network = IeeeCdfNetworkFactory.create14();
         LfNetwork lfNetwork = Networks.load(network, new LfNetworkParameters()).get(0);
         LfBus anyBus = lfNetwork.getBuses().get(0);
@@ -351,9 +352,46 @@ class AcSvcPilotPointSensitivityTest extends AbstractSensitivityAnalysisTest {
         AcLoadFlowParameters acParameters = new AcLoadFlowParameters()
                 .setMatrixFactory(commonTestConfig.matrixFactory());
         try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
-            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                    () -> SvcPilotPointClosedLoopSensitivity.computeControlledBusWeights(anyBus, context));
-            assertEquals("No active SVC zone in network — cannot compute pilot-target sensitivity", e.getMessage());
+            Map<LfBus, Double> weights = SvcPilotPointClosedLoopSensitivity.computeControlledBusWeights(anyBus, context);
+            assertTrue(weights.isEmpty(), "pilot-target sensitivity should be zero (no weights) when the zone has no active controller");
         }
+    }
+
+    @Test
+    void testSvcPilotSensitivityZeroWhenZoneControllerClampedToPq() {
+        // End-to-end via the public runner: a single-controller zone whose only generator has a very narrow
+        // reactive range. The controller saturates and is clamped from PV to PQ during the solve, so at the
+        // converged state the zone has no enabled controller bus. Perturbing its pilot target then has no
+        // closed-loop effect, so every pilot-target sensitivity comes back exactly zero (rather than the whole
+        // analysis failing).
+        String zone = "z1";
+        Network network = IeeeCdfNetworkFactory.create14();
+        network.getGenerator("B6-G").newMinMaxReactiveLimits().setMinQ(-0.6).setMaxQ(0.6).add();
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .newControlZone()
+                    .withName(zone)
+                    .newPilotPoint().withTargetV(14.0).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                    .newControlUnit().withId("B6-G").add()
+                    .add()
+                .add();
+
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
+        sensiParameters.getLoadFlowParameters().setUseReactiveLimits(true);
+        OpenLoadFlowParameters.create(sensiParameters.getLoadFlowParameters())
+                .setSecondaryVoltageControl(true)
+                .setMaxPlausibleTargetVoltage(1.6);
+
+        SensitivityVariableType svc = SensitivityVariableType.SVC_PILOT_POINT_TARGET_VOLTAGE;
+        List<SensitivityFactor> factors = List.of(
+                new SensitivityFactor(SensitivityFunctionType.BUS_VOLTAGE, "B10", svc, zone, false, ContingencyContext.all()),
+                new SensitivityFactor(SensitivityFunctionType.BUS_VOLTAGE, "B6", svc, zone, false, ContingencyContext.all()));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters));
+
+        // The zone's only controller is clamped to PQ, so there is no active lever: the pilot-target sensitivity
+        // is exactly zero on every monitored quantity, including the pilot bus itself.
+        assertEquals(0.0, result.getBusVoltageSensitivityValue(zone, "B10", svc), 0.0);
+        assertEquals(0.0, result.getBusVoltageSensitivityValue(zone, "B6", svc), 0.0);
     }
 }
