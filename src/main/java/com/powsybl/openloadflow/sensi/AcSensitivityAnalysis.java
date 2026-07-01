@@ -128,7 +128,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // Bus reactive injection has a direct term only when the perturbed branch is incident to that bus.
             // The injection is the opposite of the reactive power leaving the bus into the branch, hence the minus.
             double[] partials = SingleVariableFactorGroup.computeBranchFlowParameterPartials(branch, varType);
-            if (partials.length == 0) {
+            if (partials == null) {
                 return 0;
             }
             if (branch.getBus1() == bus) {
@@ -172,9 +172,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 double p = (side2 ? branch.getP2() : branch.getP1()).eval();
                 double q = (side2 ? branch.getQ2() : branch.getQ1()).eval();
                 double s = Math.sqrt(p * p + q * q);
-                // Below the zero-current threshold |I| = |S| / v is a 0/0 limit and (p·∂p/∂u + q·∂q/∂u) / (v·|S|)
-                // is numerically unstable; the direct term vanishes there (same convention as the equation terms).
-                return s / v < AbstractClosedBranchAcFlowEquationTerm.ZERO_CURRENT_THRESHOLD ? 0 : (p * dpdu + q * dqdu) / (v * s);
+                return s == 0 ? 0 : (p * dpdu + q * dqdu) / (v * s);
             }
             default:
                 // Unreachable: this method is only reached for a self-sensitivity whose function element is the
@@ -233,11 +231,42 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
         // solve system
         DenseMatrix factorsStates = initFactorsRhs(context.getEquationSystem(), factorGroups, participationByBus); // this is the rhs for the moment
+        fillSvcPilotFactorsRhs(factorGroups, factorsStates, context);
         context.getJacobianMatrix().solveTransposed(factorsStates);
         setFunctionReferences(lfFactors);
 
         // calculate sensitivity values
         calculateSensitivityValues(lfFactors, factorGroups, factorsStates, contingencyIndex, resultWriter);
+    }
+
+    /**
+     * Fills the RHS columns for SVC_PILOT_TARGET_VOLTAGE factor groups: for each
+     * such group, the RHS becomes a linear combination of the controlled buses'
+     * BUS_TARGET_V columns, weighted by the closed-loop coordination coefficients
+     * (see {@link SvcPilotPointClosedLoopSensitivity}).  Other factor groups are untouched.
+     */
+    private static void fillSvcPilotFactorsRhs(
+            SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups,
+            DenseMatrix factorsStates,
+            AcLoadFlowContext context) {
+        Map<LfBus, Map<LfBus, Double>> weightsByPilot = new HashMap<>();
+        for (SensitivityFactorGroup<AcVariableType, AcEquationType> group : factorGroups.getList()) {
+            LfSensitivityFactor<AcVariableType, AcEquationType> probe = group.getFactors().isEmpty() ? null : group.getFactors().get(0);
+            if (probe == null || probe.getVariableType() != SensitivityVariableType.SVC_PILOT_POINT_TARGET_VOLTAGE) {
+                continue;
+            }
+            LfBus pilotBus = (LfBus) ((SingleVariableLfSensitivityFactor<AcVariableType, AcEquationType>) probe).getVariableElement();
+            Map<LfBus, Double> weights = weightsByPilot.computeIfAbsent(pilotBus, pb ->
+                    SvcPilotPointClosedLoopSensitivity.computeControlledBusWeights(pb, context));
+            int col = group.getIndex();
+            for (var entry : weights.entrySet()) {
+                LfBus controlled = entry.getKey();
+                double w = entry.getValue();
+                context.getEquationSystem()
+                        .getEquation(controlled.getNum(), AcEquationType.BUS_TARGET_V)
+                        .ifPresent(eq -> factorsStates.set(eq.getColumn(), col, w));
+            }
+        }
     }
 
     private static boolean runLoadFlow(AcLoadFlowContext context, boolean isRunningBaseSituation) {
@@ -376,6 +405,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage())
                 .setMinNominalVoltageTargetVoltageCheck(lfParametersExt.getMinNominalVoltageTargetVoltageCheck())
                 .setLowImpedanceThreshold(lfParametersExt.getLowImpedanceThreshold())
+                .setSecondaryVoltageControl(lfParametersExt.isSecondaryVoltageControl()) // load SVC zones for SVC_PILOT sensitivity
                 .setAreaInterchangeControlAreaType(lfParametersExt.getAreaInterchangeControlAreaType())
                 .setForceTargetQInReactiveLimits(lfParametersExt.isForceTargetQInReactiveLimits())
                 .setDisableInconsistentVoltageControls(lfParametersExt.isDisableInconsistentVoltageControls())
@@ -472,6 +502,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
             // initialize right hand side from valid factors
             DenseMatrix factorsStates = initFactorsRhs(context.getEquationSystem(), factorGroups, slackParticipationByBus); // this is the rhs for the moment
+            fillSvcPilotFactorsRhs(factorGroups, factorsStates, context);
 
             // solve system
             context.getJacobianMatrix().solveTransposed(factorsStates);
