@@ -37,7 +37,7 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
             throw new IllegalArgumentException("Derivative with respect to r1 not implemented");
         }
         if (i1(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2) < ZERO_CURRENT_THRESHOLD) {
-            // At I=0 the standard formula (reI·∂reI/∂u + imI·∂imI/∂u) / |I| is 0/0.
+            // At I=0 the standard formula reI·∂reI/∂u / |I| is 0/0.
             // One-sided limit: ∂|I1|/∂u = hypot(∂reI1/∂u, ∂imI1/∂u).
             double dreI1Dph1 = dreI1dph1(y, ksi, g1, b1, v1, ph1, r1);
             double dreI1Dph2 = dreI1dph2(y, ksi, r1, a1, v2, ph2);

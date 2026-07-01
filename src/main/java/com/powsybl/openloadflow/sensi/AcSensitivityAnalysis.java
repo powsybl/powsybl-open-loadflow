@@ -21,8 +21,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
-import com.powsybl.openloadflow.ac.equations.AcEquationType;
-import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -86,6 +85,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                         throw new PowsyblException("Found an inactive equation for a factor that has no predefined result");
                     }
                     sensi = factor.getFunctionEquationTerm().calculateSensi(factorsState, factorGroup.getIndex());
+                    // Add the direct term (explicit dependence of the function on the variable), if any
+                    sensi += computeParameterDirectPartial(factor);
                 }
                 if (factor.getFunctionPredefinedResult() != null) {
                     ref = factor.getFunctionPredefinedResult();
@@ -97,6 +98,89 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, -1, unscaledSensi, unscaleFunction(factor, ref));
                 }
             }
+        }
+    }
+
+    /**
+     * Direct term of a sensitivity factor: the explicit dependence of the monitored function on the variable,
+     * to be added to the indirect term flowing through the Jacobian. A direct term exists only when the function
+     * depends explicitly (not only through the state) on the variable, i.e. for self-sensitivity where the
+     * variable element and the function element are the same. Today only branch parameters (R / X / Y) contribute;
+     * every other variable type returns 0.
+     */
+    private static double computeParameterDirectPartial(LfSensitivityFactor<AcVariableType, AcEquationType> factor) {
+        if (!(factor instanceof SingleVariableLfSensitivityFactor<AcVariableType, AcEquationType> singleFactor)) {
+            return 0;
+        }
+        SensitivityVariableType varType = factor.getVariableType();
+        if (varType != SensitivityVariableType.BRANCH_RESISTANCE && varType != SensitivityVariableType.BRANCH_REACTANCE
+                && varType != SensitivityVariableType.BRANCH_ADMITTANCE) {
+            return 0; // only branch parameters have a direct term; other variables act only through the state
+        }
+        LfBranch branch = (LfBranch) singleFactor.getVariableElement();
+        LfElement functionElement = factor.getFunctionElement();
+        SensitivityFunctionType functionType = factor.getFunctionType();
+        if (branch == functionElement) {
+            // self-sensitivity: the monitored flow/current is on the very branch being perturbed
+            return computeBranchFunctionDirectPartial(branch, functionType, varType);
+        }
+        if (functionType == SensitivityFunctionType.BUS_REACTIVE_POWER && functionElement instanceof LfBus bus) {
+            // Bus reactive injection has a direct term only when the perturbed branch is incident to that bus.
+            // The injection is the opposite of the reactive power leaving the bus into the branch, hence the minus.
+            double[] partials = SingleVariableFactorGroup.computeBranchFlowParameterPartials(branch, varType);
+            if (partials.length == 0) {
+                return 0;
+            }
+            if (branch.getBus1() == bus) {
+                return -partials[1]; // -dq1/du
+            } else if (branch.getBus2() == bus) {
+                return -partials[3]; // -dq2/du
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Direct partial ∂F/∂u of a branch function F (active/reactive flow or current magnitude) w.r.t. one of the
+     * branch's own parameters u (R / X / Y), at the converged operating point. Built from the four branch flow
+     * partials [∂p1/∂u, ∂q1/∂u, ∂p2/∂u, ∂q2/∂u] (shared with the indirect RHS term).
+     * <p>
+     * The side the quantity is taken on is selected consistently with
+     * {@code AbstractLfSensitivityFactor#getFunctionEquationTerm}: function types {@code *_1} and {@code *_3} read
+     * the branch's side-1 quantities, {@code *_2} reads its side-2 quantities. Branch parameter (R / X / Y)
+     * self-sensitivity is only defined on two-winding branches and lines (a three-winding leg is not addressable as
+     * an R / X / Y variable), so {@code branch} is never a leg here and side 3 collapses to side 1 just like side 1.
+     */
+    private static double computeBranchFunctionDirectPartial(LfBranch branch, SensitivityFunctionType functionType, SensitivityVariableType varType) {
+        double[] partials = SingleVariableFactorGroup.computeBranchFlowParameterPartials(branch, varType);
+        if (partials.length == 0) {
+            return 0;
+        }
+        boolean side2 = functionType.getSide().orElse(0) == 2;
+        double dpdu = side2 ? partials[2] : partials[0]; // ∂p/∂u on the monitored side
+        double dqdu = side2 ? partials[3] : partials[1]; // ∂q/∂u on the monitored side
+        switch (functionType) {
+            case BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2, BRANCH_ACTIVE_POWER_3:
+                return dpdu;
+            case BRANCH_REACTIVE_POWER_1, BRANCH_REACTIVE_POWER_2, BRANCH_REACTIVE_POWER_3:
+                return dqdu;
+            case BRANCH_CURRENT_1, BRANCH_CURRENT_2, BRANCH_CURRENT_3: {
+                // Current magnitude is recovered from the apparent power: |S| = v·|I|, hence |I| = |S| / v with
+                // |S| = sqrt(p² + q²). For the direct partial the state (V, θ) is held fixed, so v is constant:
+                //   ∂|I|/∂u = (1/v)·∂|S|/∂u = (1/v)·(p·∂p/∂u + q·∂q/∂u) / |S| = (p·∂p/∂u + q·∂q/∂u) / (v·|S|).
+                double v = (side2 ? branch.getBus2() : branch.getBus1()).getV();
+                double p = (side2 ? branch.getP2() : branch.getP1()).eval();
+                double q = (side2 ? branch.getQ2() : branch.getQ1()).eval();
+                double s = Math.sqrt(p * p + q * q);
+                // Below the zero-current threshold |I| = |S| / v is a 0/0 limit and (p·∂p/∂u + q·∂q/∂u) / (v·|S|)
+                // is numerically unstable; the direct term vanishes there (same convention as the equation terms).
+                return s / v < AbstractClosedBranchAcFlowEquationTerm.ZERO_CURRENT_THRESHOLD ? 0 : (p * dpdu + q * dqdu) / (v * s);
+            }
+            default:
+                // Unreachable: this method is only reached for a self-sensitivity whose function element is the
+                // branch carrying the R/X/Y variable (see computeParameterDirectPartial), so functionType is always
+                // one of the branch flow/current types above. Bus function types never get here.
+                throw new IllegalStateException("Unexpected branch function type: " + functionType);
         }
     }
 
