@@ -246,6 +246,36 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testUnsupportedParameters() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", false);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        // These are all unsupported parameters that should be overriden
+        sensiParameters.getLoadFlowParameters()
+                .setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED)
+                .getExtension(OpenLoadFlowParameters.class)
+                    .setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE)
+                    .setNetworkCacheEnabled(true)
+                    .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
+
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        runLf(network, sensiParameters.getLoadFlowParameters());
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g4")),
+                network.getBranchStream().collect(Collectors.toList()));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        // Results should be the same (and also warn log messages should appear)
+        assertEquals(5, result.getValues().size());
+        assertEquals(-0.632d, result.getBranchFlow1SensitivityValue("g4", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.122d, result.getBranchFlow1SensitivityValue("g4", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.122d, result.getBranchFlow1SensitivityValue("g4", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.368d, result.getBranchFlow1SensitivityValue("g4", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.245d, result.getBranchFlow1SensitivityValue("g4", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void test4busesDistributed() {
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
