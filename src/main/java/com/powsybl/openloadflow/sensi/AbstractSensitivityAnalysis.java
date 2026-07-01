@@ -319,6 +319,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 case BUS_TARGET_VOLTAGE:
                     LfBus lfBus = (LfBus) variableElement;
                     return ((EquationTerm<V, E>) lfBus.getCalculatedV()).getEquation();
+                case SVC_PILOT_POINT_TARGET_VOLTAGE:
+                    return null; // not a state variable
                 default:
                     return null;
             }
@@ -512,6 +514,11 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     break;
                 case INJECTION_REACTIVE_POWER:
                     addBusReactiveInjection(rhs, (LfBus) variableElement, 1d);
+                    break;
+                case SVC_PILOT_POINT_TARGET_VOLTAGE:
+                    // No-op here: the RHS column for this factor group is filled at the
+                    // AC-orchestration level (AcSensitivityAnalysis.fillSvcPilotFactorsRhs)
+                    // once the Jacobian is factored and SVC weights can be computed.
                     break;
                 case BUS_TARGET_VOLTAGE:
                     if (variableEquation.isActive()) {
@@ -1308,6 +1315,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             LfBranch varBranch = lfNetwork.getBranchById(variableId);
                             variableElement = varBranch != null && varBranch.getBus1() != null && varBranch.getBus2() != null ? varBranch : null;
                             break;
+                        case SVC_PILOT_POINT_TARGET_VOLTAGE:
+                            variableElement = findSvcPilotBus(lfNetwork, variableId);
+                            break;
                         default:
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                     }
@@ -1325,6 +1335,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         case BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE:
                             LfBranch varBranch2 = lfNetwork.getBranchById(variableId);
                             variableElement = varBranch2 != null && varBranch2.getBus1() != null && varBranch2.getBus2() != null ? varBranch2 : null;
+                            break;
+                        case SVC_PILOT_POINT_TARGET_VOLTAGE:
+                            variableElement = findSvcPilotBus(lfNetwork, variableId);
                             break;
                         default:
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
@@ -1344,6 +1357,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             LfBranch varBranch3 = lfNetwork.getBranchById(variableId);
                             variableElement = varBranch3 != null && varBranch3.getBus1() != null && varBranch3.getBus2() != null ? varBranch3 : null;
                             break;
+                        case SVC_PILOT_POINT_TARGET_VOLTAGE:
+                            variableElement = findSvcPilotBus(lfNetwork, variableId);
+                            break;
                         default:
                             throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                     }
@@ -1360,6 +1376,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             LfBranch varBranch4 = lfNetwork.getBranchById(variableId);
                             yield varBranch4 != null && varBranch4.getBus1() != null && varBranch4.getBus2() != null ? varBranch4 : null;
                         }
+                        case SVC_PILOT_POINT_TARGET_VOLTAGE -> findSvcPilotBus(lfNetwork, variableId);
                         default -> throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                     };
                 } else {
@@ -1378,6 +1395,16 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         Terminal regulatingTerminal = Networks.getEquipmentRegulatingTerminal(network, variableId).orElseThrow(); // this cannot fail because it is checked in checkRegulatingTerminal
         Bus regulatedBus = Networks.getBus(regulatingTerminal, breakers);
         return regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
+    }
+
+    /**
+     * Resolve the pilot bus of an SVC_PILOT_POINT_TARGET_VOLTAGE variable, identified by its secondary voltage
+     * control zone name. Returns null if no zone with that name exists.
+     */
+    protected static LfBus findSvcPilotBus(LfNetwork lfNetwork, String variableId) {
+        return lfNetwork.getSecondaryVoltageControl(variableId)
+                .map(LfSecondaryVoltageControl::getPilotBus)
+                .orElse(null);
     }
 
     private static boolean isActivePowerFunctionType(SensitivityFunctionType functionType) {
@@ -1485,6 +1512,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             case BRANCH_ADMITTANCE:
                 LfBranch branchY = (LfBranch) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
                 return 1.0 / PerUnit.zb(branchY.getBus2().getNominalV());
+            case SVC_PILOT_POINT_TARGET_VOLTAGE:
+                LfBus pilotBus = (LfBus) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
+                return pilotBus.getNominalV(); // same scaling as BUS_TARGET_VOLTAGE (in kV)
             default:
                 throw new IllegalArgumentException("Unknown variable type " + factor.getVariableType());
         }
