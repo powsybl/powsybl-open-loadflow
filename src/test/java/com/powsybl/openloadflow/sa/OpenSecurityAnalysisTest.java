@@ -74,9 +74,9 @@ import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.google.common.collect.testing.Helpers.assertEmpty;
 import static com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory.createWith3BusesNonImpedantSubNetwork;
 import static com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory.createWithNonImpedantThreeWindingsTransformer;
-import static com.google.common.collect.testing.Helpers.assertEmpty;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;

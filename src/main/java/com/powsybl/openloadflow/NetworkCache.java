@@ -470,7 +470,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         private CacheUpdateResult<V> onLoadUpdate(Load load, String attribute, Object oldValue, Object newValue) {
             return onInjectionUpdate(load, (value, lfBus) -> {
-                if (attribute.equals("p0")) {
+                if ("p0".equals(attribute)) {
                     LoadDetail loadDetail = load.getExtension(LoadDetail.class);
                     if (loadDetail != null) {
                         LOGGER.info("Load {} has a LoadDetail extension: not supported", load.getId());
@@ -489,7 +489,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
 
         private CacheUpdateResult<V> onBoundaryLineUpdate(BoundaryLine boundaryLine, String attribute, Object oldValue, Object newValue) {
-            if (attribute.equals("p0")) {
+            if ("p0".equals(attribute)) {
                 if (!boundaryLine.isPaired()) {
                     for (V value : values) {
                         LfBus lfBus = value.getNetwork().getBusById(LfBoundaryLineBus.getId(boundaryLine));
@@ -650,7 +650,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
 
         private CacheUpdateResult<V> onHvdcLineUpdate(HvdcLine hvdcLine, String attribute, Object oldValue, Object newValue) {
-            if (attribute.equals("activePowerSetpoint")) {
+            if ("activePowerSetpoint".equals(attribute)) {
                 if (hvdcLine.getConverterStation1().getHvdcType().equals(HvdcConverterStation.HvdcType.LCC)) {
                     return onHvdcLineWithLccActiveSetpointUpdate(hvdcLine, oldValue, newValue);
                 } else if (hvdcLine.getConverterStation1().getHvdcType().equals(HvdcConverterStation.HvdcType.VSC)) {
@@ -725,7 +725,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                         // supports attribute: "activePowerSetpoint"
                         HvdcLine hvdcLine = (HvdcLine) identifiable;
                         result = onHvdcLineUpdate(hvdcLine, attribute, oldValue, newValue);
-                    } else if (identifiable.getType() == IdentifiableType.SWITCH && attribute.equals("open")) {
+                    } else if (identifiable.getType() == IdentifiableType.SWITCH && "open".equals(attribute)) {
                         result = onSwitchUpdate(identifiable.getId(), (boolean) newValue);
                     } else if (identifiable.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER) {
                         if ("ratioTapChanger.regulationValue".equals(attribute)) {

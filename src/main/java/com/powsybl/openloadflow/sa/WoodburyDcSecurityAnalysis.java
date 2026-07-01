@@ -201,8 +201,9 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         lfContingency.apply(loadFlowContext.getParameters().getBalanceType());
 
         // update post contingency network result
-        var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, new AbstractNetworkResult.StateMonitorIndexes(monitorIndex, zeroImpedanceMonitoredIndex), woodburyContext.createResultExtension,
-                preContingencyNetworkResult, contingency, LoadFlowModel.DC, woodburyContext.dcLoadFlowContext().getParameters().getEquationSystemCreationParameters().getDcPowerFactor(),
+        var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, new AbstractNetworkResult.StateMonitorIndexes(monitorIndex, zeroImpedanceMonitoredIndex),
+                woodburyContext.createResultExtension, preContingencyNetworkResult, contingency,
+                LoadFlowModel.DC, woodburyContext.dcLoadFlowContext().getParameters().getEquationSystemCreationParameters().getDcPowerFactor(),
                 woodburyContext.modifiedMonitoredElementsParameters());
         postContingencyNetworkResult.update(isBranchDisabledDueToContingency);
 
@@ -253,8 +254,9 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         LfActionUtils.applyListOfActions(operatorStrategyLfActions, lfNetwork, lfContingency, loadFlowContext.getParameters().getNetworkParameters());
 
         // update network result
-        var postActionsNetworkResult = new PostContingencyNetworkResult(lfNetwork, new AbstractNetworkResult.StateMonitorIndexes(monitorIndex, zeroImpedanceMonitoredIndex), woodburyContext.createResultExtension,
-                preContingencyNetworkResult, contingency, LoadFlowModel.DC, loadFlowContext.getParameters().getEquationSystemCreationParameters().getDcPowerFactor(),
+        var postActionsNetworkResult = new PostContingencyNetworkResult(lfNetwork, new AbstractNetworkResult.StateMonitorIndexes(monitorIndex, zeroImpedanceMonitoredIndex),
+                woodburyContext.createResultExtension, preContingencyNetworkResult, contingency, LoadFlowModel.DC,
+                loadFlowContext.getParameters().getEquationSystemCreationParameters().getDcPowerFactor(),
                 woodburyContext.modifiedMonitoredElementsParameters);
         postActionsNetworkResult.update(isBranchDisabledDueToContingency);
 
