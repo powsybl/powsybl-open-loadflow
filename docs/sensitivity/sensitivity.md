@@ -415,3 +415,7 @@ Where:
 - $f_p(v,\phi)$ is a vector composed of null entries except for the one relative to the voltage magnitude at PV-bus $b$, that equals $1$,
 - $G_{v,\phi}(v,\phi)$ is a vector composed of null entries except for the one relative to the voltage magnitude at PQ-bus $i$, that equals $1$,
 - $g_p(v,\phi)$ is null.
+
+## DC detailed model
+
+Please note that AC-DC networks with DC detailed model are not supported for sensitivity analysis

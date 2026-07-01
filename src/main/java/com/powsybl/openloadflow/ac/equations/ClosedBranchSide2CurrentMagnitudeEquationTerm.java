@@ -36,6 +36,24 @@ public class ClosedBranchSide2CurrentMagnitudeEquationTerm extends AbstractClose
         if (dr1 != 0) {
             throw new IllegalArgumentException("Derivative with respect to r1 not implemented");
         }
+        if (i2(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2) < ZERO_CURRENT_THRESHOLD) {
+            // At I=0 the standard formula reI·∂reI/∂u / |I| is 0/0.
+            // One-sided limit: ∂|I2|/∂u = hypot(∂reI2/∂u, ∂imI2/∂u).
+            double theta = theta(ksi, ph1, a1);
+            double dreI2Dph1 = dreI2dph1(y, ksi, v1, ph1, r1, a1);
+            double dreI2Dph2 = dreI2dph2(y, ksi, g2, b2, v2, ph2);
+            double dreI2Dv1 = dreI2dv1(y, r1, theta);
+            double dreI2Dv2 = dreI2dv2(y, ksi, g2, b2, ph2);
+            double dimI2Dph1 = dimI2dph1(y, v1, r1, theta);
+            double dimI2Dph2 = dimI2dph2(y, ksi, g2, b2, v2, ph2);
+            double dimI2Dv1 = dimI2dv1(y, ksi, ph1, r1, a1);
+            double dimI2Dv2 = dimI2dv2(y, ksi, g2, b2, ph2);
+            // da1 shifts theta the same way as dph1 (a1 enters theta with same sign as ph1)
+            double dreI2Da1 = dreI2Dph1;
+            double dimI2Da1 = dimI2Dph1;
+            return FastMath.hypot(dreI2Dph1 * dph1 + dreI2Dph2 * dph2 + dreI2Dv1 * dv1 + dreI2Dv2 * dv2 + dreI2Da1 * da1,
+                                  dimI2Dph1 * dph1 + dimI2Dph2 * dph2 + dimI2Dv1 * dv1 + dimI2Dv2 * dv2 + dimI2Da1 * da1);
+        }
         return di2dph1(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2) * dph1
                 + di2dph2(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2) * dph2
                 + di2dv1(y, ksi, g2, b2, v1, ph1, r1, a1, v2, ph2) * dv1

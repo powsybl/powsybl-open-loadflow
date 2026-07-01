@@ -412,16 +412,17 @@ public class PropagatedContingency {
             branchesToOpen.keySet().stream()
                     .filter(LfBranch::isConnectedAtBothSides)
                     .forEach(connectivity::removeEdge);
-
-            if (relocateSlackBus && isSlackBusIsolated(connectivity, network.getSlackBus())) {
+            // In both Security analysis and sensitivity analysis, there is only one synchronous network per LfNetwork
+            // Thus, we only need to check for the slack bus of the first synchronous network.
+            if (relocateSlackBus && isSlackBusIsolated(connectivity, network.getSynchronousNetworks().getFirst().getSlackBuses().getFirst())) {
                 LOGGER.warn("Contingency '{}' leads to an isolated slack bus: relocate slack bus inside main component",
                         contingencyId);
                 // if a contingency leads to an isolated slack bus, we need to relocate the slack bus
                 // we select a new slack bus excluding buses from isolated component
                 Set<LfBus> excludedBuses = Sets.difference(Set.copyOf(network.getBuses()), connectivity.getLargestConnectedComponent());
-                network.setExcludedSlackBuses(excludedBuses);
+                network.getSynchronousNetworks().forEach(lfScNetwork -> lfScNetwork.setExcludedSlackBuses(excludedBuses));
                 // reverse main component to the one containing the relocated slack bus
-                connectivity.setMainComponentVertex(network.getSlackBus());
+                connectivity.setMainComponentVertex(network.getSynchronousNetworks().getFirst().getSlackBuses().getFirst());
             }
 
             // add to contingency description buses and branches that won't be part of the main connected

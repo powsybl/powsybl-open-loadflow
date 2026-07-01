@@ -21,6 +21,7 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.InjectionDerivable;
@@ -37,6 +38,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.Indexed;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.sensitivity.*;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -349,8 +351,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         // shunt contingency not supported yet.
                         // ratio tap changer in a three windings transformer not supported yet.
                         return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getBranchIdsToOpen().containsKey(variableId);
-                    case TRANSFORMER_PHASE:
-                        // a phase shifter on a two windings transformer.
+                    case TRANSFORMER_PHASE, BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE:
+                        // a phase shifter on a two windings transformer or a branch parameter.
                         return contingency.getBranchIdsToOpen().containsKey(variableId);
                     default:
                         return false;
@@ -520,9 +522,128 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         rhs.set(variableEquation.getColumn(), getIndex(), 1d);
                     }
                     break;
+                case SHUNT_COMPENSATOR_SUSCEPTANCE:
+                    LfBus shuntLfBus = (LfBus) variableElement;
+                    double vShunt = shuntLfBus.getV();
+                    addBusReactiveInjection(rhs, shuntLfBus, vShunt * vShunt);
+                    break;
+                case BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE:
+                    fillRhsBranchParameter(rhs, (LfBranch) variableElement, variableType);
+                    break;
                 default:
                     throw createVariableTypeNotImplementedException(variableType);
             }
+        }
+
+        /**
+         * Returns the four flow partials [∂p1/∂u, ∂q1/∂u, ∂p2/∂u, ∂q2/∂u] of a branch w.r.t. one of its
+         * parameters u, evaluated at the converged operating point (state V/θ held fixed):
+         * <ul>
+         *     <li>{@code BRANCH_RESISTANCE}: u = R</li>
+         *     <li>{@code BRANCH_REACTANCE}: u = X</li>
+         *     <li>{@code BRANCH_ADMITTANCE}: u = the series admittance modulus y, at constant ksi</li>
+         * </ul>
+         * The partials are obtained from the shared branch-flow equation-term derivatives w.r.t. (y, ksi),
+         * chained to u. Returns an empty array if the branch is open at either end.
+         */
+        public static double[] computeBranchFlowParameterPartials(LfBranch branch, SensitivityVariableType varType) {
+            // OLF's branch model:
+            //   p1 = r1²·v1²·g1 + y·r1²·v1²·sin(ksi) − y·r1·R2·v1·v2·sin(θ1)
+            //   q1 = -r1²·v1²·b1 + y·r1²·v1²·cos(ksi) − y·r1·R2·v1·v2·cos(θ1)
+            //   p2 =  R2²·v2²·g2 + y·R2²·v2²·sin(ksi) − y·r1·R2·v1·v2·sin(θ2)
+            //   q2 = -R2²·v2²·b2 + y·R2²·v2²·cos(ksi) − y·r1·R2·v1·v2·cos(θ2)
+            // where y = 1/|Z| = 1/√(R² + X²), ksi = atan2(R, X),
+            //       θ1 = ksi − a1 + A2 − ph1 + ph2,
+            //       θ2 = ksi + a1 − A2 + ph1 − ph2.
+            //
+            // Partials wrt y, ksi (state V/θ held fixed):
+            //   ∂p1/∂y   =  r1²·v1²·sin(ksi) − r1·R2·v1·v2·sin(θ1)
+            //   ∂p1/∂ksi =  y·r1²·v1²·cos(ksi) − y·r1·R2·v1·v2·cos(θ1)
+            //   ∂q1/∂y   =  r1²·v1²·cos(ksi) − r1·R2·v1·v2·cos(θ1)
+            //   ∂q1/∂ksi = -y·r1²·v1²·sin(ksi) + y·r1·R2·v1·v2·sin(θ1)
+            //   ∂p2/∂y   =  R2²·v2²·sin(ksi) − r1·R2·v1·v2·sin(θ2)
+            //   ∂p2/∂ksi =  y·R2²·v2²·cos(ksi) − y·r1·R2·v1·v2·cos(θ2)
+            //   ∂q2/∂y   =  R2²·v2²·cos(ksi) − r1·R2·v1·v2·cos(θ2)
+            //   ∂q2/∂ksi = -y·R2²·v2²·sin(ksi) + y·r1·R2·v1·v2·sin(θ2)
+            //
+            // Chain through R, X, Y (Y = series admittance modulus y, perturbed at constant ksi):
+            //   ∂y/∂R   = -R·y³ = -R / (R²+X²)^(3/2),    ∂y/∂X   = -X·y³ = -X / (R²+X²)^(3/2),    ∂y/∂Y   = 1
+            //   ∂ksi/∂R =  X·y² =  X / (R²+X²),          ∂ksi/∂X = -R·y² = -R / (R²+X²),          ∂ksi/∂Y = 0
+            LfBus bus1 = branch.getBus1();
+            LfBus bus2 = branch.getBus2();
+            if (bus1 == null || bus2 == null) {
+                return ArrayUtils.EMPTY_DOUBLE_ARRAY;
+            }
+            PiModel piModel = branch.getPiModel();
+            double y = piModel.getY();
+            double ksi = piModel.getKsi();
+            double r1 = piModel.getR1();
+            double v1 = bus1.getV();
+            double v2 = bus2.getV();
+            double ph1 = bus1.getAngle();
+            double ph2 = bus2.getAngle();
+            double a1 = piModel.getA1();
+
+            double theta1 = AbstractClosedBranchAcFlowEquationTerm.theta1(ksi, ph1, a1, ph2);
+            double theta2 = AbstractClosedBranchAcFlowEquationTerm.theta2(ksi, ph1, a1, ph2);
+            double sinTheta1 = Math.sin(theta1);
+            double cosTheta1 = Math.cos(theta1);
+            double sinTheta2 = Math.sin(theta2);
+            double cosTheta2 = Math.cos(theta2);
+            double sinKsi = Math.sin(ksi);
+            double cosKsi = Math.cos(ksi);
+
+            // Flow partials w.r.t. y and ksi (shared with the Jacobian equation terms).
+            double dp1dy = ClosedBranchSide1ActiveFlowEquationTerm.dp1dy(r1, v1, v2, sinKsi, sinTheta1);
+            double dp1dksi = ClosedBranchSide1ActiveFlowEquationTerm.dp1dksi(y, r1, v1, v2, cosKsi, cosTheta1);
+            double dp2dy = ClosedBranchSide2ActiveFlowEquationTerm.dp2dy(r1, v1, v2, sinKsi, sinTheta2);
+            double dp2dksi = ClosedBranchSide2ActiveFlowEquationTerm.dp2dksi(y, r1, v1, v2, cosKsi, cosTheta2);
+            double dq1dy = ClosedBranchSide1ReactiveFlowEquationTerm.dq1dy(r1, v1, v2, cosKsi, cosTheta1);
+            double dq1dksi = ClosedBranchSide1ReactiveFlowEquationTerm.dq1dksi(y, r1, v1, v2, sinKsi, sinTheta1);
+            double dq2dy = ClosedBranchSide2ReactiveFlowEquationTerm.dq2dy(r1, v1, v2, cosKsi, cosTheta2);
+            double dq2dksi = ClosedBranchSide2ReactiveFlowEquationTerm.dq2dksi(y, r1, v1, v2, sinKsi, sinTheta2);
+
+            // Chain rule from (y, ksi) to the requested parameter u.
+            double dydu;
+            double dksidu;
+            switch (varType) {
+                case BRANCH_RESISTANCE:
+                    dydu = -piModel.getR() * y * y * y;
+                    dksidu = piModel.getX() * y * y;
+                    break;
+                case BRANCH_REACTANCE:
+                    dydu = -piModel.getX() * y * y * y;
+                    dksidu = -piModel.getR() * y * y;
+                    break;
+                case BRANCH_ADMITTANCE:
+                    // y modulus perturbation at constant ksi
+                    dydu = 1.0;
+                    dksidu = 0.0;
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected branch parameter variable type: " + varType);
+            }
+
+            return new double[] {
+                dp1dy * dydu + dp1dksi * dksidu,   // ∂p1/∂u
+                dq1dy * dydu + dq1dksi * dksidu,   // ∂q1/∂u
+                dp2dy * dydu + dp2dksi * dksidu,   // ∂p2/∂u
+                dq2dy * dydu + dq2dksi * dksidu    // ∂q2/∂u
+            };
+        }
+
+        private void fillRhsBranchParameter(Matrix rhs, LfBranch branch, SensitivityVariableType varType) {
+            double[] partials = computeBranchFlowParameterPartials(branch, varType);
+            if (partials.length == 0) {
+                return;
+            }
+            LfBus bus1 = branch.getBus1();
+            LfBus bus2 = branch.getBus2();
+            // RHS = -∂f/∂param at the P and Q equations of both buses.
+            addBusInjection(rhs, bus1, -partials[0]);          // -∂p1/∂param
+            addBusReactiveInjection(rhs, bus1, -partials[1]);  // -∂q1/∂param
+            addBusInjection(rhs, bus2, -partials[2]);          // -∂p2/∂param
+            addBusReactiveInjection(rhs, bus2, -partials[3]);  // -∂q2/∂param
         }
     }
 
@@ -965,6 +1086,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             if (injection == null) {
                 injection = network.getBattery(injectionId);
             }
+            if (injection == null) {
+                injection = network.getShuntCompensator(injectionId);
+            }
             return injection;
         }
 
@@ -1127,7 +1251,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
                         functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
                         switch (variableType) {
-                            case INJECTION_ACTIVE_POWER, INJECTION_REACTIVE_POWER:
+                            case INJECTION_ACTIVE_POWER, INJECTION_REACTIVE_POWER, SHUNT_COMPENSATOR_SUSCEPTANCE:
                                 String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
                                 variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                                 break;
@@ -1144,6 +1268,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             case BUS_TARGET_VOLTAGE:
                                 variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
                                 break;
+                            case BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE:
+                                LfBranch varBranch = lfNetwork.getBranchById(variableId);
+                                variableElement = varBranch != null && varBranch.getBus1() != null && varBranch.getBus2() != null ? varBranch : null;
+                                break;
                             default:
                                 throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         }
@@ -1154,9 +1282,13 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             case BUS_TARGET_VOLTAGE :
                                 variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
                                 break;
-                            case INJECTION_REACTIVE_POWER:
+                            case INJECTION_REACTIVE_POWER, SHUNT_COMPENSATOR_SUSCEPTANCE:
                                 String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
                                 variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
+                                break;
+                            case BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE:
+                                LfBranch varBranch2 = lfNetwork.getBranchById(variableId);
+                                variableElement = varBranch2 != null && varBranch2.getBus1() != null && varBranch2.getBus2() != null ? varBranch2 : null;
                                 break;
                             default:
                                 throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
@@ -1168,9 +1300,13 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             case BUS_TARGET_VOLTAGE :
                                 variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
                                 break;
-                            case INJECTION_REACTIVE_POWER:
+                            case INJECTION_REACTIVE_POWER, SHUNT_COMPENSATOR_SUSCEPTANCE:
                                 String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
                                 variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
+                                break;
+                            case BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE:
+                                LfBranch varBranch3 = lfNetwork.getBranchById(variableId);
+                                variableElement = varBranch3 != null && varBranch3.getBus1() != null && varBranch3.getBus2() != null ? varBranch3 : null;
                                 break;
                             default:
                                 throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
@@ -1180,9 +1316,13 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         functionElement = functionInjectionBusId != null ? lfNetwork.getBusById(functionInjectionBusId) : null;
                         variableElement = switch (variableType) {
                             case BUS_TARGET_VOLTAGE -> findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
-                            case INJECTION_REACTIVE_POWER -> {
+                            case INJECTION_REACTIVE_POWER, SHUNT_COMPENSATOR_SUSCEPTANCE -> {
                                 String variableInjectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
                                 yield variableInjectionBusId != null ? lfNetwork.getBusById(variableInjectionBusId) : null;
+                            }
+                            case BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE -> {
+                                LfBranch varBranch4 = lfNetwork.getBranchById(variableId);
+                                yield varBranch4 != null && varBranch4.getBus1() != null && varBranch4.getBus2() != null ? varBranch4 : null;
                             }
                             default -> throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
                         };
@@ -1302,6 +1442,15 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             case BUS_TARGET_VOLTAGE:
                 LfBus bus = (LfBus) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
                 return bus.getNominalV();
+            case SHUNT_COMPENSATOR_SUSCEPTANCE:
+                LfBus shuntBus = (LfBus) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
+                return 1 / (PerUnit.zb(shuntBus.getNominalV())); // sensi in kV/S
+            case BRANCH_RESISTANCE, BRANCH_REACTANCE:
+                LfBranch branchRX = (LfBranch) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
+                return PerUnit.zb(branchRX.getBus2().getNominalV());
+            case BRANCH_ADMITTANCE:
+                LfBranch branchY = (LfBranch) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
+                return 1.0 / PerUnit.zb(branchY.getBus2().getNominalV());
             default:
                 throw new IllegalArgumentException("Unknown variable type " + factor.getVariableType());
         }

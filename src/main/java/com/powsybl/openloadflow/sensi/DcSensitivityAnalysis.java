@@ -32,7 +32,10 @@ import com.powsybl.openloadflow.dc.fastdc.WoodburyEngine;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.*;
-import com.powsybl.openloadflow.network.impl.*;
+import com.powsybl.openloadflow.network.impl.LfNetworkList;
+import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
+import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -165,7 +168,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                               List<ParticipatingElement> participatingElements) {
         Map<LfBus, Double> slackParticipationByBus;
         if (participatingElements.isEmpty()) {
-            slackParticipationByBus = Map.of(loadFlowContext.getNetwork().getSlackBus(), -1d);
+            slackParticipationByBus = Map.of(loadFlowContext.getNetwork().getSynchronousNetworks().getFirst().getSlackBuses().getFirst(), -1d);
         } else {
             slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
                 ParticipatingElement::getLfBus,
@@ -245,6 +248,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         List<ComputedElement> actionElements = actions.stream()
                 .map(actionElementByLfAction::get)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfElement().getId()))
                 .toList();
@@ -273,8 +277,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     .filter(LfBranch::hasPhaseControllerCapability)
                     .collect(Collectors.toSet());
 
-            // if a phase tap changer is lost or if the connectivity have changed, we must recompute load flows
-            if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty()) {
+            // if a phase tap changer is lost, if the connectivity has changed, or if there are PST, generator or load actions, we must recompute load flows
+            boolean hasPstActions = actions.stream().anyMatch(AbstractLfTapChangerAction.class::isInstance);
+            boolean hasGeneratorActions = actions.stream().anyMatch(LfGeneratorAction.class::isInstance);
+            boolean hasLoadActions = actions.stream().anyMatch(LfLoadAction.class::isInstance);
+            if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty() || hasPstActions || hasGeneratorActions || hasLoadActions) {
                 newFlowStates = calculateFlowStates(loadFlowContext, participatingElements, disabledNetwork, actions, reportNode);
             }
 
@@ -375,7 +382,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 if (!branchAction.getDisabledBranches().isEmpty()) {
                     disableBranchIds.addAll(branchAction.getDisabledBranches().stream().map(LfBranch::getId).toList());
                 }
-            } else {
+            } else if (!(action instanceof LfPhaseTapChangerAction) && !(action instanceof LfGeneratorAction) && !(action instanceof LfLoadAction)) {
                 throw new PowsyblException("Unexpected action type: " + action.getClass().getSimpleName());
             }
         }
@@ -451,6 +458,47 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
+    private void warnOverridenParameter(String parameterName, String wantedValue, String usedValue) {
+        LOGGER.warn("Load flow parameter {}={} is not handled in DC sensitivity analysis, using parameter value {} instead", parameterName, wantedValue, usedValue);
+    }
+
+    private LfNetworkParameters overrideUnsupportedParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
+        if (lfParameters.getComponentMode() != LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS) {
+            warnOverridenParameter("componentMode", lfParameters.getComponentMode().name(), LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS.name());
+        }
+        if (lfParametersExt.getLowImpedanceBranchMode() != OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE) {
+            warnOverridenParameter("lowImpedanceBranchMode", lfParametersExt.getLowImpedanceBranchMode().name(), OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE.name());
+        }
+        if (lfParameters.isPhaseShifterRegulationOn()) {
+            warnOverridenParameter("phaseShifterRegulationOn", "true", "false");
+        }
+        if (lfParameters.isHvdcAcEmulation()) {
+            warnOverridenParameter("hvdcAcEmulation", "true", "false");
+        }
+        if (lfParametersExt.isNetworkCacheEnabled()) {
+            warnOverridenParameter("networkCacheEnabled", "true", "false");
+        }
+        if (lfParametersExt.getReferenceBusSelectionMode() != ReferenceBusSelector.DEFAULT_MODE) {
+            warnOverridenParameter("referenceBusSelectionMode", lfParametersExt.getReferenceBusSelectionMode().name(), ReferenceBusSelector.DEFAULT_MODE.name());
+        }
+        return new LfNetworkParameters()
+                .setIncludeElementsReconnectingSmallComponents(false) // FIXME does not work yet with woodbury
+                .setLoadFlowModel(LoadFlowModel.DC)
+                .setGeneratorVoltageRemoteControl(false)        // not used in DC (no warning log needed)
+                .setTransformerVoltageControl(false)            // not used in DC (no warning log needed)
+                .setVoltagePerReactivePowerControl(false)       // not used in DC (no warning log needed)
+                .setGeneratorReactivePowerRemoteControl(false)  // not used in DC (no warning log needed)
+                .setTransformerReactivePowerControl(false)      // not used in DC (no warning log needed)
+                .setShuntVoltageControl(false)                  // not used in DC (no warning log needed)
+                .setReactiveLimits(false)                       // not used in DC (no warning log needed)
+                .setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS)
+                .setMinImpedance(true)
+                .setPhaseControl(false)
+                .setHvdcAcEmulation(false) // still not supported
+                .setCacheEnabled(false) // force not caching as not supported in sensi analysis
+                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR); // not supported yet
+    }
+
     @Override
     public void analyse(Network network, String workingVariantId, List<Contingency> contingencies, List<OperatorStrategy> configuredOperatorStrategies,
                         List<Action> configuredActions, PropagatedContingencyCreationParameters creationParameters,
@@ -501,17 +549,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         boolean breakers = topoConfig.isBreaker();
 
-        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
-                .setSlackBusSelector(slackBusSelector)
+        LfNetworkParameters lfNetworkParameters = overrideUnsupportedParameters(lfParameters, lfParametersExt);
+        lfNetworkParameters.setSlackBusSelector(slackBusSelector)
                 .setConnectivityFactory(connectivityFactory)
-                .setGeneratorVoltageRemoteControl(false)
-                .setMinImpedance(true)
+                .setLowImpedanceThreshold(lfParametersExt.getLowImpedanceThreshold())
                 .setTwtSplitShuntAdmittance(lfParameters.isTwtSplitShuntAdmittance())
                 .setBreakers(breakers)
                 .setPlausibleActivePowerLimit(lfParametersExt.getPlausibleActivePowerLimit())
-                .setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS)
                 .setCountriesToBalance(lfParameters.getCountriesToBalance())
                 .setDistributedOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setAllowNonLinearShuntZeroSection(lfParametersExt.isAllowNonLinearShuntZeroSection())
                 .setPhaseControl(false)
                 .setTransformerVoltageControl(false)
                 .setVoltagePerReactivePowerControl(false)
