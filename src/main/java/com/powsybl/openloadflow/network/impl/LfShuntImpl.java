@@ -98,36 +98,38 @@ public class LfShuntImpl extends AbstractLfShunt {
         boolean keepSections = shuntCompensators.stream().map(ShuntCompensator::getId).anyMatch(topoConfig::isOperatedShunt);
 
         if (voltageControlCapability || keepSections) {
-            shuntCompensatorsRefs.forEach(shuntCompensatorRef -> {
-                var shuntCompensator = shuntCompensatorRef.get();
-                List<Double> sectionsB = new ArrayList<>(1);
-                List<Double> sectionsG = new ArrayList<>(1);
-                sectionsB.add(0.0);
-                sectionsG.add(0.0);
-                ShuntCompensatorModel model = shuntCompensator.getModel();
-                int minPosition = 0;
-                switch (shuntCompensator.getModelType()) {
-                    case LINEAR:
-                        ShuntCompensatorLinearModel linearModel = (ShuntCompensatorLinearModel) model;
-                        for (int section = 1; section <= shuntCompensator.getMaximumSectionCount(); section++) {
-                            sectionsB.add(linearModel.getBPerSection() * section * zb);
-                            sectionsG.add(linearModel.getGPerSection() * section * zb);
-                        }
-                        break;
-                    case NON_LINEAR:
-                        minPosition = parameters.isAllowNonLinearShuntZeroSection() ? 0 : 1;
-                        ShuntCompensatorNonLinearModel nonLinearModel = (ShuntCompensatorNonLinearModel) model;
-                        for (int section = 0; section < shuntCompensator.getMaximumSectionCount(); section++) {
-                            sectionsB.add(nonLinearModel.getAllSections().get(section).getB() * zb);
-                            sectionsG.add(nonLinearModel.getAllSections().get(section).getG() * zb);
-                        }
-                        break;
-                }
-                controllers.add(new ControllerImpl(shuntCompensatorRef, sectionsB, sectionsG, shuntCompensator.getSectionCount(), minPosition));
-            });
+            shuntCompensatorsRefs.forEach(shuntCompensatorRef -> initShuntCompensator(parameters, shuntCompensatorRef));
             // Controllers are always enabled, a contingency with shunt compensator with voltage control on is not supported yet.
             controllers.sort(Comparator.comparingDouble(Controller::getBMagnitude).reversed());
         }
+    }
+
+    private void initShuntCompensator(LfNetworkParameters parameters, Ref<ShuntCompensator> shuntCompensatorRef) {
+        var shuntCompensator = shuntCompensatorRef.get();
+        List<Double> sectionsB = new ArrayList<>(1);
+        List<Double> sectionsG = new ArrayList<>(1);
+        sectionsB.add(0.0);
+        sectionsG.add(0.0);
+        ShuntCompensatorModel model = shuntCompensator.getModel();
+        int minPosition = 0;
+        switch (shuntCompensator.getModelType()) {
+            case LINEAR:
+                ShuntCompensatorLinearModel linearModel = (ShuntCompensatorLinearModel) model;
+                for (int section = 1; section <= shuntCompensator.getMaximumSectionCount(); section++) {
+                    sectionsB.add(linearModel.getBPerSection() * section * zb);
+                    sectionsG.add(linearModel.getGPerSection() * section * zb);
+                }
+                break;
+            case NON_LINEAR:
+                minPosition = parameters.isAllowNonLinearShuntZeroSection() ? 0 : 1;
+                ShuntCompensatorNonLinearModel nonLinearModel = (ShuntCompensatorNonLinearModel) model;
+                for (int section = 0; section < shuntCompensator.getMaximumSectionCount(); section++) {
+                    sectionsB.add(nonLinearModel.getAllSections().get(section).getB() * zb);
+                    sectionsG.add(nonLinearModel.getAllSections().get(section).getG() * zb);
+                }
+                break;
+        }
+        controllers.add(new ControllerImpl(shuntCompensatorRef, sectionsB, sectionsG, shuntCompensator.getSectionCount(), minPosition));
     }
 
     private static double computeG(List<ShuntCompensator> shuntCompensators, double zb) {

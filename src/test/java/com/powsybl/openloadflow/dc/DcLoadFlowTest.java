@@ -262,7 +262,9 @@ class DcLoadFlowTest {
         assertTrue(result.isFullyConverged());
         assertEquals(49.86, network.getLine("L1").getTerminal1().getP(), 0.01);
         assertEquals(150.13, network.getTwoWindingsTransformer("PS1").getTerminal1().getP(), 0.01);
-        assertEquals(0, network.getTwoWindingsTransformer("PS1").getTerminal2().getP() + network.getLine("L2").getTerminal1().getP() + network.getLine("L2Bis").getTerminal1().getP(), 0.01); // Temporary comment : P without fix = 133.87
+        assertEquals(0, network.getTwoWindingsTransformer("PS1").getTerminal2().getP()
+            + network.getLine("L2").getTerminal1().getP()
+            + network.getLine("L2Bis").getTerminal1().getP(), 0.01); // Temporary comment : P without fix = 133.87
         assertEquals(-200, network.getGenerator("G1").getTerminal().getP());
     }
 

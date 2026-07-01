@@ -239,7 +239,8 @@ class DistributedSlackOnGenerationTest {
         for (LoadFlowParameters.BalanceType balanceType : LoadFlowParameters.BalanceType.values()) {
             ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
             switch (balanceType) {
-                case PROPORTIONAL_TO_GENERATION_P_MAX, PROPORTIONAL_TO_GENERATION_P, PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN -> assertEquals(4, step.getParticipatingElements(participatingBuses, mismatch).size());
+                case PROPORTIONAL_TO_GENERATION_P_MAX, PROPORTIONAL_TO_GENERATION_P, PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN ->
+                    assertEquals(4, step.getParticipatingElements(participatingBuses, mismatch).size());
                 case PROPORTIONAL_TO_LOAD, PROPORTIONAL_TO_CONFORM_LOAD -> assertEquals(1, step.getParticipatingElements(participatingBuses, mismatch).size());
                 case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR -> assertEquals(0, step.getParticipatingElements(participatingBuses, mismatch).size());
             }
