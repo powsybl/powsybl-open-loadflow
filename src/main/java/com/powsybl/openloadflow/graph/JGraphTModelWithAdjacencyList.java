@@ -7,7 +7,7 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
 import java.util.function.ToIntFunction;
@@ -21,7 +21,7 @@ public class JGraphTModelWithAdjacencyList<V, E> implements GraphModel<V, E> {
 
     private final ToIntFunction<V> numGetter;
 
-    private final Map<V, TIntArrayList> adjacencyList = new LinkedHashMap<>();
+    private final Map<V, IntArrayList> adjacencyList = new LinkedHashMap<>();
 
     public JGraphTModelWithAdjacencyList(ToIntFunction<V> numGetter) {
         this.numGetter = Objects.requireNonNull(numGetter);
@@ -38,15 +38,15 @@ public class JGraphTModelWithAdjacencyList<V, E> implements GraphModel<V, E> {
     public void removeEdge(E e) {
         V edgeSource = getEdgeSource(e);
         V edgeTarget = getEdgeTarget(e);
-        adjacencyList.get(edgeSource).remove(numGetter.applyAsInt(edgeTarget));
-        adjacencyList.get(edgeTarget).remove(numGetter.applyAsInt(edgeSource));
+        adjacencyList.get(edgeSource).rem(numGetter.applyAsInt(edgeTarget));
+        adjacencyList.get(edgeTarget).rem(numGetter.applyAsInt(edgeSource));
         delegate.removeEdge(e);
     }
 
     @Override
     public void addVertex(V v) {
         delegate.addVertex(v);
-        adjacencyList.put(v, new TIntArrayList(10));
+        adjacencyList.put(v, new IntArrayList(10));
     }
 
     @Override
@@ -105,7 +105,7 @@ public class JGraphTModelWithAdjacencyList<V, E> implements GraphModel<V, E> {
         return delegate.getNeighborVerticesOf(v);
     }
 
-    public Map<V, TIntArrayList> getAdjacencyList() {
+    public Map<V, IntArrayList> getAdjacencyList() {
         return adjacencyList;
     }
 }
