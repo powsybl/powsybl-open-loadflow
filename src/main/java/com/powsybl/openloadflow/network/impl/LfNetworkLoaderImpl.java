@@ -1359,6 +1359,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         createDcGrounds(lfNetwork, dcGrounds);
         createDcLines(lfNetwork, loadingContext, parameters);
 
+        // TO DO : Handle switches that have non zero resistance
+        network.getDcSwitchStream().filter(s -> !s.isOpen() && s.getR() != 0)
+                .forEach(s -> {
+                    throw new PowsyblException("DcSwitch " + s.getId() + " has non zero resistance: not handled yet in AC DC load flow (R = " + s.getR() + ")");
+                });
+
         // Ensure at least one converter controls V_DC
         boolean isVdcControlled = false;
         for (AcDcConverter<?> converter : loadingContext.acDcConverterSet) {
