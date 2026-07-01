@@ -94,6 +94,21 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
     }
 
+    protected LfGeneratorImpl(LfGeneratorImpl other, LfNetwork network) {
+        super(other, network);
+        this.generatorRef = other.generatorRef;
+        this.initialParticipating = other.initialParticipating;
+        this.participating = other.participating;
+        this.droop = other.droop;
+        this.participationFactor = other.participationFactor;
+        this.qPercent = other.qPercent;
+        this.isTargetQForcedInReactiveLimits = other.isTargetQForcedInReactiveLimits;
+        this.forceVoltageControl = other.forceVoltageControl;
+        this.maxTargetP = other.maxTargetP;
+        this.minTargetP = other.minTargetP;
+        this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
+    }
+
     @Override
     public void reApplyActivePowerControlChecks(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         participating = initialParticipating;
