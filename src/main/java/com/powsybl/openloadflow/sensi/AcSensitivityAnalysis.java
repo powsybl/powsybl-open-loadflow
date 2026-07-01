@@ -353,16 +353,44 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         }
     }
 
-    private LfNetworkParameters makeNetworkParameters(SlackBusSelector slackBusSelector, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
+    private void warnOverridenParameter(String parameterName, String wantedValue, String usedValue) {
+        LOGGER.warn("Load flow parameter {}={} is not handled in AC sensitivity analysis, using parameter value {} instead", parameterName, wantedValue, usedValue);
+    }
+
+    private LfNetworkParameters overrideUnsupportedParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
+        if (lfParameters.getComponentMode() != LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS) {
+            warnOverridenParameter("componentMode", lfParameters.getComponentMode().name(), LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS.name());
+        }
+        if (lfParametersExt.getLowImpedanceBranchMode() != OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE) {
+            warnOverridenParameter("lowImpedanceBranchMode", lfParametersExt.getLowImpedanceBranchMode().name(), OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE.name());
+        }
+        if (lfParametersExt.isNetworkCacheEnabled()) {
+            warnOverridenParameter("networkCacheEnabled", "true", "false");
+        }
+        if (lfParametersExt.isSimulateAutomationSystems()) {
+            warnOverridenParameter("simulateAutomationSystems", "true", "false");
+        }
+        if (lfParametersExt.getReferenceBusSelectionMode() != ReferenceBusSelector.DEFAULT_MODE) {
+            warnOverridenParameter("referenceBusSelectionMode", lfParametersExt.getReferenceBusSelectionMode().name(), ReferenceBusSelector.DEFAULT_MODE.name());
+        }
         return new LfNetworkParameters()
+                .setLoadFlowModel(LoadFlowModel.AC)
+                .setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS)
+                .setMinImpedance(true)
+                .setCacheEnabled(false) // force not caching as not supported in sensi analysis
+                .setSimulateAutomationSystems(false)
+                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR); // not supported yet
+    }
+
+    private LfNetworkParameters makeNetworkParameters(SlackBusSelector slackBusSelector, LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers) {
+        LfNetworkParameters lfNetworkParams = overrideUnsupportedParameters(lfParameters, lfParametersExt);
+        return lfNetworkParams
                 .setSlackBusSelector(slackBusSelector)
                 .setConnectivityFactory(connectivityFactory)
                 .setGeneratorVoltageRemoteControl(lfParametersExt.isVoltageRemoteControl())
-                .setMinImpedance(true)
                 .setTwtSplitShuntAdmittance(lfParameters.isTwtSplitShuntAdmittance())
                 .setBreakers(breakers)
                 .setPlausibleActivePowerLimit(lfParametersExt.getPlausibleActivePowerLimit())
-                .setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS)
                 .setCountriesToBalance(lfParameters.getCountriesToBalance())
                 .setDistributedOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(lfParameters.isPhaseShifterRegulationOn())
@@ -370,17 +398,14 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .setVoltagePerReactivePowerControl(lfParametersExt.isVoltagePerReactivePowerControl())
                 .setGeneratorReactivePowerRemoteControl(lfParametersExt.isGeneratorReactivePowerRemoteControl())
                 .setTransformerReactivePowerControl(lfParametersExt.isTransformerReactivePowerControl())
-                .setLoadFlowModel(lfParameters.isDc() ? LoadFlowModel.DC : LoadFlowModel.AC)
                 .setShuntVoltageControl(lfParameters.isShuntCompensatorVoltageControlOn())
                 .setReactiveLimits(lfParameters.isUseReactiveLimits())
                 .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation())
                 .setMinPlausibleTargetVoltage(lfParametersExt.getMinPlausibleTargetVoltage())
                 .setMaxPlausibleTargetVoltage(lfParametersExt.getMaxPlausibleTargetVoltage())
                 .setMinNominalVoltageTargetVoltageCheck(lfParametersExt.getMinNominalVoltageTargetVoltageCheck())
+                .setLowImpedanceThreshold(lfParametersExt.getLowImpedanceThreshold())
                 .setSecondaryVoltageControl(lfParametersExt.isSecondaryVoltageControl()) // load SVC zones for SVC_PILOT sensitivity
-                .setCacheEnabled(false) // force not caching as not supported in sensi analysis
-                .setSimulateAutomationSystems(false)
-                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR) // not supported yet
                 .setAreaInterchangeControlAreaType(lfParametersExt.getAreaInterchangeControlAreaType())
                 .setForceTargetQInReactiveLimits(lfParametersExt.isForceTargetQInReactiveLimits())
                 .setDisableInconsistentVoltageControls(lfParametersExt.isDisableInconsistentVoltageControls())
