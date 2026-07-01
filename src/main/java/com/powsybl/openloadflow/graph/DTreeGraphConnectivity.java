@@ -406,28 +406,37 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 large = child;
             }
 
-            replace(small);
+            replace(small, large);
         }
 
-        private void replace(DTNode root) {
+        private void replace(DTNode rootSmall, DTNode rootLarge) {
+            int minDist = Integer.MAX_VALUE;
+            DTNode nodeSmall = null; // a node in the small tree that will be linked with a node in the large tree
+            DTNode nodeLarge = null; // opposite
+            E nte = null; // the actual edge
+
+            DTNode newRoot = null; // a potential new root in case no replacement edge is found
+
             ArrayDeque<DTNode> queue = new ArrayDeque<>();
-            queue.offer(root);
+            queue.offer(rootSmall);
 
             while (!queue.isEmpty()) {
                 DTNode n = queue.poll();
 
+                if (n.size > rootSmall.size / 2) {
+                    newRoot = n;
+                }
+
                 for (E nonTreeEdge : n.nonTreeEdges) {
                     V opp = edges.get(nonTreeEdge).opposite(n.vertex);
                     DTNode oppNode = vertexToTreeNode.get(opp);
-                    DTNode oppRoot = oppNode.findRoot();
+                    Pair<DTNode, Integer> oppRoot = oppNode.findRootWithDist();
 
-                    if (oppRoot != root) {
+                    if (oppRoot.getLeft() != rootSmall && oppRoot.getRight() < minDist) {
                         // found a replacement edge
-                        removeNonTreeEdge(n, oppNode, nonTreeEdge);
-                        insertTreeEdge(root, n, oppRoot, oppNode, nonTreeEdge);
-                        edges.get(nonTreeEdge).treeEdge = true;
-
-                        return;
+                        nodeSmall = n;
+                        nodeLarge = oppNode;
+                        nte = nonTreeEdge;
                     }
                 }
 
@@ -436,6 +445,14 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     queue.add(child);
                     child = child.nextSibling;
                 }
+            }
+
+            if (nodeSmall != null) {
+                removeNonTreeEdge(nodeSmall, nodeLarge, nte);
+                insertTreeEdge(rootSmall, nodeSmall, rootLarge, nodeLarge, nte);
+                edges.get(nte).treeEdge = true;
+            } else if (newRoot != null) {
+                newRoot.makeRoot(true);
             }
         }
 
