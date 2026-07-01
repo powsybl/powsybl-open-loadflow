@@ -128,22 +128,30 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
 
     public static double di1dv1(double y, double ksi, double g1, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
         double theta = theta(ksi, a1, ph2);
-        return (reI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dreI1dv1(y, ksi, g1, b1, ph1, r1) + imI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dimI1dv1(y, ksi, g1, b1, ph1, r1)) / i1(y, ksi, g1, b1, v1, ph1, r1, v2, theta);
+        return (reI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dreI1dv1(y, ksi, g1, b1, ph1, r1)
+            + imI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dimI1dv1(y, ksi, g1, b1, ph1, r1)) / i1(y, ksi, g1, b1, v1, ph1, r1, v2,
+            theta);
     }
 
     public static double di1dv2(double y, double ksi, double g1, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
         double theta = theta(ksi, a1, ph2);
-        return (reI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dreI1dv2(y, ksi, r1, a1, ph2) + imI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dimI1dv2(y, ksi, r1, a1, ph2)) / i1(y, ksi, g1, b1, v1, ph1, r1, v2, theta);
+        return (reI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dreI1dv2(y, ksi, r1, a1, ph2)
+            + imI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dimI1dv2(y, ksi, r1, a1, ph2)) / i1(y, ksi, g1, b1, v1, ph1, r1, v2,
+            theta);
     }
 
     public static double di1dph1(double y, double ksi, double g1, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
         double theta = theta(ksi, a1, ph2);
-        return (reI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dreI1dph1(y, ksi, g1, b1, v1, ph1, r1) + imI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dimI1dph1(y, ksi, g1, b1, v1, ph1, r1)) / i1(y, ksi, g1, b1, v1, ph1, r1, v2, theta);
+        return (reI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dreI1dph1(y, ksi, g1, b1, v1, ph1, r1)
+            + imI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dimI1dph1(y, ksi, g1, b1, v1, ph1, r1)) / i1(y, ksi, g1, b1, v1, ph1, r1, v2,
+            theta);
     }
 
     public static double di1dph2(double y, double ksi, double g1, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
         double theta = theta(ksi, a1, ph2);
-        return (reI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dreI1dph2(y, ksi, r1, a1, v2, ph2) + imI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dimI1dph2(y, ksi, r1, a1, v2, ph2)) / i1(y, ksi, g1, b1, v1, ph1, r1, v2, theta);
+        return (reI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dreI1dph2(y, ksi, r1, a1, v2, ph2)
+            + imI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dimI1dph2(y, ksi, r1, a1, v2, ph2)) / i1(y, ksi, g1, b1, v1, ph1, r1, v2,
+            theta);
     }
 
     public static double di1da1(double y, double ksi, double g1, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {

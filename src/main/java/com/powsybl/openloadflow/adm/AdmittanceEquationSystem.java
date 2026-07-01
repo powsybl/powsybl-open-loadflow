@@ -54,7 +54,8 @@ public final class AdmittanceEquationSystem {
         }
     }
 
-    private static void createBranchEquations(Collection<LfBranch> branches, VariableSet<AdmittanceVariableType> variableSet, EquationSystem<AdmittanceVariableType, AdmittanceEquationType> equationSystem) {
+    private static void createBranchEquations(Collection<LfBranch> branches, VariableSet<AdmittanceVariableType> variableSet,
+                                              EquationSystem<AdmittanceVariableType, AdmittanceEquationType> equationSystem) {
         for (LfBranch branch : branches) {
             if (!branch.isDisabled()) {
                 LfBus bus1 = branch.getBus1();

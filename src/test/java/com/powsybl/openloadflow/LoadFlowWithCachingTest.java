@@ -52,7 +52,9 @@ class LoadFlowWithCachingTest {
 
     private OpenLoadFlowParameters parametersExt;
 
-    private final BiFunction<Network, Boolean, NetworkCache.Entry> findEntryFunction = (n, isDc) -> isDc ? NetworkCache.DC_LF_INSTANCE.findEntry(n).orElseThrow() : NetworkCache.AC_LF_INSTANCE.findEntry(n).orElseThrow();
+    private final BiFunction<Network, Boolean, NetworkCache.Entry> findEntryFunction = (n, isDc) -> isDc ?
+        NetworkCache.DC_LF_INSTANCE.findEntry(n).orElseThrow() :
+        NetworkCache.AC_LF_INSTANCE.findEntry(n).orElseThrow();
 
     @BeforeEach
     void setUp() {

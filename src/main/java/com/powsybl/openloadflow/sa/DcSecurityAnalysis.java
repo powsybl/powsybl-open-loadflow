@@ -120,7 +120,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
     }
 
     @Override
-    protected OpenLoadFlowParameters applyGenericContingencyParameters(DcLoadFlowParameters parameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters, OpenSecurityAnalysisParameters openSecurityAnalysisParameters) {
+    protected OpenLoadFlowParameters applyGenericContingencyParameters(DcLoadFlowParameters parameters,
+                                                                       LoadFlowParameters loadFlowParameters,
+                                                                       OpenLoadFlowParameters openLoadFlowParameters,
+                                                                       OpenSecurityAnalysisParameters openSecurityAnalysisParameters) {
         // Nothing to do
         return openLoadFlowParameters;
     }

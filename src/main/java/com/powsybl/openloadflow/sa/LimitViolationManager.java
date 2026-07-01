@@ -286,7 +286,8 @@ public class LimitViolationManager {
                     double value = Math.min(violationsParameters.getHighVoltageAbsoluteThreshold(), violation1.getValue() * violationsParameters.getHighVoltageProportionalThreshold());
                     return violation2.getValue() <= violation1.getValue() + value;
                 } else if (violation2.getLimitType() == LimitViolationType.LOW_VOLTAGE) {
-                    return violation2.getValue() >= violation1.getValue() - Math.min(violationsParameters.getLowVoltageAbsoluteThreshold(), violation1.getValue() * violationsParameters.getLowVoltageProportionalThreshold());
+                    return violation2.getValue() >= violation1.getValue() - Math.min(violationsParameters.getLowVoltageAbsoluteThreshold(),
+                        violation1.getValue() * violationsParameters.getLowVoltageProportionalThreshold());
                 } else {
                     return false;
                 }
