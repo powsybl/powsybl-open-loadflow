@@ -397,24 +397,16 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             addRoot(child);
 
             DTNode small;
-            DTNode large;
             if (child.size < otherTree.size) {
                 small = child;
-                large = otherTree;
             } else {
                 small = otherTree;
-                large = child;
             }
 
-            replace(small, large);
+            replace(small);
         }
 
-        private void replace(DTNode rootSmall, DTNode rootLarge) {
-            int minDist = Integer.MAX_VALUE;
-            DTNode nodeSmall = null; // a node in the small tree that will be linked with a node in the large tree
-            DTNode nodeLarge = null; // opposite
-            E nte = null; // the actual edge
-
+        private void replace(DTNode rootSmall) {
             DTNode newRoot = null; // a potential new root in case no replacement edge is found
 
             ArrayDeque<DTNode> queue = new ArrayDeque<>();
@@ -430,13 +422,15 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 for (E nonTreeEdge : n.nonTreeEdges) {
                     V opp = edges.get(nonTreeEdge).opposite(n.vertex);
                     DTNode oppNode = vertexToTreeNode.get(opp);
-                    Pair<DTNode, Integer> oppRoot = oppNode.findRootWithDist();
+                    DTNode oppRoot = oppNode.findRoot();
 
-                    if (oppRoot.getLeft() != rootSmall && oppRoot.getRight() < minDist) {
+                    if (oppRoot != rootSmall) {
                         // found a replacement edge
-                        nodeSmall = n;
-                        nodeLarge = oppNode;
-                        nte = nonTreeEdge;
+                        removeNonTreeEdge(n, oppNode, nonTreeEdge);
+                        insertTreeEdge(rootSmall, n, oppRoot, oppNode, nonTreeEdge);
+                        edges.get(nonTreeEdge).treeEdge = true;
+
+                        return;
                     }
                 }
 
@@ -447,11 +441,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
             }
 
-            if (nodeSmall != null) {
-                removeNonTreeEdge(nodeSmall, nodeLarge, nte);
-                insertTreeEdge(rootSmall, nodeSmall, rootLarge, nodeLarge, nte);
-                edges.get(nte).treeEdge = true;
-            } else if (newRoot != null) {
+            if (newRoot != null) {
                 newRoot.makeRoot(true);
             }
         }
