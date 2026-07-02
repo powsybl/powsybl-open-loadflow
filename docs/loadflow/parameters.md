@@ -620,7 +620,7 @@ The default value is `false`.
 ### referenceBusSelectionMode
 The reference bus is the bus where the angle is equal to zero. There are several mode of selection:
 - `FIRST_SLACK`: the angle reference bus is selected as the first slack bus among potentially multiple slacks (in case [`maxSlackBusCount`](#maxslackbuscount) > 1).
-- `GENERATOR_REFERENCE_PRIORITY`: the angle reference bus is selected from generator reference priorities defined via the [Reference Priority extension](inv:powsyblcore:*:*:#reference-priority-extension).
+- `GENERATOR_REFERENCE_PRIORITY`: the angle reference bus is selected from generator reference priorities defined via the [Reference Priority extension](inv:powsyblcore:*:*:#reference-priorities-extension).
 
 The default value is `FIRST_SLACK`.
 
