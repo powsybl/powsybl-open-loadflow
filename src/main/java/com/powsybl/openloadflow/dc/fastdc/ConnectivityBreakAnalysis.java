@@ -150,7 +150,8 @@ public final class ConnectivityBreakAnalysis {
      * This is determined with a "worst case" sensitivity-criterion. If the criterion is not verified, there is no connectivity break.
      */
     private static boolean isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(LfNetwork lfNetwork, States states, PropagatedContingency contingency,
-                                                                                             Map<String, ComputedBranchContingencyElement> contingencyElementByBranch, List<LfAction> operatorStrategyLfActions,
+                                                                                             Map<String, ComputedBranchContingencyElement> contingencyElementByBranch,
+                                                                                             List<LfAction> operatorStrategyLfActions,
                                                                                              Map<LfAction, List<ComputedElement>> actionElementByBranch) {
         List<ComputedBranchContingencyElement> contingencyElements = contingency != null ? contingency.getBranchIdsToOpen().keySet().stream()
                                                                                      .map(contingencyElementByBranch::get)
@@ -306,7 +307,8 @@ public final class ConnectivityBreakAnalysis {
 
     public static ConnectivityBreakAnalysisResults run(DcLoadFlowContext loadFlowContext, List<PropagatedContingency> contingencies) {
         // index contingency elements by branch id
-        Map<String, ComputedBranchContingencyElement> contingencyElementByBranch = createContingencyElementsIndexByBranchId(contingencies, loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem());
+        Map<String, ComputedBranchContingencyElement> contingencyElementByBranch = createContingencyElementsIndexByBranchId(contingencies, loadFlowContext.getNetwork(),
+                loadFlowContext.getEquationSystem());
 
         // compute states with +1 -1 to model the contingencies
         DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(loadFlowContext, contingencyElementByBranch.values());

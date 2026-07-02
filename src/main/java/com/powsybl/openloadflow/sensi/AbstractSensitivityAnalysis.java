@@ -1260,13 +1260,13 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 Bus bus1 = Networks.getBus(hvdcLine.getConverterStation1().getTerminal(), breakers);
                 Bus bus2 = Networks.getBus(hvdcLine.getConverterStation2().getTerminal(), breakers);
 
-                    if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class) != null) {
-                        if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class).isEnabled()
-                                && parameters.getLoadFlowParameters().isHvdcAcEmulation()
-                                && !parameters.getLoadFlowParameters().isDc()) {
-                            throw new PowsyblException("HVDC line " + variableId + " has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported");
-                        }
+                if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class) != null) {
+                    if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class).isEnabled()
+                            && parameters.getLoadFlowParameters().isHvdcAcEmulation()
+                            && !parameters.getLoadFlowParameters().isDc()) {
+                        throw new PowsyblException("HVDC line " + variableId + " has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported");
                     }
+                }
 
                 // corresponds to an augmentation of +1 on the active power setpoint on each side on the HVDC line
                 // => we create a multi (bi) variables factor
