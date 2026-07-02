@@ -552,7 +552,9 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     }
                 }
                 if (hasSingleEquationTerms[elementNum]) {
-                    List<SingleEquationTerm<V, E>> activeTerms = writeInactiveEquations ? getSingleEquationTerms(elementNum) : getSingleEquationTerms(elementNum).stream().filter(SingleEquationTerm::isActive).toList();
+                    List<SingleEquationTerm<V, E>> activeTerms = writeInactiveEquations ?
+                        getSingleEquationTerms(elementNum) :
+                        getSingleEquationTerms(elementNum).stream().filter(SingleEquationTerm::isActive).toList();
                     for (SingleEquationTerm<V, E> term : activeTerms) {
                         if (!first) {
                             writer.append(" + ");

@@ -38,7 +38,8 @@ class FullVoltageInitializerTest {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         SlackBusSelector slackBusSelector = new FirstSlackBusSelector();
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), slackBusSelector).get(0);
-        FullVoltageInitializer initializer = new FullVoltageInitializer(new VoltageMagnitudeInitializer(false, commonTestConfig.matrixFactory(), LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE),
+        FullVoltageInitializer initializer = new FullVoltageInitializer(new VoltageMagnitudeInitializer(false, commonTestConfig.matrixFactory(),
+            LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE),
                                                                         new DcValueVoltageInitializer(new LfNetworkParameters().setSlackBusSelector(slackBusSelector),
                                                                                                       false,
                                                                                                       LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX,

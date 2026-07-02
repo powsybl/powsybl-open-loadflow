@@ -26,7 +26,7 @@ class EquationDerivativeVector {
     protected final double[] values;
     private final double[][] termDerValues;
 
-    public EquationDerivativeVector(List<EquationDerivativeElement<?>> elements, EquationArray<?, ?> equationArray) {
+    EquationDerivativeVector(List<EquationDerivativeElement<?>> elements, EquationArray<?, ?> equationArray) {
         int size = elements.size();
 
         // compute all derivatives for each of the term array

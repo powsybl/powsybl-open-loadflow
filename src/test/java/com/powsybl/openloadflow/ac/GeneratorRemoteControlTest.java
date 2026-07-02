@@ -538,8 +538,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         parametersExt
                 .setGeneratorReactivePowerRemoteControl(true)
                 .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
-                .setMaxReactivePowerMismatch(DELTA_POWER); // needed to ensure convergence within a DELTA_POWER
-                                                           // tolerance in Q for the controlled branch
+                .setMaxReactivePowerMismatch(DELTA_POWER); // needed to ensure convergence within a DELTA_POWER tolerance in Q for the controlled branch
 
         LoadFlowResult result1 = loadFlowRunner.run(network1, parameters);
         assertTrue(result1.isFullyConverged());

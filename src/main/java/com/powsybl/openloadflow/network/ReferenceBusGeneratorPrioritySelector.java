@@ -24,9 +24,9 @@ public class ReferenceBusGeneratorPrioritySelector implements ReferenceBusSelect
     private static final ReferenceBusSelector FALLBACK_SELECTOR = new ReferenceBusFirstSlackSelector();
 
     @Override
-    public SelectedReferenceBus select(LfNetwork lfNetwork) {
-        Objects.requireNonNull(lfNetwork);
-        List<LfGenerator> lfGenerators = lfNetwork.getBuses().stream()
+    public SelectedReferenceBus select(LfSynchronousNetwork lfScNetwork) {
+        Objects.requireNonNull(lfScNetwork);
+        List<LfGenerator> lfGenerators = lfScNetwork.getBuses().stream()
                 .filter(bus -> !bus.isFictitious())
                 .flatMap(bus -> bus.getGenerators().stream())
                 .filter(g -> !g.isFictitious())
@@ -41,7 +41,7 @@ public class ReferenceBusGeneratorPrioritySelector implements ReferenceBusSelect
         } else {
             priority = lfGeneratorsPrioritized.get(0).getReferencePriority();
         }
-        LOGGER.info("Network {}, will select reference generator among generators of priority {}", lfNetwork, priority);
+        LOGGER.info("Network {}, will select reference generator among generators of priority {}", lfScNetwork, priority);
         // if multiple generators of same priority, select based on highest maxP
         LfGenerator referenceGenerator = lfGenerators.stream()
                 .filter(g -> g.getReferencePriority() == priority)
@@ -54,7 +54,7 @@ public class ReferenceBusGeneratorPrioritySelector implements ReferenceBusSelect
             // E.g. an island with only Vsc Hvdc Converter and/or only Static Var Compensator.
             // In this case the island doesn't have any reference generator, only a reference bus.
             // Note that SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR will fail on such islands.
-            return FALLBACK_SELECTOR.select(lfNetwork);
+            return FALLBACK_SELECTOR.select(lfScNetwork);
         }
     }
 }

@@ -17,7 +17,7 @@ public interface ReferenceBusSelector {
     ReferenceBusSelectionMode DEFAULT_MODE = ReferenceBusSelectionMode.FIRST_SLACK;
     ReferenceBusSelector DEFAULT_SELECTOR = ReferenceBusSelector.fromMode(DEFAULT_MODE);
 
-    SelectedReferenceBus select(LfNetwork lfNetwork);
+    SelectedReferenceBus select(LfSynchronousNetwork lfScNetwork);
 
     static ReferenceBusSelector fromMode(ReferenceBusSelectionMode mode) {
         Objects.requireNonNull(mode);
