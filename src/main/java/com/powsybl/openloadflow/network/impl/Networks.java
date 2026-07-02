@@ -162,14 +162,6 @@ public final class Networks {
             bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(removedBranches::add);
         }
         removedBranches.forEach(branch -> branch.setDisabled(true));
-        if (!networkParameters.isIncludeElementsReconnectingSmallComponents()) {
-            // remove branches that reconnect a bus to main connected component
-            for (LfBranch branch : removedBranches) {
-                if (branch.isConnectedAtBothSides() && (connectivity.getComponentNumber(branch.getBus1()) != 0 || connectivity.getComponentNumber(branch.getBus2()) != 0)) {
-                    network.removeBranch(branch.getId());
-                }
-            }
-        }
 
         for (LfHvdc hvdc : network.getHvdcs()) {
             if (isIsolatedBusForHvdc(hvdc.getBus1(), connectivity) || isIsolatedBusForHvdc(hvdc.getBus2(), connectivity)) {
@@ -222,7 +214,18 @@ public final class Networks {
     }
 
     public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
+                                                              ReportNode reportNode, boolean keepForPermanentContingency) {
+        return loadWithReconnectableElements(network, topoConfig, networkParameters, LfNetworkList.DefaultVariantCleaner::new, reportNode, keepForPermanentContingency);
+    }
+
+    public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
                                                               LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode) {
+        return loadWithReconnectableElements(network, topoConfig, networkParameters, variantCleanerFactory, reportNode, false);
+    }
+
+    public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
+                                                              LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode,
+                                                              boolean keepForPermanentContingency) {
         LfTopoConfig modifiedTopoConfig;
         if (networkParameters.isSimulateAutomationSystems()) {
             modifiedTopoConfig = new LfTopoConfig(topoConfig);
@@ -250,16 +253,22 @@ public final class Networks {
             // and close switches that could be closed during the simulation
             Set<String> closedBranchesOrSwitches = retainAndCloseNecessarySwitches(network, modifiedTopoConfig);
 
+            // save IDs before restoreInitialTopology mutates the set
+            List<String> permanentContingencyBranchIds = keepForPermanentContingency
+                    ? new ArrayList<>(closedBranchesOrSwitches)
+                    : Collections.emptyList();
+
             List<LfNetwork> lfNetworks = load(network, modifiedTopoConfig, networkParameters, reportNode);
 
-            if (!closedBranchesOrSwitches.isEmpty()) {
+            if (!keepForPermanentContingency && !closedBranchesOrSwitches.isEmpty()) {
                 for (LfNetwork lfNetwork : lfNetworks) {
                     // disable all buses and branches not connected to main component (because of switch to close)
                     restoreInitialTopology(lfNetwork, closedBranchesOrSwitches, networkParameters);
                 }
             }
 
-            return new LfNetworkList(lfNetworks, variantCleanerFactory.create(network, workingVariantId, tmpVariantId));
+            LfNetworkList.VariantCleaner variantCleaner = variantCleanerFactory.create(network, workingVariantId, tmpVariantId);
+            return new LfNetworkList(lfNetworks, variantCleaner, permanentContingencyBranchIds);
         }
     }
 

@@ -378,7 +378,6 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testReconnectingSmallComponent() {
-        // this case is not supported yet by Woodbury DC Sensitivity
         Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedByTwoLinesWithAdditionnalGens();
         network.getLine("l24").disconnect();
         network.getLine("l35").disconnect();
