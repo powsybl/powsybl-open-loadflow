@@ -22,11 +22,11 @@ import com.powsybl.openloadflow.network.LfNetwork;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
  */
-public final class ComputedContingencyElement extends AbstractComputedElement implements ComputedElement {
+public final class ComputedBranchContingencyElement extends AbstractComputedBranchElement implements ComputedElement {
 
     private final ContingencyElement element;
 
-    public ComputedContingencyElement(final ContingencyElement element, LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+    public ComputedBranchContingencyElement(final ContingencyElement element, LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
         super(lfNetwork.getBranchById(element.getId()),
                 equationSystem.getEquationTerm(ElementType.BRANCH, lfNetwork.getBranchById(element.getId()).getNum(), ClosedBranchSide1DcFlowEquationTerm.class));
         this.element = element;

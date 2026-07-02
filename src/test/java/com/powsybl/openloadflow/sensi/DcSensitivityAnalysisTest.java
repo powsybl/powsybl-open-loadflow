@@ -23,7 +23,7 @@ import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
-import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
+import com.powsybl.openloadflow.dc.fastdc.ComputedBranchContingencyElement;
 import com.powsybl.openloadflow.dc.fastdc.ComputedElement;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationSystemIndex;
@@ -41,10 +41,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -1224,11 +1221,11 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         PowsyblException e = assertThrows(PowsyblException.class, () -> AbstractSensitivityAnalysis.initFactorsRhs(equationSystem, factorsGroups, participationByBus));
         assertEquals("Too many factors groups 3333333, maximum is 2684 for a system with 100000 equations", e.getMessage());
 
-        List<ComputedContingencyElement> contingencyElements = new ArrayList<>(3000);
+        List<ComputedBranchContingencyElement> contingencyElements = new ArrayList<>(3000);
         for (int i = 0; i < 3000; i++) {
             LfBranch branch = Mockito.mock(LfBranch.class);
-            ComputedContingencyElement contingencyElement = Mockito.mock(ComputedContingencyElement.class);
-            Mockito.when(contingencyElement.getLfBranch()).thenReturn(branch);
+            ComputedBranchContingencyElement contingencyElement = Mockito.mock(ComputedBranchContingencyElement.class);
+            Mockito.when(contingencyElement.getLfElement()).thenReturn(branch);
             contingencyElements.add(contingencyElement);
         }
         e = assertThrows(PowsyblException.class, () -> ComputedElement.initRhs(equationSystem, contingencyElements));
@@ -1332,10 +1329,47 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
-    void testHvdcSensiAcEmulationNotSupported() {
+    void testHvdcSensiWithAcEmulation() {
+        // With AC emulation enabled, the HVDC droop law is included in the DC network equations,
+        // coupling the two sub-networks more strongly than through the AC line l25 alone.
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1,
+                List.of("l12", "l13", "l23", "l25"),
+                SensitivityVariableType.INJECTION_ACTIVE_POWER, List.of("g1", "g5"),
+                false, ContingencyContext.none());
+
+        SensitivityAnalysisParameters sensiParametersWithAcEmulation = createParameters(true, "b1_vl_0", false);
+        sensiParametersWithAcEmulation.getLoadFlowParameters().setHvdcAcEmulation(true);
+        SensitivityAnalysisResult resultWithAcEmulation = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters().setParameters(sensiParametersWithAcEmulation));
+
+        SensitivityAnalysisParameters sensiParametersWithoutAcEmulation = createParameters(true, "b1_vl_0", false);
+        sensiParametersWithoutAcEmulation.getLoadFlowParameters().setHvdcAcEmulation(false);
+        SensitivityAnalysisResult resultWithoutAcEmulation = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters().setParameters(sensiParametersWithoutAcEmulation));
+
+        // With AC emulation the droop coupling (b3-b4) is added to the DC B-matrix, so results differ from the no-emulation case
+        assertNotEquals(
+                resultWithoutAcEmulation.getBranchFlow1SensitivityValue("g5", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                resultWithAcEmulation.getBranchFlow1SensitivityValue("g5", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER));
+
+        // Verify specific sensitivity values with AC emulation enabled (g1 is the slack bus, so its sensitivity is always 0)
+        assertEquals(-0.515, resultWithAcEmulation.getBranchFlow1SensitivityValue("g5", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.485, resultWithAcEmulation.getBranchFlow1SensitivityValue("g5", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.030, resultWithAcEmulation.getBranchFlow1SensitivityValue("g5", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.546, resultWithAcEmulation.getBranchFlow1SensitivityValue("g5", "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testHvdcSensiHvdcLinePowerWithAcEmulation() {
+        // With AC emulation enabled in DC mode, HVDC_LINE_ACTIVE_POWER sensitivity is supported
+        // and represents the sensitivity to P0 (the droop setpoint).
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", false);
-        sensiParameters.getLoadFlowParameters()
-                .setHvdcAcEmulation(true);
+        sensiParameters.getLoadFlowParameters().setHvdcAcEmulation(true);
 
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
         network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
@@ -1346,12 +1380,12 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, List.of("l12", "l13", "l23"),
                 SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
-                false, ContingencyContext.all());
+                false, ContingencyContext.none());
 
-        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
-                .setParameters(sensiParameters);
-        CompletionException exception = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
-        assertEquals("HVDC line hvdc34 has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported", exception.getCause().getMessage());
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters().setParameters(sensiParameters));
+        assertEquals(0.009, result.getBranchFlow1SensitivityValue("hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.013, result.getBranchFlow1SensitivityValue("hvdc34", "l13", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.004, result.getBranchFlow1SensitivityValue("hvdc34", "l23", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
