@@ -136,7 +136,8 @@ class GeneratorTargetVoltageInconsistencyTest {
 
         Optional<GeneratorVoltageControl> vc = controlledBus.getGeneratorVoltageControl();
         assertFalse(vc.isPresent());
-        LoadFlowAssert.assertReportContains(".*Generators \\[g1\\, g2\\] are connected to the same bus vl1\\_0 with different target voltages \\(23\\.0 kV and 22\\.0 kV\\)\\: disabling voltage control.*$", reportNode);
+        LoadFlowAssert.assertReportContains(".*Generators \\[g1\\, g2\\] are connected to the same bus vl1\\_0 with " +
+            "different target voltages \\(23\\.0 kV and 22\\.0 kV\\)\\: disabling voltage control.*$", reportNode);
         assertEquals(150.0, lfNetwork.getBusById("vl1_0").getGenerationTargetQ() * PerUnit.SB);
     }
 
@@ -355,7 +356,8 @@ class GeneratorTargetVoltageInconsistencyTest {
         LfNetwork lfNetwork = networkList.get(0);
         Optional<GeneratorVoltageControl> sharedVoltageControl = lfNetwork.getBusById("vl2_0").getGeneratorVoltageControl();
         assertFalse(sharedVoltageControl.isPresent());
-        LoadFlowAssert.assertReportContains(".*Generators \\[g1\\, g2\\] are connected to the same bus vl1\\_0 but control the voltage of different buses \\(vl1\\_0 and vl2\\_0\\)\\: disabling voltage control", reportNode);
+        LoadFlowAssert.assertReportContains(".*Generators \\[g1\\, g2\\] are connected to the same bus vl1\\_0 but " +
+            "control the voltage of different buses \\(vl1\\_0 and vl2\\_0\\)\\: disabling voltage control", reportNode);
         assertEquals(150.0, lfNetwork.getBusById("vl1_0").getGenerationTargetQ() * PerUnit.SB);
     }
 

@@ -248,9 +248,4 @@
          + Outer loop IncrementalTransformerReactivePowerControl
             + Outer loop iteration 5
                1 reactive power-controlled branches are outside of their target deadbands
-         Outer loop DistributedSlack
-         Outer loop ReactiveLimits
-         + Outer loop IncrementalTransformerReactivePowerControl
-            + Outer loop iteration 5
-               1 reactive power-controlled branches are outside of their target deadbands
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

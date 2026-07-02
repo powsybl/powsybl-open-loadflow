@@ -46,7 +46,7 @@ public class AcEquationSystemCreator {
     }
 
     protected void createBusEquation(LfBus bus,
-                                   EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         var p = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P);
         bus.setP(p);
         var q = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
@@ -828,37 +828,53 @@ public class AcEquationSystemCreator {
                 closedP2, closedI2);
     }
 
-    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2,
+                                                                                                         boolean deriveA1, boolean deriveR1,
+                                                                                                         EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         return new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
     }
 
-    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2,
+                                                                                                           boolean deriveA1, boolean deriveR1,
+                                                                                                           EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         return new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
     }
 
-    protected SingleEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    protected SingleEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2,
+                                                                                                                     boolean deriveA1, boolean deriveR1,
+                                                                                                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         return new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
     }
 
-    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2,
+                                                                                                         boolean deriveA1, boolean deriveR1,
+                                                                                                         EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         return new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
     }
 
-    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2,
+                                                                                                           boolean deriveA1, boolean deriveR1,
+                                                                                                           EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         return new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
     }
 
-    protected SingleEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    protected SingleEquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2CurrentMagnitudeEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2,
+                                                                                                                     boolean deriveA1, boolean deriveR1,
+                                                                                                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         return new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
     }
 
     protected void createImpedantBranchEquations(LfBranch branch, LfBus bus1, LfBus bus2, EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                                  Evaluable p1, Evaluable q1, Evaluable i1,
                                                  Evaluable p2, Evaluable q2, Evaluable i2,
-                                                 EquationTerm<AcVariableType, AcEquationType> closedP1, EquationTerm<AcVariableType, AcEquationType> closedQ1, SingleEquationTerm<AcVariableType, AcEquationType> closedI1,
-                                                 EquationTerm<AcVariableType, AcEquationType> closedP2, EquationTerm<AcVariableType, AcEquationType> closedQ2, SingleEquationTerm<AcVariableType, AcEquationType> closedI2,
-                                                 EquationTerm<AcVariableType, AcEquationType> openP1, EquationTerm<AcVariableType, AcEquationType> openQ1, SingleEquationTerm<AcVariableType, AcEquationType> openI1,
-                                                 EquationTerm<AcVariableType, AcEquationType> openP2, EquationTerm<AcVariableType, AcEquationType> openQ2, SingleEquationTerm<AcVariableType, AcEquationType> openI2) {
+                                                 EquationTerm<AcVariableType, AcEquationType> closedP1, EquationTerm<AcVariableType, AcEquationType> closedQ1,
+                                                 SingleEquationTerm<AcVariableType, AcEquationType> closedI1,
+                                                 EquationTerm<AcVariableType, AcEquationType> closedP2, EquationTerm<AcVariableType, AcEquationType> closedQ2,
+                                                 SingleEquationTerm<AcVariableType, AcEquationType> closedI2,
+                                                 EquationTerm<AcVariableType, AcEquationType> openP1, EquationTerm<AcVariableType, AcEquationType> openQ1,
+                                                 SingleEquationTerm<AcVariableType, AcEquationType> openI1,
+                                                 EquationTerm<AcVariableType, AcEquationType> openP2, EquationTerm<AcVariableType, AcEquationType> openQ2,
+                                                 SingleEquationTerm<AcVariableType, AcEquationType> openI2) {
         if (closedP1 != null) {
             equationSystem.getEquation(bus1.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
                     .addTerm(closedP1);
@@ -1225,23 +1241,36 @@ public class AcEquationSystemCreator {
         return terms;
     }
 
+    /**
+     * Create equations specific for the multi-slack bus case.
+     * As the active power balance is disabled for these buses, we need to add a new equation connecting the slack buses active power.
+     * The equation ensures, for each slack bus (except the first one):
+     * branchInjectionAtSlackBus - branchInjectionAtFirstSlackBus = generatorLoadInjectionAtSlackBus - generatorLoadInjectionAtFirstSlackBus
+     */
     private void createMultipleSlackBusesEquations(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        List<LfBus> slackBuses = network.getSlackBuses();
-        if (slackBuses.size() > 1) {
-            LfBus firstSlackBus = slackBuses.get(0);
-            for (int i = 1; i < slackBuses.size(); i++) {
-                LfBus slackBus = slackBuses.get(i);
-                // example for 3 slack buses
-                // target_p2 - target_p1 = slack_p2 - slack_p1
-                // target_p3 - target_p1 = slack_p3 - slack_p1
-                equationSystem.createEquation(slackBus, AcEquationType.BUS_DISTR_SLACK_P)
-                        .addTerms(createActiveInjectionTerms(firstSlackBus, equationSystem.getVariableSet()).stream()
-                                .map(EquationTerm::minus)
-                                .toList())
-                        .addTerms(createActiveInjectionTerms(slackBus, equationSystem.getVariableSet()));
-                // to update open/close terms activation
-                for (LfBranch branch : slackBus.getBranches()) {
-                    updateBranchEquations(branch);
+        // In case of AC-DC load flow, there might be several synchronous component in the LfNetwork.
+        // As active power mismatch at slack buses is processed by each synchronous component individually, we must
+        // create equations for each synchronous component individually.
+        // In case of a classic load flow (with only AC components), this loop will therefore have only one iteration.
+        for (LfSynchronousNetwork lfScNetwork : network.getSynchronousNetworks()) {
+
+            List<LfBus> slackBuses = lfScNetwork.getSlackBuses();
+            if (slackBuses.size() > 1) {
+                LfBus firstSlackBus = slackBuses.get(0);
+                for (int i = 1; i < slackBuses.size(); i++) {
+                    LfBus slackBus = slackBuses.get(i);
+                    // example for 3 slack buses
+                    // target_p2 - target_p1 = slack_p2 - slack_p1
+                    // target_p3 - target_p1 = slack_p3 - slack_p1
+                    equationSystem.createEquation(slackBus, AcEquationType.BUS_DISTR_SLACK_P)
+                            .addTerms(createActiveInjectionTerms(firstSlackBus, equationSystem.getVariableSet()).stream()
+                                    .map(EquationTerm::minus)
+                                    .toList())
+                            .addTerms(createActiveInjectionTerms(slackBus, equationSystem.getVariableSet()));
+                    // to update open/close terms activation
+                    for (LfBranch branch : slackBus.getBranches()) {
+                        updateBranchEquations(branch);
+                    }
                 }
             }
         }

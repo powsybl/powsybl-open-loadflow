@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.auto.service.AutoService;
 import com.powsybl.action.Action;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.action.ActionList;
 import com.powsybl.action.json.ActionJsonModule;
 import com.powsybl.commons.config.PlatformConfig;
@@ -33,6 +34,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
@@ -41,6 +43,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.action.Actions;
 import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.openloadflow.util.DebugUtil;
+import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.sensitivity.*;
@@ -148,6 +151,13 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                  SensitivityAnalysisParameters sensitivityAnalysisParameters,
                  ComputationManager computationManager,
                  ReportNode reportNode) throws ExecutionException {
+
+        LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
+
+        LoadFlowParameters loadFlowParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
+        OpenLoadFlowParameters loadFlowParametersExt = OpenLoadFlowParameters.get(loadFlowParameters);
+        OpenLoadFlowParameters.log(loadFlowParameters, loadFlowParametersExt);
+
         network.getVariantManager().setWorkingVariant(workingVariantId);
         ReportNode sensiReportNode = Reports.createSensitivityAnalysis(reportNode, network.getId());
 
@@ -163,7 +173,6 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         // Contingency propagation is not supported yet.
         // Contingency propagation leads to numerous zero impedance branches, that are managed as min impedance
         // branches in sensitivity analysis. It could lead to issues with voltage controls in AC analysis.
-        LoadFlowParameters loadFlowParameters = sensitivityAnalysisParameters.getLoadFlowParameters();
         PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
             .setContingencyPropagation(false)
             .setShuntCompensatorVoltageControlOn(!loadFlowParameters.isDc() && loadFlowParameters.isShuntCompensatorVoltageControlOn())
@@ -171,6 +180,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
 
         SensitivityFactorReader decoratedFactorReader = factorReader;
+
+        if (OpenLoadFlowParameters.get(loadFlowParameters).isAcDcNetwork()) {
+            throw new PowsyblException("Sensitivity analysis does not support AC-DC networks");
+        }
 
         // debugging
         if (sensitivityAnalysisParametersExt.getDebugDir() != null && !sensitivityAnalysisParametersExt.getDebugDir().isEmpty()) {
