@@ -559,7 +559,7 @@ class OpenLoadFlowParametersTest {
                 "areaInterchangeControl=false, areaInterchangeControlAreaType=ControlArea, areaInterchangePMaxMismatch=2.0, voltageRemoteControlRobustMode=true, " +
                 "forceTargetQInReactiveLimits=false, disableInconsistentVoltageControls=false, extrapolateReactiveLimits=false, startWithFrozenACEmulation=false, " +
                 "generatorsWithZeroMwTargetAreNotStarted=true, incrementalShuntControlOuterLoopMaxSectionShift=3, fixVoltageTargets=false, acDcNetwork=false, " +
-                "allowNonLinearShuntZeroSection=true)",
+                "allowNonLinearShuntZeroSection=true, networkVariantPoolSize=20)",
                 parameters.toString());
     }
 
