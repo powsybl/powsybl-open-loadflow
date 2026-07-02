@@ -484,8 +484,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         network.getVariantManager().setWorkingVariant(workingVariantId);
 
-        Stopwatch stopwatch = Stopwatch.createStarted();
-
         checkVariableSet(variableSets);
         checkContingencies(contingencies);
 
@@ -577,9 +575,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 }
             }
         }
-
-        stopwatch.stop();
-        LOGGER.info("DC sensitivity analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private void analyseNetwork(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
@@ -587,6 +582,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                 LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, List<Action> actions,
                                 List<OperatorStrategy> operatorStrategies, boolean breakers, DcLoadFlowContext loadFlowContext,
                                 LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         cleanContingencies(lfNetwork, propagatedContingencies);
 
         Map<String, Action> actionsById = Actions.indexById(actions);
@@ -599,22 +596,22 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         SensitivityFactorHolder<DcVariableType, DcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork, breakers);
         List<LfSensitivityFactor<DcVariableType, DcEquationType>> allLfFactors = allFactorHolder.getAllFactors();
 
-            allLfFactors.stream()
-                    .filter(lfFactor -> lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
-                                && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
-                                && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_3
-                            || lfFactor.getVariableType() != SensitivityVariableType.INJECTION_ACTIVE_POWER
-                                && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE
-                                && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_1
-                                && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_2
-                                && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_3
-                                && lfFactor.getVariableType() != SensitivityVariableType.HVDC_LINE_ACTIVE_POWER)
-                    .findFirst()
-                    .ifPresent(ignored -> {
-                        throw new PowsyblException("Only variables of type TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, " +
-                            "TRANSFORMER_PHASE_3, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1, " +
-                            "BRANCH_ACTIVE_POWER_2 and BRANCH_ACTIVE_POWER_3 are yet supported in DC");
-                    });
+        allLfFactors.stream()
+                .filter(lfFactor -> lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
+                            && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
+                            && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_3
+                        || lfFactor.getVariableType() != SensitivityVariableType.INJECTION_ACTIVE_POWER
+                            && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE
+                            && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_1
+                            && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_2
+                            && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_3
+                            && lfFactor.getVariableType() != SensitivityVariableType.HVDC_LINE_ACTIVE_POWER)
+                .findFirst()
+                .ifPresent(ignored -> {
+                    throw new PowsyblException("Only variables of type TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, " +
+                        "TRANSFORMER_PHASE_3, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1, " +
+                        "BRANCH_ACTIVE_POWER_2 and BRANCH_ACTIVE_POWER_3 are yet supported in DC");
+                });
 
         LOGGER.info("Running DC sensitivity analysis with {} factors, {} contingencies, {} operator strategies and {} actions",
                 allLfFactors.size(), contingencies.size(), operatorStrategies.size(), actions.size());
@@ -631,10 +628,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         DcLoadFlowEngine.initStateVector(lfNetwork, loadFlowContext.getEquationSystem(), voltageInitializer);
 
-                // index factors by variable group to compute the minimal number of states
-                SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups = createFactorGroups(validLfFactors.stream()
-                    .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID)
-                    .collect(Collectors.toList()));
+        // index factors by variable group to compute the minimal number of states
+        SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups = createFactorGroups(validLfFactors.stream()
+            .filter(factor -> factor.getStatus() == LfSensitivityFactor.Status.VALID)
+            .collect(Collectors.toList()));
 
         // compute the participation for each injection factor (+1 on the injection and then -participation factor on all
         // buses that contain elements participating to slack distribution)
@@ -657,17 +654,17 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), baseFactorStates, baseFlowStates, null, null, resultWriter, new DisabledNetwork());
         }
 
-                // filter contingencies without factors
-                List<PropagatedContingency> contingenciesWithFactors = new ArrayList<>();
-                propagatedContingencies.forEach(contingency -> {
-                    List<AbstractSensitivityAnalysis.LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = validFactorHolder.getFactorsForContingencies(
-                        List.of(contingency.getContingency().getId()));
-                    if (!lfFactors.isEmpty()) {
-                        contingenciesWithFactors.add(contingency);
-                    } else {
-                        resultWriter.writeStateStatus(contingency.getIndex(), -1, SensitivityAnalysisResult.Status.SUCCESS);
-                    }
-                });
+        // filter contingencies without factors
+        List<PropagatedContingency> contingenciesWithFactors = new ArrayList<>();
+        propagatedContingencies.forEach(contingency -> {
+            List<AbstractSensitivityAnalysis.LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = validFactorHolder.getFactorsForContingencies(
+                List.of(contingency.getContingency().getId()));
+            if (!lfFactors.isEmpty()) {
+                contingenciesWithFactors.add(contingency);
+            } else {
+                resultWriter.writeStateStatus(contingency.getIndex(), -1, SensitivityAnalysisResult.Status.SUCCESS);
+            }
+        });
 
         // compute states with +1 -1 to model the contingencies and run connectivity analysis
         ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(loadFlowContext, contingenciesWithFactors);
@@ -682,20 +679,20 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.ONLY_OPERATOR_STRATEGIES) {
             LOGGER.info("Processing contingencies with no connectivity break");
 
-                    // process contingencies with no connectivity break
-                    operatorStrategiesSensitivityCalculation(connectivityBreakAnalysisResults.nonBreakingConnectivityAnalysisResults(), workingFlowStates,
-                        workingFactorStates, baseFlowStates, baseFactorStates, loadFlowContext, lfParameters, lfParametersExt,
-                        validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults,
-                        actionElementsIndexByLfAction, actionsStates, resultWriter, sensiReportNode, stopwatch);
+            // process contingencies with no connectivity break
+            operatorStrategiesSensitivityCalculation(connectivityBreakAnalysisResults.nonBreakingConnectivityAnalysisResults(), workingFlowStates,
+                workingFactorStates, baseFlowStates, baseFactorStates, loadFlowContext, lfParameters, lfParametersExt,
+                validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults,
+                actionElementsIndexByLfAction, actionsStates, resultWriter, sensiReportNode, stopwatch);
 
             LOGGER.info("Processing contingencies with connectivity break");
 
-                    // process contingencies with connectivity break
-                    operatorStrategiesSensitivityCalculation(connectivityBreakAnalysisResults.connectivityBreakingAnalysisResults(), workingFlowStates,
-                        workingFactorStates, baseFlowStates, baseFactorStates, loadFlowContext, lfParameters, lfParametersExt,
-                        validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults,
-                        actionElementsIndexByLfAction, actionsStates, resultWriter, sensiReportNode, stopwatch);
-                }
+            // process contingencies with connectivity break
+            operatorStrategiesSensitivityCalculation(connectivityBreakAnalysisResults.connectivityBreakingAnalysisResults(), workingFlowStates,
+                workingFactorStates, baseFlowStates, baseFactorStates, loadFlowContext, lfParameters, lfParametersExt,
+                validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults,
+                actionElementsIndexByLfAction, actionsStates, resultWriter, sensiReportNode, stopwatch);
+        }
 
         // process operator strategies
         if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
@@ -706,22 +703,23 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
                 for (Indexed<OperatorStrategy> operatorStrategyForBaseCase : preContingencyOperatorStrategies) {
                     if (Thread.currentThread().isInterrupted()) {
+                        stopwatch.stop();
                         throw new PowsyblException("Computation was interrupted");
                     }
                     workingFlowStates.copyValuesFrom(baseFlowStates);
                     workingFactorStates.copyValuesFrom(baseFactorStates);
 
-                            List<String> operatorStrategyActionIds = operatorStrategyForBaseCase.value().getConditionalActions().stream()
-                                .flatMap(conditionalActions -> conditionalActions.getActionIds().stream()).toList();
-                            List<LfAction> operatorStrategyLfActions = operatorStrategyActionIds.stream().map(lfActionById::get).toList();
-                            LfOperatorStrategy lfOperatorStrategy = new LfOperatorStrategy(operatorStrategyForBaseCase, operatorStrategyLfActions);
-                            var postActionsConnectivityAnalysisResult = ConnectivityBreakAnalysis.processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(loadFlowContext,
-                                    ConnectivityBreakAnalysis.ConnectivityAnalysisResult.createNonBreakingConnectivityAnalysisResult(null, lfOperatorStrategy, lfNetwork),
-                                    connectivityBreakAnalysisResults.contingencyElementByBranch(),
-                                    connectivityBreakAnalysisResults.contingenciesStates(),
-                                    lfOperatorStrategy,
-                                    actionElementsIndexByLfAction,
-                                    actionsStates);
+                    List<String> operatorStrategyActionIds = operatorStrategyForBaseCase.value().getConditionalActions().stream()
+                        .flatMap(conditionalActions -> conditionalActions.getActionIds().stream()).toList();
+                    List<LfAction> operatorStrategyLfActions = operatorStrategyActionIds.stream().map(lfActionById::get).toList();
+                    LfOperatorStrategy lfOperatorStrategy = new LfOperatorStrategy(operatorStrategyForBaseCase, operatorStrategyLfActions);
+                    var postActionsConnectivityAnalysisResult = ConnectivityBreakAnalysis.processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(loadFlowContext,
+                            ConnectivityBreakAnalysis.ConnectivityAnalysisResult.createNonBreakingConnectivityAnalysisResult(null, lfOperatorStrategy, lfNetwork),
+                            connectivityBreakAnalysisResults.contingencyElementByBranch(),
+                            connectivityBreakAnalysisResults.contingenciesStates(),
+                            lfOperatorStrategy,
+                            actionElementsIndexByLfAction,
+                            actionsStates);
 
                     processContingencyAndOperatorStrategy(postActionsConnectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
                             validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(), actionElementsIndexByLfAction,
@@ -729,27 +727,25 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 }
             }
 
-                    LOGGER.info("Running operator strategies connectivity analysis...");
-                    Stopwatch operatorStrategyStopwatch = Stopwatch.createStarted();
-                    List<ConnectivityBreakAnalysis.ConnectivityAnalysisResult> postActionsConnectivityAnalysisResults = runOperatorStrategiesConnectivityAnalysis(
-                        connectivityBreakAnalysisResults, loadFlowContext, operatorStrategiesByContingencyId, lfActionById,
-                        actionElementsIndexByLfAction, actionsStates, stopwatch);
-                    operatorStrategyStopwatch.stop();
-                    LOGGER.info("Operator strategies connectivity analysis done in {} ms", operatorStrategyStopwatch.elapsed(TimeUnit.MILLISECONDS));
+            LOGGER.info("Running operator strategies connectivity analysis...");
+            Stopwatch operatorStrategyStopwatch = Stopwatch.createStarted();
+            List<ConnectivityBreakAnalysis.ConnectivityAnalysisResult> postActionsConnectivityAnalysisResults = runOperatorStrategiesConnectivityAnalysis(
+                connectivityBreakAnalysisResults, loadFlowContext, operatorStrategiesByContingencyId, lfActionById,
+                actionElementsIndexByLfAction, actionsStates, stopwatch);
+            operatorStrategyStopwatch.stop();
+            LOGGER.info("Operator strategies connectivity analysis done in {} ms", operatorStrategyStopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-                    LOGGER.info("Running operator strategies sensitivity calculation...");
-                    operatorStrategyStopwatch.reset().start();
-                    operatorStrategiesSensitivityCalculation(postActionsConnectivityAnalysisResults, workingFlowStates,
-                        workingFactorStates, baseFlowStates, baseFactorStates, loadFlowContext, lfParameters, lfParametersExt,
-                        validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults,
-                        actionElementsIndexByLfAction, actionsStates, resultWriter, sensiReportNode, stopwatch);
-                    LOGGER.info("Operator strategies sensitivity calculation done in {} ms", operatorStrategyStopwatch.elapsed(TimeUnit.MILLISECONDS));
-                }
-            }
-
-            stopwatch.stop();
-            LOGGER.info("DC sensitivity analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            LOGGER.info("Running operator strategies sensitivity calculation...");
+            operatorStrategyStopwatch.reset().start();
+            operatorStrategiesSensitivityCalculation(postActionsConnectivityAnalysisResults, workingFlowStates,
+                workingFactorStates, baseFlowStates, baseFactorStates, loadFlowContext, lfParameters, lfParametersExt,
+                validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults,
+                actionElementsIndexByLfAction, actionsStates, resultWriter, sensiReportNode, stopwatch);
+            LOGGER.info("Operator strategies sensitivity calculation done in {} ms", operatorStrategyStopwatch.elapsed(TimeUnit.MILLISECONDS));
         }
+
+        stopwatch.stop();
+        LOGGER.info("DC sensitivity analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private List<ConnectivityBreakAnalysis.ConnectivityAnalysisResult> runOperatorStrategiesConnectivityAnalysis(
@@ -810,4 +806,5 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 workingFlowStates, workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), actionsStates, resultWriter, sensiReportNode);
         }
     }
+
 }

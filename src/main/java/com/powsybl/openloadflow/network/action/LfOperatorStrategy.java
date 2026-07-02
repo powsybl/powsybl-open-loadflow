@@ -11,7 +11,6 @@ import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.openloadflow.util.Indexed;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -26,15 +25,6 @@ public class LfOperatorStrategy {
     public LfOperatorStrategy(Indexed<OperatorStrategy> indexedOperatorStrategy, List<LfAction> actions) {
         this.indexedOperatorStrategy = Objects.requireNonNull(indexedOperatorStrategy);
         this.actions = Objects.requireNonNull(actions);
-    }
-
-    public static LfOperatorStrategy create(Indexed<OperatorStrategy> operatorStrategy, Map<String, LfAction> lfActionById) {
-        Objects.requireNonNull(operatorStrategy);
-        Objects.requireNonNull(lfActionById);
-        List<String> operatorStrategyActionIds = operatorStrategy.value().getConditionalActions().stream()
-                .flatMap(conditionalActions -> conditionalActions.getActionIds().stream()).toList();
-        List<LfAction> operatorStrategyLfActions = operatorStrategyActionIds.stream().map(lfActionById::get).toList();
-        return new LfOperatorStrategy(operatorStrategy, operatorStrategyLfActions);
     }
 
     public Indexed<OperatorStrategy> getIndexedOperatorStrategy() {

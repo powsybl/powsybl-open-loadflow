@@ -636,7 +636,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME, ParameterType.BOOLEAN,
             "Allow Non-Linear Shunt Compensator zero section position",
             LfNetworkParameters.ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
-        new Parameter(NETWORK_VARIANT_POOL_SIZE_PARAM_NAME, ParameterType.INTEGER, "Network variant pool size", NETWORK_VARIANT_POOL_SIZE_DEFAULT_VALUE, ParameterScope.TECHNICAL, FAST_RESTART_CATEGORY_KEY)
+        new Parameter(NETWORK_VARIANT_POOL_SIZE_PARAM_NAME, ParameterType.INTEGER,
+                "Network variant pool size",
+                NETWORK_VARIANT_POOL_SIZE_DEFAULT_VALUE, ParameterScope.TECHNICAL, FAST_RESTART_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {

@@ -146,7 +146,26 @@ public class LfContingency {
     }
 
     public void apply(LoadFlowParameters.BalanceType balanceType) {
-        disabledNetwork.apply();
+        for (Map.Entry<LfBranch, DisabledBranchStatus> e : disabledNetwork.getBranchesStatus().entrySet()) {
+            LfBranch branch = e.getKey();
+            DisabledBranchStatus status = e.getValue();
+            switch (status) {
+                case BOTH_SIDES -> branch.setDisabled(true);
+                case SIDE_1 -> branch.setConnectedSide1(false);
+                case SIDE_2 -> branch.setConnectedSide2(false);
+            }
+        }
+        for (LfHvdc hvdc : disabledNetwork.getHvdcs()) {
+            hvdc.setDisabled(true);
+        }
+        for (LfBus bus : disabledNetwork.getBuses()) {
+            bus.setDisabled(true);
+        }
+        for (var e : shuntsShift.entrySet()) {
+            LfShunt shunt = e.getKey();
+            shunt.setG(shunt.getG() - e.getValue().getG());
+            shunt.setB(shunt.getB() - e.getValue().getB());
+        }
         processLostPowerChanges(balanceType, true);
     }
 
@@ -156,20 +175,9 @@ public class LfContingency {
      * @param updateAcQuantities a boolean to indicate if voltage/reactive dependent quantities should be updated or not.
      */
     public void processLostPowerChanges(LoadFlowParameters.BalanceType balanceType, boolean updateAcQuantities) {
-        if (updateAcQuantities) {
-            processLostShunts();
-        }
         processLostLoads(balanceType, updateAcQuantities);
         processLostGenerators(updateAcQuantities);
         processHvdcsWithoutPower();
-    }
-
-    private void processLostShunts() {
-        for (var e : shuntsShift.entrySet()) {
-            LfShunt shunt = e.getKey();
-            shunt.setG(shunt.getG() - e.getValue().getG());
-            shunt.setB(shunt.getB() - e.getValue().getB());
-        }
     }
 
     private void processLostLoads(LoadFlowParameters.BalanceType balanceType, boolean updateAcQuantities) {

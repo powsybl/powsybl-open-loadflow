@@ -73,9 +73,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         enum Status {
             VALID,
-            SKIP, // variable element and function element are not in the network
-            VALID_ONLY_FOR_FUNCTION, // variable element is not in the network but function element is
-            ZERO // variable element is in the network but function element is not
+            SKIP,
+            VALID_ONLY_FOR_FUNCTION,
+            ZERO
         }
 
         int getIndex();
@@ -108,9 +108,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         Status getStatus();
 
-        void updateStatus();
-
-        boolean couldBeValid();
+        void setStatus(Status status);
 
         boolean isVariableConnectedToSlackComponent(DisabledNetwork disabledNetwork);
 
@@ -159,6 +157,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             this.functionType = Objects.requireNonNull(functionType);
             this.variableType = Objects.requireNonNull(variableType);
             this.contingencyContext = Objects.requireNonNull(contingencyContext);
+            if (functionElement == null) {
+                status = Status.ZERO;
+            }
         }
 
         @Override
@@ -266,6 +267,11 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             return status;
         }
 
+        @Override
+        public void setStatus(Status status) {
+            this.status = status;
+        }
+
         protected boolean isElementConnectedToSlackComponent(LfElement element, DisabledNetwork disabledNetwork) {
             if (element instanceof LfBus) {
                 return !disabledNetwork.getBuses().contains(element);
@@ -296,21 +302,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                                                     ContingencyContext contingencyContext) {
             super(index, variableId, functionId, functionElement, functionType, variableType, contingencyContext);
             this.variableElement = variableElement;
-            updateStatus();
-        }
-
-        @Override
-        public void updateStatus() {
-            if (variableElement == null || variableElement.isDisabled()) {
-                status = functionElement == null || functionElement.isDisabled() ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
-            } else {
-                status = functionElement == null || functionElement.isDisabled() ? Status.ZERO : Status.VALID;
+            if (variableElement == null) {
+                status = functionElement == null ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
             }
-        }
-
-        @Override
-        public boolean couldBeValid() {
-            return variableElement != null && functionElement != null;
         }
 
         protected LfElement getVariableElement() {
@@ -318,9 +312,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         protected Equation<V, E> getVariableEquation() {
-            if (variableElement == null) {
-                return null;
-            }
             switch (variableType) {
                 case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                     LfBranch lfBranch = (LfBranch) variableElement;
@@ -382,22 +373,10 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                                                     ContingencyContext contingencyContext, Set<String> originalVariableSetIds) {
             super(index, variableId, functionId, functionElement, functionType, variableType, contingencyContext);
             this.weightedVariableElements = weightedVariableElements;
-            this.originalVariableSetIds = originalVariableSetIds;
-            updateStatus();
-        }
-
-        @Override
-        public void updateStatus() {
             if (weightedVariableElements.isEmpty()) {
-                status = functionElement == null || functionElement.isDisabled() ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
-            } else {
-                status = functionElement == null || functionElement.isDisabled() ? Status.ZERO : Status.VALID;
+                status = functionElement == null ? Status.SKIP : Status.VALID_ONLY_FOR_FUNCTION;
             }
-        }
-
-        @Override
-        public boolean couldBeValid() {
-            return functionElement != null && !weightedVariableElements.isEmpty();
+            this.originalVariableSetIds = originalVariableSetIds;
         }
 
         protected Map<LfElement, Double> getWeightedVariableElements() {
@@ -513,15 +492,12 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         protected SingleVariableFactorGroup(LfElement variableElement, Equation<V, E> variableEquation, SensitivityVariableType variableType) {
             super(variableType);
-            this.variableElement = variableElement;
+            this.variableElement = Objects.requireNonNull(variableElement);
             this.variableEquation = variableEquation;
         }
 
         @Override
         public void fillRhs(Matrix rhs, Map<LfBus, Double> participationByBus) {
-            if (variableElement == null) {
-                return;
-            }
             switch (variableType) {
                 case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
                     if (variableEquation.isActive()) {
@@ -857,12 +833,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             if (!factor.isFunctionConnectedToSlackComponent(disabledNetwork)) {
                 functionPredefinedResult = Double.NaN;
             }
-        } else if (factor.getStatus() == LfSensitivityFactor.Status.ZERO) {
-            sensitivityValuePredefinedResult = 0d;
-            functionPredefinedResult = Double.NaN;
-        } else if (factor.getStatus() == LfSensitivityFactor.Status.SKIP) {
-            sensitivityValuePredefinedResult = Double.NaN;
-            functionPredefinedResult = Double.NaN;
         } else {
             throw new IllegalStateException("Unexpected factor status: " + factor.getStatus());
         }

@@ -36,9 +36,10 @@ import java.util.function.BiFunction;
 public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCache.Value> {
 
     public static final NetworkCache<LfInput, AcLfValue> AC_LF_INSTANCE = new NetworkCache<>(AcLfEntry::new);
-    public static final NetworkCache<DcSensiInput, DcSensiValue> DC_SENSI_INSTANCE = new NetworkCache<>(DcSensiEntry::new);
 
     public static final NetworkCache<LfInput, DcLfValue> DC_LF_INSTANCE = new NetworkCache<>(DcLfEntry::new);
+
+    public static final NetworkCache<DcSensiInput, DcSensiValue> DC_SENSI_INSTANCE = new NetworkCache<>(DcSensiEntry::new);
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkCache.class);
 
@@ -209,6 +210,11 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             }
             return null;
         }
+
+        @Override
+        public LoadFlowParameters getLoadFlowParameters() {
+            return parameters;
+        }
     }
 
     public static class DcSensiValue extends AbstractValue {
@@ -310,7 +316,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
     }
 
-    public abstract static class AbstractEntry<I extends Input<I>, V extends Value> extends DefaultNetworkListener implements Entry<I, V> {
+    public abstract static class AbstractEntry<I extends Input<I>, V extends Value> implements NetworkListener, Entry<I, V> {
 
         private final WeakReference<Network> networkRef;
 
