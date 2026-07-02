@@ -97,12 +97,16 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             // update network state
             if (atLeastOneComponentHasToBeUpdated && result.isSuccess()
                     || parametersExt.isAlwaysUpdateNetwork()) {
+                boolean loadPowerFactorConstant = (parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl())
+                    && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
+                    || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                    && parametersExt.isLoadPowerFactorConstant();
                 var updateParameters = new LfNetworkStateUpdateParameters(parameters.isUseReactiveLimits(),
                                                                           parameters.isWriteSlackBus(),
                                                                           parameters.isPhaseShifterRegulationOn(),
                                                                           parameters.isTransformerVoltageControlOn(),
                                                                           parametersExt.isTransformerReactivePowerControl(),
-                                                                          (parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl()) && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
+                                                                          loadPowerFactorConstant,
                                                                           parameters.isDc(),
                                                                           acParameters.getNetworkParameters().isBreakers(),
                                                                           parametersExt.getReactivePowerDispatchMode(),
@@ -224,7 +228,9 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             Networks.resetState(network);
         }
 
-        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters, parametersExt, dcParameters.getNetworkParameters().isBreakers())).toList();
+        List<LoadFlowResult.ComponentResult> componentsResult = results.stream()
+            .map(r -> processResult(network, r, parameters, parametersExt, dcParameters.getNetworkParameters().isBreakers()))
+            .toList();
         boolean ok = results.stream().anyMatch(DcLoadFlowResult::isSuccess);
         if (parametersExt.isNetworkCacheEnabled()) {
             NetworkCache.DC_LF_INSTANCE.findEntry(network).orElseThrow().setPause(false);

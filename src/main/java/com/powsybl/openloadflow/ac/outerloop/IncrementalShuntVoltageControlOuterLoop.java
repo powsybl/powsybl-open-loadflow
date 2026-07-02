@@ -14,8 +14,8 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
@@ -98,7 +98,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
 
         private final int[] controllerShuntIndex;
 
-        public SensitivityContext(LfNetwork network, List<LfShunt> controllerShunts,
+        SensitivityContext(LfNetwork network, List<LfShunt> controllerShunts,
                                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                   JacobianMatrix<AcVariableType, AcEquationType> j) {
             controllerShuntIndex = createControllerShuntIndex(network, controllerShunts);
@@ -159,7 +159,8 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
                             int sectionShift = sectionShiftPerController.getOrDefault(controller, 0);
                             if (sectionShift > maxSectionShift) {
                                 // already changed by maximum allowed number of sections shift in this outerloop
-                                LOGGER.debug("Controller shunt '{}' is not in its deadband but will not be adjusted further because reached max section shift in this outerloop", controllerShunt.getId());
+                                LOGGER.debug("Controller shunt '{}' is not in its deadband but will not be adjusted further because reached max section shift in this outerloop",
+                                    controllerShunt.getId());
                                 continue;
                             }
                             double previousB = controller.getB();

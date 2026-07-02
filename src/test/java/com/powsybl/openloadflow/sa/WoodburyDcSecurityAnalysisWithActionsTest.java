@@ -492,7 +492,8 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
 
         CompletionException thrown = assertThrows(CompletionException.class,
                 () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP));
-        assertTrue(thrown.getCause().getMessage().contains("For now, only PhaseTapChangerTapPositionAction, TerminalsConnectionAction, SwitchAction, GeneratorAction and LoadAction are allowed in fast DC Security Analysis"));
+        assertTrue(thrown.getCause().getMessage().contains("For now, only PhaseTapChangerTapPositionAction, TerminalsConnectionAction, " +
+            "SwitchAction, GeneratorAction and LoadAction are allowed in fast DC Security Analysis"));
     }
 
     // Test on fast DC only. The limitation is specific to fast dc
@@ -721,7 +722,8 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Contingency> contingencies = List.of(new Contingency("LINE_15+GEN_5", new BranchContingency("LINE_15"), new GeneratorContingency("GEN_5")));
         List<Action> actions = List.of(new SwitchAction("closeSWITCH", "SWITCH", false));
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyCloseSWITCH", ContingencyContext.specificContingency("LINE_15+GEN_5"), new TrueCondition(), List.of("closeSWITCH")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyCloseSWITCH", ContingencyContext.specificContingency("LINE_15+GEN_5"),
+            new TrueCondition(), List.of("closeSWITCH")));
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);

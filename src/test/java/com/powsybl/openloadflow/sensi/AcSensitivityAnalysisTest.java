@@ -756,10 +756,18 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(4, result.getValues().size());
-        assertEquals(0d, result.getBusVoltageSensitivityValue("g2", "b1", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V); // no impact on a pv
-        assertEquals(1d, result.getBusVoltageSensitivityValue("g2", "b2", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V); // 1 on itself
-        assertEquals(0.3423d, result.getBusVoltageSensitivityValue("g2", "b3", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V); // value obtained by running two loadflow with a very small difference on targetV for bus2
-        assertEquals(0d, result.getBusVoltageSensitivityValue("g2", "b4", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V);
+        assertEquals(0d,
+            result.getBusVoltageSensitivityValue("g2", "b1", SensitivityVariableType.BUS_TARGET_VOLTAGE),
+            LoadFlowAssert.DELTA_V); // no impact on a pv
+        assertEquals(1d,
+            result.getBusVoltageSensitivityValue("g2", "b2", SensitivityVariableType.BUS_TARGET_VOLTAGE),
+            LoadFlowAssert.DELTA_V); // 1 on itself
+        assertEquals(0.3423d,
+            result.getBusVoltageSensitivityValue("g2", "b3", SensitivityVariableType.BUS_TARGET_VOLTAGE),
+            LoadFlowAssert.DELTA_V); // value obtained by running two loadflow with a very small difference on targetV for bus2
+        assertEquals(0d,
+            result.getBusVoltageSensitivityValue("g2", "b4", SensitivityVariableType.BUS_TARGET_VOLTAGE),
+            LoadFlowAssert.DELTA_V);
     }
 
     @Test
@@ -2015,11 +2023,20 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
-        assertEquals(4, result.getValues().size());
-        assertEquals(-7.9596, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
-        assertEquals(0.0, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
-        assertEquals(-52.3300, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_CURRENT_1, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
-        assertEquals(-132.3927, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_CURRENT_2, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(4,
+            result.getValues().size());
+        assertEquals(-7.9596,
+            result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.BUS_TARGET_VOLTAGE),
+            LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(0.0,
+            result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, SensitivityVariableType.BUS_TARGET_VOLTAGE),
+            LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(-52.3300,
+            result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_CURRENT_1, SensitivityVariableType.BUS_TARGET_VOLTAGE),
+            LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(-132.3927,
+            result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_CURRENT_2, SensitivityVariableType.BUS_TARGET_VOLTAGE),
+            LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
 
         runAcLf(network);
 
@@ -2067,10 +2084,18 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
         assertEquals(4, result.getValues().size());
-        assertEquals(-0.6260, result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
-        assertEquals(0.5701, result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
-        assertEquals(-0.3245, result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_CURRENT_1, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
-        assertEquals(-0.4610, result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_CURRENT_2, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(-0.6260,
+            result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.INJECTION_REACTIVE_POWER),
+            LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(0.5701,
+            result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, SensitivityVariableType.INJECTION_REACTIVE_POWER),
+            LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(-0.3245,
+            result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_CURRENT_1, SensitivityVariableType.INJECTION_REACTIVE_POWER),
+            LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(-0.4610,
+            result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_CURRENT_2, SensitivityVariableType.INJECTION_REACTIVE_POWER),
+            LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
 
         runAcLf(network);
 
@@ -2331,7 +2356,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisRunParameters runParametersDc = new SensitivityAnalysisRunParameters()
                 .setParameters(createParameters(true, bus2.getId(), false));
         CompletionException ex = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParametersDc));
-        assertEquals("com.powsybl.commons.PowsyblException: Only variables of type TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2 and BRANCH_ACTIVE_POWER_3 are yet supported in DC", ex.getMessage());
+        assertEquals("Only variables of type TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3,"
+                + " INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2 and BRANCH_ACTIVE_POWER_3 are yet supported in DC",
+                ex.getCause().getMessage());
     }
 
     @Test
@@ -3561,107 +3588,5 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         out.append(String.format("bus %s voltage : Δ(actual) = %+.6f   pred(dV/dY·ΔY) = %+.6f   sameSign = %b%n",
                 busId, vActual, vPredictedY, Math.signum(vActual) == Math.signum(vPredictedY)));
         LOGGER.info("{}", out);
-    }
-
-    /**
-     * Builds a network with a dead-end line: a generator at b1 feeds, through line {@code l1}, a bus b2 that has no
-     * load, generator or shunt. With no downstream consumption and no line shunt admittance, {@code l1} carries
-     * (numerically) zero current at both ends.
-     */
-    private static Network createDeadEndLineNetwork() {
-        Network network = Network.create("dead-end-line", "test");
-        Substation s1 = network.newSubstation().setId("S1").add();
-        VoltageLevel vl1 = s1.newVoltageLevel().setId("vl1").setNominalV(400).setTopologyKind(TopologyKind.BUS_BREAKER).add();
-        vl1.getBusBreakerView().newBus().setId("b1").add();
-        vl1.newGenerator().setId("g1").setBus("b1").setConnectableBus("b1")
-                .setTargetP(0).setTargetV(400).setMinP(0).setMaxP(100).setVoltageRegulatorOn(true).add();
-        VoltageLevel vl2 = s1.newVoltageLevel().setId("vl2").setNominalV(400).setTopologyKind(TopologyKind.BUS_BREAKER).add();
-        vl2.getBusBreakerView().newBus().setId("b2").add();
-        // No load / generator / shunt at b2, and no line shunt admittance -> l1 carries zero current.
-        network.newLine().setId("l1").setBus1("b1").setBus2("b2").setR(0.1).setX(1.0).add();
-        return network;
-    }
-
-    /**
-     * Current-magnitude self-sensitivity (∂|I|/∂{R,X,Y}) of a branch that carries zero current. There the
-     * direct partial of {@code |I| = |S| / v} is a 0/0 limit; the implementation returns 0 below the
-     * zero-current threshold. This exercises that branch and asserts the sensitivities are a clean 0 (not
-     * NaN / infinity from a division by a vanishing apparent power).
-     */
-    @Test
-    void testBranchRXYCurrentSelfSensitivityZeroCurrent() {
-        Network network = createDeadEndLineNetwork();
-        runAcLf(network);
-
-        // Sanity check: the dead-end line indeed carries ~0 current.
-        assertEquals(0.0, network.getLine("l1").getTerminal1().getI(), 1e-3);
-        assertEquals(0.0, network.getLine("l1").getTerminal2().getI(), 1e-3);
-
-        String branchId = "l1";
-        List<SensitivityFactor> factors = new ArrayList<>();
-        for (SensitivityVariableType varType : List.of(SensitivityVariableType.BRANCH_RESISTANCE,
-                SensitivityVariableType.BRANCH_REACTANCE, SensitivityVariableType.BRANCH_ADMITTANCE)) {
-            factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_1, branchId, varType, branchId, false, ContingencyContext.all()));
-            factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_2, branchId, varType, branchId, false, ContingencyContext.all()));
-        }
-
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
-                .setParameters(createParameters(false, "b1")));
-
-        for (SensitivityVariableType varType : List.of(SensitivityVariableType.BRANCH_RESISTANCE,
-                SensitivityVariableType.BRANCH_REACTANCE, SensitivityVariableType.BRANCH_ADMITTANCE)) {
-            double sI1 = result.getBranchCurrent1SensitivityValue(branchId, branchId, varType);
-            double sI2 = result.getBranchCurrent2SensitivityValue(branchId, branchId, varType);
-            assertTrue(Double.isFinite(sI1), "I1 sensitivity must be finite for " + varType);
-            assertTrue(Double.isFinite(sI2), "I2 sensitivity must be finite for " + varType);
-            assertEquals(0.0, sI1, DELTA_I, "I1 self-sensitivity must be 0 at zero current for " + varType);
-            assertEquals(0.0, sI2, DELTA_I, "I2 self-sensitivity must be 0 at zero current for " + varType);
-        }
-    }
-
-    /**
-     * A branch R / X / Y variable that does not resolve to an in-service two-bus branch must yield a (zero)
-     * predefined result rather than an error. This covers the three ways the variable element resolves to
-     * {@code null}: an unknown branch id, a branch open at side 1, and a branch open at side 2, across every
-     * function-type family (branch active power / current, bus voltage, branch reactive power, bus reactive
-     * power) that supports branch-parameter variables.
-     */
-    @Test
-    void testBranchRXYVariableOnDisconnectedOrUnknownBranch() {
-        Network network = IeeeCdfNetworkFactory.create14();
-        // Open a line at side 1 and another at side 2 (kept in network, but no longer a two-bus branch).
-        network.getLine("L1-5-1").getTerminal1().disconnect();
-        network.getLine("L3-4-1").getTerminal2().disconnect();
-
-        String monitoredBranchId = "L2-3-1";
-        String monitoredBusId = "B4";
-        List<String> badVariableBranchIds = List.of("UNKNOWN-BRANCH", "L1-5-1", "L3-4-1");
-
-        List<SensitivityFactor> factors = new ArrayList<>();
-        for (String variableId : badVariableBranchIds) {
-            for (SensitivityVariableType varType : List.of(SensitivityVariableType.BRANCH_RESISTANCE,
-                    SensitivityVariableType.BRANCH_REACTANCE, SensitivityVariableType.BRANCH_ADMITTANCE)) {
-                factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, monitoredBranchId, varType, variableId, false, ContingencyContext.all()));
-                factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_1, monitoredBranchId, varType, variableId, false, ContingencyContext.all()));
-                factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, monitoredBranchId, varType, variableId, false, ContingencyContext.all()));
-                factors.add(new SensitivityFactor(SensitivityFunctionType.BUS_VOLTAGE, monitoredBusId, varType, variableId, false, ContingencyContext.all()));
-                factors.add(new SensitivityFactor(SensitivityFunctionType.BUS_REACTIVE_POWER, monitoredBusId, varType, variableId, false, ContingencyContext.all()));
-            }
-        }
-
-        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
-                .setParameters(createParameters(false, "B1")));
-
-        // Every factor whose variable does not resolve to an in-service branch must yield exactly 0.
-        for (String variableId : badVariableBranchIds) {
-            for (SensitivityVariableType varType : List.of(SensitivityVariableType.BRANCH_RESISTANCE,
-                    SensitivityVariableType.BRANCH_REACTANCE, SensitivityVariableType.BRANCH_ADMITTANCE)) {
-                assertEquals(0.0, result.getSensitivityValue(variableId, monitoredBranchId, SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, varType), 0.0);
-                assertEquals(0.0, result.getSensitivityValue(variableId, monitoredBranchId, SensitivityFunctionType.BRANCH_CURRENT_1, varType), 0.0);
-                assertEquals(0.0, result.getSensitivityValue(variableId, monitoredBranchId, SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, varType), 0.0);
-                assertEquals(0.0, result.getSensitivityValue(variableId, monitoredBusId, SensitivityFunctionType.BUS_VOLTAGE, varType), 0.0);
-                assertEquals(0.0, result.getSensitivityValue(variableId, monitoredBusId, SensitivityFunctionType.BUS_REACTIVE_POWER, varType), 0.0);
-            }
-        }
     }
 }

@@ -13,8 +13,8 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
@@ -94,7 +94,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
         private final int[] controllerBranchIndex;
 
-        public SensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
+        SensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
                                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
                                   JacobianMatrix<AcVariableType, AcEquationType> j) {
             controllerBranchIndex = LfBranch.createIndex(network, controllerBranches);
@@ -273,28 +273,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         List<String> controlledBusesAdjusted = new ArrayList<>();
         List<String> controlledBusesWithAllItsControllersToLimit = new ArrayList<>();
 
-        controlledBusesOutOfDeadband.forEach(controlledBus -> {
-            TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
-            double diffV = getDiffV(voltageControl);
-            double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
-            List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
-                    .filter(b -> !b.isDisabled())
-                    .filter(controller -> !contextData.getControllersContexts().get(controller.getId()).isInsensitive())
-                    .toList();
-            boolean adjusted;
-            if (controllers.isEmpty()) {
-                // no controller with enough sensitivity
-                adjusted = false;
-            } else if (controllers.size() == 1) {
-                adjusted = adjustWithOneController(controllers.getFirst(), controlledBus, contextData, sensitivityContext, diffV, controlledBusesWithAllItsControllersToLimit);
-            } else {
-                adjusted = adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV, halfTargetDeadband, controlledBusesWithAllItsControllersToLimit);
-            }
-            if (adjusted) {
-                controlledBusesAdjusted.add(controlledBus.getId());
-                status.setValue(OuterLoopStatus.UNSTABLE);
-            }
-        });
+        controlledBusesOutOfDeadband.forEach(controlledBus -> checkAndAdjustControlledBus(controlledBus, contextData, sensitivityContext,
+                controlledBusesAdjusted, controlledBusesWithAllItsControllersToLimit, status));
 
         ReportNode iterationReportNode = !controlledBusesOutOfDeadband.isEmpty() || !controlledBusesAdjusted.isEmpty() || !controlledBusesWithAllItsControllersToLimit.isEmpty() ?
                 Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1) : null;
@@ -323,5 +303,30 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         }
 
         return new OuterLoopResult(this, status.get());
+    }
+
+    private void checkAndAdjustControlledBus(LfBus controlledBus, IncrementalContextData contextData, SensitivityContext sensitivityContext,
+                                             List<String> controlledBusesAdjusted, List<String> controlledBusesWithAllItsControllersToLimit,
+                                             MutableObject<OuterLoopStatus> status) {
+        TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
+        double diffV = getDiffV(voltageControl);
+        double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
+        List<LfBranch> controllers = voltageControl.getMergedControllerElements().stream()
+            .filter(b -> !b.isDisabled())
+            .filter(controller -> !contextData.getControllersContexts().get(controller.getId()).isInsensitive())
+            .toList();
+        boolean adjusted;
+        if (controllers.isEmpty()) {
+            // no controller with enough sensitivity
+            adjusted = false;
+        } else if (controllers.size() == 1) {
+            adjusted = adjustWithOneController(controllers.getFirst(), controlledBus, contextData, sensitivityContext, diffV, controlledBusesWithAllItsControllersToLimit);
+        } else {
+            adjusted = adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV, halfTargetDeadband, controlledBusesWithAllItsControllersToLimit);
+        }
+        if (adjusted) {
+            controlledBusesAdjusted.add(controlledBus.getId());
+            status.setValue(OuterLoopStatus.UNSTABLE);
+        }
     }
 }
