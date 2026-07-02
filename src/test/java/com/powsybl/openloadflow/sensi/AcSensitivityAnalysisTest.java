@@ -17,7 +17,6 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.LineContingency;
 import com.powsybl.contingency.strategy.OperatorStrategy;
-import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;

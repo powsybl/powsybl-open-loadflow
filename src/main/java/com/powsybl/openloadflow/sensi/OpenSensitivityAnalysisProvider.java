@@ -12,9 +12,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.auto.service.AutoService;
 import com.powsybl.action.Action;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.action.ActionList;
 import com.powsybl.action.json.ActionJsonModule;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.commons.extensions.ExtensionJsonSerializer;
@@ -269,7 +269,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     public record ReplayResult<T extends SensitivityResultWriter>(T resultWriter, List<SensitivityFactor> factors, List<Contingency> contingencies) {
     }
 
-    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, BiFunction<List<Contingency>, List<OperatorStrategy>, T> resultWriterProvider, ReportNode reportNode) {
+    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir,
+                                                                      BiFunction<List<Contingency>, List<OperatorStrategy>, T> resultWriterProvider,
+                                                                      ReportNode reportNode) {
         Objects.requireNonNull(date);
         Objects.requireNonNull(debugDir);
         Objects.requireNonNull(resultWriterProvider);
