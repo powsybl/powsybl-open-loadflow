@@ -19,6 +19,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.*;
 
 import java.util.*;
+import java.util.function.ToIntFunction;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -751,7 +752,15 @@ class ConnectivityTest {
                 Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()),
                 Arguments.of(new HolmEtAlGraphConnectivity<>()),
                 Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>()),
-                Arguments.of(new DTreeGraphConnectivity<>()));
+                Arguments.of(new DTreeGraphConnectivity<>()),
+                Arguments.of(new NewDTreeGraphConnectivity<Integer, String>(v -> v, new ToIntFunction<String>() {
+                    final Map<String, Integer> map = new HashMap<>();
+
+                    @Override
+                    public int applyAsInt(String value) {
+                        return map.computeIfAbsent(value, k -> map.size());
+                    }
+                })));
     }
 
     private static Stream<Arguments> provideAllConnectivities() {
@@ -761,6 +770,14 @@ class ConnectivityTest {
                 Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()),
                 Arguments.of(new HolmEtAlGraphConnectivity<>()),
                 Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>()),
-                Arguments.of(new DTreeGraphConnectivity<>()));
+                Arguments.of(new DTreeGraphConnectivity<>()),
+                Arguments.of(new NewDTreeGraphConnectivity<Integer, String>(v -> v, new ToIntFunction<String>() {
+                    final Map<String, Integer> map = new HashMap<>();
+
+                    @Override
+                    public int applyAsInt(String value) {
+                        return map.computeIfAbsent(value, k -> map.size());
+                    }
+                })));
     }
 }
