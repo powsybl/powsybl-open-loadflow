@@ -14,16 +14,21 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.io.IOException;
+import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -39,7 +44,14 @@ import static org.junit.jupiter.api.Assertions.*;
  * </pre>
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class AcLoadFlowShuntTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlowShuntTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
     private Bus bus1;
@@ -53,6 +65,8 @@ class AcLoadFlowShuntTest {
 
     private LoadFlowParameters parameters;
 
+    private OpenLoadFlowParameters parametersExt;
+
     @BeforeEach
     void setUp() {
         network = ShuntNetworkFactory.create();
@@ -62,10 +76,10 @@ class AcLoadFlowShuntTest {
         l1 = network.getLine("l1");
         l2 = network.getLine("l2");
         shunt = network.getShuntCompensator("SHUNT");
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters().setUseReactiveLimits(true)
                 .setDistributedSlack(true);
-        OpenLoadFlowParameters.create(parameters)
+        parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
     }
 
@@ -444,7 +458,7 @@ class AcLoadFlowShuntTest {
     @Test
     void testIncrementalVoltageControl() {
         parameters.setShuntCompensatorVoltageControlOn(true);
-        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        parametersExt.setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
         shunt.setSectionCount(0);
         shunt.setVoltageRegulatorOn(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -481,7 +495,7 @@ class AcLoadFlowShuntTest {
         shuntCompensator2.setVoltageRegulatorOn(false);
         ShuntCompensator shuntCompensator3 = network.getShuntCompensator("SHUNT3");
         parameters.setShuntCompensatorVoltageControlOn(true);
-        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        parametersExt.setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(402.354, network.getBusBreakerView().getBus("b4"));
@@ -525,7 +539,7 @@ class AcLoadFlowShuntTest {
                 .add();
 
         parameters.setShuntCompensatorVoltageControlOn(true);
-        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        parametersExt.setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(390.931, bus3);
@@ -542,7 +556,7 @@ class AcLoadFlowShuntTest {
         shuntCompensator2.setSectionCount(2);
         ShuntCompensator shuntCompensator3 = network.getShuntCompensator("SHUNT3");
         parameters.setShuntCompensatorVoltageControlOn(true);
-        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        parametersExt.setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(402.324, network.getBusBreakerView().getBus("b4"));
@@ -576,7 +590,7 @@ class AcLoadFlowShuntTest {
                 .add();
 
         parameters.setShuntCompensatorVoltageControlOn(true);
-        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        parametersExt.setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(390.931, bus3);
@@ -631,7 +645,7 @@ class AcLoadFlowShuntTest {
                 .add();
 
         parameters.setShuntCompensatorVoltageControlOn(true);
-        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        parametersExt.setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(390.930, bus3);
@@ -661,7 +675,7 @@ class AcLoadFlowShuntTest {
     void testIncrementalVoltageControlWithGenerator() {
         network = ShuntNetworkFactory.createWithGeneratorAndShunt();
         parameters.setShuntCompensatorVoltageControlOn(true);
-        OpenLoadFlowParameters.create(parameters).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        parametersExt.setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
         shunt = network.getShuntCompensator("SHUNT");
         shunt.setTargetDeadband(2);
         Bus b3 = network.getBusBreakerView().getBus("b3");
@@ -704,7 +718,7 @@ class AcLoadFlowShuntTest {
         Bus b4 = network.getBusBreakerView().getBus("b4");
         Bus b5 = network.getBusBreakerView().getBus("b5");
         parameters.setShuntCompensatorVoltageControlOn(true);
-        OpenLoadFlowParameters.create(parameters)
+        parametersExt
                 .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
 
         // no shunt on voltage control
@@ -759,7 +773,6 @@ class AcLoadFlowShuntTest {
                                2 shunts changed section
                          Outer loop DistributedSlack
                          Outer loop ReactiveLimits
-                         Outer loop IncrementalShuntVoltageControl
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """, reportNode);
 
@@ -804,8 +817,57 @@ class AcLoadFlowShuntTest {
                                2 shunts changed section
                          Outer loop DistributedSlack
                          Outer loop ReactiveLimits
-                         Outer loop IncrementalShuntVoltageControl
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """, reportNode);
+    }
+
+    @Test
+    void testNonLinearShuntZeroSectionInvalidInput() {
+        parametersExt.setAllowNonLinearShuntZeroSection(false);
+        CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("Non-linear shunt compensator SHUNT has invalid section count 0 (see parameter allowNonLinearShuntZeroSection)", e.getCause().getMessage());
+    }
+
+    @ParameterizedTest
+    @EnumSource(OpenLoadFlowParameters.ShuntVoltageControlMode.class)
+    void testNonLinearShuntZeroSectionNotAllowed(OpenLoadFlowParameters.ShuntVoltageControlMode shuntVoltageControlMode) {
+        parametersExt.setShuntVoltageControlMode(shuntVoltageControlMode);
+        shunt.setSectionCount(2).setTargetV(380.);
+
+        // test without regulation
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, shunt.getSectionCount());
+        assertEquals(2, shunt.getSolvedSectionCount());
+        assertVoltageEquals(395.709, bus3);
+        assertReactivePowerEquals(-469.757, shunt.getTerminal());
+
+        // test with regulation, section zero allowed
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        parametersExt.setAllowNonLinearShuntZeroSection(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, shunt.getSectionCount());
+        assertEquals(0, shunt.getSolvedSectionCount());
+        assertVoltageEquals(388.582, bus3);
+        assertReactivePowerEquals(0.0, shunt.getTerminal());
+
+        // test with regulation, section zero not allowed
+        parametersExt.setAllowNonLinearShuntZeroSection(false);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, shunt.getSectionCount());
+        assertEquals(1, shunt.getSolvedSectionCount());
+        assertVoltageEquals(390.930, bus3);
+        assertReactivePowerEquals(-152.827, shunt.getTerminal());
+
+        // test with regulation, section zero not allowed, section 1 modeling disconnection with B=G=0
+        ((ShuntCompensatorNonLinearModel) shunt.getModel()).getAllSections().getFirst().setB(0.).setG(0.);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, shunt.getSectionCount());
+        assertEquals(1, shunt.getSolvedSectionCount());
+        assertVoltageEquals(388.582, bus3);
+        assertReactivePowerEquals(0.0, shunt.getTerminal());
     }
 }

@@ -97,10 +97,14 @@ public class JacobianMatrixFastDecoupled
         if (term instanceof EquationTermArray.EquationTermArrayElementImpl<AcVariableType, AcEquationType> termArrayElement) {
             // Converting EquationTermArrayElement to corresponding fast decoupled term
             return switch (termArrayElement.getEvaluator()) {
-                case ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator closedP1Evaluator -> new ClosedBranchSide1ActiveFlowFastDecoupledEquationTerm(closedP1Evaluator, termArrayElement.termElementNum);
-                case ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator closedP2Evaluator -> new ClosedBranchSide2ActiveFlowFastDecoupledEquationTerm(closedP2Evaluator, termArrayElement.termElementNum);
-                case ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator closedQ1Evaluator -> new ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm(closedQ1Evaluator, termArrayElement.termElementNum);
-                case ClosedBranchSide2ReactiveFlowEquationTermArrayEvaluator closedQ2Evaluator -> new ClosedBranchSide2ReactiveFlowFastDecoupledEquationTerm(closedQ2Evaluator, termArrayElement.termElementNum);
+                case ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator closedP1Evaluator ->
+                    new ClosedBranchSide1ActiveFlowFastDecoupledEquationTerm(closedP1Evaluator, termArrayElement.termElementNum);
+                case ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator closedP2Evaluator ->
+                    new ClosedBranchSide2ActiveFlowFastDecoupledEquationTerm(closedP2Evaluator, termArrayElement.termElementNum);
+                case ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator closedQ1Evaluator ->
+                    new ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm(closedQ1Evaluator, termArrayElement.termElementNum);
+                case ClosedBranchSide2ReactiveFlowEquationTermArrayEvaluator closedQ2Evaluator ->
+                    new ClosedBranchSide2ReactiveFlowFastDecoupledEquationTerm(closedQ2Evaluator, termArrayElement.termElementNum);
                 case null, default -> throw new IllegalStateException("Unexpected term array class: " + term.getClass());
             };
         }
@@ -196,10 +200,12 @@ public class JacobianMatrixFastDecoupled
 
         int singleEquationsRangeIndex = equationSystem.getEquationArrays().isEmpty() ? rangeIndex : equationSystem.getEquationArrays().stream().findFirst().orElseThrow().getFirstColumn();
 
-        List<SingleEquation<AcVariableType, AcEquationType>> subsetSingleEquationsToSolve = isPhiSystem ? equationSystem.getIndex().getSortedSingleEquationsToSolve().subList(0, singleEquationsRangeIndex)
-                : equationSystem.getIndex().getSortedSingleEquationsToSolve().subList(singleEquationsRangeIndex, equationSystem.getIndex().getSortedSingleEquationsToSolve().size());
-        List<EquationArray<AcVariableType, AcEquationType>> subsetEquationArrays = isPhiSystem ? equationSystem.getEquationArrays().stream().filter(e -> e.getFirstColumn() < rangeIndex).toList()
-                : equationSystem.getEquationArrays().stream().filter(e -> e.getFirstColumn() > rangeIndex).toList();
+        List<SingleEquation<AcVariableType, AcEquationType>> subsetSingleEquationsToSolve = isPhiSystem ?
+            equationSystem.getIndex().getSortedSingleEquationsToSolve().subList(0, singleEquationsRangeIndex) :
+            equationSystem.getIndex().getSortedSingleEquationsToSolve().subList(singleEquationsRangeIndex, equationSystem.getIndex().getSortedSingleEquationsToSolve().size());
+        List<EquationArray<AcVariableType, AcEquationType>> subsetEquationArrays = isPhiSystem ?
+            equationSystem.getEquationArrays().stream().filter(e -> e.getFirstColumn() < rangeIndex).toList() :
+            equationSystem.getEquationArrays().stream().filter(e -> e.getFirstColumn() > rangeIndex).toList();
 
         int rowColumnCount = isPhiSystem ? rangeIndex : equationSystem.getIndex().getRowCount() - rangeIndex;
 

@@ -8,8 +8,8 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
+import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.lf.outerloop.AbstractHvdcAcEmulationLimitsOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -47,5 +47,11 @@ public class DcHvdcAcEmulationLimitsOuterLoop
             }
         }
         return new OuterLoopResult(this, status);
+    }
+
+    @Override
+    public boolean isNeeded(DcLoadFlowContext context) {
+        // Needed if the network contains an lfHVDC in AC Emulation mode
+        return context.getNetwork().getHvdcs().stream().anyMatch(LfHvdc::isAcEmulation);
     }
 }

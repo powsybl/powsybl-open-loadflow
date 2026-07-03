@@ -100,12 +100,12 @@ dependencies to respectively have access to network model, IEEE test networks an
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-iidm-impl</artifactId>
-    <version>7.2.0</version>
+    <version>7.3.0</version>
 </dependency>
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-ieee-cdf-converter</artifactId>
-    <version>7.2.0</version>
+    <version>7.3.0</version>
 </dependency>
 <dependency>
     <groupId>org.slf4j</groupId>
@@ -124,7 +124,7 @@ After adding a last Maven dependency on Open Load Flow implementation:
 <dependency>
     <groupId>com.powsybl</groupId>
     <artifactId>powsybl-open-loadflow</artifactId>
-    <version>2.2.0</version>
+    <version>2.3.0</version>
 </dependency>
 ```
 
@@ -150,6 +150,12 @@ We can always increase or improves features and implementations. We have thought
 - Contingency propagation in AC and DC sensitivity analyses.
 
 For more details, to report bugs or if you need more features, visit our [github](https://github.com/powsybl/powsybl-open-loadflow/issues) and do not hesitate to write new issues.
+
+
+See [Contributing.md](https://github.com/powsybl/.github/blob/main/CONTRIBUTING.md) for explanations
+on how to contribute to the code.
+
+See [Security.md](https://github.com/powsybl/.github/blob/main/SECURITY.md) to read about the security policy.
 
 
 ## Using Maven Wrapper

@@ -14,7 +14,6 @@ import com.powsybl.iidm.network.test.BoundaryLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
@@ -24,6 +23,7 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
 
@@ -33,7 +33,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
+
+    private final CommonTestConfig commonTestConfig;
+
+    OperationalLimitsTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private LoadFlowParameters parameters;
 
@@ -53,7 +60,8 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, commonTestConfig.matrixFactory(),
+            new EvenShiloachGraphDecrementalConnectivityFactory<>());
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             new AcloadFlowEngine(context)
                     .run();
@@ -93,7 +101,8 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, commonTestConfig.matrixFactory(),
+            new EvenShiloachGraphDecrementalConnectivityFactory<>());
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             new AcloadFlowEngine(context)
                     .run();
@@ -114,7 +123,8 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = Networks.load(network, new NameSlackBusSelector("VL_33_0"));
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, commonTestConfig.matrixFactory(),
+            new EvenShiloachGraphDecrementalConnectivityFactory<>());
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             new AcloadFlowEngine(context)
                     .run();
@@ -134,7 +144,8 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, commonTestConfig.matrixFactory(),
+            new EvenShiloachGraphDecrementalConnectivityFactory<>());
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             new AcloadFlowEngine(context)
                     .run();
@@ -154,7 +165,8 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, commonTestConfig.matrixFactory(),
+            new EvenShiloachGraphDecrementalConnectivityFactory<>());
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             new AcloadFlowEngine(context)
                     .run();
@@ -175,7 +187,8 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, commonTestConfig.matrixFactory(),
+            new EvenShiloachGraphDecrementalConnectivityFactory<>());
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             new AcloadFlowEngine(context)
                     .run();
@@ -192,7 +205,8 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = Networks.load(network, new NameSlackBusSelector("VL_33_0"));
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, commonTestConfig.matrixFactory(),
+            new EvenShiloachGraphDecrementalConnectivityFactory<>());
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             new AcloadFlowEngine(context)
                     .run();

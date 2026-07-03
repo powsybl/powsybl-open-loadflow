@@ -21,10 +21,10 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -39,6 +39,7 @@ import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 
 import java.util.Collections;
@@ -53,11 +54,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 public abstract class AbstractOpenSecurityAnalysisTest {
 
     protected ComputationManager computationManager;
 
-    protected MatrixFactory matrixFactory;
+    protected CommonTestConfig commonTestConfig;
 
     protected OpenSecurityAnalysisProvider securityAnalysisProvider;
 
@@ -65,14 +67,17 @@ public abstract class AbstractOpenSecurityAnalysisTest {
 
     protected LoadFlow.Runner loadFlowRunner;
 
+    protected AbstractOpenSecurityAnalysisTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
+
     @BeforeEach
     void setUp() {
         computationManager = Mockito.mock(ComputationManager.class);
         Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
-        matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
-        loadFlowProvider = new OpenLoadFlowProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
+        loadFlowProvider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), connectivityFactory);
         loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
     }
 

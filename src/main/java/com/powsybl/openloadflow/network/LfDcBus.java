@@ -12,19 +12,35 @@ package com.powsybl.openloadflow.network;
  */
 public interface LfDcBus extends LfElement {
 
+    /**
+     * @return The DC bus voltage in per unit.
+     */
     double getV();
 
+    /**
+     * @param v DC bus voltage in per unit.
+     */
     void setV(double v);
 
-    boolean isNeutralPole();
-
-    void setNeutralPole(boolean isNeutralPole);
-
+    /**
+     * @return The DC bus nominal voltage in kV.
+     */
     double getNominalV();
 
+    /**
+     * @return Whether the DC bus is grounded
+     */
     boolean isGrounded();
 
+    /**
+     * @param isGrounded Whether the DC bus is grounded.
+     */
     void setGround(boolean isGrounded);
 
+    /**
+     * Update the DC bus state after the load flow.
+     *
+     * @param parameters Parameters of state update.
+     */
     void updateState(LfNetworkStateUpdateParameters parameters);
 }

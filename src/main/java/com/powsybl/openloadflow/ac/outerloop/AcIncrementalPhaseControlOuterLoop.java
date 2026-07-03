@@ -57,7 +57,9 @@ public class AcIncrementalPhaseControlOuterLoop
     }
 
     public static class AcSensitivityContext extends AbstractSensitivityContext<AcVariableType, AcEquationType> {
-        public AcSensitivityContext(LfNetwork network, List<LfBranch> controllerBranches, EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix) {
+        public AcSensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
+                                    EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                    JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix) {
             super(network, controllerBranches, equationSystem, jacobianMatrix);
         }
 

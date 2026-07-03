@@ -15,9 +15,10 @@ import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.*;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.solver.MaxVoltageChangeStateVectorScaling;
 import com.powsybl.openloadflow.ac.solver.StateVectorScalingMode;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
@@ -25,6 +26,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -38,7 +40,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class AcLoadFlowReportTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlowReportTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     @Test
     void testEsgTutoDetailedNrLogsLf() throws IOException {
@@ -56,7 +65,7 @@ class AcLoadFlowReportTest {
                      .setMaxVoltageChangeStateVectorScalingMaxDv(MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV / 10)
                      .setMaxVoltageChangeStateVectorScalingMaxDphi(MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI / 10);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -80,7 +89,7 @@ class AcLoadFlowReportTest {
                 .setStateVectorScalingMode(StateVectorScalingMode.LINE_SEARCH)
                 .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -110,7 +119,7 @@ class AcLoadFlowReportTest {
         olfParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW))
                 .setTransformerReactivePowerControl(true);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -133,7 +142,7 @@ class AcLoadFlowReportTest {
 
         var lfParameters = new LoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED).setHvdcAcEmulation(false);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
 
         // test in AC
@@ -194,7 +203,7 @@ class AcLoadFlowReportTest {
                 .withMessageTemplate("testReport")
                 .build();
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -226,7 +235,7 @@ class AcLoadFlowReportTest {
                          + 1 generators have been discarded from voltage control because targetV is implausible
                             Discard generator B2-G from voltage control because of implausible target voltage: 0.074074 p.u
                 """ : // not detailed version
-                """
+            """
                          1 generators have been discarded from voltage control because of a too small reactive range
                          2 generators have been discarded from voltage control because targetP is outside active power limits
                          1 generators have been discarded from active power control because of a targetP > maxP
@@ -247,8 +256,6 @@ class AcLoadFlowReportTest {
                             + Outer loop iteration 2
                                Slack bus active power (1.21814 MW) distributed in 1 distribution iteration(s)
                          Outer loop ReactiveLimits
-                         Outer loop DistributedSlack
-                         Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
         LoadFlowAssert.assertTxtReportEquals(reportTxt, reportNode);
@@ -267,7 +274,7 @@ class AcLoadFlowReportTest {
         lfParameters.setTransformerVoltageControlOn(true);
         OpenLoadFlowParameters.create(lfParameters).setMinNominalVoltageTargetVoltageCheck(0.5);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -295,7 +302,7 @@ class AcLoadFlowReportTest {
         var lfParameters = new LoadFlowParameters();
         lfParameters.setTransformerVoltageControlOn(true);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -316,7 +323,7 @@ class AcLoadFlowReportTest {
         var lfParameters = new LoadFlowParameters()
                 .setShuntCompensatorVoltageControlOn(true);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -339,7 +346,7 @@ class AcLoadFlowReportTest {
         var olfParameters = OpenLoadFlowParameters.create(lfParameters);
         olfParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -360,7 +367,7 @@ class AcLoadFlowReportTest {
         OpenLoadFlowParameters.create(lfParameters)
                 .setAreaInterchangeControl(true);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -382,7 +389,7 @@ class AcLoadFlowReportTest {
                 .setMinRealisticVoltage(0.99)
                 .setMaxRealisticVoltage(1.01);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -412,4 +419,92 @@ class AcLoadFlowReportTest {
                         """, reportNode);
 
     }
+
+    @Test
+    void testReportsOnLfNetworkWithSeveralSynchronousComponent() throws IOException {
+        // If a LfNetwork represents several synchronous component, it shall not be named CCx SCx in the report nodes
+        // but rather CCx.
+        // In addition, if a LfNetwork represents several synchronous component, the following reports should have an
+        // additional indent level as they are specific to one synchronous component that should be identified with a
+        // SCx header.
+        // - Slack and reference bus report
+        // - Slack mismatch distribution outer loop
+
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithTwoAcZones();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+            .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+            .withMessageTemplate("testReport")
+            .build();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters)
+            .setAcDcNetwork(true)
+            .setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
+            .setReportNode(reportNode);
+        LoadFlowResult result = runner.run(network, runParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertTxtReportEquals("""
+            + Test Report
+               + Load flow on network '2ACzones'
+                  + Network CC0
+                     + Network info
+                        Network has 2 buses and 0 branches
+                        Network balance: active generation=100 MW, active load=120 MW, reactive generation=0 MVar, reactive load=0 MVar
+                        + SC0
+                           Angle reference bus: b1_vl_0
+                           Slack bus: b1_vl_0
+                        + SC1
+                           Angle reference bus: b2_vl_0
+                           Slack bus: b2_vl_0
+                     Voltage initialization with method Uniform Values
+                     + Newton-Raphson on Network CC0
+                        No outer loops have been launched
+                        + Initial mismatch
+                           Newton-Raphson norm |f(x)|=0.766587
+                           + Largest V mismatch: 0 p.u.
+                              Bus Id: b1_vl_0 (nominalVoltage=400kV)
+                              Bus V: 1 pu, 0 rad
+                              Bus injection: 0 MW, 0 MVar
+                        + Iteration 1 mismatch
+                           Newton-Raphson norm |f(x)|=0.235715
+                           + Largest V mismatch: 0 p.u.
+                              Bus Id: b1_vl_0 (nominalVoltage=400kV)
+                              Bus V: 1 pu, 0 rad
+                              Bus injection: 70 MW, 0 MVar
+                        + Iteration 2 mismatch
+                           Newton-Raphson norm |f(x)|=0
+                           + Largest V mismatch: 0 p.u.
+                              Bus Id: b1_vl_0 (nominalVoltage=400kV)
+                              Bus V: 1 pu, 0 rad
+                              Bus injection: 70 MW, 0 MVar
+                     + Outer loop DistributedSlack
+                        + SC0
+                           + Outer loop iteration 1
+                              Slack bus active power (40 MW) distributed in 1 distribution iteration(s)
+                        + SC1
+                           + Outer loop iteration 1
+                              Slack bus active power (-19.998222 MW) distributed in 1 distribution iteration(s)
+                     + Newton-Raphson on Network CC0
+                        Newton-Raphson of outer loop iteration 1 of type DistributedSlack
+                        + Initial mismatch
+                           Newton-Raphson norm |f(x)|=0
+                           + Largest V mismatch: 0 p.u.
+                              Bus Id: b1_vl_0 (nominalVoltage=400kV)
+                              Bus V: 1 pu, 0 rad
+                              Bus injection: 70 MW, 0 MVar
+                        + Iteration 1 mismatch
+                           Newton-Raphson norm |f(x)|=0
+                           + Largest V mismatch: 0 p.u.
+                              Bus Id: b1_vl_0 (nominalVoltage=400kV)
+                              Bus V: 1 pu, 0 rad
+                              Bus injection: 70 MW, 0 MVar
+                     Outer loop ReactiveLimits
+                     AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+            """, reportNode);
+    }
+
 }

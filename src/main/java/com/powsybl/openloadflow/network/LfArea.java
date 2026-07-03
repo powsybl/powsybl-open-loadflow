@@ -27,7 +27,7 @@ public interface LfArea extends LfElement {
 
     LfNetwork getNetwork();
 
-    public interface Boundary {
+    interface Boundary {
         LfBranch getBranch();
 
         double getP();

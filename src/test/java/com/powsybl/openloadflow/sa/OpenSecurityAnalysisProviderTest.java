@@ -11,6 +11,8 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.commons.config.MapModuleConfig;
 import com.powsybl.commons.test.AbstractSerDeTest;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.security.SecurityAnalysisParameters;
@@ -18,7 +20,9 @@ import com.powsybl.security.json.JsonSecurityAnalysisParameters;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +51,8 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
 
     @Test
     void specificParametersNamesTest() {
-        assertEquals(List.of("createResultExtension", "contingencyPropagation", "threadCount", "dcFastMode", "contingencyActivePowerLossDistribution", "startWithFrozenACEmulation"), provider.getSpecificParametersNames());
+        assertEquals(List.of("createResultExtension", "contingencyPropagation", "threadCount", "dcFastMode", "contingencyActivePowerLossDistribution", "startWithFrozenACEmulation"),
+            provider.getSpecificParametersNames());
     }
 
     @Test
@@ -152,5 +157,63 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
                 .setStartWithFrozenACEmulation(false);
         parameters.addExtension(OpenSecurityAnalysisParameters.class, parametersExt);
         roundTripTest(parameters, JsonSecurityAnalysisParameters::write, JsonSecurityAnalysisParameters::read, "/sa-params.json");
+    }
+
+    @Test
+    void testParamsExtensionJsonUpdate() {
+
+        // some params with non-default values
+        LoadFlowParameters p = new LoadFlowParameters()
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setUseReactiveLimits(false);
+        OpenLoadFlowParameters op = OpenLoadFlowParameters.create(p)
+                .setMaxNewtonRaphsonIterations(30)
+                .setMaxNewtonKrylovIterations(50);
+        SecurityAnalysisParameters sp = new SecurityAnalysisParameters()
+                .setLoadFlowParameters(p);
+        OpenSecurityAnalysisParameters osp = new OpenSecurityAnalysisParameters()
+                .setThreadCount(2)
+                .setCreateResultExtension(true);
+        sp.addExtension(OpenSecurityAnalysisParameters.class, osp);
+
+        assertEquals(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES, p.getVoltageInitMode());
+        assertFalse(op.isNewtonKrylovLineSearch());
+        assertFalse(osp.isDcFastMode());
+
+        byte[] json = """
+            {
+              "version" : "1.3",
+              "load-flow-parameters" : {
+                "version" : "1.11",
+                "voltageInitMode" : "DC_VALUES",
+                "extensions": {
+                  "open-load-flow-parameters": {
+                    "maxNewtonRaphsonIterations": 35,
+                    "newtonKrylovLineSearch" : true
+                  }
+                }
+              },
+              "extensions" : {
+                "open-security-analysis-parameters" : {
+                  "threadCount": 4,
+                  "dcFastMode": true
+                }
+              }
+            }
+            """.getBytes(StandardCharsets.UTF_8);
+
+        JsonSecurityAnalysisParameters.update(sp, new ByteArrayInputStream(json));
+
+        // unchanged
+        assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, p.getBalanceType());
+        assertFalse(p.isUseReactiveLimits());
+        assertEquals(50, op.getMaxNewtonKrylovIterations());
+        assertTrue(osp.isCreateResultExtension());
+
+        // updated
+        assertEquals(35, op.getMaxNewtonRaphsonIterations());
+        assertTrue(op.isNewtonKrylovLineSearch());
+        assertTrue(osp.isDcFastMode());
+        assertEquals(4, osp.getThreadCount());
     }
 }

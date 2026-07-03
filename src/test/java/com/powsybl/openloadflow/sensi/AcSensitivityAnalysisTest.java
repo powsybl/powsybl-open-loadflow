@@ -16,17 +16,16 @@ import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.*;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
+import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.extensions.VoltageRegulation;
 import com.powsybl.iidm.network.extensions.VoltageRegulationAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
@@ -36,13 +35,11 @@ import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
@@ -57,6 +54,12 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AcSensitivityAnalysisTest.class);
+
+    AcSensitivityAnalysisTest(CommonTestConfig commonTestConfig) {
+        super(commonTestConfig);
+    }
 
     @Test
     void testEsgTuto() {
@@ -235,6 +238,36 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         assertEquals(5, result.getValues().size());
 
+        assertEquals(-0.632d, result.getBranchFlow1SensitivityValue("g4", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.122d, result.getBranchFlow1SensitivityValue("g4", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.122d, result.getBranchFlow1SensitivityValue("g4", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.368d, result.getBranchFlow1SensitivityValue("g4", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.245d, result.getBranchFlow1SensitivityValue("g4", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testUnsupportedParameters() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", false);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        // These are all unsupported parameters that should be overriden
+        sensiParameters.getLoadFlowParameters()
+                .setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED)
+                .getExtension(OpenLoadFlowParameters.class)
+                    .setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE)
+                    .setNetworkCacheEnabled(true)
+                    .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
+
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        runLf(network, sensiParameters.getLoadFlowParameters());
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g4")),
+                network.getBranchStream().collect(Collectors.toList()));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        // Results should be the same (and also warn log messages should appear)
+        assertEquals(5, result.getValues().size());
         assertEquals(-0.632d, result.getBranchFlow1SensitivityValue("g4", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.122d, result.getBranchFlow1SensitivityValue("g4", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(-0.122d, result.getBranchFlow1SensitivityValue("g4", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
@@ -723,10 +756,18 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
         assertEquals(4, result.getValues().size());
-        assertEquals(0d, result.getBusVoltageSensitivityValue("g2", "b1", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V); // no impact on a pv
-        assertEquals(1d, result.getBusVoltageSensitivityValue("g2", "b2", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V); // 1 on itself
-        assertEquals(0.3423d, result.getBusVoltageSensitivityValue("g2", "b3", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V); // value obtained by running two loadflow with a very small difference on targetV for bus2
-        assertEquals(0d, result.getBusVoltageSensitivityValue("g2", "b4", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V);
+        assertEquals(0d,
+            result.getBusVoltageSensitivityValue("g2", "b1", SensitivityVariableType.BUS_TARGET_VOLTAGE),
+            LoadFlowAssert.DELTA_V); // no impact on a pv
+        assertEquals(1d,
+            result.getBusVoltageSensitivityValue("g2", "b2", SensitivityVariableType.BUS_TARGET_VOLTAGE),
+            LoadFlowAssert.DELTA_V); // 1 on itself
+        assertEquals(0.3423d,
+            result.getBusVoltageSensitivityValue("g2", "b3", SensitivityVariableType.BUS_TARGET_VOLTAGE),
+            LoadFlowAssert.DELTA_V); // value obtained by running two loadflow with a very small difference on targetV for bus2
+        assertEquals(0d,
+            result.getBusVoltageSensitivityValue("g2", "b4", SensitivityVariableType.BUS_TARGET_VOLTAGE),
+            LoadFlowAssert.DELTA_V);
     }
 
     @Test
@@ -903,12 +944,10 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     @Test
     void testBusVoltagePerTargetQGen() {
         Network network = ReactiveInjectionNetworkFactory.createTwoGensOneLoad();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
 
-        List<SensitivityFactor> factors = Arrays.asList(new SensitivityFactor[] {
-                createBusVoltagePerTargetQ("b3", "g2", null),
+        List<SensitivityFactor> factors = Arrays.asList(createBusVoltagePerTargetQ("b3", "g2", null),
                 createBusVoltagePerTargetQ("b2", "g2", null),
-                createBusVoltagePerTargetQ("b1", "g2", null)});
+                createBusVoltagePerTargetQ("b1", "g2", null));
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "b2", false);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class).setSlackBusPMaxMismatch(0.001).setNewtonRaphsonConvEpsPerEq(0.0001);
@@ -1984,11 +2023,20 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
 
-        assertEquals(4, result.getValues().size());
-        assertEquals(-7.9596, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
-        assertEquals(0.0, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
-        assertEquals(-52.3300, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_CURRENT_1, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
-        assertEquals(-132.3927, result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_CURRENT_2, SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(4,
+            result.getValues().size());
+        assertEquals(-7.9596,
+            result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.BUS_TARGET_VOLTAGE),
+            LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(0.0,
+            result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, SensitivityVariableType.BUS_TARGET_VOLTAGE),
+            LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(-52.3300,
+            result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_CURRENT_1, SensitivityVariableType.BUS_TARGET_VOLTAGE),
+            LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(-132.3927,
+            result.getSensitivityValue("GEN", "NHV2_NLOAD", SensitivityFunctionType.BRANCH_CURRENT_2, SensitivityVariableType.BUS_TARGET_VOLTAGE),
+            LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
 
         runAcLf(network);
 
@@ -2036,10 +2084,18 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
         assertEquals(4, result.getValues().size());
-        assertEquals(-0.6260, result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
-        assertEquals(0.5701, result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
-        assertEquals(-0.3245, result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_CURRENT_1, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
-        assertEquals(-0.4610, result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_CURRENT_2, SensitivityVariableType.INJECTION_REACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(-0.6260,
+            result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.INJECTION_REACTIVE_POWER),
+            LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(0.5701,
+            result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, SensitivityVariableType.INJECTION_REACTIVE_POWER),
+            LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(-0.3245,
+            result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_CURRENT_1, SensitivityVariableType.INJECTION_REACTIVE_POWER),
+            LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        assertEquals(-0.4610,
+            result.getSensitivityValue("NLOAD", "NHV1_NHV2_1", SensitivityFunctionType.BRANCH_CURRENT_2, SensitivityVariableType.INJECTION_REACTIVE_POWER),
+            LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
 
         runAcLf(network);
 
@@ -2239,5 +2295,1298 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         // Make sur that runSync is a Callable. Only CompletableFutureTask.runAsync(Callable) handles correctly thread cancel. Not CompletableFutureTask.runAsync(Runnable)
         Callable t = () -> p.runSync(null, null, null, null, null, null, null, null, null, null, null);
         assertFalse(t instanceof Runnable);
+    }
+
+    @Test
+    void testShuntBSensi() {
+        Network network = ShuntNetworkFactory.create();
+        String shuntId = "SHUNT";
+        ShuntCompensator shunt = network.getShuntCompensator(shuntId);
+        Bus bus1 = network.getBusBreakerView().getBus("b1");
+        Bus bus2 = network.getBusBreakerView().getBus("b2");
+        Bus bus3 = network.getBusBreakerView().getBus("b3");
+
+        List<Bus> monitoredBuses = List.of(bus2, bus3);
+
+        shunt.setSectionCount(0);
+        runAcLf(network);
+        Map<Bus, Double> vBefore = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getV));
+
+        shunt.setSectionCount(1);
+        runAcLf(network);
+        Map<Bus, Double> vAfter = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getV));
+
+        shunt.setVoltageRegulatorOn(true);
+        shunt.setSectionCount(0);
+        runAcLf(network);
+
+        // Test with a bus view id vl3_0 and and busbar section ids
+        List<SensitivityFactor> factors = List.of(
+                createBusVoltagePerShuntB("vl3_0", shuntId),
+                createBusVoltagePerShuntB(bus2.getId(), shuntId),
+                createBusVoltagePerShuntB(bus1.getId(), shuntId));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(createParameters(false, bus2.getId(), false)));
+
+        // Sensi in kV/S — multiply sensitivity by delta B to get delta V
+        double deltaB = shunt.getB(1) - shunt.getB(0);
+        SensitivityVariableType varType = SensitivityVariableType.SHUNT_COMPENSATOR_SUSCEPTANCE;
+        double sVl3 = result.getBusVoltageSensitivityValue(shuntId, "vl3_0", varType);
+        double sB2 = result.getBusVoltageSensitivityValue(shuntId, bus2.getId(), varType);
+        double sB1 = result.getBusVoltageSensitivityValue(shuntId, bus1.getId(), varType);
+
+        StringBuilder out = new StringBuilder(System.lineSeparator());
+        out.append("=== testShuntBSensi (shunt ").append(shuntId).append(", deltaB=").append(deltaB).append(") ===").append(System.lineSeparator());
+        out.append(String.format("  %-7s sensi=%+14.4f  pred(sensi*deltaB)=%+10.5f  actual dV=%+10.5f%n",
+                "vl3_0", sVl3, sVl3 * deltaB, vAfter.get(bus3) - vBefore.get(bus3)));
+        out.append(String.format("  %-7s sensi=%+14.4f  pred(sensi*deltaB)=%+10.5f  actual dV=%+10.5f%n",
+                bus2.getId(), sB2, sB2 * deltaB, vAfter.get(bus2) - vBefore.get(bus2)));
+        out.append(String.format("  %-7s sensi=%+14.4f  pred(sensi*deltaB)=%+10.5f  (reference bus, expected 0)%n",
+                bus1.getId(), sB1, sB1 * deltaB));
+        LOGGER.info("{}", out);
+
+        assertEquals(vAfter.get(bus3) - vBefore.get(bus3), sVl3 * deltaB, 1e-1);
+        assertEquals(vAfter.get(bus2) - vBefore.get(bus2), sB2 * deltaB, 1e-1);
+        assertEquals(0.0, sB1 * deltaB, 1e-3);
+        assertEquals(2334.586, sVl3, DELTA_V);
+        assertEquals(1168.842, sB2, DELTA_V);
+        assertEquals(0.0, sB1, DELTA_V);
+
+        SensitivityAnalysisRunParameters runParametersDc = new SensitivityAnalysisRunParameters()
+                .setParameters(createParameters(true, bus2.getId(), false));
+        CompletionException ex = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParametersDc));
+        assertEquals("Only variables of type TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3,"
+                + " INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2 and BRANCH_ACTIVE_POWER_3 are yet supported in DC",
+                ex.getCause().getMessage());
+    }
+
+    @Test
+    void testShuntBSensiBis() {
+        Network network = ShuntNetworkFactory.create();
+        String shuntId = "SHUNT";
+        ShuntCompensator shunt = network.getShuntCompensator(shuntId);
+        List<Branch> monitoredBranches = List.of("l1", "l2").stream()
+                .map(network::getBranch)
+                .toList();
+        List<Bus> monitoredBuses = List.of("b1", "b2", "b3").stream()
+                .map(id -> network.getBusBreakerView().getBus(id))
+                .toList();
+
+        // Snapshot before: shunt at section 0
+        shunt.setSectionCount(0);
+        runAcLf(network);
+        Map<Bus, Double> qBefore = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getQ));
+        Map<Branch, double[]> branchBefore = monitoredBranches.stream().collect(Collectors.toMap(b -> b, b -> new double[]{
+                b.getTerminal1().getP(), b.getTerminal2().getP(),
+                b.getTerminal1().getI(), b.getTerminal2().getI()}));
+
+        // Snapshot after: shunt at section 1
+        shunt.setSectionCount(1);
+        runAcLf(network);
+        Map<Bus, Double> qAfter = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getQ));
+        Map<Branch, double[]> branchAfter = monitoredBranches.stream().collect(Collectors.toMap(b -> b, b -> new double[]{
+                b.getTerminal1().getP(), b.getTerminal2().getP(),
+                b.getTerminal1().getI(), b.getTerminal2().getI()}));
+
+        // Reset for sensitivity analysis
+        shunt.setVoltageRegulatorOn(true);
+        shunt.setSectionCount(0);
+        runAcLf(network);
+
+        // Build sensitivity factors
+        List<SensitivityFactor> factors = new ArrayList<>();
+        for (Bus bus : monitoredBuses) {
+            factors.add(createBusReactivePowerPerShuntB(bus.getId(), shuntId));
+        }
+        for (Branch branch : monitoredBranches) {
+            factors.add(createBranchFlowPerShuntB(branch.getId(), shuntId, TwoSides.ONE));
+            factors.add(createBranchFlowPerShuntB(branch.getId(), shuntId, TwoSides.TWO));
+            factors.add(createBranchIntensityPerShuntB(branch.getId(), shuntId, TwoSides.ONE));
+            factors.add(createBranchIntensityPerShuntB(branch.getId(), shuntId, TwoSides.TWO));
+        }
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(createParameters(false, "b1", false)));
+
+        double deltaB = shunt.getB(1) - shunt.getB(0);
+        SensitivityVariableType varType = SensitivityVariableType.SHUNT_COMPENSATOR_SUSCEPTANCE;
+
+        // Assert exact sensitivity values to catch drift
+        assertEquals(151898.236, result.getSensitivityValue(shuntId, "b1", SensitivityFunctionType.BUS_REACTIVE_POWER, varType), DELTA_POWER);
+        assertEquals(-150995.536, result.getSensitivityValue(shuntId, "b3", SensitivityFunctionType.BUS_REACTIVE_POWER, varType), DELTA_POWER);
+        assertEquals(-300.900, result.getBranchFlow2SensitivityValue(shuntId, "l1", varType), DELTA_POWER);
+        assertEquals(-186566.452, result.getBranchCurrent1SensitivityValue(shuntId, "l1", varType), DELTA_I);
+        assertEquals(-186566.452, result.getBranchCurrent2SensitivityValue(shuntId, "l1", varType), DELTA_I);
+        assertEquals(0.0, result.getBranchFlow1SensitivityValue(shuntId, "l2", varType), DELTA_POWER);
+        assertEquals(0.0, result.getBranchFlow2SensitivityValue(shuntId, "l2", varType), DELTA_POWER);
+
+        StringBuilder out = new StringBuilder(System.lineSeparator());
+        out.append("=== testShuntBSensiBis (shunt ").append(shuntId).append(", deltaB=").append(deltaB).append(") ===").append(System.lineSeparator());
+
+        // Assert bus reactive power sensitivities
+        for (Bus bus : monitoredBuses) {
+            double diff = qAfter.get(bus) - qBefore.get(bus);
+            double scaled = result.getSensitivityValue(shuntId, bus.getId(), SensitivityFunctionType.BUS_REACTIVE_POWER, varType) * deltaB;
+            out.append(String.format("  bus %-3s Q  : pred(sensi*deltaB)=%+14.4f  actual dQ=%+14.4f%n", bus.getId(), scaled, diff));
+            assertEquals(diff, scaled, 2.0);
+        }
+
+        // Assert branch P and I sensitivities
+        // l2 is directly connected to the shunt bus — P and I sensitivities have known issues:
+        //   p1_l2, p2_l2: scaled is 0 while diff is near-zero (shunt on same bus)
+        //   i1_l2: sign mismatch due to current non-linearity
+        for (Branch branch : monitoredBranches) {
+            double[] before = branchBefore.get(branch);
+            double[] after = branchAfter.get(branch);
+            String branchId = branch.getId();
+
+            double diffP1 = after[0] - before[0];
+            double scaledP1 = result.getBranchFlow1SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-3s P1: pred(sensi*deltaB)=%+14.4f  actual dP1=%+14.4f%n", branchId, scaledP1, diffP1));
+            assertEquals(diffP1, scaledP1, 1.0);
+
+            double diffP2 = after[1] - before[1];
+            double scaledP2 = result.getBranchFlow2SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-3s P2: pred(sensi*deltaB)=%+14.4f  actual dP2=%+14.4f%n", branchId, scaledP2, diffP2));
+            assertEquals(diffP2, scaledP2, 1.0);
+
+            double diffI1 = after[2] - before[2];
+            double scaledI1 = result.getBranchCurrent1SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-3s I1: pred(sensi*deltaB)=%+14.4f  actual dI1=%+14.4f  sameSign=%b%n",
+                    branchId, scaledI1, diffI1, Math.signum(diffI1) == Math.signum(scaledI1)));
+            assertTrue(Math.signum(diffI1) == Math.signum(scaledI1), "I1 sign mismatch on " + branchId);
+
+            double diffI2 = after[3] - before[3];
+            double scaledI2 = result.getBranchCurrent2SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-3s I2: pred(sensi*deltaB)=%+14.4f  actual dI2=%+14.4f  sameSign=%b%n",
+                    branchId, scaledI2, diffI2, Math.signum(diffI2) == Math.signum(scaledI2)));
+            assertTrue(Math.signum(diffI2) == Math.signum(scaledI2), "I2 sign mismatch on " + branchId);
+        }
+        LOGGER.info("{}", out);
+    }
+
+    private Network createShuntTransformerNetwork(double bPerSection) {
+        Network network = Network.create("shunt-trafo-test", "test");
+        Substation s1 = network.newSubstation().setId("S1").add();
+        Substation s2 = network.newSubstation().setId("S2").add();
+
+        VoltageLevel vl1 = s1.newVoltageLevel().setId("vl1").setNominalV(400).setTopologyKind(TopologyKind.BUS_BREAKER).add();
+        vl1.getBusBreakerView().newBus().setId("b1").add();
+        vl1.newGenerator().setId("g1").setBus("b1").setConnectableBus("b1")
+                .setTargetP(10).setTargetV(400).setMinP(0).setMaxP(500).setVoltageRegulatorOn(true).add();
+
+        VoltageLevel vl2 = s1.newVoltageLevel().setId("vl2").setNominalV(20).setTopologyKind(TopologyKind.BUS_BREAKER).add();
+        vl2.getBusBreakerView().newBus().setId("b2").add();
+        vl2.newLoad().setId("ld1").setBus("b2").setConnectableBus("b2").setP0(10).setQ0(3).add();
+
+        VoltageLevel vl3 = s2.newVoltageLevel().setId("vl3").setNominalV(20).setTopologyKind(TopologyKind.BUS_BREAKER).add();
+        vl3.getBusBreakerView().newBus().setId("b3").add();
+        vl3.newShuntCompensator().setId("SHUNT").setBus("b3").setConnectableBus("b3")
+                .setSectionCount(0).setVoltageRegulatorOn(false)
+                .newLinearModel().setBPerSection(bPerSection).setMaximumSectionCount(1).add()
+                .add();
+
+        s1.newTwoWindingsTransformer().setId("tr1")
+                .setVoltageLevel1("vl1").setBus1("b1").setConnectableBus1("b1")
+                .setVoltageLevel2("vl2").setBus2("b2").setConnectableBus2("b2")
+                .setRatedU1(400).setRatedU2(20).setR(0.5).setX(10).add();
+
+        network.newLine().setId("l1").setBus1("b2").setBus2("b3").setR(0.1).setX(1).add();
+        return network;
+    }
+
+    @Test
+    void testShuntBSensiWithTransformer() {
+        // Small synthetic network: g1 (400kV) --transformer--> b2 (20kV) --line--> b3 (20kV, shunt)
+        // Sweep across increasing bPerSection values to see when linearization diverges
+        String shuntId = "SHUNT";
+        List<String> branchIds = List.of("tr1", "l1");
+        SensitivityVariableType varType = SensitivityVariableType.SHUNT_COMPENSATOR_SUSCEPTANCE;
+
+        // Run sensitivity on the base network (bPerSection doesn't matter for sensitivity computation)
+        Network baseNetwork = createShuntTransformerNetwork(1e-4);
+        baseNetwork.getShuntCompensator(shuntId).setSectionCount(0);
+        runAcLf(baseNetwork);
+
+        List<SensitivityFactor> factors = new ArrayList<>();
+        for (String branchId : branchIds) {
+            factors.add(createBranchIntensityPerShuntB(branchId, shuntId, TwoSides.ONE));
+            factors.add(createBranchIntensityPerShuntB(branchId, shuntId, TwoSides.TWO));
+        }
+        SensitivityAnalysisResult result = sensiRunner.run(baseNetwork, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(createParameters(false, "b1", false)));
+
+        // Assert exact sensitivity values to catch any drift
+        assertEquals(-364.498, result.getBranchCurrent1SensitivityValue(shuntId, "tr1", varType), DELTA_I);
+        assertEquals(-7289.966, result.getBranchCurrent2SensitivityValue(shuntId, "tr1", varType), DELTA_I);
+        assertEquals(9877.586, result.getBranchCurrent1SensitivityValue(shuntId, "l1", varType), DELTA_I);
+        assertEquals(9877.586, result.getBranchCurrent2SensitivityValue(shuntId, "l1", varType), DELTA_I);
+
+        // Sweep bPerSection values — accumulate rows to avoid interleaving with OLF console output
+        double[] bSteps = {1e-5, 1e-4, 1e-3, 5e-3, 1e-2};
+        List<String> sweepRows = new ArrayList<>();
+        sweepRows.add("bPerSection | branch | I1 diff      | I1 scaled    | I1 sign ok | I2 diff      | I2 scaled    | I2 sign ok");
+        for (double bStep : bSteps) {
+            Network net = createShuntTransformerNetwork(bStep);
+            ShuntCompensator shunt = net.getShuntCompensator(shuntId);
+
+            shunt.setSectionCount(0);
+            runAcLf(net);
+            double[] i1Before = {net.getBranch("tr1").getTerminal1().getI(), net.getBranch("l1").getTerminal1().getI()};
+            double[] i2Before = {net.getBranch("tr1").getTerminal2().getI(), net.getBranch("l1").getTerminal2().getI()};
+
+            shunt.setSectionCount(1);
+            runAcLf(net);
+            double[] i1After = {net.getBranch("tr1").getTerminal1().getI(), net.getBranch("l1").getTerminal1().getI()};
+            double[] i2After = {net.getBranch("tr1").getTerminal2().getI(), net.getBranch("l1").getTerminal2().getI()};
+
+            for (int i = 0; i < branchIds.size(); i++) {
+                String branchId = branchIds.get(i);
+                double diffI1 = i1After[i] - i1Before[i];
+                double scaledI1 = result.getBranchCurrent1SensitivityValue(shuntId, branchId, varType) * bStep;
+                boolean signOkI1 = diffI1 == 0 || Math.signum(diffI1) == Math.signum(scaledI1);
+                double diffI2 = i2After[i] - i2Before[i];
+                double scaledI2 = result.getBranchCurrent2SensitivityValue(shuntId, branchId, varType) * bStep;
+                boolean signOkI2 = diffI2 == 0 || Math.signum(diffI2) == Math.signum(scaledI2);
+                sweepRows.add(String.format("%-11.0e | %-6s | %+12.6f | %+12.6f | %-10s | %+12.6f | %+12.6f | %s",
+                        bStep, branchId, diffI1, scaledI1, signOkI1, diffI2, scaledI2, signOkI2));
+            }
+        }
+
+        // Assert that small steps (1e-4) have correct signs and close values
+        Network smallNet = createShuntTransformerNetwork(1e-4);
+        ShuntCompensator shuntSmall = smallNet.getShuntCompensator(shuntId);
+        shuntSmall.setSectionCount(0);
+        runAcLf(smallNet);
+        Map<String, double[]> smallBefore = branchIds.stream().collect(Collectors.toMap(id -> id, id -> new double[]{
+                smallNet.getBranch(id).getTerminal1().getI(), smallNet.getBranch(id).getTerminal2().getI()}));
+        shuntSmall.setSectionCount(1);
+        runAcLf(smallNet);
+        double smallDeltaB = 1e-4;
+        for (String branchId : branchIds) {
+            Branch branch = smallNet.getBranch(branchId);
+            double diffI1 = branch.getTerminal1().getI() - smallBefore.get(branchId)[0];
+            double scaledI1 = result.getBranchCurrent1SensitivityValue(shuntId, branchId, varType) * smallDeltaB;
+            double diffI2 = branch.getTerminal2().getI() - smallBefore.get(branchId)[1];
+            double scaledI2 = result.getBranchCurrent2SensitivityValue(shuntId, branchId, varType) * smallDeltaB;
+            assertTrue(Math.signum(diffI1) == Math.signum(scaledI1), "I1 sign mismatch on " + branchId);
+            assertTrue(Math.signum(diffI2) == Math.signum(scaledI2), "I2 sign mismatch on " + branchId);
+        }
+
+        LOGGER.info("=== testShuntBSensiWithTransformer : I1/I2 diff vs scaled sensitivity over bPerSection sweep ==={}{}",
+                System.lineSeparator(), String.join(System.lineSeparator(), sweepRows));
+    }
+
+    @Test
+    void testShuntBSensi2() {
+        Network network = IeeeCdfNetworkFactory.create14();
+        String shuntId = "B9-SH";
+        ShuntCompensator shunt = network.getShuntCompensator(shuntId);
+
+        List<Bus> monitoredBuses = List.of("B9", "B10", "B7", "B4", "B14").stream()
+                .map(id -> network.getBusBreakerView().getBus(id))
+                .toList();
+        List<Branch> monitoredBranches = List.of("L9-10-1", "L9-14-1", "L7-9-1", "T4-9-1", "T4-7-1", "T5-6-1").stream()
+                .map(network::getBranch)
+                .toList();
+
+        // Snapshot before: shunt disconnected (section count 0)
+        shunt.setSectionCount(0);
+        runAcLf(network);
+        Map<Bus, Double> vBefore = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getV));
+        Map<Bus, Double> qBefore = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getQ));
+        Map<Branch, double[]> branchBefore = monitoredBranches.stream().collect(Collectors.toMap(b -> b, b -> new double[]{
+                b.getTerminal1().getP(), b.getTerminal2().getP(),
+                b.getTerminal1().getI(), b.getTerminal2().getI()}));
+
+        // Snapshot after: shunt connected (section count 1)
+        shunt.setSectionCount(1);
+        runAcLf(network);
+        Map<Bus, Double> vAfter = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getV));
+        Map<Bus, Double> qAfter = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getQ));
+        Map<Branch, double[]> branchAfter = monitoredBranches.stream().collect(Collectors.toMap(b -> b, b -> new double[]{
+                b.getTerminal1().getP(), b.getTerminal2().getP(),
+                b.getTerminal1().getI(), b.getTerminal2().getI()}));
+
+        // Reset for sensitivity analysis
+        shunt.setSectionCount(0);
+        runAcLf(network);
+
+        // Build sensitivity factors
+        List<SensitivityFactor> factors = new ArrayList<>();
+        for (Bus bus : monitoredBuses) {
+            factors.add(createBusVoltagePerShuntB(bus.getId(), shuntId));
+            factors.add(createBusReactivePowerPerShuntB(bus.getId(), shuntId));
+        }
+        for (Branch branch : monitoredBranches) {
+            factors.add(createBranchFlowPerShuntB(branch.getId(), shuntId, TwoSides.ONE));
+            factors.add(createBranchFlowPerShuntB(branch.getId(), shuntId, TwoSides.TWO));
+            factors.add(createBranchIntensityPerShuntB(branch.getId(), shuntId, TwoSides.ONE));
+            factors.add(createBranchIntensityPerShuntB(branch.getId(), shuntId, TwoSides.TWO));
+        }
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(createParameters(false, "B1", false)));
+
+        double deltaB = shunt.getB(1) - shunt.getB(0);
+        SensitivityVariableType varType = SensitivityVariableType.SHUNT_COMPENSATOR_SUSCEPTANCE;
+
+        // Assert exact sensitivity values to catch drift
+        assertEquals(2.5347, result.getBusVoltageSensitivityValue(shuntId, "B9", varType), DELTA_V);
+        assertEquals(2.1022, result.getBusVoltageSensitivityValue(shuntId, "B10", varType), DELTA_V);
+        assertEquals(2.1065, result.getBusVoltageSensitivityValue(shuntId, "B7", varType), DELTA_V);
+        assertEquals(5.4944, result.getBusVoltageSensitivityValue(shuntId, "B4", varType), DELTA_V);
+        assertEquals(1.6228, result.getBusVoltageSensitivityValue(shuntId, "B14", varType), DELTA_V);
+        assertEquals(-153.728, result.getSensitivityValue(shuntId, "B9", SensitivityFunctionType.BUS_REACTIVE_POWER, varType), DELTA_POWER);
+        assertEquals(6.8015, result.getBranchFlow1SensitivityValue(shuntId, "L9-10-1", varType), DELTA_POWER);
+        assertEquals(-6.7951, result.getBranchFlow2SensitivityValue(shuntId, "L9-10-1", varType), DELTA_POWER);
+        assertEquals(6.4563, result.getBranchFlow1SensitivityValue(shuntId, "L9-14-1", varType), DELTA_POWER);
+        assertEquals(8.4005, result.getBranchFlow1SensitivityValue(shuntId, "L7-9-1", varType), DELTA_POWER);
+        assertEquals(4.8572, result.getBranchFlow1SensitivityValue(shuntId, "T4-9-1", varType), DELTA_POWER);
+        assertEquals(111.079, result.getBranchCurrent1SensitivityValue(shuntId, "L9-10-1", varType), DELTA_I);
+        assertEquals(111.079, result.getBranchCurrent2SensitivityValue(shuntId, "L9-10-1", varType), DELTA_I);
+        assertEquals(310.880, result.getBranchCurrent1SensitivityValue(shuntId, "L9-14-1", varType), DELTA_I);
+        assertEquals(-1003.505, result.getBranchCurrent1SensitivityValue(shuntId, "L7-9-1", varType), DELTA_I);
+        assertEquals(-1170.756, result.getBranchCurrent2SensitivityValue(shuntId, "L7-9-1", varType), DELTA_I);
+        assertEquals(-8.800, result.getBranchCurrent1SensitivityValue(shuntId, "T4-9-1", varType), DELTA_I);
+        assertEquals(-95.934, result.getBranchCurrent2SensitivityValue(shuntId, "T4-9-1", varType), DELTA_I);
+        assertEquals(75.942, result.getBranchCurrent1SensitivityValue(shuntId, "T4-7-1", varType), DELTA_I);
+        assertEquals(716.188, result.getBranchCurrent2SensitivityValue(shuntId, "T4-7-1", varType), DELTA_I);
+        assertEquals(-56.359, result.getBranchCurrent1SensitivityValue(shuntId, "T5-6-1", varType), DELTA_I);
+        assertEquals(-590.923, result.getBranchCurrent2SensitivityValue(shuntId, "T5-6-1", varType), DELTA_I);
+
+        // Sensitivity is a linear approximation; with a large delta B step (0.132 S), expect significant linearization error
+        double voltageTol = 5e-1;
+        double powerTol = 1.0;
+
+        StringBuilder out = new StringBuilder(System.lineSeparator());
+        out.append("=== testShuntBSensi2 (shunt ").append(shuntId).append(", deltaB=").append(deltaB).append(") ===").append(System.lineSeparator());
+
+        // Assert bus voltage sensitivities — same sign and close values
+        for (Bus bus : monitoredBuses) {
+            double diff = vAfter.get(bus) - vBefore.get(bus);
+            double scaled = result.getBusVoltageSensitivityValue(shuntId, bus.getId(), varType) * deltaB;
+            out.append(String.format("  bus %-4s V : pred(sensi*deltaB)=%+10.5f  actual dV=%+10.5f  sameSign=%b%n",
+                    bus.getId(), scaled, diff, Math.signum(diff) == Math.signum(scaled)));
+            assertEquals(diff, scaled, voltageTol);
+            assertTrue(Math.signum(diff) == Math.signum(scaled), "V sign mismatch on " + bus.getId());
+        }
+
+        // Assert bus reactive power sensitivities — same sign and close values
+        for (Bus bus : monitoredBuses) {
+            double diff = qAfter.get(bus) - qBefore.get(bus);
+            double scaled = result.getSensitivityValue(shuntId, bus.getId(), SensitivityFunctionType.BUS_REACTIVE_POWER, varType) * deltaB;
+            out.append(String.format("  bus %-4s Q : pred(sensi*deltaB)=%+10.4f  actual dQ=%+10.4f%n", bus.getId(), scaled, diff));
+            assertEquals(diff, scaled, powerTol);
+        }
+
+        // Assert branch active power sensitivities — same sign and close values
+        // Current sensitivities have known sign mismatches on T4-9-1 due to non-linearity
+        Set<String> currentSignExceptions = Set.of("T4-9-1");
+        for (Branch branch : monitoredBranches) {
+            double[] before = branchBefore.get(branch);
+            double[] after = branchAfter.get(branch);
+            String branchId = branch.getId();
+            // P1
+            double diffP1 = after[0] - before[0];
+            double scaledP1 = result.getBranchFlow1SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-7s P1: pred(sensi*deltaB)=%+10.4f  actual dP1=%+10.4f  sameSign=%b%n",
+                    branchId, scaledP1, diffP1, Math.signum(diffP1) == Math.signum(scaledP1)));
+            assertEquals(diffP1, scaledP1, powerTol);
+            assertTrue(Math.signum(diffP1) == Math.signum(scaledP1), "P1 sign mismatch on " + branchId);
+            // P2
+            double diffP2 = after[1] - before[1];
+            double scaledP2 = result.getBranchFlow2SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-7s P2: pred(sensi*deltaB)=%+10.4f  actual dP2=%+10.4f  sameSign=%b%n",
+                    branchId, scaledP2, diffP2, Math.signum(diffP2) == Math.signum(scaledP2)));
+            assertEquals(diffP2, scaledP2, powerTol);
+            assertTrue(Math.signum(diffP2) == Math.signum(scaledP2), "P2 sign mismatch on " + branchId);
+            // I1
+            double diffI1 = after[2] - before[2];
+            double scaledI1 = result.getBranchCurrent1SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-7s I1: pred(sensi*deltaB)=%+10.4f  actual dI1=%+10.4f  sameSign=%b%s%n",
+                    branchId, scaledI1, diffI1, Math.signum(diffI1) == Math.signum(scaledI1),
+                    currentSignExceptions.contains(branchId) ? " (expected mismatch)" : ""));
+            if (currentSignExceptions.contains(branchId)) {
+                // Known sign mismatch due to current non-linearity with large delta B
+                assertNotEquals(Math.signum(diffI1), Math.signum(scaledI1), "Expected sign mismatch on I1 " + branchId);
+            } else {
+                assertTrue(Math.signum(diffI1) == Math.signum(scaledI1), "I1 sign mismatch on " + branchId);
+            }
+            // I2
+            double diffI2 = after[3] - before[3];
+            double scaledI2 = result.getBranchCurrent2SensitivityValue(shuntId, branchId, varType) * deltaB;
+            out.append(String.format("  branch %-7s I2: pred(sensi*deltaB)=%+10.4f  actual dI2=%+10.4f  sameSign=%b%s%n",
+                    branchId, scaledI2, diffI2, Math.signum(diffI2) == Math.signum(scaledI2),
+                    currentSignExceptions.contains(branchId) ? " (expected mismatch)" : ""));
+            if (currentSignExceptions.contains(branchId)) {
+                assertNotEquals(Math.signum(diffI2), Math.signum(scaledI2), "Expected sign mismatch on I2 " + branchId);
+            } else {
+                assertTrue(Math.signum(diffI2) == Math.signum(scaledI2), "I2 sign mismatch on " + branchId);
+            }
+        }
+    }
+
+    private static final List<String> RXY_FUNCTION_LABELS = List.of("P1", "P2", "Q1", "Q2", "I1", "I2", "V");
+
+    /**
+     * Solve an AC load flow on {@code network} and capture the monitored functions in the same order
+     * as {@link #RXY_FUNCTION_LABELS}: P1, P2, Q1, Q2, I1, I2 on {@code branchId} and V on {@code busId}.
+     */
+    private double[] solveAndCaptureBranchFunctions(Network network, String branchId, String busId, LoadFlowParameters lfParameters) {
+        runLf(network, lfParameters);
+        Branch<?> branch = network.getBranch(branchId);
+        Terminal t1 = branch.getTerminal1();
+        Terminal t2 = branch.getTerminal2();
+        double v = network.getBusBreakerView().getBus(busId).getV();
+        return new double[] {t1.getP(), t2.getP(), t1.getQ(), t2.getQ(), t1.getI(), t2.getI(), v};
+    }
+
+    /**
+     * Build the 7 sensitivity factors (P1, P2, Q1, Q2, I1, I2 and V) of the monitored functions w.r.t. a single
+     * branch parameter {@code varType} of {@code variableBranchId}.
+     */
+    private static List<SensitivityFactor> createBranchParameterFactors(String monitoredBranchId, String monitoredBusId,
+                                                                        String variableBranchId, SensitivityVariableType varType) {
+        return List.of(
+                new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, monitoredBranchId, varType, variableBranchId, false, ContingencyContext.all()),
+                new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_2, monitoredBranchId, varType, variableBranchId, false, ContingencyContext.all()),
+                new SensitivityFactor(SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, monitoredBranchId, varType, variableBranchId, false, ContingencyContext.all()),
+                new SensitivityFactor(SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, monitoredBranchId, varType, variableBranchId, false, ContingencyContext.all()),
+                new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_1, monitoredBranchId, varType, variableBranchId, false, ContingencyContext.all()),
+                new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_2, monitoredBranchId, varType, variableBranchId, false, ContingencyContext.all()),
+                new SensitivityFactor(SensitivityFunctionType.BUS_VOLTAGE, monitoredBusId, varType, variableBranchId, false, ContingencyContext.all()));
+    }
+
+    /**
+     * Read the 7 analytic sensitivities (same order as {@link #RXY_FUNCTION_LABELS}) of the monitored functions
+     * w.r.t. parameter {@code varType} of {@code variableBranchId}.
+     */
+    private static double[] readBranchParameterSensitivities(SensitivityAnalysisResult result, String monitoredBranchId,
+                                                             String monitoredBusId, String variableBranchId, SensitivityVariableType varType) {
+        return new double[] {
+                result.getBranchFlow1SensitivityValue(variableBranchId, monitoredBranchId, varType),
+                result.getBranchFlow2SensitivityValue(variableBranchId, monitoredBranchId, varType),
+                result.getSensitivityValue(variableBranchId, monitoredBranchId, SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, varType),
+                result.getSensitivityValue(variableBranchId, monitoredBranchId, SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, varType),
+                result.getBranchCurrent1SensitivityValue(variableBranchId, monitoredBranchId, varType),
+                result.getBranchCurrent2SensitivityValue(variableBranchId, monitoredBranchId, varType),
+                result.getBusVoltageSensitivityValue(variableBranchId, monitoredBusId, varType)};
+    }
+
+    private static double[] finiteDifference(double[] base, double[] perturbed, double step) {
+        double[] fd = new double[base.length];
+        for (int i = 0; i < base.length; i++) {
+            fd[i] = (perturbed[i] - base[i]) / step;
+        }
+        return fd;
+    }
+
+    private static void appendSensiVsFd(StringBuilder out, String header, double[] analytic, double[] fd) {
+        out.append(header).append(System.lineSeparator());
+        for (int i = 0; i < RXY_FUNCTION_LABELS.size(); i++) {
+            out.append(String.format("  %-2s  analytic = %+14.6f   fd = %+14.6f   |diff| = %.3e%n",
+                    RXY_FUNCTION_LABELS.get(i), analytic[i], fd[i], Math.abs(analytic[i] - fd[i])));
+        }
+    }
+
+    /**
+     * Assert that every analytic sensitivity matches its finite-difference estimate, within a relative
+     * tolerance (with a small absolute floor to tolerate near-zero quantities).
+     */
+    private static void assertSensiCloseToFd(double[] analytic, double[] fd, double relTol, double absFloor) {
+        for (int i = 0; i < RXY_FUNCTION_LABELS.size(); i++) {
+            double tol = Math.max(Math.abs(fd[i]) * relTol, absFloor);
+            String label = RXY_FUNCTION_LABELS.get(i);
+            assertEquals(fd[i], analytic[i], tol, "Mismatch on " + label + " analytic vs finite difference");
+        }
+    }
+
+    /**
+     * Self-sensitivity of a line: monitor every function on the very branch whose R / X / Y is perturbed.
+     * This exercises both the direct partial term (variable branch == monitored branch) and the indirect
+     * term flowing through the Jacobian, cross-checked against a finite-difference re-solve on a real line.
+     */
+    @Test
+    void testBranchRXYSelfSensitivity() {
+        String branchId = "L2-3-1";
+        String busId = "B4";
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
+        LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
+
+        // Baseline operating point.
+        Network nBase = IeeeCdfNetworkFactory.create14();
+        double[] base = solveAndCaptureBranchFunctions(nBase, branchId, busId, lfParameters);
+        Line line = nBase.getLine(branchId);
+        double rBase = line.getR();
+        double xBase = line.getX();
+        double yBase = 1.0 / Math.hypot(rBase, xBase);
+
+        double rel = 1e-4;
+        double dR = rel * rBase;
+        double dX = rel * xBase;
+        double dY = rel * yBase;
+
+        // Finite difference on R.
+        Network nR = IeeeCdfNetworkFactory.create14();
+        nR.getLine(branchId).setR(rBase + dR);
+        double[] fdR = finiteDifference(base, solveAndCaptureBranchFunctions(nR, branchId, busId, lfParameters), dR);
+
+        // Finite difference on X.
+        Network nX = IeeeCdfNetworkFactory.create14();
+        nX.getLine(branchId).setX(xBase + dX);
+        double[] fdX = finiteDifference(base, solveAndCaptureBranchFunctions(nX, branchId, busId, lfParameters), dX);
+
+        // Finite difference on Y at constant ksi: scale R and X so y goes from yBase to yBase + dY.
+        Network nY = IeeeCdfNetworkFactory.create14();
+        double scaleY = yBase / (yBase + dY); // z scaled by this factor -> y scaled by 1/scaleY
+        nY.getLine(branchId).setR(rBase * scaleY).setX(xBase * scaleY);
+        double[] fdY = finiteDifference(base, solveAndCaptureBranchFunctions(nY, branchId, busId, lfParameters), dY);
+
+        // Analytic sensitivities.
+        Network network = IeeeCdfNetworkFactory.create14();
+        List<SensitivityFactor> factors = new ArrayList<>();
+        factors.addAll(createBranchParameterFactors(branchId, busId, branchId, SensitivityVariableType.BRANCH_RESISTANCE));
+        factors.addAll(createBranchParameterFactors(branchId, busId, branchId, SensitivityVariableType.BRANCH_REACTANCE));
+        factors.addAll(createBranchParameterFactors(branchId, busId, branchId, SensitivityVariableType.BRANCH_ADMITTANCE));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters));
+
+        double[] sR = readBranchParameterSensitivities(result, branchId, busId, branchId, SensitivityVariableType.BRANCH_RESISTANCE);
+        double[] sX = readBranchParameterSensitivities(result, branchId, busId, branchId, SensitivityVariableType.BRANCH_REACTANCE);
+        double[] sY = readBranchParameterSensitivities(result, branchId, busId, branchId, SensitivityVariableType.BRANCH_ADMITTANCE);
+
+        StringBuilder out = new StringBuilder(System.lineSeparator());
+        out.append("=== testBranchRXYSelfSensitivity (branch ").append(branchId).append(", bus ").append(busId).append(") ===").append(System.lineSeparator());
+        out.append("baseline R=").append(rBase).append(" X=").append(xBase).append(" Y=").append(yBase)
+                .append(" ; finite-difference steps dR=").append(dR).append(" dX=").append(dX).append(" dY=").append(dY)
+                .append(" ; functions [P1,P2,Q1,Q2,I1,I2,V] = ").append(Arrays.toString(base)).append(System.lineSeparator());
+        appendSensiVsFd(out, "d{func}/dR :", sR, fdR);
+        appendSensiVsFd(out, "d{func}/dX :", sX, fdX);
+        appendSensiVsFd(out, "d{func}/dY :", sY, fdY);
+        LOGGER.info("{}", out);
+
+        assertSensiCloseToFd(sR, fdR, 2e-2, 1e-3);
+        assertSensiCloseToFd(sX, fdX, 2e-2, 1e-3);
+        assertSensiCloseToFd(sY, fdY, 2e-2, 1e-1);
+    }
+
+    /**
+     * Side-3 branch function types ({@code BRANCH_*_3}) on a two-winding branch / line. Such a branch has no third
+     * side, so {@code getFunctionEquationTerm} maps side 3 to the side-1 quantities; the R / X / Y direct partial
+     * must do the same. This asserts that the side-3 self-sensitivities equal the side-1 ones for active power,
+     * reactive power and current, across all three branch parameters.
+     */
+    @Test
+    void testBranchRXYSide3MatchesSide1() {
+        String branchId = "L2-3-1";
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
+        Network network = IeeeCdfNetworkFactory.create14();
+
+        List<SensitivityFunctionType> side1Types = List.of(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1,
+                SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityFunctionType.BRANCH_CURRENT_1);
+        List<SensitivityFunctionType> side3Types = List.of(SensitivityFunctionType.BRANCH_ACTIVE_POWER_3,
+                SensitivityFunctionType.BRANCH_REACTIVE_POWER_3, SensitivityFunctionType.BRANCH_CURRENT_3);
+        List<SensitivityVariableType> varTypes = List.of(SensitivityVariableType.BRANCH_RESISTANCE,
+                SensitivityVariableType.BRANCH_REACTANCE, SensitivityVariableType.BRANCH_ADMITTANCE);
+
+        List<SensitivityFactor> factors = new ArrayList<>();
+        for (SensitivityVariableType varType : varTypes) {
+            for (SensitivityFunctionType functionType : side1Types) {
+                factors.add(new SensitivityFactor(functionType, branchId, varType, branchId, false, ContingencyContext.all()));
+            }
+            for (SensitivityFunctionType functionType : side3Types) {
+                factors.add(new SensitivityFactor(functionType, branchId, varType, branchId, false, ContingencyContext.all()));
+            }
+        }
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters));
+
+        for (SensitivityVariableType varType : varTypes) {
+            for (int i = 0; i < side1Types.size(); i++) {
+                double side1 = result.getSensitivityValue(branchId, branchId, side1Types.get(i), varType);
+                double side3 = result.getSensitivityValue(branchId, branchId, side3Types.get(i), varType);
+                assertEquals(side1, side3, 1e-9,
+                        "Side-3 sensitivity should match side 1 for " + side1Types.get(i) + " w.r.t. " + varType);
+            }
+        }
+    }
+
+    /**
+     * Cross-sensitivity between two lines: perturb R / X / Y of one line and monitor the functions on a
+     * <em>different</em> line (plus a bus voltage). Here the direct partial term is zero, so this checks the
+     * indirect term flowing through the Jacobian, again cross-checked against a finite-difference re-solve.
+     */
+    @Test
+    void testBranchRXYCrossSensitivity() {
+        String variableBranchId = "L1-2-1";
+        String monitoredBranchId = "L2-3-1";
+        String busId = "B4";
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
+        LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
+
+        Network nBase = IeeeCdfNetworkFactory.create14();
+        double[] base = solveAndCaptureBranchFunctions(nBase, monitoredBranchId, busId, lfParameters);
+        Line line = nBase.getLine(variableBranchId);
+        double rBase = line.getR();
+        double xBase = line.getX();
+        double yBase = 1.0 / Math.hypot(rBase, xBase);
+
+        double rel = 1e-4;
+        double dR = rel * rBase;
+        double dX = rel * xBase;
+        double dY = rel * yBase;
+
+        Network nR = IeeeCdfNetworkFactory.create14();
+        nR.getLine(variableBranchId).setR(rBase + dR);
+        double[] fdR = finiteDifference(base, solveAndCaptureBranchFunctions(nR, monitoredBranchId, busId, lfParameters), dR);
+
+        Network nX = IeeeCdfNetworkFactory.create14();
+        nX.getLine(variableBranchId).setX(xBase + dX);
+        double[] fdX = finiteDifference(base, solveAndCaptureBranchFunctions(nX, monitoredBranchId, busId, lfParameters), dX);
+
+        Network nY = IeeeCdfNetworkFactory.create14();
+        double scaleY = yBase / (yBase + dY);
+        nY.getLine(variableBranchId).setR(rBase * scaleY).setX(xBase * scaleY);
+        double[] fdY = finiteDifference(base, solveAndCaptureBranchFunctions(nY, monitoredBranchId, busId, lfParameters), dY);
+
+        Network network = IeeeCdfNetworkFactory.create14();
+        List<SensitivityFactor> factors = new ArrayList<>();
+        factors.addAll(createBranchParameterFactors(monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_RESISTANCE));
+        factors.addAll(createBranchParameterFactors(monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_REACTANCE));
+        factors.addAll(createBranchParameterFactors(monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_ADMITTANCE));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters));
+
+        double[] sR = readBranchParameterSensitivities(result, monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_RESISTANCE);
+        double[] sX = readBranchParameterSensitivities(result, monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_REACTANCE);
+        double[] sY = readBranchParameterSensitivities(result, monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_ADMITTANCE);
+
+        StringBuilder out = new StringBuilder(System.lineSeparator());
+        out.append("=== testBranchRXYCrossSensitivity (perturb ").append(variableBranchId)
+                .append(", monitor ").append(monitoredBranchId).append(" and bus ").append(busId).append(") ===").append(System.lineSeparator());
+        out.append("baseline R=").append(rBase).append(" X=").append(xBase).append(" Y=").append(yBase)
+                .append(" ; finite-difference steps dR=").append(dR).append(" dX=").append(dX).append(" dY=").append(dY)
+                .append(" ; functions [P1,P2,Q1,Q2,I1,I2,V] = ").append(Arrays.toString(base)).append(System.lineSeparator());
+        appendSensiVsFd(out, "d{func}/dR :", sR, fdR);
+        appendSensiVsFd(out, "d{func}/dX :", sX, fdX);
+        appendSensiVsFd(out, "d{func}/dY :", sY, fdY);
+        LOGGER.info("{}", out);
+
+        assertSensiCloseToFd(sR, fdR, 3e-2, 1e-3);
+        assertSensiCloseToFd(sX, fdX, 3e-2, 1e-3);
+        assertSensiCloseToFd(sY, fdY, 3e-2, 1e-1);
+    }
+
+    /**
+     * Branch R / X / Y self-sensitivity on a transformer rather than a line. IEEE-14 transformers have a
+     * zero resistance, so the R step is sized relative to X (and ksi = atan2(R, X) = 0 at the base point).
+     */
+    @Test
+    void testBranchRXYSensitivityWithTransformer() {
+        String branchId = "T4-7-1";
+        String busId = "B7";
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
+        LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
+
+        Network nBase = IeeeCdfNetworkFactory.create14();
+        double[] base = solveAndCaptureBranchFunctions(nBase, branchId, busId, lfParameters);
+        TwoWindingsTransformer twt = nBase.getTwoWindingsTransformer(branchId);
+        double rBase = twt.getR();
+        double xBase = twt.getX();
+        double yBase = 1.0 / Math.hypot(rBase, xBase);
+
+        double rel = 1e-4;
+        // R may be zero on this transformer: size the R step relative to |X| so it stays meaningful.
+        double dR = rel * Math.max(Math.abs(rBase), Math.abs(xBase));
+        double dX = rel * xBase;
+        double dY = rel * yBase;
+
+        Network nR = IeeeCdfNetworkFactory.create14();
+        nR.getTwoWindingsTransformer(branchId).setR(rBase + dR);
+        double[] fdR = finiteDifference(base, solveAndCaptureBranchFunctions(nR, branchId, busId, lfParameters), dR);
+
+        Network nX = IeeeCdfNetworkFactory.create14();
+        nX.getTwoWindingsTransformer(branchId).setX(xBase + dX);
+        double[] fdX = finiteDifference(base, solveAndCaptureBranchFunctions(nX, branchId, busId, lfParameters), dX);
+
+        Network nY = IeeeCdfNetworkFactory.create14();
+        double scaleY = yBase / (yBase + dY);
+        nY.getTwoWindingsTransformer(branchId).setR(rBase * scaleY).setX(xBase * scaleY);
+        double[] fdY = finiteDifference(base, solveAndCaptureBranchFunctions(nY, branchId, busId, lfParameters), dY);
+
+        Network network = IeeeCdfNetworkFactory.create14();
+        List<SensitivityFactor> factors = new ArrayList<>();
+        factors.addAll(createBranchParameterFactors(branchId, busId, branchId, SensitivityVariableType.BRANCH_RESISTANCE));
+        factors.addAll(createBranchParameterFactors(branchId, busId, branchId, SensitivityVariableType.BRANCH_REACTANCE));
+        factors.addAll(createBranchParameterFactors(branchId, busId, branchId, SensitivityVariableType.BRANCH_ADMITTANCE));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters));
+
+        double[] sR = readBranchParameterSensitivities(result, branchId, busId, branchId, SensitivityVariableType.BRANCH_RESISTANCE);
+        double[] sX = readBranchParameterSensitivities(result, branchId, busId, branchId, SensitivityVariableType.BRANCH_REACTANCE);
+        double[] sY = readBranchParameterSensitivities(result, branchId, busId, branchId, SensitivityVariableType.BRANCH_ADMITTANCE);
+
+        StringBuilder out = new StringBuilder(System.lineSeparator());
+        out.append("=== testBranchRXYSensitivityWithTransformer (branch ").append(branchId).append(", bus ").append(busId).append(") ===").append(System.lineSeparator());
+        out.append("baseline R=").append(rBase).append(" X=").append(xBase).append(" Y=").append(yBase)
+                .append(" ; finite-difference steps dR=").append(dR).append(" dX=").append(dX).append(" dY=").append(dY)
+                .append(" ; functions [P1,P2,Q1,Q2,I1,I2,V] = ").append(Arrays.toString(base)).append(System.lineSeparator());
+        appendSensiVsFd(out, "d{func}/dR :", sR, fdR);
+        appendSensiVsFd(out, "d{func}/dX :", sX, fdX);
+        appendSensiVsFd(out, "d{func}/dY :", sY, fdY);
+        LOGGER.info("{}", out);
+
+        assertSensiCloseToFd(sR, fdR, 5e-2, 1e-2);
+        assertSensiCloseToFd(sX, fdX, 5e-2, 1e-2);
+        assertSensiCloseToFd(sY, fdY, 5e-2, 1e-1);
+    }
+
+    private static double branchR(Network network, String branchId) {
+        Branch<?> branch = network.getBranch(branchId);
+        if (branch instanceof Line line) {
+            return line.getR();
+        } else if (branch instanceof TwoWindingsTransformer twt) {
+            return twt.getR();
+        }
+        throw new IllegalArgumentException("Unsupported branch type for " + branchId);
+    }
+
+    private static double branchX(Network network, String branchId) {
+        Branch<?> branch = network.getBranch(branchId);
+        if (branch instanceof Line line) {
+            return line.getX();
+        } else if (branch instanceof TwoWindingsTransformer twt) {
+            return twt.getX();
+        }
+        throw new IllegalArgumentException("Unsupported branch type for " + branchId);
+    }
+
+    private static void setBranchR(Network network, String branchId, double r) {
+        Branch<?> branch = network.getBranch(branchId);
+        if (branch instanceof Line line) {
+            line.setR(r);
+        } else if (branch instanceof TwoWindingsTransformer twt) {
+            twt.setR(r);
+        } else {
+            throw new IllegalArgumentException("Unsupported branch type for " + branchId);
+        }
+    }
+
+    private static void setBranchX(Network network, String branchId, double x) {
+        Branch<?> branch = network.getBranch(branchId);
+        if (branch instanceof Line line) {
+            line.setX(x);
+        } else if (branch instanceof TwoWindingsTransformer twt) {
+            twt.setX(x);
+        } else {
+            throw new IllegalArgumentException("Unsupported branch type for " + branchId);
+        }
+    }
+
+    /**
+     * Generic finite-difference cross-sensitivity check on IEEE-14: perturb R / X / Y of {@code variableBranchId}
+     * (a line or a transformer) and validate the analytic sensitivities of the functions monitored on a
+     * <em>different</em> branch {@code monitoredBranchId} (plus the voltage at {@code busId}) against a
+     * finite-difference re-solve. The direct term is zero here, so this exercises the indirect term flowing through
+     * the Jacobian for every line/transformer combination.
+     */
+    private void assertBranchRXYCrossSensitivity(String label, String variableBranchId, String monitoredBranchId,
+                                                 String busId, double relTol, double floorRX, double floorY) {
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
+        LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
+
+        Network nBase = IeeeCdfNetworkFactory.create14();
+        double[] base = solveAndCaptureBranchFunctions(nBase, monitoredBranchId, busId, lfParameters);
+        double rBase = branchR(nBase, variableBranchId);
+        double xBase = branchX(nBase, variableBranchId);
+        double yBase = 1.0 / Math.hypot(rBase, xBase);
+
+        double rel = 1e-4;
+        // Size the R step relative to |X| too, so it stays meaningful on transformers with a zero resistance.
+        double dR = rel * Math.max(Math.abs(rBase), Math.abs(xBase));
+        double dX = rel * xBase;
+        double dY = rel * yBase;
+
+        Network nR = IeeeCdfNetworkFactory.create14();
+        setBranchR(nR, variableBranchId, rBase + dR);
+        double[] fdR = finiteDifference(base, solveAndCaptureBranchFunctions(nR, monitoredBranchId, busId, lfParameters), dR);
+
+        Network nX = IeeeCdfNetworkFactory.create14();
+        setBranchX(nX, variableBranchId, xBase + dX);
+        double[] fdX = finiteDifference(base, solveAndCaptureBranchFunctions(nX, monitoredBranchId, busId, lfParameters), dX);
+
+        Network nY = IeeeCdfNetworkFactory.create14();
+        double scaleY = yBase / (yBase + dY);
+        setBranchR(nY, variableBranchId, rBase * scaleY);
+        setBranchX(nY, variableBranchId, xBase * scaleY);
+        double[] fdY = finiteDifference(base, solveAndCaptureBranchFunctions(nY, monitoredBranchId, busId, lfParameters), dY);
+
+        Network network = IeeeCdfNetworkFactory.create14();
+        List<SensitivityFactor> factors = new ArrayList<>();
+        factors.addAll(createBranchParameterFactors(monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_RESISTANCE));
+        factors.addAll(createBranchParameterFactors(monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_REACTANCE));
+        factors.addAll(createBranchParameterFactors(monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_ADMITTANCE));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters));
+
+        double[] sR = readBranchParameterSensitivities(result, monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_RESISTANCE);
+        double[] sX = readBranchParameterSensitivities(result, monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_REACTANCE);
+        double[] sY = readBranchParameterSensitivities(result, monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_ADMITTANCE);
+
+        StringBuilder out = new StringBuilder(System.lineSeparator());
+        out.append("=== ").append(label).append(" (perturb ").append(variableBranchId)
+                .append(", monitor ").append(monitoredBranchId).append(" and bus ").append(busId).append(") ===").append(System.lineSeparator());
+        out.append("baseline R=").append(rBase).append(" X=").append(xBase).append(" Y=").append(yBase)
+                .append(" ; finite-difference steps dR=").append(dR).append(" dX=").append(dX).append(" dY=").append(dY)
+                .append(" ; functions [P1,P2,Q1,Q2,I1,I2,V] = ").append(Arrays.toString(base)).append(System.lineSeparator());
+        appendSensiVsFd(out, "d{func}/dR :", sR, fdR);
+        appendSensiVsFd(out, "d{func}/dX :", sX, fdX);
+        appendSensiVsFd(out, "d{func}/dY :", sY, fdY);
+        LOGGER.info("{}", out);
+
+        assertSensiCloseToFd(sR, fdR, relTol, floorRX);
+        assertSensiCloseToFd(sX, fdX, relTol, floorRX);
+        assertSensiCloseToFd(sY, fdY, relTol, floorY);
+    }
+
+    /** Cross-sensitivity with a transformer as the perturbed branch and a line as the monitored branch. */
+    @Test
+    void testBranchRXYCrossSensitivityTransformerVariable() {
+        assertBranchRXYCrossSensitivity("testBranchRXYCrossSensitivityTransformerVariable",
+                "T4-7-1", "L4-5-1", "B5", 3e-2, 1e-3, 1e-1);
+    }
+
+    /** Cross-sensitivity with a line as the perturbed branch and a transformer as the monitored branch. */
+    @Test
+    void testBranchRXYCrossSensitivityTransformerMonitored() {
+        assertBranchRXYCrossSensitivity("testBranchRXYCrossSensitivityTransformerMonitored",
+                "L4-5-1", "T4-7-1", "B7", 3e-2, 1e-3, 1e-1);
+    }
+
+    /** Cross-sensitivity between two transformers sharing a bus. */
+    @Test
+    void testBranchRXYCrossSensitivityTransformerToTransformer() {
+        assertBranchRXYCrossSensitivity("testBranchRXYCrossSensitivityTransformerToTransformer",
+                "T4-9-1", "T4-7-1", "B7", 3e-2, 1e-3, 1e-1);
+    }
+
+    /**
+     * Net reactive power injected at a bus, matching the BUS_REACTIVE_POWER function convention: the opposite of
+     * the reactive power flowing from the bus into its incident branches.
+     */
+    private static double busReactiveInjection(Network network, String busId) {
+        return -network.getBusBreakerView().getBus(busId).getConnectedTerminalStream()
+                .filter(t -> t.getConnectable() instanceof Branch)
+                .mapToDouble(Terminal::getQ)
+                .sum();
+    }
+
+    /**
+     * Sensitivity of a bus reactive power injection (BUS_REACTIVE_POWER) to a branch R / X / Y. Perturb a line
+     * incident to two generator buses (where the reactive injection is free) and cross-check the analytic
+     * sensitivity against a finite-difference re-solve. Exercises both the direct term (perturbed branch incident
+     * to the monitored bus) and the indirect term (a generator bus elsewhere).
+     */
+    @Test
+    void testBranchRXYBusReactivePowerSensitivity() {
+        String branchId = "L2-3-1"; // incident to generator buses B2 and B3
+        // BUS_REACTIVE_POWER function ids (generators map to their bus): B2/B3 are incident, B6 is not.
+        List<String> generators = List.of("B2-G", "B3-G", "B6-G");
+        List<String> buses = List.of("B2", "B2", "B6"); // bus hosting each generator (B3-G is at B3)
+        List<String> genBus = List.of("B2", "B3", "B6");
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
+        LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
+
+        Network nBase = IeeeCdfNetworkFactory.create14();
+        runLf(nBase, lfParameters);
+        Map<String, Double> qBase = new LinkedHashMap<>();
+        genBus.forEach(b -> qBase.put(b, busReactiveInjection(nBase, b)));
+        Line line = nBase.getLine(branchId);
+        double rBase = line.getR();
+        double xBase = line.getX();
+        double yBase = 1.0 / Math.hypot(rBase, xBase);
+        double rel = 1e-4;
+        double dR = rel * rBase;
+        double dX = rel * xBase;
+        double dY = rel * yBase;
+
+        Network nR = IeeeCdfNetworkFactory.create14();
+        nR.getLine(branchId).setR(rBase + dR);
+        runLf(nR, lfParameters);
+        Network nX = IeeeCdfNetworkFactory.create14();
+        nX.getLine(branchId).setX(xBase + dX);
+        runLf(nX, lfParameters);
+        Network nY = IeeeCdfNetworkFactory.create14();
+        double scaleY = yBase / (yBase + dY);
+        nY.getLine(branchId).setR(rBase * scaleY).setX(xBase * scaleY);
+        runLf(nY, lfParameters);
+
+        Network network = IeeeCdfNetworkFactory.create14();
+        List<SensitivityFactor> factors = new ArrayList<>();
+        for (String gen : generators) {
+            for (SensitivityVariableType v : List.of(SensitivityVariableType.BRANCH_RESISTANCE,
+                    SensitivityVariableType.BRANCH_REACTANCE, SensitivityVariableType.BRANCH_ADMITTANCE)) {
+                factors.add(new SensitivityFactor(SensitivityFunctionType.BUS_REACTIVE_POWER, gen, v, branchId, false, ContingencyContext.all()));
+            }
+        }
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters));
+
+        StringBuilder out = new StringBuilder(System.lineSeparator());
+        out.append("=== testBranchRXYBusReactivePowerSensitivity (perturb ").append(branchId).append(") ===").append(System.lineSeparator());
+        SensitivityVariableType[] vars = {SensitivityVariableType.BRANCH_RESISTANCE, SensitivityVariableType.BRANCH_REACTANCE, SensitivityVariableType.BRANCH_ADMITTANCE};
+        double[] steps = {dR, dX, dY};
+        Network[] perturbed = {nR, nX, nY};
+        String[] varNames = {"R", "X", "Y"};
+        for (int g = 0; g < generators.size(); g++) {
+            String gen = generators.get(g);
+            String bus = genBus.get(g);
+            for (int v = 0; v < vars.length; v++) {
+                double analytic = result.getSensitivityValue(branchId, gen, SensitivityFunctionType.BUS_REACTIVE_POWER, vars[v]);
+                double fd = (busReactiveInjection(perturbed[v], bus) - qBase.get(bus)) / steps[v];
+                out.append(String.format("  Q(%-3s)/d%s : analytic = %+12.4f   fd = %+12.4f%n", bus, varNames[v], analytic, fd));
+            }
+        }
+        LOGGER.info("{}", out);
+
+        for (int g = 0; g < generators.size(); g++) {
+            String gen = generators.get(g);
+            String bus = genBus.get(g);
+            for (int v = 0; v < vars.length; v++) {
+                double analytic = result.getSensitivityValue(branchId, gen, SensitivityFunctionType.BUS_REACTIVE_POWER, vars[v]);
+                double fd = (busReactiveInjection(perturbed[v], bus) - qBase.get(bus)) / steps[v];
+                assertEquals(fd, analytic, Math.max(1.0, Math.abs(fd) * 2e-2), "dQ(" + bus + ")/d" + varNames[v]);
+            }
+        }
+    }
+
+    private static final double[] RXY_SWEEP_RELATIVE_STEPS = {1e-4, 1e-3, 1e-2, 5e-2, 1e-1, 2e-1, 5e-1, 1.0, 2.0};
+
+    /**
+     * Sweep an increasing perturbation of one branch parameter and report, for the monitored P1, how the
+     * finite-difference slope drifts away from the (fixed) analytic sensitivity evaluated at the base point.
+     * Returns the relative P1 error per step. The "point of rupture" is where this error first becomes large.
+     */
+    private double[] sweepBranchParameterLinearity(StringBuilder out, String paramName, String variableBranchId, String monitoredBranchId,
+                                                   String busId, LoadFlowParameters lfParameters, double[] base, double[] analytic) {
+        Network n0 = IeeeCdfNetworkFactory.create14();
+        double rBase = branchR(n0, variableBranchId);
+        double xBase = branchX(n0, variableBranchId);
+        double yBase = 1.0 / Math.hypot(rBase, xBase);
+
+        out.append(String.format("  perturbing %s :%n", paramName));
+        out.append(String.format("    %-9s %-14s %-18s %-18s %-10s%n",
+                "rel", "step", "pred dP1(sensi*step)", "fd dP1(after-base)", "relErr%"));
+
+        double[] relErrP1 = new double[RXY_SWEEP_RELATIVE_STEPS.length];
+        Double ruptureRel = null;
+        for (int k = 0; k < RXY_SWEEP_RELATIVE_STEPS.length; k++) {
+            double rel = RXY_SWEEP_RELATIVE_STEPS[k];
+            Network net = IeeeCdfNetworkFactory.create14();
+            double step;
+            switch (paramName) {
+                case "R" -> {
+                    step = rel * Math.max(Math.abs(rBase), Math.abs(xBase));
+                    setBranchR(net, variableBranchId, rBase + step);
+                }
+                case "X" -> {
+                    step = rel * xBase;
+                    setBranchX(net, variableBranchId, xBase + step);
+                }
+                case "Y" -> {
+                    step = rel * yBase;
+                    double scaleY = yBase / (yBase + step);
+                    setBranchR(net, variableBranchId, rBase * scaleY);
+                    setBranchX(net, variableBranchId, xBase * scaleY);
+                }
+                default -> throw new IllegalArgumentException(paramName);
+            }
+            double[] perturbed = solveAndCaptureBranchFunctions(net, monitoredBranchId, busId, lfParameters);
+            double actualDeltaP1 = perturbed[0] - base[0];      // finite-difference change of P1
+            double predictedDeltaP1 = analytic[0] * step;       // first-order predicted change = sensi * step
+            relErrP1[k] = Math.abs(predictedDeltaP1 - actualDeltaP1) / Math.max(Math.abs(actualDeltaP1), 1e-9);
+            out.append(String.format("    %-9.0e %-14.6g %+-18.5f %+-18.5f %-10.4f%n",
+                    rel, step, predictedDeltaP1, actualDeltaP1, relErrP1[k] * 100));
+            if (ruptureRel == null && relErrP1[k] > 0.01) {
+                ruptureRel = rel;
+            }
+        }
+        out.append(String.format("    -> P1 rupture (relErr > 1%%) first reached at rel = %s%n", ruptureRel == null ? "never in range" : ruptureRel));
+        return relErrP1;
+    }
+
+    private void runBranchRXYLinearitySweep(StringBuilder out, String label, String variableBranchId, String monitoredBranchId, String busId) {
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
+        LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
+
+        Network nBase = IeeeCdfNetworkFactory.create14();
+        double[] base = solveAndCaptureBranchFunctions(nBase, monitoredBranchId, busId, lfParameters);
+
+        Network network = IeeeCdfNetworkFactory.create14();
+        List<SensitivityFactor> factors = new ArrayList<>();
+        factors.addAll(createBranchParameterFactors(monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_RESISTANCE));
+        factors.addAll(createBranchParameterFactors(monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_REACTANCE));
+        factors.addAll(createBranchParameterFactors(monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_ADMITTANCE));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters));
+        double[] sR = readBranchParameterSensitivities(result, monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_RESISTANCE);
+        double[] sX = readBranchParameterSensitivities(result, monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_REACTANCE);
+        double[] sY = readBranchParameterSensitivities(result, monitoredBranchId, busId, variableBranchId, SensitivityVariableType.BRANCH_ADMITTANCE);
+
+        out.append(String.format("=== linearity sweep : %s (perturb %s, monitor %s, bus %s) ===%n", label, variableBranchId, monitoredBranchId, busId));
+        double[] errR = sweepBranchParameterLinearity(out, "R", variableBranchId, monitoredBranchId, busId, lfParameters, base, sR);
+        double[] errX = sweepBranchParameterLinearity(out, "X", variableBranchId, monitoredBranchId, busId, lfParameters, base, sX);
+        double[] errY = sweepBranchParameterLinearity(out, "Y", variableBranchId, monitoredBranchId, busId, lfParameters, base, sY);
+
+        // Anchor: at the smallest step the analytic sensitivity matches the finite difference closely...
+        int last = RXY_SWEEP_RELATIVE_STEPS.length - 1;
+        for (double[] err : List.of(errR, errX, errY)) {
+            assertTrue(err[0] < 0.01, "analytic and finite difference should agree at the smallest step");
+            // ...and the gap grows with the step size (the rupture this sweep is meant to expose).
+            assertTrue(err[last] > err[0], "linearization error should grow as the perturbation grows");
+        }
+    }
+
+    /**
+     * Linearity sweep on lines: increase the R / X / Y perturbation step and watch the first-order sensitivity
+     * peel away from the finite-difference slope, for both self- and cross-sensitivities. Diagnostic / printed.
+     * All output is buffered and printed once at the end so the table is not interleaved with the load-flow logs.
+     */
+    @Test
+    void testBranchRXYLinearitySweep() {
+        StringBuilder out = new StringBuilder("\n");
+        out.append("Columns: step    = parameter change applied (dR / dX / dY);\n");
+        out.append("         pred dP1 = first-order predicted change of P1 = sensi * step (sensi = engine dP1/dparam at the base point);\n");
+        out.append("         fd dP1   = actual change of P1 (after - base) measured by re-solving at this step - the truth;\n");
+        out.append("         relErr%  = 100*|pred - fd| / |fd|. Tiny step: pred ~ fd. As step grows, the linear prediction drifts.\n");
+        runBranchRXYLinearitySweep(out, "self", "L2-3-1", "L2-3-1", "B4");
+        runBranchRXYLinearitySweep(out, "cross", "L1-2-1", "L2-3-1", "B4");
+        LOGGER.info("{}", out);
+    }
+
+    private static final List<String> RXY_FLOW_LABELS = List.of("P1", "P2", "Q1", "Q2", "I1", "I2");
+
+    /** Capture the 6 flows [P1, P2, Q1, Q2, I1, I2] of a branch at the current operating point. */
+    private static double[] captureBranchFlows(Network network, String branchId) {
+        Branch<?> branch = network.getBranch(branchId);
+        Terminal t1 = branch.getTerminal1();
+        Terminal t2 = branch.getTerminal2();
+        return new double[] {t1.getP(), t2.getP(), t1.getQ(), t2.getQ(), t1.getI(), t2.getI()};
+    }
+
+    /** Read the 6 flow sensitivities of a monitored branch w.r.t. a variable branch parameter. */
+    private static double[] readBranchFlowSensitivities(SensitivityAnalysisResult result, String variableBranchId,
+                                                        String monitoredBranchId, SensitivityVariableType varType) {
+        return new double[] {
+                result.getBranchFlow1SensitivityValue(variableBranchId, monitoredBranchId, varType),
+                result.getBranchFlow2SensitivityValue(variableBranchId, monitoredBranchId, varType),
+                result.getSensitivityValue(variableBranchId, monitoredBranchId, SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, varType),
+                result.getSensitivityValue(variableBranchId, monitoredBranchId, SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, varType),
+                result.getBranchCurrent1SensitivityValue(variableBranchId, monitoredBranchId, varType),
+                result.getBranchCurrent2SensitivityValue(variableBranchId, monitoredBranchId, varType)};
+    }
+
+    /**
+     * Use the branch parameter sensitivities to predict the <em>direction</em> (sign) of the flow
+     * redistribution that occurs when a line is physically disconnected, mirroring the sign comparison of
+     * the testShuntBSensi* family.
+     * <p>
+     * Disconnecting a line drives its series admittance to zero, i.e. ΔY = −Y_base for the
+     * {@code BRANCH_ADMITTANCE} variable. The first-order prediction of the change of a monitored quantity F
+     * on a neighbouring branch is therefore {@code dF/dY · (−Y_base)}, whose sign should match the sign of
+     * the actual change (F_after − F_before) measured by disconnecting the line and re-solving.
+     * <p>
+     * We assert the admittance-based direction, which is the cleanest representation of a disconnection since
+     * ΔY = −Y_base is exact (the impedance picture R, X → ∞ is not a finite step). As in the shunt tests, this
+     * is a sign/direction check — the magnitude is not expected to match for such a large, non-linear perturbation.
+     */
+    @Test
+    void testBranchDisconnectionDirectionFromSensitivity() {
+        String disconnectedLineId = "L2-3-1";
+        List<String> monitoredBranchIds = List.of("L1-2-1", "L2-4-1", "L2-5-1", "L3-4-1");
+        String busId = "B4";
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
+        LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
+
+        // Snapshot before: line connected.
+        Network nBefore = IeeeCdfNetworkFactory.create14();
+        runLf(nBefore, lfParameters);
+        Map<String, double[]> flowsBefore = new LinkedHashMap<>();
+        monitoredBranchIds.forEach(id -> flowsBefore.put(id, captureBranchFlows(nBefore, id)));
+        double vBefore = nBefore.getBusBreakerView().getBus(busId).getV();
+
+        // Snapshot after: line physically disconnected at both ends.
+        Network nAfter = IeeeCdfNetworkFactory.create14();
+        nAfter.getLine(disconnectedLineId).getTerminal1().disconnect();
+        nAfter.getLine(disconnectedLineId).getTerminal2().disconnect();
+        runLf(nAfter, lfParameters);
+        Map<String, double[]> flowsAfter = new LinkedHashMap<>();
+        monitoredBranchIds.forEach(id -> flowsAfter.put(id, captureBranchFlows(nAfter, id)));
+        double vAfter = nAfter.getBusBreakerView().getBus(busId).getV();
+
+        // Baseline (connected) for the sensitivity analysis.
+        Network network = IeeeCdfNetworkFactory.create14();
+        Line disconnectedLine = network.getLine(disconnectedLineId);
+        double yBase = 1.0 / Math.hypot(disconnectedLine.getR(), disconnectedLine.getX());
+        double deltaY = -yBase; // disconnection drives the series admittance to zero
+
+        List<SensitivityFactor> factors = new ArrayList<>();
+        for (String monitoredBranchId : monitoredBranchIds) {
+            for (SensitivityVariableType varType : List.of(SensitivityVariableType.BRANCH_RESISTANCE,
+                    SensitivityVariableType.BRANCH_REACTANCE, SensitivityVariableType.BRANCH_ADMITTANCE)) {
+                factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, monitoredBranchId, varType, disconnectedLineId, false, ContingencyContext.all()));
+                factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_2, monitoredBranchId, varType, disconnectedLineId, false, ContingencyContext.all()));
+                factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, monitoredBranchId, varType, disconnectedLineId, false, ContingencyContext.all()));
+                factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, monitoredBranchId, varType, disconnectedLineId, false, ContingencyContext.all()));
+                factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_1, monitoredBranchId, varType, disconnectedLineId, false, ContingencyContext.all()));
+                factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_2, monitoredBranchId, varType, disconnectedLineId, false, ContingencyContext.all()));
+            }
+        }
+        for (SensitivityVariableType varType : List.of(SensitivityVariableType.BRANCH_RESISTANCE,
+                SensitivityVariableType.BRANCH_REACTANCE, SensitivityVariableType.BRANCH_ADMITTANCE)) {
+            factors.add(new SensitivityFactor(SensitivityFunctionType.BUS_VOLTAGE, busId, varType, disconnectedLineId, false, ContingencyContext.all()));
+        }
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters));
+
+        StringBuilder out = new StringBuilder(System.lineSeparator());
+        out.append("=== testBranchDisconnectionDirectionFromSensitivity (disconnect ").append(disconnectedLineId).append(") ===").append(System.lineSeparator());
+        out.append("disconnected line baseline Y=").append(yBase).append(" ; ΔY (full disconnection) = ").append(deltaY).append(System.lineSeparator());
+
+        // Direction check on each monitored branch flow: sign(dF/dY · ΔY) must match sign(F_after − F_before).
+        // Active power is the robust quantity; reactive power / current can flip sign because Y holds the line
+        // charging fixed whereas a real disconnection also removes it. We assert P1/P2 and print everything.
+        for (String monitoredBranchId : monitoredBranchIds) {
+            double[] before = flowsBefore.get(monitoredBranchId);
+            double[] after = flowsAfter.get(monitoredBranchId);
+            double[] sY = readBranchFlowSensitivities(result, disconnectedLineId, monitoredBranchId, SensitivityVariableType.BRANCH_ADMITTANCE);
+
+            out.append("monitored branch ").append(monitoredBranchId).append(" :").append(System.lineSeparator());
+            for (int i = 0; i < RXY_FLOW_LABELS.size(); i++) {
+                double actual = after[i] - before[i];
+                double predictedY = sY[i] * deltaY;
+                out.append(String.format("  %-2s  Δ(actual) = %+12.5f   pred(dF/dY·ΔY) = %+12.5f   sameSignY = %b%n",
+                        RXY_FLOW_LABELS.get(i), actual, predictedY,
+                        Math.signum(actual) == Math.signum(predictedY)));
+            }
+
+            // Assert the active-power redistribution direction (P1, P2) is correctly predicted.
+            for (int i = 0; i <= 1; i++) {
+                double actual = after[i] - before[i];
+                double predictedY = sY[i] * deltaY;
+                if (Math.abs(actual) > 1e-3) {
+                    assertEquals(Math.signum(actual), Math.signum(predictedY),
+                            RXY_FLOW_LABELS.get(i) + " direction mismatch on " + monitoredBranchId
+                                    + " (actual=" + actual + ", predicted=" + predictedY + ")");
+                }
+            }
+        }
+
+        // Bus voltage direction.
+        double vActual = vAfter - vBefore;
+        double vPredictedY = result.getBusVoltageSensitivityValue(disconnectedLineId, busId, SensitivityVariableType.BRANCH_ADMITTANCE) * deltaY;
+        out.append(String.format("bus %s voltage : Δ(actual) = %+.6f   pred(dV/dY·ΔY) = %+.6f   sameSign = %b%n",
+                busId, vActual, vPredictedY, Math.signum(vActual) == Math.signum(vPredictedY)));
+        LOGGER.info("{}", out);
+    }
+
+    /**
+     * Complement of {@link #testBranchDisconnectionDirectionFromSensitivity}: predict the <em>direction</em> of the
+     * flow redistribution produced by <em>connecting</em> a line, using the branch admittance sensitivity.
+     * <p>
+     * The natural linearization point for a connection is the out-of-service state, where an open branch has no
+     * admittance sensitivity. We therefore use a high-impedance stand-in: the candidate line is kept in service but
+     * with its impedance scaled up by a large factor, so it carries ≈ 0 (electrically ≈ disconnected) yet still has a
+     * defined {@code BRANCH_ADMITTANCE} sensitivity. Connecting then raises the series admittance from this small
+     * value y_weak up to the nominal y, i.e. ΔY = y − y_weak &gt; 0, and the first-order prediction dF/dY · ΔY (with
+     * dF/dY evaluated at the weak state) should match the sign of the actual change measured by restoring the line.
+     * As for disconnection, this is a sign/direction check; the magnitude is not expected to match for such a large,
+     * non-linear step.
+     */
+    @Test
+    void testBranchConnectionDirectionFromSensitivity() {
+        String connectedLineId = "L2-3-1";
+        List<String> monitoredBranchIds = List.of("L1-2-1", "L2-4-1", "L2-5-1", "L3-4-1");
+        String busId = "B4";
+        double weakImpedanceFactor = 1000.0; // impedance ×1000 -> admittance /1000 ≈ open, but still in service
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters();
+        LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
+
+        double rFull = IeeeCdfNetworkFactory.create14().getLine(connectedLineId).getR();
+        double xFull = IeeeCdfNetworkFactory.create14().getLine(connectedLineId).getX();
+        double yFull = 1.0 / Math.hypot(rFull, xFull);
+        double yWeak = 1.0 / Math.hypot(rFull * weakImpedanceFactor, xFull * weakImpedanceFactor);
+        double deltaY = yFull - yWeak; // connection raises the series admittance to nominal
+
+        // Snapshot before: line present but high-impedance (electrically ≈ out of service). This is also the
+        // linearization point for the sensitivity.
+        Network nBefore = IeeeCdfNetworkFactory.create14();
+        nBefore.getLine(connectedLineId).setR(rFull * weakImpedanceFactor).setX(xFull * weakImpedanceFactor);
+        runLf(nBefore, lfParameters);
+        Map<String, double[]> flowsBefore = new LinkedHashMap<>();
+        monitoredBranchIds.forEach(id -> flowsBefore.put(id, captureBranchFlows(nBefore, id)));
+        double vBefore = nBefore.getBusBreakerView().getBus(busId).getV();
+
+        // Snapshot after: line restored to its nominal impedance (connected).
+        Network nAfter = IeeeCdfNetworkFactory.create14();
+        runLf(nAfter, lfParameters);
+        Map<String, double[]> flowsAfter = new LinkedHashMap<>();
+        monitoredBranchIds.forEach(id -> flowsAfter.put(id, captureBranchFlows(nAfter, id)));
+        double vAfter = nAfter.getBusBreakerView().getBus(busId).getV();
+
+        // Sensitivity at the weak (≈ out-of-service) state.
+        Network network = IeeeCdfNetworkFactory.create14();
+        network.getLine(connectedLineId).setR(rFull * weakImpedanceFactor).setX(xFull * weakImpedanceFactor);
+        List<SensitivityFactor> factors = new ArrayList<>();
+        for (String m : monitoredBranchIds) {
+            factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, m, SensitivityVariableType.BRANCH_ADMITTANCE, connectedLineId, false, ContingencyContext.all()));
+            factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_2, m, SensitivityVariableType.BRANCH_ADMITTANCE, connectedLineId, false, ContingencyContext.all()));
+            factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, m, SensitivityVariableType.BRANCH_ADMITTANCE, connectedLineId, false, ContingencyContext.all()));
+            factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_REACTIVE_POWER_2, m, SensitivityVariableType.BRANCH_ADMITTANCE, connectedLineId, false, ContingencyContext.all()));
+            factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_1, m, SensitivityVariableType.BRANCH_ADMITTANCE, connectedLineId, false, ContingencyContext.all()));
+            factors.add(new SensitivityFactor(SensitivityFunctionType.BRANCH_CURRENT_2, m, SensitivityVariableType.BRANCH_ADMITTANCE, connectedLineId, false, ContingencyContext.all()));
+        }
+        factors.add(new SensitivityFactor(SensitivityFunctionType.BUS_VOLTAGE, busId, SensitivityVariableType.BRANCH_ADMITTANCE, connectedLineId, false, ContingencyContext.all()));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters));
+
+        StringBuilder out = new StringBuilder(System.lineSeparator());
+        out.append("=== testBranchConnectionDirectionFromSensitivity (connect ").append(connectedLineId).append(") ===").append(System.lineSeparator());
+        out.append("y_weak=").append(yWeak).append(" (≈ out of service) -> y_nominal=").append(yFull).append(" ; ΔY (connection) = ").append(deltaY).append(System.lineSeparator());
+
+        for (String monitoredBranchId : monitoredBranchIds) {
+            double[] before = flowsBefore.get(monitoredBranchId);
+            double[] after = flowsAfter.get(monitoredBranchId);
+            double[] sY = readBranchFlowSensitivities(result, connectedLineId, monitoredBranchId, SensitivityVariableType.BRANCH_ADMITTANCE);
+
+            out.append("monitored branch ").append(monitoredBranchId).append(" :").append(System.lineSeparator());
+            for (int i = 0; i < RXY_FLOW_LABELS.size(); i++) {
+                double actual = after[i] - before[i];
+                double predictedY = sY[i] * deltaY;
+                out.append(String.format("  %-2s  Δ(actual) = %+12.5f   pred(dF/dY·ΔY) = %+12.5f   sameSignY = %b%n",
+                        RXY_FLOW_LABELS.get(i), actual, predictedY, Math.signum(actual) == Math.signum(predictedY)));
+            }
+
+            // Assert the active-power redistribution direction (P1, P2) is correctly predicted.
+            for (int i = 0; i <= 1; i++) {
+                double actual = after[i] - before[i];
+                double predictedY = sY[i] * deltaY;
+                if (Math.abs(actual) > 1e-3) {
+                    assertEquals(Math.signum(actual), Math.signum(predictedY),
+                            RXY_FLOW_LABELS.get(i) + " direction mismatch on " + monitoredBranchId
+                                    + " (actual=" + actual + ", predicted=" + predictedY + ")");
+                }
+            }
+        }
+
+        double vActual = vAfter - vBefore;
+        double vPredictedY = result.getBusVoltageSensitivityValue(connectedLineId, busId, SensitivityVariableType.BRANCH_ADMITTANCE) * deltaY;
+        out.append(String.format("bus %s voltage : Δ(actual) = %+.6f   pred(dV/dY·ΔY) = %+.6f   sameSign = %b%n",
+                busId, vActual, vPredictedY, Math.signum(vActual) == Math.signum(vPredictedY)));
+        LOGGER.info("{}", out);
     }
 }
