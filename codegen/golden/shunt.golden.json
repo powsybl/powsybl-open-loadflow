@@ -1,0 +1,44 @@
+{
+  "java_class": "ShuntCompensatorFormulas",
+  "methods": [
+    {
+      "name": "p",
+      "params": [
+        "v",
+        "g"
+      ],
+      "body": "g * v * v"
+    },
+    {
+      "name": "dpdv",
+      "params": [
+        "v",
+        "g"
+      ],
+      "body": "2 * g * v"
+    },
+    {
+      "name": "q",
+      "params": [
+        "v",
+        "b"
+      ],
+      "body": "-b * v * v"
+    },
+    {
+      "name": "dqdv",
+      "params": [
+        "v",
+        "b"
+      ],
+      "body": "-2 * b * v"
+    },
+    {
+      "name": "dqdb",
+      "params": [
+        "v"
+      ],
+      "body": "-v * v"
+    }
+  ]
+}

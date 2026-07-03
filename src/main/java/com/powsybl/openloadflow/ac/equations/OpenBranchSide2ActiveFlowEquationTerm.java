@@ -36,13 +36,11 @@ public class OpenBranchSide2ActiveFlowEquationTerm extends AbstractOpenSide2Bran
     }
 
     public static double p1(double y, double cosKsi, double sinKsi, double g1, double g2, double b2, double v1, double r1) {
-        double shunt = shunt(y, cosKsi, sinKsi, g2, b2);
-        return r1 * r1 * v1 * v1 * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * sinKsi / shunt);
+        return OpenBranchFormulas.p1(y, cosKsi, sinKsi, g1, g2, b2, v1, r1);
     }
 
     public static double dp1dv1(double y, double cosKsi, double sinKsi, double g1, double g2, double b2, double v1, double r1) {
-        double shunt = shunt(y, cosKsi, sinKsi, g2, b2);
-        return 2 * r1 * r1 * v1 * (g1 + y * y * g2 / shunt + (b2 * b2 + g2 * g2) * y * sinKsi / shunt);
+        return OpenBranchFormulas.dp1dv1(y, cosKsi, sinKsi, g1, g2, b2, v1, r1);
     }
 
     @Override

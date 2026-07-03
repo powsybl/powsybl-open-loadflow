@@ -12,12 +12,8 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.Fortescue;
-import net.jafama.FastMath;
 
 import java.util.Objects;
-
-import static com.powsybl.openloadflow.network.PiModel.A2;
-import static com.powsybl.openloadflow.network.PiModel.R2;
 
 /**
  * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
@@ -65,97 +61,28 @@ public class ClosedBranchSide1CurrentMagnitudeEquationTerm extends AbstractClose
         return calculateSensi(y, ksi, g1, b1, v1(), ph1(), r1(), a1(), v2(), ph2(), dph1, dph2, dv1, dv2, da1, dr1);
     }
 
-    private static double theta(double ksi, double a1, double ph2) {
-        return ksi - a1 + A2 + ph2;
-    }
-
-    private static double interReI1(double y, double ksi, double g1, double b1, double ph1) {
-        return g1 * FastMath.cos(ph1) - b1 * FastMath.sin(ph1) + y * FastMath.sin(ph1 + ksi);
-    }
-
-    private static double interImI1(double y, double ksi, double g1, double b1, double ph1) {
-        return g1 * FastMath.sin(ph1) + b1 * FastMath.cos(ph1) - y * FastMath.cos(ph1 + ksi);
-    }
-
-    private static double reI1(double y, double ksi, double g1, double b1, double v1, double ph1, double r1, double v2, double theta) {
-        return r1 * (r1 * v1 * interReI1(y, ksi, g1, b1, ph1) - y * R2 * v2 * FastMath.sin(theta));
-    }
-
-    private static double imI1(double y, double ksi, double g1, double b1, double v1, double ph1, double r1, double v2, double theta) {
-        return r1 * (r1 * v1 * interImI1(y, ksi, g1, b1, ph1) + y * R2 * v2 * FastMath.cos(theta));
-    }
-
-    private static double i1(double y, double ksi, double g1, double b1, double v1, double ph1, double r1, double v2, double theta) {
-        return FastMath.hypot(reI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta), imI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta));
-    }
-
     public static double i1(double y, double ksi, double g1, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
-        double theta = theta(ksi, a1, ph2);
-        return i1(y, ksi, g1, b1, v1, ph1, r1, v2, theta);
-    }
-
-    private static double dreI1dv1(double y, double ksi, double g1, double b1, double ph1, double r1) {
-        return r1 * r1 * interReI1(y, ksi, g1, b1, ph1);
-    }
-
-    private static double dreI1dv2(double y, double ksi, double r1, double a1, double ph2) {
-        return r1 * (-y * R2 * FastMath.sin(theta(ksi, a1, ph2)));
-    }
-
-    private static double dreI1dph1(double y, double ksi, double g1, double b1, double v1, double ph1, double r1) {
-        return r1 * r1 * v1 * (-g1 * FastMath.sin(ph1) - b1 * FastMath.cos(ph1) + y * FastMath.cos(ph1 + ksi));
-    }
-
-    private static double dreI1dph2(double y, double ksi, double r1, double a1, double v2, double ph2) {
-        return r1 * (-y * R2 * v2 * FastMath.cos(theta(ksi, a1, ph2)));
-    }
-
-    private static double dimI1dv1(double y, double ksi, double g1, double b1, double ph1, double r1) {
-        return r1 * r1 * interImI1(y, ksi, g1, b1, ph1);
-    }
-
-    private static double dimI1dv2(double y, double ksi, double r1, double a1, double ph2) {
-        return r1 * (y * R2 * FastMath.cos(theta(ksi, a1, ph2)));
-    }
-
-    private static double dimI1dph1(double y, double ksi, double g1, double b1, double v1, double ph1, double r1) {
-        return r1 * r1 * v1 * interReI1(y, ksi, g1, b1, ph1);
-    }
-
-    private static double dimI1dph2(double y, double ksi, double r1, double a1, double v2, double ph2) {
-        return r1 * (-y * R2 * v2 * FastMath.sin(theta(ksi, a1, ph2)));
+        return ClosedBranchCurrentMagnitudeFormulas.i1(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2);
     }
 
     public static double di1dv1(double y, double ksi, double g1, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
-        double theta = theta(ksi, a1, ph2);
-        return (reI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dreI1dv1(y, ksi, g1, b1, ph1, r1)
-            + imI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dimI1dv1(y, ksi, g1, b1, ph1, r1)) / i1(y, ksi, g1, b1, v1, ph1, r1, v2,
-            theta);
+        return ClosedBranchCurrentMagnitudeFormulas.di1dv1(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2);
     }
 
     public static double di1dv2(double y, double ksi, double g1, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
-        double theta = theta(ksi, a1, ph2);
-        return (reI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dreI1dv2(y, ksi, r1, a1, ph2)
-            + imI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dimI1dv2(y, ksi, r1, a1, ph2)) / i1(y, ksi, g1, b1, v1, ph1, r1, v2,
-            theta);
+        return ClosedBranchCurrentMagnitudeFormulas.di1dv2(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2);
     }
 
     public static double di1dph1(double y, double ksi, double g1, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
-        double theta = theta(ksi, a1, ph2);
-        return (reI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dreI1dph1(y, ksi, g1, b1, v1, ph1, r1)
-            + imI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dimI1dph1(y, ksi, g1, b1, v1, ph1, r1)) / i1(y, ksi, g1, b1, v1, ph1, r1, v2,
-            theta);
+        return ClosedBranchCurrentMagnitudeFormulas.di1dph1(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2);
     }
 
     public static double di1dph2(double y, double ksi, double g1, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
-        double theta = theta(ksi, a1, ph2);
-        return (reI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dreI1dph2(y, ksi, r1, a1, v2, ph2)
-            + imI1(y, ksi, g1, b1, v1, ph1, r1, v2, theta) * dimI1dph2(y, ksi, r1, a1, v2, ph2)) / i1(y, ksi, g1, b1, v1, ph1, r1, v2,
-            theta);
+        return ClosedBranchCurrentMagnitudeFormulas.di1dph2(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2);
     }
 
     public static double di1da1(double y, double ksi, double g1, double b1, double v1, double ph1, double r1, double a1, double v2, double ph2) {
-        return -di1dph2(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2);
+        return ClosedBranchCurrentMagnitudeFormulas.di1da1(y, ksi, g1, b1, v1, ph1, r1, a1, v2, ph2);
     }
 
     @Override
