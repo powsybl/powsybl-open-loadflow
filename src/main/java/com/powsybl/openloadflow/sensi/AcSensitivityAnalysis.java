@@ -343,15 +343,23 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 var contingenciesPartitions = Lists2.partition(contingencies, sensitivityAnalysisParametersExt.getThreadCount());
                 ContingencyMultiThreadHelper.ParameterProvider<AcLoadFlowParameters> parameterProvider = topoConfig -> makeAcLoadFlowParameters(network,
                     slackBusSelector, lfParameters, lfParametersExt, topoConfig.isBreaker());
-                ContingencyMultiThreadHelper.ContingencyRunner<AcLoadFlowParameters> contingencyRunner = (partitionNum, lfNetworks, propagatedContingencies, acParameters) -> {
+                ContingencyMultiThreadHelper.ContingencyRunner<AcLoadFlowParameters> contingencyRunner = (partitionNum, lfNetworks, propagatedContingencies, acParameters, presolved) -> {
                     analyzeContingencySet(network, lfNetworks, propagatedContingencies, acParameters, lfParameters, lfParametersExt, variableSets, bufferedFactorReader,
                         acParameters.getNetworkParameters().isBreakers(), sequentialSensitivityResultWriter, variablesTargetVoltageInfo, sensitivityAnalysisParametersExt);
                     sequentialSensitivityResultWriter.flush(); // flush the batch of data kept in this thread
                 };
                 ContingencyMultiThreadHelper.ReportMerger reportMerger = ContingencyMultiThreadHelper::mergeReportThreadResults;
 
-                ContingencyMultiThreadHelper.createLFNetworksPerContingencyPartitionAndRunAnalysis(network, workingVariantId, contingenciesPartitions, creationParameters, new LfTopoConfig(),
-                        parameterProvider, contingencyRunner, sensiReportNode, reportMerger, executor);
+                if (sensitivityAnalysisParametersExt.getNetworkPerThreadMode() == OpenSensitivityAnalysisParameters.NetworkPerThreadMode.COPY) {
+                    // build the networks once with the topo config covering all the contingencies (like a
+                    // single-threaded analysis) and give each partition its own deep copy; no presolver:
+                    // the sensitivity base load flow is entangled with the factor states computation
+                    ContingencyMultiThreadHelper.buildOnceCopyAndRunAnalysis(network, workingVariantId, contingenciesPartitions, creationParameters, new LfTopoConfig(),
+                            parameterProvider, null, contingencyRunner, sensiReportNode, reportMerger, false, executor);
+                } else {
+                    ContingencyMultiThreadHelper.createLFNetworksPerContingencyPartitionAndRunAnalysis(network, workingVariantId, contingenciesPartitions, creationParameters, new LfTopoConfig(),
+                            parameterProvider, contingencyRunner, sensiReportNode, reportMerger, executor);
+                }
             }
         }
     }

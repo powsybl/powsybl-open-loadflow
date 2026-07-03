@@ -40,7 +40,7 @@ public final class Reports {
     private static final String CONTROLLER_BUS_ID = "controllerBusId";
     private static final String CONTROLLED_BUS_ID = "controlledBusId";
     private static final String ACTION_ID = "actionId";
-    private static final String CONTINGENCY_ID = "contingencyId";
+    public static final String CONTINGENCY_ID = "contingencyId";
     private static final String HVDC_ID = "hvdcId";
     private static final String CONTROLLER_STATION_ID = "controllerStationId";
     private static final String NON_CONTROLLER_STATION_ID = "nonControllerStationId";
@@ -940,9 +940,11 @@ public final class Reports {
                 .add();
     }
 
+    public static final String PRE_CONTINGENCY_SIMULATION_KEY = "olf.preContingencySimulation";
+
     public static ReportNode createPreContingencySimulation(ReportNode reportNode) {
         return reportNode.newReportNode()
-                .withMessageTemplate("olf.preContingencySimulation")
+                .withMessageTemplate(PRE_CONTINGENCY_SIMULATION_KEY)
                 .add();
     }
 
