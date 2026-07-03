@@ -39,7 +39,9 @@
       "threadCount" : 3,
       "dcFastMode" : true,
       "contingencyActivePowerLossDistribution" : "Default",
-      "startWithFrozenACEmulation" : false
+      "startWithFrozenACEmulation" : false,
+      "networkPerThreadMode" : "COPY",
+      "contingencyPartitioningMode" : "SLICE"
     }
   }
 }
