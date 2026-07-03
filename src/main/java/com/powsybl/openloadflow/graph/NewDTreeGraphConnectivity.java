@@ -12,6 +12,7 @@ import gnu.trove.iterator.TIntObjectIterator;
 import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.set.hash.TIntHashSet;
+import gnu.trove.strategy.HashingStrategy;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -23,8 +24,35 @@ import java.util.function.ToIntFunction;
  */
 public class NewDTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, NewDTreeGraphConnectivity.DTGraph<V, E>> {
 
+    private final HashingStrategy<V> vertexHasher;
+    private final HashingStrategy<E> edgeHasher;
+
     public NewDTreeGraphConnectivity(ToIntFunction<V> vertexToInt, ToIntFunction<E> edgeToInt) {
         super(new DTGraph<>(vertexToInt, edgeToInt));
+
+        vertexHasher = new HashingStrategy<>() {
+            @Override
+            public int computeHashCode(V object) {
+                return vertexToInt.applyAsInt(object);
+            }
+
+            @Override
+            public boolean equals(V o1, V o2) {
+                return vertexToInt.applyAsInt(o1) == vertexToInt.applyAsInt(o2);
+            }
+        };
+
+        edgeHasher = new HashingStrategy<>() {
+            @Override
+            public int computeHashCode(E object) {
+                return edgeToInt.applyAsInt(object);
+            }
+
+            @Override
+            public boolean equals(E o1, E o2) {
+                return edgeToInt.applyAsInt(o1) == edgeToInt.applyAsInt(o2);
+            }
+        };
     }
 
     @Override
@@ -66,6 +94,16 @@ public class NewDTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
     }
 
     @Override
+    public HashingStrategy<V> getVertexHasher() {
+        return vertexHasher;
+    }
+
+    @Override
+    public HashingStrategy<E> getEdgeHasher() {
+        return edgeHasher;
+    }
+
+    @Override
     protected int getQuickComponentNumber(V vertex) {
         return getGraph().rootOf(vertex).rootIndex;
     }
@@ -91,6 +129,8 @@ public class NewDTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
         DTGraph<V, E>.DTNode excludedTree = getMainComponentRoot(mainComponentVertex);
 
         return new AbstractSetView<>() {
+            int size = -1;
+
             @Override
             public Iterator<V> iterator() {
                 return new VerticesNotInMainComponentIterator(excludedTree);
@@ -107,11 +147,12 @@ public class NewDTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
 
             @Override
             public int size() {
-                // this can be computed once
-                int size = 0;
-                for (DTGraph<V, E>.DTNode root : graph.roots) {
-                    if (root != excludedTree) {
-                        size += root.size;
+                if (size < 0) {
+                    size = 0;
+                    for (DTGraph<V, E>.DTNode root : graph.roots) {
+                        if (root != excludedTree) {
+                            size += root.size;
+                        }
                     }
                 }
 
