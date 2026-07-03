@@ -39,11 +39,20 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         }
     }
 
+    @Override
+    public LfVoltageSourceConverter copy(LfNetwork newNetwork) {
+        return new LfVoltageSourceConverterImpl(this,
+                newNetwork,
+                newNetwork.getDcBusById(dcBus1.getId()),
+                newNetwork.getDcBusById(dcBus2.getId()),
+                newNetwork.getBusById(bus1.getId()));
+    }
+
     /**
      * Deep copy constructor (see {@link LfNetworkCopier}). Buses must be the copied ones; the
      * converter registers itself on the copied AC bus, like the loading constructor does.
      */
-    protected LfVoltageSourceConverterImpl(LfVoltageSourceConverterImpl other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
+    private LfVoltageSourceConverterImpl(LfVoltageSourceConverterImpl other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
         super(other, network, dcBus1, dcBus2, bus1);
         bus1.addConverter(this);
         this.converterRef = other.converterRef;

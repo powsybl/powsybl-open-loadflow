@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.util.PerUnit;
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
-public interface LfHvdc extends LfElement {
+public interface LfHvdc extends LfElement, LfCopyable<LfHvdc> {
 
     class AcEmulationControl {
         public enum AcEmulationStatus {

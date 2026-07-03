@@ -132,7 +132,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
 
         for (LfGenerator generator : other.generators) {
-            add(LfNetworkCopier.copyGenerator(generator, network, this));
+            add(generator.copy(network));
         }
         for (LfLoad load : other.loads) {
             loads.add(new LfLoadImpl((LfLoadImpl) load, this));

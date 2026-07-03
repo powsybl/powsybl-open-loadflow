@@ -156,7 +156,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         }
     }
 
-    public static class LfVoltageAngleLimit {
+    public static class LfVoltageAngleLimit implements LfCopyable<LfVoltageAngleLimit> {
         private final String id;
         private final LfBus from;
         private final LfBus to;
@@ -169,6 +169,15 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             this.to = Objects.requireNonNull(to);
             this.highValue = highValue;
             this.lowValue = lowValue;
+        }
+
+        @Override
+        public LfVoltageAngleLimit copy(LfNetwork newNetwork) {
+            return new LfNetwork.LfVoltageAngleLimit(id,
+                    newNetwork.getBusById(from.getId()),
+                    newNetwork.getBusById(to.getId()),
+                    highValue,
+                    lowValue);
         }
 
         public String getId() {

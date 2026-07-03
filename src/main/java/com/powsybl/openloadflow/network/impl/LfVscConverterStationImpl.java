@@ -12,11 +12,7 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.VscConverterStation;
 import com.powsybl.iidm.network.util.HvdcUtils;
 
-import com.powsybl.openloadflow.network.LfHvdc;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
-import com.powsybl.openloadflow.network.LfVscConverterStation;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -47,12 +43,17 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         }
     }
 
-    protected LfVscConverterStationImpl(LfVscConverterStationImpl other, LfNetwork network) {
+    @Override
+    public LfGenerator copy(LfNetwork newNetwork) {
+        return new LfVscConverterStationImpl(this, newNetwork);
+    }
+
+    private LfVscConverterStationImpl(LfVscConverterStationImpl other, LfNetwork network) {
         super(other, network);
         this.stationRef = other.stationRef;
         this.lossFactor = other.lossFactor;
         this.hvdcDanglingInIidm = other.hvdcDanglingInIidm;
-        // hvdc back reference is wired when the copied LfHvdc is created
+        // hvdc reference is wired when the copied LfHvdc is created
     }
 
     public static LfVscConverterStationImpl create(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {

@@ -22,7 +22,7 @@ import java.util.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public interface LfBranch extends LfElement {
+public interface LfBranch extends LfElement, LfCopyable<LfBranch> {
 
     enum BranchType {
         LINE,

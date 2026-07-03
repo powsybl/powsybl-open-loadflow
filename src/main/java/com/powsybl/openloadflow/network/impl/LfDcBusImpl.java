@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DcBus;
+import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
@@ -28,10 +29,15 @@ public class LfDcBusImpl extends AbstractLfDcBus {
         this.dcBusRef = Ref.create(dcBus, parameters.isCacheEnabled());
     }
 
+    @Override
+    public LfDcBus copy(LfNetwork newNetwork) {
+        return new LfDcBusImpl(this, newNetwork);
+    }
+
     /**
      * Deep copy constructor (see {@link LfNetworkCopier}).
      */
-    protected LfDcBusImpl(LfDcBusImpl other, LfNetwork network) {
+    private LfDcBusImpl(LfDcBusImpl other, LfNetwork network) {
         super(other, network);
         this.dcBusRef = other.dcBusRef;
         this.isGrounded = other.isGrounded;

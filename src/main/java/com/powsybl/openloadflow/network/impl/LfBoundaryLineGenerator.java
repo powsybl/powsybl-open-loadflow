@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.BoundaryLine;
 import com.powsybl.iidm.network.ReactiveLimits;
+import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
@@ -42,7 +43,11 @@ public final class LfBoundaryLineGenerator extends AbstractLfGenerator {
         }
     }
 
-    protected LfBoundaryLineGenerator(LfBoundaryLineGenerator other, LfNetwork network) {
+    public LfGenerator copy(LfNetwork newNetwork) {
+        return new LfBoundaryLineGenerator(this, newNetwork);
+    }
+
+    private LfBoundaryLineGenerator(LfBoundaryLineGenerator other, LfNetwork network) {
         super(other, network);
         this.boundaryLineRef = other.boundaryLineRef;
     }

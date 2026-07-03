@@ -94,7 +94,12 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
     }
 
-    protected LfGeneratorImpl(LfGeneratorImpl other, LfNetwork network) {
+    @Override
+    public LfGenerator copy(LfNetwork newNetwork) {
+        return new LfGeneratorImpl(this, newNetwork);
+    }
+
+    private LfGeneratorImpl(LfGeneratorImpl other, LfNetwork network) {
         super(other, network);
         this.generatorRef = other.generatorRef;
         this.initialParticipating = other.initialParticipating;

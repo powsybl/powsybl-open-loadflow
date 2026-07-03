@@ -70,12 +70,22 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         }
     }
 
+    @Override
+    public LfHvdc copy(LfNetwork newNetwork) {
+        return new LfHvdcImpl(this,
+                newNetwork,
+                bus1 == null ? null : newNetwork.getBusById(bus1.getId()),
+                bus2 == null ? null : newNetwork.getBusById(bus2.getId()),
+                (LfVscConverterStation) newNetwork.getGeneratorById(converterStation1.getId()),
+                (LfVscConverterStation) newNetwork.getGeneratorById(converterStation2.getId()));
+    }
+
     /**
      * Deep copy constructor (see {@link LfNetworkCopier}). Buses and converter stations must be
      * the copied ones; converter station back references are wired through
      * {@link #setConverterStation1(LfVscConverterStation)} and {@link #setConverterStation2(LfVscConverterStation)}.
      */
-    protected LfHvdcImpl(LfHvdcImpl other, LfNetwork network, LfBus bus1, LfBus bus2,
+    private LfHvdcImpl(LfHvdcImpl other, LfNetwork network, LfBus bus1, LfBus bus2,
                          LfVscConverterStation converterStation1, LfVscConverterStation converterStation2) {
         super(network);
         this.id = other.id;

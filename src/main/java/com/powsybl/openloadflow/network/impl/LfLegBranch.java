@@ -40,7 +40,15 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         return twtRef.get();
     }
 
-    protected LfLegBranch(LfLegBranch other, LfNetwork network, LfBus bus1, LfBus bus0) {
+    @Override
+    public LfBranch copy(LfNetwork newNetwork) {
+        return new LfLegBranch(this,
+                newNetwork,
+                bus1 == null ? null : newNetwork.getBusById(bus1.getId()),
+                bus2 == null ? null : newNetwork.getBusById(bus2.getId()));
+    }
+
+    private LfLegBranch(LfLegBranch other, LfNetwork network, LfBus bus1, LfBus bus0) {
         super(other, network, bus1, bus0);
         this.twtRef = other.twtRef;
         this.legRef = other.legRef;

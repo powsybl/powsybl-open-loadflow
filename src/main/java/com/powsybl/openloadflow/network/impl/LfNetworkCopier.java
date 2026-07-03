@@ -7,34 +7,12 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.openloadflow.network.GeneratorReactivePowerControl;
-import com.powsybl.openloadflow.network.GeneratorVoltageControl;
-import com.powsybl.openloadflow.network.LfArea;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfGenerator;
-import com.powsybl.openloadflow.network.LfHvdc;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfOverloadManagementSystem;
-import com.powsybl.openloadflow.network.LfSecondaryVoltageControl;
-import com.powsybl.openloadflow.network.LfShunt;
-import com.powsybl.openloadflow.network.LfSynchronousNetwork;
-import com.powsybl.openloadflow.network.LfVscConverterStation;
-import com.powsybl.openloadflow.network.LoadFlowModel;
-import com.powsybl.openloadflow.network.ShuntVoltageControl;
-import com.powsybl.openloadflow.network.TransformerPhaseControl;
-import com.powsybl.openloadflow.network.TransformerReactivePowerControl;
-import com.powsybl.openloadflow.network.TransformerVoltageControl;
-import com.powsybl.openloadflow.network.VoltageSourceConverterVoltageControl;
+import com.powsybl.openloadflow.network.*;
 
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Creates deep copies of a built {@link LfNetwork}, sharing the immutable IIDM references but
@@ -113,156 +91,73 @@ public final class LfNetworkCopier {
         return copy;
     }
 
-    private static LfNetwork copyFlat(LfNetwork original, ReportNode reportNode) {
-        LfNetwork copy = new LfNetwork(original, reportNode);
+    private static LfNetwork copyFlat(LfNetwork originalNetwork, ReportNode reportNode) {
+        LfNetwork copyNetwork = new LfNetwork(originalNetwork, reportNode);
 
         // buses (with their owned generators, loads and shunts); nums are reassigned in the same
         // order by addBus, so they match the original ones. addBus also lazily recreates one
         // synchronous network per synchronous component, so the copy ends up with the same set.
-        for (LfBus bus : original.getBuses()) {
-            copy.addBus(copyBus(bus, copy));
+        for (LfBus bus : originalNetwork.getBuses()) {
+            copyNetwork.addBus(bus.copy(copyNetwork));
         }
         // reproduce the per synchronous component state (excluded slack buses); slack and reference
         // selection is left to be lazily redone on the copy
-        for (LfSynchronousNetwork originalSc : original.getSynchronousNetworks()) {
-            copy.getSynchronousNetwork(originalSc.getNumSC()).copyStateFrom(originalSc);
+        for (LfSynchronousNetwork originalSc : originalNetwork.getSynchronousNetworks()) {
+            copyNetwork.getSynchronousNetwork(originalSc.getNumSC()).copyStateFrom(originalSc);
         }
 
         // branches: addBranch rebuilds the bus to branches links in the same order
-        for (LfBranch branch : original.getBranches()) {
-            copy.addBranch(copyBranch(branch, copy));
+        for (LfBranch branch : originalNetwork.getBranches()) {
+            copyNetwork.addBranch(branch.copy(copyNetwork));
         }
         // branches whose connectivity edge was removed by the initial topology restoration (networks
         // with elements disabled at build, e.g. switches built closed for a closing remedial action):
         // the copy's lazily rebuilt connectivity excludes them, making it equivalent to the original's
-        for (LfBranch branch : original.getConnectivityRemovedBranches()) {
-            copy.addConnectivityRemovedBranch(copy.getBranchById(branch.getId()));
+        for (LfBranch branch : originalNetwork.getConnectivityRemovedBranches()) {
+            copyNetwork.addConnectivityRemovedBranch(copyNetwork.getBranchById(branch.getId()));
         }
 
         // DC part of AC/DC networks: DC buses first, then the DC lines connecting them, then the
         // voltage source converters linking a DC bus to an AC bus (all owned by the same network now)
-        for (var dcBus : original.getDcBuses()) {
-            copy.addDcBus(new LfDcBusImpl((LfDcBusImpl) dcBus, copy));
+        for (LfDcBus dcBus : originalNetwork.getDcBuses()) {
+            copyNetwork.addDcBus(dcBus.copy(copyNetwork));
         }
-        for (var dcLine : original.getDcLines()) {
-            copy.addDcLine(new LfDcLineImpl((LfDcLineImpl) dcLine, copy,
-                    copy.getDcBusById(dcLine.getDcBus1().getId()),
-                    copy.getDcBusById(dcLine.getDcBus2().getId())));
+        for (LfDcLine dcLine : originalNetwork.getDcLines()) {
+            copyNetwork.addDcLine(dcLine.copy(copyNetwork));
         }
-        for (var converter : original.getVoltageSourceConverters()) {
-            copy.addVoltageSourceConverter(new LfVoltageSourceConverterImpl((LfVoltageSourceConverterImpl) converter, copy,
-                    copy.getDcBusById(converter.getDcBus1().getId()),
-                    copy.getDcBusById(converter.getDcBus2().getId()),
-                    copy.getBusById(converter.getBus1().getId())));
+        for (LfVoltageSourceConverter converter : originalNetwork.getVoltageSourceConverters()) {
+            copyNetwork.addVoltageSourceConverter(converter.copy(copyNetwork));
         }
 
-        for (LfHvdc hvdc : original.getHvdcs()) {
-            copy.addHvdc(copyHvdc((LfHvdcImpl) hvdc, copy));
+        for (LfHvdc hvdc : originalNetwork.getHvdcs()) {
+            copyNetwork.addHvdc(hvdc.copy(copyNetwork));
         }
 
-        for (LfArea area : original.getAreas()) {
-            copy.addArea(copyArea((LfAreaImpl) area, copy));
+        for (LfArea area : originalNetwork.getAreas()) {
+            copyNetwork.addArea(area.copy(copyNetwork));
         }
 
-        Map<GeneratorVoltageControl, GeneratorVoltageControl> generatorVoltageControlMap = copyControls(original, copy);
+        Map<GeneratorVoltageControl, GeneratorVoltageControl> generatorVoltageControlMap = copyControls(originalNetwork, copyNetwork);
 
-        for (LfSecondaryVoltageControl secondaryVoltageControl : original.getSecondaryVoltageControls()) {
-            copy.addSecondaryVoltageControl(new LfSecondaryVoltageControl(
-                    secondaryVoltageControl.getZoneName(),
-                    copy.getBusById(secondaryVoltageControl.getPilotBus().getId()),
-                    secondaryVoltageControl.getTargetValue(),
-                    new LinkedHashSet<>(secondaryVoltageControl.getParticipatingControlUnitIds()),
-                    secondaryVoltageControl.getGeneratorVoltageControls().stream()
-                            .map(vc -> Objects.requireNonNull(generatorVoltageControlMap.get(vc),
-                                    "Generator voltage control not copied"))
-                            .collect(Collectors.toCollection(LinkedHashSet::new))));
+        for (LfSecondaryVoltageControl secondaryVoltageControl : originalNetwork.getSecondaryVoltageControls()) {
+            copyNetwork.addSecondaryVoltageControl(secondaryVoltageControl.copy(copyNetwork));
         }
 
-        for (LfNetwork.LfVoltageAngleLimit limit : original.getVoltageAngleLimits()) {
-            copy.addVoltageAngleLimit(new LfNetwork.LfVoltageAngleLimit(limit.getId(),
-                    copy.getBusById(limit.getFrom().getId()), copy.getBusById(limit.getTo().getId()),
-                    limit.getHighValue(), limit.getLowValue()));
+        for (LfNetwork.LfVoltageAngleLimit limit : originalNetwork.getVoltageAngleLimits()) {
+            copyNetwork.addVoltageAngleLimit(limit.copy(copyNetwork));
         }
 
-        for (LfOverloadManagementSystem system : original.getOverloadManagementSystems()) {
+        for (LfOverloadManagementSystem system : originalNetwork.getOverloadManagementSystems()) {
             LfOverloadManagementSystem copiedSystem = new LfOverloadManagementSystem(
-                    copy.getBranchById(system.getMonitoredBranch().getId()), system.getMonitoredSide());
+                    copyNetwork.getBranchById(system.getMonitoredBranch().getId()), system.getMonitoredSide());
             for (LfOverloadManagementSystem.LfBranchTripping tripping : system.getBranchTrippingList()) {
-                copiedSystem.addLfBranchTripping(copy.getBranchById(tripping.branchToOperate().getId()),
+                copiedSystem.addLfBranchTripping(copyNetwork.getBranchById(tripping.branchToOperate().getId()),
                         tripping.branchOpen(), tripping.threshold());
             }
-            copy.addOverloadManagementSystem(copiedSystem);
+            copyNetwork.addOverloadManagementSystem(copiedSystem);
         }
 
-        return copy;
-    }
-
-    private static AbstractLfBus copyBus(LfBus bus, LfNetwork network) {
-        if (bus instanceof LfBusImpl busImpl) {
-            return new LfBusImpl(busImpl, network);
-        } else if (bus instanceof LfStarBus starBus) {
-            return new LfStarBus(starBus, network);
-        } else if (bus instanceof LfBoundaryLineBus boundaryLineBus) {
-            return new LfBoundaryLineBus(boundaryLineBus, network);
-        }
-        throw new PowsyblException("Copy of bus type " + bus.getClass().getSimpleName() + " is not supported");
-    }
-
-    static LfGenerator copyGenerator(LfGenerator generator, LfNetwork network, AbstractLfBus bus) {
-        Objects.requireNonNull(bus); // generator bus is set by AbstractLfBus.add
-        if (generator instanceof LfGeneratorImpl generatorImpl) {
-            return new LfGeneratorImpl(generatorImpl, network);
-        } else if (generator instanceof LfBatteryImpl battery) {
-            return new LfBatteryImpl(battery, network);
-        } else if (generator instanceof LfStaticVarCompensatorImpl svc) {
-            return new LfStaticVarCompensatorImpl(svc, network);
-        } else if (generator instanceof LfVscConverterStationImpl station) {
-            return new LfVscConverterStationImpl(station, network);
-        } else if (generator instanceof LfBoundaryLineGenerator boundaryLineGenerator) {
-            return new LfBoundaryLineGenerator(boundaryLineGenerator, network);
-        }
-        throw new PowsyblException("Copy of generator type " + generator.getClass().getSimpleName() + " is not supported");
-    }
-
-    private static LfBus copyOf(LfBus bus, LfNetwork network) {
-        return bus == null ? null : network.getBusById(bus.getId());
-    }
-
-    private static LfBranch copyBranch(LfBranch branch, LfNetwork network) {
-        LfBus bus1 = copyOf(branch.getBus1(), network);
-        LfBus bus2 = copyOf(branch.getBus2(), network);
-        if (branch instanceof LfBranchImpl branchImpl) {
-            return new LfBranchImpl(branchImpl, network, bus1, bus2);
-        } else if (branch instanceof LfLegBranch legBranch) {
-            return new LfLegBranch(legBranch, network, bus1, bus2);
-        } else if (branch instanceof LfSwitch lfSwitch) {
-            return new LfSwitch(lfSwitch, network, bus1, bus2);
-        } else if (branch instanceof LfTieLineBranch tieLineBranch) {
-            return new LfTieLineBranch(tieLineBranch, network, bus1, bus2);
-        } else if (branch instanceof LfBoundaryLineBranch boundaryLineBranch) {
-            return new LfBoundaryLineBranch(boundaryLineBranch, network, bus1, bus2);
-        }
-        throw new PowsyblException("Copy of branch type " + branch.getClass().getSimpleName() + " is not supported");
-    }
-
-    private static LfHvdc copyHvdc(LfHvdcImpl hvdc, LfNetwork network) {
-        return new LfHvdcImpl(hvdc, network,
-                copyOf(hvdc.getBus1(), network),
-                copyOf(hvdc.getBus2(), network),
-                (LfVscConverterStation) network.getGeneratorById(hvdc.getConverterStation1().getId()),
-                (LfVscConverterStation) network.getGeneratorById(hvdc.getConverterStation2().getId()));
-    }
-
-    private static LfArea copyArea(LfAreaImpl area, LfNetwork network) {
-        Set<LfBus> buses = area.getBuses().stream()
-                .map(b -> network.getBusById(b.getId()))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-        Set<LfArea.Boundary> boundaries = area.getBoundaries().stream()
-                .map(b -> (LfArea.Boundary) new LfAreaImpl.BoundaryImpl(network.getBranchById(b.getBranch().getId()), b.getSide()))
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-        LfAreaImpl copiedArea = new LfAreaImpl(area, buses, boundaries, network);
-        buses.forEach(bus -> bus.setArea(copiedArea));
-        return copiedArea;
+        return copyNetwork;
     }
 
     /**

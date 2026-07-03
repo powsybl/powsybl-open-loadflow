@@ -14,7 +14,7 @@ import java.util.Set;
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
-public interface LfArea extends LfElement {
+public interface LfArea extends LfElement, LfCopyable<LfArea> {
     String getId();
 
     double getInterchangeTarget();

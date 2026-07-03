@@ -168,7 +168,12 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
         }
     }
 
-    protected LfStaticVarCompensatorImpl(LfStaticVarCompensatorImpl other, LfNetwork network) {
+    @Override
+    public LfGenerator copy(LfNetwork newNetwork) {
+        return new LfStaticVarCompensatorImpl(this, network);
+    }
+
+    private LfStaticVarCompensatorImpl(LfStaticVarCompensatorImpl other, LfNetwork network) {
         super(other, network);
         this.svcRef = other.svcRef;
         this.nominalV = other.nominalV;
