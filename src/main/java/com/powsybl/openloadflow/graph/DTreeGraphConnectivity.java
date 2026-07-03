@@ -208,7 +208,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     public static final class Graph<V, E> implements GraphModel<V, E> {
 
-        public static boolean DEBUG = false;
+        public static boolean debug = false;
 
         private final Map<V, DTNode> vertexToTreeNode = new HashMap<>();
         private final Map<E, Edge<V>> edges = new HashMap<>();
@@ -330,7 +330,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         }
 
         private void check() {
-            if (!DEBUG) {
+            if (!debug) {
                 return;
             }
 
