@@ -145,6 +145,9 @@ class OpenLoadFlowParametersTest {
         assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxRatioMismatch(-1));
         assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxActivePowerMismatch(-1));
         assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxReactivePowerMismatch(-1));
+        PowsyblException e = assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setNetworkVariantPoolSize(0));
+        assertEquals("Network variant pool size must be strictly positive", e.getMessage());
+        assertEquals(10, openLoadFlowParameters.setNetworkVariantPoolSize(10).getNetworkVariantPoolSize());
     }
 
     @Test

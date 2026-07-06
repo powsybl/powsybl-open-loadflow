@@ -49,6 +49,9 @@ import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -1433,6 +1436,36 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
         assertEquals(1, result.getValues().size());
         assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        // change a parameter so that the cache input has changed: the previous entry must be evicted and a new one created
+        OpenLoadFlowParameters.get(sensiParameters.getLoadFlowParameters())
+                .setNetworkVariantPoolSize(30);
+        result = sensiRunner.run(network, factors.subList(0, 1), runParameters);
+        assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertEquals(1, result.getValues().size());
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        NetworkCache.DcSensiValue value = NetworkCache.DC_SENSI_INSTANCE.findEntry(network).orElseThrow().getValues().getFirst();
+        assertNotNull(value.getNetworkParameters());
+        assertNotNull(value.getNetwork());
+    }
+
+    @Test
+    void testDcSensiInput() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        NetworkCache.DcSensiInput input = new NetworkCache.DcSensiInput(parameters, Set.of("a"));
+        assertSame(parameters, input.getLoadFlowParameters());
+
+        // same parameters and same actions: nothing has changed
+        assertNull(input.hasChanged(new NetworkCache.DcSensiInput(parameters, Set.of("a"))));
+
+        // topo actions differ
+        assertEquals("actions", input.hasChanged(new NetworkCache.DcSensiInput(parameters, Set.of("b"))));
+
+        // parameters differ
+        LoadFlowParameters otherParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(otherParameters).setNetworkVariantPoolSize(42);
+        assertEquals("parameters", input.hasChanged(new NetworkCache.DcSensiInput(otherParameters, Set.of("a"))));
     }
 
     @Disabled("Only for stress testing of fast restart with multiple threads")
