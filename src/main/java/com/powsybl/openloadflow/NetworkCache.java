@@ -217,11 +217,11 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
     }
 
-    public static class DcSensiValue extends AbstractValue {
+    public abstract static class AbstractDcValue extends AbstractValue {
 
-        private final DcLoadFlowContext context;
+        protected final DcLoadFlowContext context;
 
-        public DcSensiValue(DcLoadFlowContext context) {
+        protected AbstractDcValue(DcLoadFlowContext context) {
             this.context = context;
         }
 
@@ -242,6 +242,13 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         @Override
         public void close() {
             context.close();
+        }
+    }
+
+    public static class DcSensiValue extends AbstractDcValue {
+
+        public DcSensiValue(DcLoadFlowContext context) {
+            super(context);
         }
     }
 
@@ -264,31 +271,10 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
     }
 
-    public static class DcLfValue extends AbstractValue {
-
-        private final DcLoadFlowContext context;
+    public static class DcLfValue extends AbstractDcValue {
 
         public DcLfValue(DcLoadFlowContext context) {
-            this.context = context;
-        }
-
-        public DcLoadFlowContext getContext() {
-            return context;
-        }
-
-        @Override
-        public LfNetwork getNetwork() {
-            return context.getNetwork();
-        }
-
-        @Override
-        public LfNetworkParameters getNetworkParameters() {
-            return context.getParameters().getNetworkParameters();
-        }
-
-        @Override
-        public void close() {
-            context.close();
+            super(context);
         }
     }
 
