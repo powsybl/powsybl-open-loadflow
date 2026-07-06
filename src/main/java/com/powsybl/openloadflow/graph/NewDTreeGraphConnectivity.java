@@ -239,15 +239,15 @@ public class NewDTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
         @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
         public static boolean DEBUG = false;
 
-        final ToIntFunction<V> vertexToInt;
-        final ToIntFunction<E> edgeToInt;
+        private final ToIntFunction<V> vertexToInt;
+        private final ToIntFunction<E> edgeToInt;
 
-        final TIntObjectMap<DTNode> vertexToTreeNode = new TIntObjectHashMap<>();
-        final TIntObjectHashMap<Edge> edges = new TIntObjectHashMap<>();
+        private final TIntObjectMap<DTNode> vertexToTreeNode = new TIntObjectHashMap<>();
+        private final TIntObjectHashMap<Edge> edges = new TIntObjectHashMap<>();
 
-        final List<DTNode> roots = new ArrayList<>();
+        private final List<DTNode> roots = new ArrayList<>();
 
-        final AllComponentsView components = new AllComponentsView();
+        private final AllComponentsView components = new AllComponentsView();
 
         DTGraph(ToIntFunction<V> vertexToInt, ToIntFunction<E> edgeToInt) {
             this.vertexToInt = vertexToInt;
@@ -679,7 +679,7 @@ public class NewDTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
             private final TIntHashSet nonTreeEdges = new TIntHashSet();
 
             // valid only if this node is a root
-            public int rootIndex;
+            private int rootIndex;
 
             private ComponentView componentView = null;
             private NeighborEdges neighborEdges = null;
@@ -861,7 +861,7 @@ public class NewDTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
 
             @Override
             public Iterator<V> iterator() {
-                return new DFSIterator(node); // TODO: maybe cache iterator?
+                return new DFSIterator(node);
             }
 
             @Override
@@ -879,7 +879,7 @@ public class NewDTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
             }
         }
 
-        private class DFSIterator implements Iterator<V> {
+        private final class DFSIterator implements Iterator<V> {
 
             private DTNode cursor;
 
