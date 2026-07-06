@@ -1389,6 +1389,47 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testHvdcAcEmulationContingencyMixedWithBranchContingency() {
+        // A branch contingency and an HVDC-in-AC-emulation contingency in the same analysis exercise the
+        // shared (concatenated) contingency states matrix. Each contingency result must be identical to the
+        // one obtained when running that contingency alone.
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180).withP0(0f).withEnabled(true).add();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", false);
+        sensiParameters.getLoadFlowParameters().setHvdcAcEmulation(true);
+
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1,
+                List.of("l13", "l23", "l25"),
+                SensitivityVariableType.INJECTION_ACTIVE_POWER, List.of("g5"),
+                false, ContingencyContext.all());
+
+        Contingency branchContingency = new Contingency("l12", new BranchContingency("l12"));
+        Contingency hvdcContingency = new Contingency("hvdc34", new HvdcLineContingency("hvdc34"));
+
+        SensitivityAnalysisResult branchAlone = sensiRunner.run(network, factors,
+                new SensitivityAnalysisRunParameters().setParameters(sensiParameters).setContingencies(List.of(branchContingency)));
+        SensitivityAnalysisResult hvdcAlone = sensiRunner.run(network, factors,
+                new SensitivityAnalysisRunParameters().setParameters(sensiParameters).setContingencies(List.of(hvdcContingency)));
+        SensitivityAnalysisResult mixed = sensiRunner.run(network, factors,
+                new SensitivityAnalysisRunParameters().setParameters(sensiParameters).setContingencies(List.of(branchContingency, hvdcContingency)));
+
+        for (String function : List.of("l13", "l23", "l25")) {
+            // branch contingency result is unchanged by the presence of the HVDC contingency
+            assertEquals(branchAlone.getBranchFlow1SensitivityValue("l12", "g5", function, SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                    mixed.getBranchFlow1SensitivityValue("l12", "g5", function, SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+            // HVDC contingency result is unchanged by the presence of the branch contingency
+            assertEquals(hvdcAlone.getBranchFlow1SensitivityValue("hvdc34", "g5", function, SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                    mixed.getBranchFlow1SensitivityValue("hvdc34", "g5", function, SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        }
+        // regression check on the HVDC contingency values (droop coupling removed)
+        assertEquals(-0.3333, mixed.getBranchFlow1SensitivityValue("hvdc34", "g5", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.3333, mixed.getBranchFlow1SensitivityValue("hvdc34", "g5", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.0, mixed.getBranchFlow1SensitivityValue("hvdc34", "g5", "l25", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testComputationInterrupted() {
         Network network = BoundaryFactory.createWithLoad();
         runAcLf(network);

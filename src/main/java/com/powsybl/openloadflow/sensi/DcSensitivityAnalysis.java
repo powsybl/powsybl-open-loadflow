@@ -685,18 +685,18 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         .filter(hvdc -> hvdc != null && hvdc.isAcEmulation())
                         .collect(Collectors.toMap(LfHvdc::getId, hvdc -> new ComputedHvdcAcEmulationElement(hvdc, loadFlowContext.getEquationSystem()), (a, b) -> a, LinkedHashMap::new));
 
-                // assign indices starting after the branch element indices so both share the same states matrix
-                int hvdcStartIndex = connectivityBreakAnalysisResults.contingencyElementByBranch().size();
-                int[] hvdcIdx = {hvdcStartIndex};
-                contingencyElementByHvdc.values().forEach(e -> e.setComputedElementIndex(hvdcIdx[0]++));
-
                 // compute HVDC contingency states and concatenate with branch states into a combined matrix
                 DenseMatrix contingenciesStates;
                 if (contingencyElementByHvdc.isEmpty()) {
                     contingenciesStates = connectivityBreakAnalysisResults.contingenciesStates();
                 } else {
+                    // calculateElementsStates requires dense 0-based indices to size and fill its own states matrix
+                    ComputedElement.setComputedElementIndexes(contingencyElementByHvdc.values());
                     DenseMatrix hvdcStates = ComputedElement.calculateElementsStates(loadFlowContext, contingencyElementByHvdc.values());
                     contingenciesStates = concatenateStates(connectivityBreakAnalysisResults.contingenciesStates(), hvdcStates);
+                    // shift HVDC element indices after the branch element indices so both share the concatenated states matrix
+                    int hvdcStartIndex = connectivityBreakAnalysisResults.contingencyElementByBranch().size();
+                    contingencyElementByHvdc.values().forEach(e -> e.setComputedElementIndex(hvdcStartIndex + e.getComputedElementIndex()));
                 }
 
                 // the map is indexed by lf actions as different kind of actions can be given on the same branch

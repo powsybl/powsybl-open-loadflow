@@ -35,6 +35,9 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -268,8 +271,17 @@ class WoodburyEngineTest {
             // Build the HVDC contingency element: represents removing the virtual branch
             // with susceptance k = droop * 180/π between bus3 and bus4.
             LfHvdc hvdc = lfNetwork.getHvdcById("hvdc34");
-            List<ComputedHvdcAcEmulationElement> hvdcElements = List.of(new ComputedHvdcAcEmulationElement(hvdc, context.getEquationSystem()));
+            ComputedHvdcAcEmulationElement hvdcElement = new ComputedHvdcAcEmulationElement(hvdc, context.getEquationSystem());
+            List<ComputedHvdcAcEmulationElement> hvdcElements = List.of(hvdcElement);
             ComputedElement.setComputedElementIndexes(hvdcElements);
+
+            // the HVDC coupling behaves as a virtual branch between its two buses; it is not part of the AC graph
+            assertEquals(hvdc, hvdcElement.getLfElement());
+            assertNotNull(hvdcElement.getEquation());
+            hvdcElement.setLocalIndex(0);
+            assertEquals(0, hvdcElement.getLocalIndex());
+            // tripping the HVDC does not modify AC connectivity, so this is a no-op
+            assertDoesNotThrow(() -> hvdcElement.applyToConnectivity(null));
 
             // Pre-compute the sensitivity of all angles to injecting ±1 at the HVDC buses.
             DenseMatrix hvdcContingencyStates = ComputedElement.calculateElementsStates(context, hvdcElements);
