@@ -1468,6 +1468,48 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals("parameters", input.hasChanged(new NetworkCache.DcSensiInput(otherParameters, Set.of("a"))));
     }
 
+    @Test
+    void testFastRestartWithActions() {
+        NetworkCache.DC_SENSI_INSTANCE.clear();
+
+        Network network = NodeBreakerNetworkFactory.create();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL1_0", true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+        OpenLoadFlowParameters.get(sensiParameters.getLoadFlowParameters())
+                .setNetworkCacheEnabled(true);
+
+        List<Contingency> contingencies = network.getLineStream().map(l -> Contingency.line(l.getId())).toList();
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().toList(),
+                network.getLineStream().collect(Collectors.toList()));
+        // a switch action forces the fast restart path to build a temporary variant (pool acquire/release)
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("open C",
+                ContingencyContext.none(), new TrueCondition(), List.of("open C")));
+        List<Action> actions = List.of(new SwitchAction("open C", "C", true));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setContingencies(contingencies)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions);
+
+        assertEquals(0, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        SensitivityAnalysisResult result1 = sensiRunner.run(network, factors, runParameters);
+        assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+
+        // second run reuses the cached context (fast restart) and must give the exact same results
+        SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, runParameters);
+        assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertEquals(result1.getValues().size(), result2.getValues().size());
+        assertEquals(result1.getStateStatuses().size(), result2.getStateStatuses().size());
+        for (SensitivityValue v1 : result1.getValues()) {
+            SensitivityValue v2 = result2.getValues().get(result1.getValues().indexOf(v1));
+            assertEquals(v1.getValue(), v2.getValue(), LoadFlowAssert.DELTA_POWER);
+            assertEquals(v1.getFunctionReference(), v2.getFunctionReference(), LoadFlowAssert.DELTA_POWER);
+        }
+    }
+
     @Disabled("Only for stress testing of fast restart with multiple threads")
     @Test
     void testFastRestartMultiThreaded() {
