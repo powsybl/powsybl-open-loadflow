@@ -262,6 +262,51 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         assertEquals(3d, result.getFunctionReferenceValue(contAndOpStratState, "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
     }
 
+    /**
+     * Reproduces a singular-matrix failure of the permanent-contingency (reconnection) feature for SWITCHES.
+     * <p>
+     * A busbar {@code BBS_ISO} (carrying a generator) is connected to the rest of the network only through the normally
+     * open retained breaker {@code SW}, so in the base case it forms a small isolated component. A remedial action closes
+     * {@code SW}, so the switch becomes a reconnectable element and is added to the permanent contingencies: it is kept
+     * enabled in the LfNetwork and injected as a Woodbury contingency element in every post-contingency state.
+     * <p>
+     * In the plain post-contingency state (no operator strategy) the busbar stays isolated, so {@code SW} is a
+     * min-impedance element incident to an already-disabled bus and {@code WoodburyEngine.setAlphas} gets a singular
+     * interaction matrix and the analysis throws — before any operator strategy is applied. The feature works for
+     * reconnectable branches (finite impedance) but not switches; the fix excludes permanent-contingency elements that
+     * isolate a still-disconnected bus.
+     */
+    @Test
+    void testPermanentContingencyReconnectionWithSwitchIsSingular() {
+        Network network = NodeBreakerNetworkFactory.create();
+        // a busbar isolated in the base case, reconnectable only through the normally open retained breaker SW
+        network.getVoltageLevel("VL1").getNodeBreakerView().newBusbarSection().setId("BBS_ISO").setNode(10).add();
+        network.getVoltageLevel("VL1").getNodeBreakerView().newBreaker().setId("SW").setNode1(1).setNode2(10).setRetained(true).setOpen(true).add();
+        network.getVoltageLevel("VL1").getNodeBreakerView().newInternalConnection().setNode1(10).setNode2(11).add();
+        network.getVoltageLevel("VL1").newGenerator().setId("G_ISO").setNode(11)
+                .setMinP(0.0).setMaxP(1000.0).setVoltageRegulatorOn(true).setTargetV(398).setTargetP(0.0).setTargetQ(0.0).add();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL1_0", true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("G")), network.getBranchStream().toList());
+        List<Contingency> contingencies = List.of(new Contingency("L1", new BranchContingency("L1")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("OS", ContingencyContext.all(),
+                new TrueCondition(), List.of("closeSw")));
+        List<Action> actions = List.of(new SwitchAction("closeSw", "SW", false));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions));
+
+        // without the fix the analysis throws "Matrix is singular"; once fixed, both states must be computed
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency("L1")));
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(new SensitivityState("L1", "OS")));
+    }
+
     @Test
     void testReconnectContingencyLine() {
         Network network = FourBusNetworkFactory.create();
