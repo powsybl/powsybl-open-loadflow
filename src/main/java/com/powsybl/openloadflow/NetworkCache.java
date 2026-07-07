@@ -39,6 +39,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
     public static final NetworkCache<LfInput, DcLfValue> DC_LF_INSTANCE = new NetworkCache<>(DcLfEntry::new);
 
+    public static final NetworkCache<DcSensiInput, DcSensiValue> DC_SENSI_INSTANCE = new NetworkCache<>(DcSensiEntry::new);
+
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkCache.class);
 
     /**
@@ -181,30 +183,45 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
     }
 
-    public static class AcLfEntry extends AbstractEntry<LfInput, AcLfValue> {
+    public static class DcSensiInput implements Input<DcSensiInput> {
 
-        public AcLfEntry(Network network, LfInput input) {
-            super(network, input);
+        private final LoadFlowParameters parameters;
+        // this is what impact TopoConfig
+        private final Set<String> topoActionIds;
+
+        public DcSensiInput(LoadFlowParameters parameters, Set<String> topoActionIds) {
+            this.parameters = Objects.requireNonNull(parameters);
+            this.topoActionIds = Objects.requireNonNull(topoActionIds);
         }
 
         @Override
-        public void restart() {
-            if (values != null) {
-                for (AcLfValue value : values) {
-                    AcLoadFlowResult result = value.getContext().getResult();
-                    if (result != null && result.getSolverStatus() == AcSolverStatus.CONVERGED) {
-                        value.getContext().getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
-                    }
-                }
+        public DcSensiInput copy() {
+            return new DcSensiInput(OpenLoadFlowParameters.clone(parameters), topoActionIds);
+        }
+
+        @Override
+        public String hasChanged(DcSensiInput other) {
+            // TODO to refine later by comparing in detail parameters that have changed
+            if (!OpenLoadFlowParameters.equals(parameters, other.parameters)) {
+                return "parameters";
             }
+            if (!topoActionIds.equals(other.topoActionIds)) {
+                return "actions";
+            }
+            return null;
+        }
+
+        @Override
+        public LoadFlowParameters getLoadFlowParameters() {
+            return parameters;
         }
     }
 
-    public static class DcLfValue extends AbstractValue {
+    public abstract static class AbstractDcValue extends AbstractValue {
 
-        private final DcLoadFlowContext context;
+        protected final DcLoadFlowContext context;
 
-        public DcLfValue(DcLoadFlowContext context) {
+        protected AbstractDcValue(DcLoadFlowContext context) {
             this.context = context;
         }
 
@@ -228,9 +245,54 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
     }
 
+    public static class DcSensiValue extends AbstractDcValue {
+
+        public DcSensiValue(DcLoadFlowContext context) {
+            super(context);
+        }
+    }
+
+    public static class AcLfEntry extends AbstractEntry<LfInput, AcLfValue> {
+
+        public AcLfEntry(Network network, LfInput input) {
+            super(network, input);
+        }
+
+        @Override
+        public void restart() {
+            if (values != null) {
+                for (AcLfValue value : values) {
+                    AcLoadFlowResult result = value.getContext().getResult();
+                    if (result != null && result.getSolverStatus() == AcSolverStatus.CONVERGED) {
+                        value.getContext().getParameters().setVoltageInitializer(new PreviousValueVoltageInitializer(true));
+                    }
+                }
+            }
+        }
+    }
+
+    public static class DcLfValue extends AbstractDcValue {
+
+        public DcLfValue(DcLoadFlowContext context) {
+            super(context);
+        }
+    }
+
     public static class DcLfEntry extends AbstractEntry<LfInput, DcLfValue> {
 
         public DcLfEntry(Network network, LfInput input) {
+            super(network, input);
+        }
+
+        @Override
+        public void restart() {
+            // nothing to do
+        }
+    }
+
+    public static class DcSensiEntry extends AbstractEntry<DcSensiInput, DcSensiValue> {
+
+        public DcSensiEntry(Network network, DcSensiInput input) {
             super(network, input);
         }
 
