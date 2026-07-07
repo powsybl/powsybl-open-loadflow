@@ -67,6 +67,10 @@ public class PropagatedContingency {
         return branchIdsToOpen;
     }
 
+    public Set<String> getHvdcIdsToOpen() {
+        return hvdcIdsToOpen;
+    }
+
     public Set<String> getGeneratorIdsToLose() {
         return generatorIdsToLose;
     }

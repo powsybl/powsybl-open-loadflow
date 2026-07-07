@@ -1291,7 +1291,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 Bus bus2 = Networks.getBus(hvdcLine.getConverterStation2().getTerminal(), breakers);
 
                 if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class) != null) {
-                    if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class).isEnabled() && parameters.getLoadFlowParameters().isHvdcAcEmulation()) {
+                    if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class).isEnabled()
+                            && parameters.getLoadFlowParameters().isHvdcAcEmulation()
+                            && !parameters.getLoadFlowParameters().isDc()) {
                         throw new PowsyblException("HVDC line " + variableId + " has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported");
                     }
                 }
