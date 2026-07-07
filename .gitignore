@@ -4,6 +4,7 @@ target/
 # IntelliJ
 /.idea
 *.iml
+/.junie
 
 # Eclipse projects
 .classpath

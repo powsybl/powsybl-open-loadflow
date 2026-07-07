@@ -546,7 +546,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             } else {
                 connectivity.addEdge(lfBranch.getBus1(), lfBranch.getBus2(), lfBranch);
             }
-            AbstractLfBranchAction.updateBusesAndBranchStatus(connectivity);
+            AbstractLfBranchAction.getNetworkActivations(connectivity).apply();
         }
 
         private CacheUpdateResult<V> onTransformerTargetVoltageUpdate(String twtId, double newValue) {

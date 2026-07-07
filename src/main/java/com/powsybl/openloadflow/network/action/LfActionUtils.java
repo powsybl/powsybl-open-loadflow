@@ -10,18 +10,14 @@ package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.*;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfContingency;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.Reports;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import static com.powsybl.openloadflow.network.action.AbstractLfBranchAction.updateBusesAndBranchStatus;
 
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
@@ -62,47 +58,35 @@ public final class LfActionUtils {
                 .collect(Collectors.toMap(LfAction::getId, Function.identity()));
     }
 
+    public static void split(List<LfAction> actions, List<AbstractLfBranchAction<?>> branchActions, List<LfAction> otherActions) {
+        Objects.requireNonNull(actions);
+        Objects.requireNonNull(branchActions);
+        Objects.requireNonNull(otherActions);
+        for (LfAction action : actions) {
+            if (action instanceof AbstractLfBranchAction<?>) {
+                branchActions.add((AbstractLfBranchAction<?>) action);
+            } else {
+                otherActions.add(action);
+            }
+        }
+    }
+
     public static void applyListOfActions(List<LfAction> actions, LfNetwork network, LfContingency contingency, LfNetworkParameters networkParameters) {
         Objects.requireNonNull(actions);
         Objects.requireNonNull(network);
 
+        List<AbstractLfBranchAction<?>> branchActions = new ArrayList<>();
+        List<LfAction> otherActions = new ArrayList<>();
+        split(actions, branchActions, otherActions);
+
         // first apply action modifying connectivity
-        List<LfAction> branchActions = actions.stream()
-            .filter(action -> action instanceof AbstractLfBranchAction<?>)
-            .toList();
-        updateConnectivity(branchActions, network, contingency);
+        AbstractLfBranchAction.getNetworkActivations(network, contingency, branchActions).apply();
 
         // then process remaining changes of actions
-        actions.stream()
-            .filter(action -> !(action instanceof AbstractLfBranchAction<?>))
-            .forEach(action -> {
-                if (!action.apply(network, contingency, networkParameters)) {
-                    Reports.reportActionApplicationFailure(action.getId(), contingency.getId(), network.getReportNode());
-                }
-            });
-    }
-
-    private static void updateConnectivity(List<LfAction> branchActions, LfNetwork network, LfContingency contingency) {
-        GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
-
-        // re-update connectivity according to post contingency state (revert after LfContingency apply)
-        connectivity.startTemporaryChanges();
-        contingency.getDisabledNetwork().getBranches().forEach(connectivity::removeEdge);
-
-        // update connectivity according to post action state
-        connectivity.startTemporaryChanges();
-
-        branchActions.forEach(action -> {
-            if (!((AbstractLfBranchAction<?>) action).applyOnConnectivity(connectivity)) {
+        otherActions.forEach(action -> {
+            if (!action.apply(network, contingency, networkParameters)) {
                 Reports.reportActionApplicationFailure(action.getId(), contingency.getId(), network.getReportNode());
             }
         });
-
-        updateBusesAndBranchStatus(connectivity);
-
-        // reset connectivity to discard post contingency connectivity and post action connectivity
-        connectivity.undoTemporaryChanges();
-        connectivity.undoTemporaryChanges();
     }
-
 }
