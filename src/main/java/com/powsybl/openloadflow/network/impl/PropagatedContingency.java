@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2021-2025, RTE (http://www.rte-france.com)
+/**
+ * Copyright (c) 2021-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -417,7 +417,8 @@ public class PropagatedContingency {
                         contingencyId);
                 // if a contingency leads to an isolated slack bus, we need to relocate the slack bus
                 // we select a new slack bus excluding buses from isolated component
-                Set<LfBus> excludedBuses = Sets.difference(Set.copyOf(network.getBuses()), connectivity.getLargestConnectedComponent());
+                // FIXME: set copy may be useless (Naive / Even Shiloach), but mandatory for DTree
+                Set<LfBus> excludedBuses = new HashSet<>(Sets.difference(Set.copyOf(network.getBuses()), connectivity.getLargestConnectedComponent()));
                 network.getSynchronousNetworks().forEach(lfScNetwork -> lfScNetwork.setExcludedSlackBuses(excludedBuses));
                 // reverse main component to the one containing the relocated slack bus
                 connectivity.setMainComponentVertex(network.getSynchronousNetworks().getFirst().getSlackBuses().getFirst());
