@@ -140,6 +140,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .toList();
         List<ComputedElement> actionElements = operatorStrategyLfActions.stream()
                 .map(actionElementByLfAction::get)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfElement().getId()))
                 .toList();
