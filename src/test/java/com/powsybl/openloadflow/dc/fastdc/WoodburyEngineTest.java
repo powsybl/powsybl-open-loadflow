@@ -13,6 +13,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.SwitchContingency;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
@@ -20,6 +21,7 @@ import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.LfAction;
+import com.powsybl.openloadflow.network.action.LfActionUtils;
 import com.powsybl.openloadflow.network.action.LfPhaseTapChangerAction;
 import com.powsybl.openloadflow.network.action.LfSwitchAction;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
@@ -30,9 +32,12 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -265,6 +270,41 @@ class WoodburyEngineTest {
             engine.toPostContingencyAndOperatorStrategyStates(flowStates);
             var flows = calculateFlows(lfNetwork, flowStates, Set.of("C", "B3"));
             assertArrayEquals(flowsRef, flows, LoadFlowAssert.DELTA_POWER);
+        }
+    }
+
+    /**
+     * A pure phase-shift tap change (only the phase angle alpha varies across taps; r, x and rho are constant) does not
+     * modify the branch power, so it must NOT produce a Woodbury {@link ComputedTapPositionChangeElement}: its diagonal
+     * term {@code 1 / (oldPower - newPower)} would be infinite and corrupt the alpha solve, which surfaced as NaN
+     * function references in DC sensitivity analysis. The phase shift is instead fully handled through the target vector.
+     * A tap change that does modify the branch impedance must still produce an element.
+     */
+    @Test
+    void testPurePhaseShiftTapActionProducesNoWoodburyElement() {
+        // PS1 steps have different reactances (x = 50, 100, 200): moving the tap changes the branch power, so the
+        // action must produce a Woodbury element
+        assertFalse(computedTapChangeElements(pstNetworkRef, 1, 0).isEmpty());
+
+        // derive a pure phase shifter from PS1 by giving every tap step the same impedance (only alpha keeps varying)
+        PhaseTapChanger ptc = pstNetwork.getTwoWindingsTransformer("PS1").getPhaseTapChanger();
+        ptc.getStep(0).setX(100);
+        ptc.getStep(2).setX(100);
+        assertTrue(computedTapChangeElements(pstNetwork, 1, 0).isEmpty(),
+                "a pure phase-shift tap action must not produce a Woodbury element");
+    }
+
+    private Map<LfAction, List<ComputedElement>> computedTapChangeElements(Network network, int fromTap, int toTap) {
+        network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(fromTap);
+        LfTopoConfig topoConfig = new LfTopoConfig();
+        topoConfig.addBranchIdWithPtcToRetain("PS1");
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), topoConfig, dcParameters.getNetworkParameters(), ReportNode.NO_OP).getFirst();
+        try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
+            context.getParameters().getEquationSystemCreationParameters().setForcePhaseControlOffAndAddAngle1Var(true);
+            new DcLoadFlowEngine(context).run();
+            Map<String, LfAction> lfActions = LfActionUtils.createLfActions(lfNetwork,
+                    Set.of(new PhaseTapChangerTapPositionAction("pst", "PS1", false, toTap)), network);
+            return ComputedElement.createActionElementsIndexByLfAction(lfActions, context.getEquationSystem());
         }
     }
 }

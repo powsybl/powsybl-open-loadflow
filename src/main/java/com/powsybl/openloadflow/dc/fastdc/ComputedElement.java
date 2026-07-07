@@ -24,6 +24,8 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.TapPositionChange;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
 import com.powsybl.openloadflow.network.action.LfAction;
@@ -157,8 +159,15 @@ public interface ComputedElement {
                     elements.addAll(lfBranchAction.getDisabledBranches().stream().map(b -> ComputedSwitchBranchElement.create(b, false, equationSystem)).toList());
                 }
             }
-            case PhaseTapChangerTapPositionAction.NAME ->
-                elements.add(new ComputedTapPositionChangeElement(((AbstractLfTapChangerAction<?>) lfAction).getChange(), equationSystem));
+            case PhaseTapChangerTapPositionAction.NAME -> {
+                TapPositionChange change = ((AbstractLfTapChangerAction<?>) lfAction).getChange();
+                // a pure phase shift (no impedance/ratio change) does not modify the branch power and is fully
+                // handled through the target vector: it must not produce a Woodbury element, otherwise its
+                // diagonal term (1 / (oldPower - newPower)) would be infinite and corrupt the alpha solve
+                if (changesBranchPower(change)) {
+                    elements.add(new ComputedTapPositionChangeElement(change, equationSystem));
+                }
+            }
             case GeneratorAction.NAME -> { /* generator actions modify the target vector, they produce no Woodbury elements */ }
             case LoadAction.NAME -> { /* load actions modify the target vector, they produce no Woodbury elements */ }
             default -> throw new IllegalStateException("Only tap position change and branch enabling/disabling are supported in WoodburyDcSecurityAnalysis");
@@ -167,5 +176,19 @@ public interface ComputedElement {
             return Stream.empty();
         }
         return Stream.of(Map.entry(lfAction, elements));
+    }
+
+    /**
+     * Returns true if the tap position change modifies the branch power, i.e. its impedance or ratio. In DC the branch
+     * power only depends on the resistance, the reactance and the first side ratio (see
+     * {@link com.powsybl.openloadflow.dc.equations.AbstractClosedBranchDcFlowEquationTerm#computePower}). A pure phase
+     * shift leaves the power unchanged and so does not require a Woodbury element.
+     */
+    private static boolean changesBranchPower(TapPositionChange change) {
+        PiModel oldPiModel = change.getBranch().getPiModel();
+        PiModel newPiModel = change.getNewPiModel();
+        return oldPiModel.getR() != newPiModel.getR()
+                || oldPiModel.getX() != newPiModel.getX()
+                || oldPiModel.getR1() != newPiModel.getR1();
     }
 }
