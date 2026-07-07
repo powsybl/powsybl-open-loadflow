@@ -320,6 +320,67 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         assertEquals(refSensi, osSensi, LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
     }
 
+    /**
+     * A generator (injection setpoint) action in an operator strategy under <em>distributed slack</em>: the slack induced
+     * by the injection change must be distributed over the participating elements exactly as in a full DC load flow.
+     * The Woodbury flow-state recomputation used to apply the injection delta directly on the target vector, after slack
+     * distribution, giving a wrong operator-strategy flow. Verified against a plain DC sensi with the same parameters.
+     */
+    @Test
+    void testGeneratorActionOperatorStrategyWithDistributedSlack() {
+        Network network = MetrixTutorialSixBusesFactory.create();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+        sensiParameters.getLoadFlowParameters().setDistributedSlack(true)
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
+
+        List<Contingency> contingencies = List.of(new Contingency("S_SO_1", new BranchContingency("S_SO_1")));
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("SO_G1")), network.getBranchStream().toList());
+        List<Action> actions = List.of(new GeneratorActionBuilder().withId("genAction").withGeneratorId("SO_G1")
+                .withActivePowerRelativeValue(false).withActivePowerValue(300).build());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyGen",
+                ContingencyContext.all(), new TrueCondition(), List.of("genAction")));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions));
+        var opStratState = new SensitivityState("S_SO_1", "strategyGen");
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(opStratState));
+
+        // reference: apply the contingency and the generator setpoint to a cloned variant, then run a plain DC sensi
+        String modifiedVariantId = "contingencyAndGen";
+        network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, modifiedVariantId);
+        network.getVariantManager().setWorkingVariant(modifiedVariantId);
+        network.getLine("S_SO_1").getTerminal1().disconnect();
+        network.getLine("S_SO_1").getTerminal2().disconnect();
+        network.getGenerator("SO_G1").setTargetP(300);
+        SensitivityAnalysisParameters refParams = createParameters(true);
+        refParams.getLoadFlowParameters().setDistributedSlack(true).setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
+        SensitivityAnalysisResult refResult = sensiRunner.run(network, modifiedVariantId, factors,
+                new SensitivityAnalysisRunParameters().setParameters(refParams));
+        network.getVariantManager().setWorkingVariant(VariantManagerConstants.INITIAL_VARIANT_ID);
+        network.getVariantManager().removeVariant(modifiedVariantId);
+
+        // operator-strategy flows must match the physically-applied reference (before the fix the slack was misdistributed)
+        boolean anyActionEffect = false;
+        for (String branchId : network.getBranchStream().map(Identifiable::getId).toList()) {
+            double refFlow = refResult.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, branchId, SensitivityFunctionType.BRANCH_ACTIVE_POWER_1);
+            double opStratFlow = result.getFunctionReferenceValue(opStratState, branchId, SensitivityFunctionType.BRANCH_ACTIVE_POWER_1);
+            double noOsFlow = result.getFunctionReferenceValue(SensitivityState.postContingency("S_SO_1"), branchId, SensitivityFunctionType.BRANCH_ACTIVE_POWER_1);
+            if (Double.isNaN(refFlow)) {
+                assertTrue(Double.isNaN(opStratFlow), "Branch " + branchId + " flow should be NaN in operator strategy state");
+            } else {
+                assertEquals(refFlow, opStratFlow, LoadFlowAssert.DELTA_POWER, "Branch " + branchId + " reference flow mismatch");
+                anyActionEffect |= Math.abs(opStratFlow - noOsFlow) > LoadFlowAssert.DELTA_POWER;
+            }
+        }
+        // sanity: the generator action really changes the operating point (otherwise the test would be vacuous)
+        assertTrue(anyActionEffect, "the generator action must change at least one branch flow");
+    }
+
     @Test
     void testReconnectContingencyLine() {
         Network network = FourBusNetworkFactory.create();
