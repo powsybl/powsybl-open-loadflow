@@ -61,7 +61,7 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         return new LfLoadImpl(this, copyBus);
     }
 
-    LfLoadImpl(LfLoadImpl other, LfBus bus) {
+    private LfLoadImpl(LfLoadImpl other, LfBus bus) {
         super(other.initialTargetP, other.targetP);
         this.bus = Objects.requireNonNull(bus);
         this.distributedOnConformLoad = other.distributedOnConformLoad;

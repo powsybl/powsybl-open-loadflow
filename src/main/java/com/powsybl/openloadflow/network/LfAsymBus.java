@@ -66,7 +66,7 @@ public class LfAsymBus implements LfCopyable<LfAsymBus, LfNetwork> {
      * Solver injected evaluables are left at their default. The bus back reference is wired by
      * {@link LfBus#setAsym}.
      */
-    public LfAsymBus(LfAsymBus other) {
+    private LfAsymBus(LfAsymBus other) {
         this.totalDeltaPa = other.totalDeltaPa;
         this.totalDeltaQa = other.totalDeltaQa;
         this.totalDeltaPb = other.totalDeltaPb;

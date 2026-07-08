@@ -134,7 +134,7 @@ public class LfShuntImpl extends AbstractLfShunt {
         return new LfShuntImpl(this, copyBus);
     }
 
-    protected LfShuntImpl(LfShuntImpl other, LfBus bus) {
+    private LfShuntImpl(LfShuntImpl other, LfBus bus) {
         super(bus.getNetwork());
         this.shuntCompensatorsRefs = new ArrayList<>(other.shuntCompensatorsRefs);
         this.bus = Objects.requireNonNull(bus);
