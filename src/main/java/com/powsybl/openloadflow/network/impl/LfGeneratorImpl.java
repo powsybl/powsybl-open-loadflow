@@ -95,8 +95,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
-    public LfGenerator copy(LfNetwork newNetwork) {
-        return new LfGeneratorImpl(this, newNetwork);
+    public LfGenerator copy(LfBus copyBus) {
+        return new LfGeneratorImpl(this, copyBus.getNetwork());
     }
 
     private LfGeneratorImpl(LfGeneratorImpl other, LfNetwork network) {

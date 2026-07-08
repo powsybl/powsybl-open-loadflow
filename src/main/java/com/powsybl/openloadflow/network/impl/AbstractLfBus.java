@@ -131,33 +131,23 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         this.distributedOnConformLoad = other.distributedOnConformLoad;
         this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
 
-        for (LfGenerator generator : other.generators) {
-            add(generator.copy(network));
+        for (LfGenerator otherGenerator : other.generators) {
+            add(otherGenerator.copy(this));
         }
-        for (LfLoad load : other.loads) {
-            loads.add(new LfLoadImpl((LfLoadImpl) load, this));
+        for (LfLoad otherLoad : other.loads) {
+            loads.add(otherLoad.copy(this));
         }
         if (other.shunt != null) {
-            shunt = new LfShuntImpl((LfShuntImpl) other.shunt, network, this);
+            shunt = other.shunt.copy(this);
         }
         if (other.controllerShunt != null) {
-            controllerShunt = new LfShuntImpl((LfShuntImpl) other.controllerShunt, network, this);
+            controllerShunt = other.controllerShunt.copy(this);
         }
         if (other.svcShunt != null) {
-            for (int i = 0; i < other.generators.size(); i++) {
-                if (other.generators.get(i) instanceof LfStaticVarCompensator otherSvc
-                        && otherSvc.getStandByAutomatonShunt().orElse(null) == other.svcShunt) {
-                    LfStaticVarCompensator copiedSvc = (LfStaticVarCompensator) generators.get(i);
-                    svcShunt = LfStandbyAutomatonShunt.create(copiedSvc);
-                    copiedSvc.setStandByAutomatonShunt(svcShunt);
-                    svcShunt.setB(other.svcShunt.getB());
-                    svcShunt.setDisabled(other.svcShunt.isDisabled());
-                }
-            }
+            svcShunt = other.svcShunt.copy(this);
         }
-
         if (other.asym != null) {
-            setAsym(new LfAsymBus(other.asym));
+            setAsym(other.asym.copy(network));
         }
 
         // scalar state, copied after child registration as add() invalidates some of these caches
@@ -168,7 +158,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         this.qLimitType = other.qLimitType;
         this.loadTargetP = other.loadTargetP;
         this.loadTargetQ = other.loadTargetQ;
-        this.remoteControlReactivePercent = other.remoteControlReactivePercent;
         // slack and reference flags are intentionally not copied: selection is lazily re-run
         // on the copied network by updateSlackBusesAndReferenceBus
     }
@@ -185,6 +174,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         this.generationTargetQ = other.generationTargetQ;
         this.invalidatedGenerationTargetQ = other.invalidatedGenerationTargetQ;
         this.isGenerationTargetQFrozen = other.isGenerationTargetQFrozen;
+        this.remoteControlReactivePercent = other.remoteControlReactivePercent;
     }
 
     @Override

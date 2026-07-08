@@ -32,8 +32,8 @@ public class LfStarBus extends AbstractLfBus {
     }
 
     @Override
-    public LfBus copy(LfNetwork newNetwork) {
-        return new LfStarBus(this, newNetwork);
+    public LfBus copy(LfNetwork copyNetwork) {
+        return new LfStarBus(this, copyNetwork);
     }
 
     private LfStarBus(LfStarBus other, LfNetwork network) {

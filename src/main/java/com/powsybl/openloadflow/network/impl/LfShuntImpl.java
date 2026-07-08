@@ -130,8 +130,12 @@ public class LfShuntImpl extends AbstractLfShunt {
         }
     }
 
-    protected LfShuntImpl(LfShuntImpl other, LfNetwork network, LfBus bus) {
-        super(network);
+    public LfShunt copy(LfBus copyBus) {
+        return new LfShuntImpl(this, copyBus);
+    }
+
+    protected LfShuntImpl(LfShuntImpl other, LfBus bus) {
+        super(bus.getNetwork());
         this.shuntCompensatorsRefs = new ArrayList<>(other.shuntCompensatorsRefs);
         this.bus = Objects.requireNonNull(bus);
         this.voltageControlCapability = other.voltageControlCapability;

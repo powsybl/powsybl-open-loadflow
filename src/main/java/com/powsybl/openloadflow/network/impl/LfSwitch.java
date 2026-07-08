@@ -41,11 +41,11 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public LfBranch copy(LfNetwork newNetwork) {
+    public LfBranch copy(LfNetwork copyNetwork) {
         return new LfSwitch(this,
-                newNetwork,
-                bus1 == null ? null : newNetwork.getBusById(bus1.getId()),
-                bus2 == null ? null : newNetwork.getBusById(bus2.getId()));
+                copyNetwork,
+                bus1 == null ? null : copyNetwork.getBusById(bus1.getId()),
+                bus2 == null ? null : copyNetwork.getBusById(bus2.getId()));
     }
 
     private LfSwitch(LfSwitch other, LfNetwork network, LfBus bus1, LfBus bus2) {

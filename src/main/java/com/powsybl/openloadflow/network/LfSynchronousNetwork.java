@@ -84,15 +84,4 @@ public interface LfSynchronousNetwork {
      * Meant to be use only by implementations and the LfNetwork class.
      */
     void updateSlackBusesAndReferenceBus();
-
-    /**
-     * Copy the persistent state of another synchronous network of the same synchronous component onto this one, when
-     * deep copying a {@link LfNetwork} (see {@link com.powsybl.openloadflow.network.impl.LfNetworkCopier}). The slack
-     * buses, reference bus and reference generator are intentionally not copied: they are lazily re-selected on the
-     * copy. Only the excluded slack buses, which are an input of that selection, are reproduced, remapped onto this
-     * network's own buses (matched by id).
-     *
-     * @param other the synchronous network to copy the state from (belonging to the network being copied)
-     */
-    void copyStateFrom(LfSynchronousNetwork other);
 }

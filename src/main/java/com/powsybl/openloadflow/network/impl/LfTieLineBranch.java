@@ -40,11 +40,11 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public LfBranch copy(LfNetwork newNetwork) {
+    public LfBranch copy(LfNetwork copyNetwork) {
         return new LfTieLineBranch(this,
-                newNetwork,
-                bus1 == null ? null : newNetwork.getBusById(bus1.getId()),
-                bus2 == null ? null : newNetwork.getBusById(bus2.getId()));
+                copyNetwork,
+                bus1 == null ? null : copyNetwork.getBusById(bus1.getId()),
+                bus2 == null ? null : copyNetwork.getBusById(bus2.getId()));
     }
 
     private LfTieLineBranch(LfTieLineBranch other, LfNetwork network, LfBus bus1, LfBus bus2) {

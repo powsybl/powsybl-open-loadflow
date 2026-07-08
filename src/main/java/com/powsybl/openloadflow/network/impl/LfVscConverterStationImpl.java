@@ -44,8 +44,8 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     }
 
     @Override
-    public LfGenerator copy(LfNetwork newNetwork) {
-        return new LfVscConverterStationImpl(this, newNetwork);
+    public LfGenerator copy(LfBus copyBus) {
+        return new LfVscConverterStationImpl(this, copyBus.getNetwork());
     }
 
     private LfVscConverterStationImpl(LfVscConverterStationImpl other, LfNetwork network) {

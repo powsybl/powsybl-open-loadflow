@@ -169,8 +169,8 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     }
 
     @Override
-    public LfGenerator copy(LfNetwork newNetwork) {
-        return new LfStaticVarCompensatorImpl(this, network);
+    public LfGenerator copy(LfBus copyBus) {
+        return new LfStaticVarCompensatorImpl(this, copyBus.getNetwork());
     }
 
     private LfStaticVarCompensatorImpl(LfStaticVarCompensatorImpl other, LfNetwork network) {

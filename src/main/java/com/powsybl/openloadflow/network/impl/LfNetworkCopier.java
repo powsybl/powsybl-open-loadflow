@@ -7,12 +7,18 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.google.common.base.Stopwatch;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.network.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.LinkedHashSet;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
  * Creates deep copies of a built {@link LfNetwork}, sharing the immutable IIDM references but
@@ -28,49 +34,13 @@ import java.util.Objects;
  * impedance networks, slack and reference bus selection, limits caches) are left to be recomputed
  * by the copy, exactly as on a freshly loaded network.</p>
  *
- * <p>Networks using unknown element implementations are rejected:
- * check {@link #canCopy(LfNetwork)} first and fall back to a rebuild from IIDM.</p>
- *
  * @author Gautier Bureau {@literal <gautier.bureau at rte-france.com>}
  */
 public final class LfNetworkCopier {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(LfNetworkCopier.class);
+
     private LfNetworkCopier() {
-    }
-
-    /**
-     * Check that the network only uses features supported by {@link #copy(LfNetwork, LoadFlowModel, ReportNode)}.
-     */
-    public static boolean canCopy(LfNetwork network) {
-        Objects.requireNonNull(network);
-        return network.getDcBuses().stream().allMatch(LfDcBusImpl.class::isInstance)
-                && network.getDcLines().stream().allMatch(LfDcLineImpl.class::isInstance)
-                && network.getVoltageSourceConverters().stream().allMatch(LfVoltageSourceConverterImpl.class::isInstance)
-                && network.getBuses().stream().allMatch(LfNetworkCopier::isSupportedBus)
-                && network.getBranches().stream().allMatch(LfNetworkCopier::isSupportedBranch)
-                && network.getHvdcs().stream().allMatch(LfHvdcImpl.class::isInstance)
-                && network.getAreas().stream().allMatch(LfAreaImpl.class::isInstance);
-    }
-
-    private static boolean isSupportedBus(LfBus bus) {
-        if (!(bus instanceof LfBusImpl || bus instanceof LfStarBus || bus instanceof LfBoundaryLineBus)) {
-            return false;
-        }
-        return bus.getGenerators().stream().allMatch(LfNetworkCopier::isSupportedGenerator)
-                && bus.getLoads().stream().allMatch(LfLoadImpl.class::isInstance)
-                && bus.getShunt().filter(s -> !(s instanceof LfShuntImpl)).isEmpty()
-                && bus.getControllerShunt().filter(s -> !(s instanceof LfShuntImpl)).isEmpty();
-    }
-
-    private static boolean isSupportedGenerator(LfGenerator generator) {
-        return generator instanceof LfGeneratorImpl || generator instanceof LfBatteryImpl
-                || generator instanceof LfStaticVarCompensatorImpl || generator instanceof LfVscConverterStationImpl
-                || generator instanceof LfBoundaryLineGenerator;
-    }
-
-    private static boolean isSupportedBranch(LfBranch branch) {
-        return branch instanceof LfBranchImpl || branch instanceof LfLegBranch || branch instanceof LfSwitch
-                || branch instanceof LfTieLineBranch || branch instanceof LfBoundaryLineBranch;
     }
 
     /**
@@ -86,8 +56,14 @@ public final class LfNetworkCopier {
         Objects.requireNonNull(loadFlowModel);
         Objects.requireNonNull(reportNode);
 
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         LfNetwork copy = copyFlat(original, reportNode);
         copy.validate(loadFlowModel, null);
+
+        stopwatch.stop();
+        LOGGER.debug(PERFORMANCE_MARKER, "LF networks copied in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+
         return copy;
     }
 
@@ -99,11 +75,6 @@ public final class LfNetworkCopier {
         // synchronous network per synchronous component, so the copy ends up with the same set.
         for (LfBus bus : originalNetwork.getBuses()) {
             copyNetwork.addBus(bus.copy(copyNetwork));
-        }
-        // reproduce the per synchronous component state (excluded slack buses); slack and reference
-        // selection is left to be lazily redone on the copy
-        for (LfSynchronousNetwork originalSc : originalNetwork.getSynchronousNetworks()) {
-            copyNetwork.getSynchronousNetwork(originalSc.getNumSC()).copyStateFrom(originalSc);
         }
 
         // branches: addBranch rebuilds the bus to branches links in the same order
@@ -137,7 +108,20 @@ public final class LfNetworkCopier {
             copyNetwork.addArea(area.copy(copyNetwork));
         }
 
-        Map<GeneratorVoltageControl, GeneratorVoltageControl> generatorVoltageControlMap = copyControls(originalNetwork, copyNetwork);
+        for (LfBus bus : originalNetwork.getBuses()) {
+            copyBusControls(bus, copyNetwork);
+        }
+
+        for (LfBranch branch : originalNetwork.getBranches()) {
+            copyBranchControls(branch, copyNetwork);
+        }
+
+        // control wiring (addControllerElement / addControllerBus) forces some enabled flags and may
+        // invalidate the reactive target state: restore the raw copied state, which also preserves the
+        // simulation state of an already solved network (PV to PQ switched buses with frozen targets)
+        for (LfBus bus : originalNetwork.getBuses()) {
+            ((AbstractLfBus) copyNetwork.getBusById(bus.getId())).copyReactiveStateFrom((AbstractLfBus) bus);
+        }
 
         for (LfSecondaryVoltageControl secondaryVoltageControl : originalNetwork.getSecondaryVoltageControls()) {
             copyNetwork.addSecondaryVoltageControl(secondaryVoltageControl.copy(copyNetwork));
@@ -147,119 +131,62 @@ public final class LfNetworkCopier {
             copyNetwork.addVoltageAngleLimit(limit.copy(copyNetwork));
         }
 
-        for (LfOverloadManagementSystem system : originalNetwork.getOverloadManagementSystems()) {
-            LfOverloadManagementSystem copiedSystem = new LfOverloadManagementSystem(
-                    copyNetwork.getBranchById(system.getMonitoredBranch().getId()), system.getMonitoredSide());
-            for (LfOverloadManagementSystem.LfBranchTripping tripping : system.getBranchTrippingList()) {
-                copiedSystem.addLfBranchTripping(copyNetwork.getBranchById(tripping.branchToOperate().getId()),
-                        tripping.branchOpen(), tripping.threshold());
+        for (LfOverloadManagementSystem overloadSystem : originalNetwork.getOverloadManagementSystems()) {
+            copyNetwork.addOverloadManagementSystem(overloadSystem.copy(copyNetwork));
+        }
+
+        // reproduce the per synchronous component state (excluded slack buses); slack and reference
+        // selection is left to be lazily redone on the copy
+        for (LfSynchronousNetwork originalSc : originalNetwork.getSynchronousNetworks()) {
+            if (!originalSc.getExcludedSlackBuses().isEmpty()) {
+                copyNetwork.getSynchronousNetwork(originalSc.getNumSC())
+                        .setExcludedSlackBuses(originalSc.getExcludedSlackBuses()
+                                .stream()
+                                .map(bus -> copyNetwork.getBusById(bus.getId()))
+                                .collect(Collectors.toCollection(LinkedHashSet::new)));
             }
-            copyNetwork.addOverloadManagementSystem(copiedSystem);
         }
 
         return copyNetwork;
     }
 
-    /**
-     * Recreate the control objects on the copied network, mirroring the wiring done by
-     * {@link LfNetworkLoaderImpl}. The voltage control merge structures (merge status, merged
-     * dependent controls) are intentionally left at their initial state: they are recomputed
-     * when the zero impedance networks of the copy are lazily created.
-     */
-    private static Map<GeneratorVoltageControl, GeneratorVoltageControl> copyControls(LfNetwork original, LfNetwork copy) {
-        Map<GeneratorVoltageControl, GeneratorVoltageControl> generatorVoltageControlMap = new HashMap<>();
-
-        for (LfBus bus : original.getBuses()) {
-            copyBusControls(bus, copy, generatorVoltageControlMap);
-        }
-
-        for (LfBranch branch : original.getBranches()) {
-            copyBranchControls(branch, copy);
-        }
-
-        // control wiring (addControllerElement / addControllerBus) forces some enabled flags and may
-        // invalidate the reactive target state: restore the raw copied state, which also preserves the
-        // simulation state of an already solved network (PV to PQ switched buses with frozen targets)
-        for (LfBus bus : original.getBuses()) {
-            AbstractLfBus copiedBus = (AbstractLfBus) copy.getBusById(bus.getId());
-            copiedBus.copyReactiveStateFrom((AbstractLfBus) bus);
-            copiedBus.setRemoteControlReactivePercent(bus.getRemoteControlReactivePercent());
-        }
-
-        return generatorVoltageControlMap;
-    }
-
-    private static void copyBusControls(LfBus bus, LfNetwork copy,
-                                        Map<GeneratorVoltageControl, GeneratorVoltageControl> generatorVoltageControlMap) {
-        LfBus copiedBus = copy.getBusById(bus.getId());
-
+    private static void copyBusControls(LfBus bus, LfNetwork copyNetwork) {
+        LfBus copiedBus = copyNetwork.getBusById(bus.getId());
         bus.getGeneratorVoltageControl().filter(vc -> vc.getControlledBus() == bus).ifPresent(vc -> {
-            GeneratorVoltageControl copiedVc = new GeneratorVoltageControl(copiedBus, vc.getTargetPriority(), vc.getTargetValue());
-            for (LfBus controllerBus : vc.getControllerElements()) {
-                copiedVc.addControllerElement(copy.getBusById(controllerBus.getId()));
-            }
-            copiedBus.setGeneratorVoltageControl(copiedVc);
-            generatorVoltageControlMap.put(vc, copiedVc);
+            copiedBus.setGeneratorVoltageControl(vc.copy(copyNetwork));
         });
 
         bus.getTransformerVoltageControl().filter(vc -> vc.getControlledBus() == bus).ifPresent(vc -> {
-            TransformerVoltageControl copiedVc = new TransformerVoltageControl(copiedBus, vc.getTargetPriority(),
-                    vc.getTargetValue(), vc.getTargetDeadband().orElse(null));
-            for (LfBranch controllerBranch : vc.getControllerElements()) {
-                LfBranch copiedController = copy.getBranchById(controllerBranch.getId());
-                copiedVc.addControllerElement(copiedController);
-                copiedController.setVoltageControl(copiedVc);
-            }
-            copiedBus.setTransformerVoltageControl(copiedVc);
+            copiedBus.setTransformerVoltageControl(vc.copy(copyNetwork));
         });
 
         bus.getVoltageSourceConverterVoltageControl().filter(vc -> vc.getControlledBus() == bus).ifPresent(vc -> {
-            VoltageSourceConverterVoltageControl copiedVc = new VoltageSourceConverterVoltageControl(copiedBus,
-                    vc.getTargetPriority(), vc.getTargetValue());
-            for (LfBus controllerBus : vc.getControllerElements()) {
-                copiedVc.addControllerElement(copy.getBusById(controllerBus.getId()));
-            }
-            copiedBus.setVoltageSourceConverterVoltageControl(copiedVc);
+            copiedBus.setVoltageSourceConverterVoltageControl(vc.copy(copyNetwork));
         });
 
         bus.getShuntVoltageControl().filter(vc -> vc.getControlledBus() == bus).ifPresent(vc -> {
-            ShuntVoltageControl copiedVc = new ShuntVoltageControl(copiedBus, vc.getTargetPriority(),
-                    vc.getTargetValue(), vc.getTargetDeadband().orElse(null));
-            for (LfShunt controllerShunt : vc.getControllerElements()) {
-                LfShunt copiedController = copy.getShuntById(controllerShunt.getOriginalIds().get(0));
-                copiedVc.addControllerElement(copiedController);
-                copiedController.setVoltageControl(copiedVc);
-            }
-            copiedBus.setShuntVoltageControl(copiedVc);
+            copiedBus.setShuntVoltageControl(vc.copy(copyNetwork));
         });
     }
 
-    private static void copyBranchControls(LfBranch branch, LfNetwork copy) {
+    private static void copyBranchControls(LfBranch branch, LfNetwork copyNetwork) {
         branch.getPhaseControl().filter(pc -> pc.getControllerBranch() == branch).ifPresent(pc -> {
-            LfBranch copiedController = copy.getBranchById(pc.getControllerBranch().getId());
-            LfBranch copiedControlled = copy.getBranchById(pc.getControlledBranch().getId());
-            TransformerPhaseControl copiedPc = new TransformerPhaseControl(copiedController, copiedControlled,
-                    pc.getControlledSide(), pc.getMode(), pc.getTargetValue(), pc.getTargetDeadband(), pc.getUnit());
+            LfBranch copiedController = copyNetwork.getBranchById(pc.getControllerBranch().getId());
+            LfBranch copiedControlled = copyNetwork.getBranchById(pc.getControlledBranch().getId());
+            TransformerPhaseControl copiedPc = pc.copy(copyNetwork);
             copiedController.setPhaseControl(copiedPc);
             copiedControlled.setPhaseControl(copiedPc);
         });
 
         branch.getGeneratorReactivePowerControl().filter(rc -> rc.getControlledBranch() == branch).ifPresent(rc -> {
-            LfBranch copiedControlled = copy.getBranchById(branch.getId());
-            GeneratorReactivePowerControl copiedRc = new GeneratorReactivePowerControl(copiedControlled,
-                    rc.getControlledSide(), rc.getTargetValue());
-            for (LfBus controllerBus : rc.getControllerBuses()) {
-                copiedRc.addControllerBus(copy.getBusById(controllerBus.getId()));
-            }
-            copiedControlled.setGeneratorReactivePowerControl(copiedRc);
+            LfBranch copiedControlled = copyNetwork.getBranchById(branch.getId());
+            copiedControlled.setGeneratorReactivePowerControl(rc.copy(copyNetwork));
         });
 
         branch.getTransformerReactivePowerControl().filter(rc -> rc.getControllerBranch() == branch).ifPresent(rc -> {
-            LfBranch copiedController = copy.getBranchById(rc.getControllerBranch().getId());
-            LfBranch copiedControlled = copy.getBranchById(rc.getControlledBranch().getId());
-            TransformerReactivePowerControl copiedRc = new TransformerReactivePowerControl(copiedControlled,
-                    rc.getControlledSide(), copiedController, rc.getTargetValue(),
-                    rc.getTargetDeadband().orElseThrow());
+            LfBranch copiedController = copyNetwork.getBranchById(rc.getControllerBranch().getId());
+            LfBranch copiedControlled = copyNetwork.getBranchById(rc.getControlledBranch().getId());
+            TransformerReactivePowerControl copiedRc = rc.copy(copyNetwork);
             copiedController.setTransformerReactivePowerControl(copiedRc);
             copiedControlled.setTransformerReactivePowerControl(copiedRc);
         });

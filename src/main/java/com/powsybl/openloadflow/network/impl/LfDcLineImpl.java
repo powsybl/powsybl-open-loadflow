@@ -26,11 +26,11 @@ public class LfDcLineImpl extends AbstractLfDcLine {
     }
 
     @Override
-    public LfDcLine copy(LfNetwork newNetwork) {
+    public LfDcLine copy(LfNetwork copyNetwork) {
         return new LfDcLineImpl(this,
-                newNetwork,
-                newNetwork.getDcBusById(dcBus1.getId()),
-                newNetwork.getDcBusById(dcBus2.getId()));
+                copyNetwork,
+                copyNetwork.getDcBusById(dcBus1.getId()),
+                copyNetwork.getDcBusById(dcBus2.getId()));
     }
 
     /**

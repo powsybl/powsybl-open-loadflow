@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.network;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public interface LfDcBus extends LfElement, LfCopyable<LfDcBus> {
+public interface LfDcBus extends LfElement, LfCopyable<LfDcBus, LfNetwork> {
 
     /**
      * @return The DC bus voltage in per unit.

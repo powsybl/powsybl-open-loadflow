@@ -42,14 +42,14 @@ public class LfAreaImpl extends AbstractElement implements LfArea {
         return lfArea;
     }
 
-    public LfArea copy(LfNetwork newNetwork) {
+    public LfArea copy(LfNetwork copyNetwork) {
         Set<LfBus> buses = getBuses().stream()
-                .map(b -> newNetwork.getBusById(b.getId()))
+                .map(b -> copyNetwork.getBusById(b.getId()))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         Set<LfArea.Boundary> boundaries = getBoundaries().stream()
-                .map(b -> (LfArea.Boundary) new LfAreaImpl.BoundaryImpl(newNetwork.getBranchById(b.getBranch().getId()), b.getSide()))
+                .map(b -> (LfArea.Boundary) new LfAreaImpl.BoundaryImpl(copyNetwork.getBranchById(b.getBranch().getId()), b.getSide()))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        LfAreaImpl copiedArea = new LfAreaImpl(this, buses, boundaries, newNetwork);
+        LfAreaImpl copiedArea = new LfAreaImpl(this, buses, boundaries, copyNetwork);
         buses.forEach(bus -> bus.setArea(copiedArea));
         return copiedArea;
     }

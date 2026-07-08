@@ -71,13 +71,13 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
     }
 
     @Override
-    public LfHvdc copy(LfNetwork newNetwork) {
+    public LfHvdc copy(LfNetwork copyNetwork) {
         return new LfHvdcImpl(this,
-                newNetwork,
-                bus1 == null ? null : newNetwork.getBusById(bus1.getId()),
-                bus2 == null ? null : newNetwork.getBusById(bus2.getId()),
-                (LfVscConverterStation) newNetwork.getGeneratorById(converterStation1.getId()),
-                (LfVscConverterStation) newNetwork.getGeneratorById(converterStation2.getId()));
+                copyNetwork,
+                bus1 == null ? null : copyNetwork.getBusById(bus1.getId()),
+                bus2 == null ? null : copyNetwork.getBusById(bus2.getId()),
+                (LfVscConverterStation) copyNetwork.getGeneratorById(converterStation1.getId()),
+                (LfVscConverterStation) copyNetwork.getGeneratorById(converterStation2.getId()));
     }
 
     /**

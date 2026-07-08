@@ -98,8 +98,8 @@ public class LfBusImpl extends AbstractLfBus {
     }
 
     @Override
-    public LfBus copy(LfNetwork newNetwork) {
-        return new LfBusImpl(this, newNetwork);
+    public LfBus copy(LfNetwork copyNetwork) {
+        return new LfBusImpl(this, copyNetwork);
     }
 
     private LfBusImpl(LfBusImpl other, LfNetwork network) {

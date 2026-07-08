@@ -38,8 +38,8 @@ public class LfBoundaryLineBus extends AbstractLfBus {
     }
 
     @Override
-    public LfBus copy(LfNetwork newNetwork) {
-        return new LfBoundaryLineBus(this, newNetwork);
+    public LfBus copy(LfNetwork copyNetwork) {
+        return new LfBoundaryLineBus(this, copyNetwork);
     }
 
     private LfBoundaryLineBus(LfBoundaryLineBus other, LfNetwork network) {

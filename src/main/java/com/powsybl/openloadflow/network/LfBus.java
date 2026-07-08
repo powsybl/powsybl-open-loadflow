@@ -17,7 +17,7 @@ import java.util.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public interface LfBus extends LfElement, LfCopyable<LfBus> {
+public interface LfBus extends LfElement, LfCopyable<LfBus, LfNetwork> {
 
     static Map<Integer, Integer> buildIndex(List<LfBus> buses) {
         Map<Integer, Integer> busIndex = new LinkedHashMap<>();

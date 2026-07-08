@@ -30,8 +30,8 @@ public class LfDcBusImpl extends AbstractLfDcBus {
     }
 
     @Override
-    public LfDcBus copy(LfNetwork newNetwork) {
-        return new LfDcBusImpl(this, newNetwork);
+    public LfDcBus copy(LfNetwork copyNetwork) {
+        return new LfDcBusImpl(this, copyNetwork);
     }
 
     /**

@@ -16,7 +16,7 @@ import java.util.Objects;
 /**
  * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
-public class LfAsymBus {
+public class LfAsymBus implements LfCopyable<LfAsymBus, LfNetwork> {
 
     private LfBus bus;
 
@@ -51,6 +51,11 @@ public class LfAsymBus {
         this.totalDeltaQb = totalDeltaQb;
         this.totalDeltaPc = totalDeltaPc;
         this.totalDeltaQc = totalDeltaQc;
+    }
+
+    @Override
+    public LfAsymBus copy(LfNetwork copyNetwork) {
+        return new LfAsymBus(this);
     }
 
     /**
