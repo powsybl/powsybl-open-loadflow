@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfStarBus;
@@ -35,6 +36,8 @@ public abstract class AbstractNetworkResult {
 
     protected final LfNetwork network;
 
+    protected final Network iidmNetwork;
+
     protected final StateMonitorIndex monitorIndex;
 
     protected final StateMonitorIndex zeroImpedanceMonitorIndex;
@@ -58,10 +61,9 @@ public abstract class AbstractNetworkResult {
 
     protected final List<PhaseShifterResultsExtension.MovedPhaseShifterResult> movedPhaseShifterResults = new ArrayList<>();
 
-
-
-    protected AbstractNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
+    protected AbstractNetworkResult(LfNetwork network, Network iidmNetwork, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
         this.network = Objects.requireNonNull(network);
+        this.iidmNetwork = Objects.requireNonNull(iidmNetwork);
         this.monitorIndex = Objects.requireNonNull(monitorIndexes.monitorIndex);
         this.zeroImpedanceMonitorIndex = Objects.requireNonNull(monitorIndexes.zeroImpedanceMonitorIndex);
         this.createResultExtension = createResultExtension;
@@ -151,6 +153,44 @@ public abstract class AbstractNetworkResult {
         return zeroImpedanceFlows;
     }
 
+    private Optional<PhaseTapChanger> extractPhaseTapChanger(LfBranch branch) {
+        String originalId = branch.getMainOriginalId();
+        LfBranch.BranchType branchType = branch.getBranchType();
+        if (branchType == LfBranch.BranchType.TRANSFO_2) {
+            TwoWindingsTransformer twt = iidmNetwork.getTwoWindingsTransformer(originalId);
+            if (twt != null) {
+                return Optional.ofNullable(twt.getPhaseTapChanger());
+            }
+        } else if (branchType == LfBranch.BranchType.TRANSFO_3_LEG_1
+                || branchType == LfBranch.BranchType.TRANSFO_3_LEG_2
+                || branchType == LfBranch.BranchType.TRANSFO_3_LEG_3) {
+            ThreeWindingsTransformer t3wt = iidmNetwork.getThreeWindingsTransformer(originalId);
+            if (t3wt != null) {
+                Optional<ThreeSides> side = branch.getOriginalSide();
+                if (side.isPresent()) {
+                    return Optional.ofNullable(t3wt.getLeg(side.get()).getPhaseTapChanger());
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    protected void storeInitialPhaseTapChangerInfo() {
+        phaseTapChangerResults = network.getBranches().stream()
+                    .filter(b -> !b.isDisabled())
+                    .filter(LfBranch::hasPhaseControllerCapability)
+                    .map(b -> {
+                        var ptc = extractPhaseTapChanger(b);
+                        return ptc.map(p -> new PhaseTapChangerResult(p,
+                                b.getMainOriginalId(),
+                                b.getPiModel(),
+                                p.getTapPosition()));
+                    })
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .toList();
+    }
+
     protected void updateMovedPhaseShifters() {
         for (PhaseTapChangerResult ptcResult : phaseTapChangerResults) {
             int newTapPosition = Transformers.findTapPosition(ptcResult.getPhaseTapChanger(), Math.toDegrees(ptcResult.getPiModel().getA1()));
@@ -159,6 +199,10 @@ public abstract class AbstractNetworkResult {
                 ptcResult.setCurrentTap(newTapPosition);
             }
         }
+    }
+
+    protected List<PhaseTapChangerResult> getPhaseTapChangerResults() {
+        return phaseTapChangerResults;
     }
 
     public List<PhaseShifterResultsExtension.MovedPhaseShifterResult> getMovedPhaseShifterResults() {
