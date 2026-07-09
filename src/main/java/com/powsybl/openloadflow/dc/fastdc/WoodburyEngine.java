@@ -87,6 +87,17 @@ public class WoodburyEngine {
         }
 
         DcLoadFlowParameters parameters = loadFlowContext.getParameters();
+
+        // apply generator/load (injection) actions on the network before distributing the slack, so that the slack
+        // induced by the injection change is distributed over the participating elements exactly as in a full DC load
+        // flow (the target vector listens to these network changes). As for the slack distribution itself, restoring the
+        // network state modified here is the caller's responsibility.
+        LfNetworkParameters networkParameters = parameters.getNetworkParameters();
+        lfActions.stream().filter(LfGeneratorAction.class::isInstance).map(LfGeneratorAction.class::cast)
+                .forEach(action -> action.apply(loadFlowContext.getNetwork(), null, networkParameters));
+        lfActions.stream().filter(LfLoadAction.class::isInstance).map(LfLoadAction.class::cast)
+                .forEach(action -> action.apply(loadFlowContext.getNetwork(), null, networkParameters));
+
         if (parameters.isDistributedSlack()) {
             distributeSlack(loadFlowContext.getNetwork(), remainingBuses, parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
         }
@@ -128,32 +139,6 @@ public class WoodburyEngine {
                                     targetVectorArray[column] = tapPositionChange.getNewPiModel().getA1();
                                 }
                         );
-                    });
-
-            // apply generator actions by shifting the bus target P injection
-            lfActions.stream()
-                    .filter(LfGeneratorAction.class::isInstance)
-                    .map(LfGeneratorAction.class::cast)
-                    .filter(a -> !a.getGenerator().isDisabled())
-                    .forEach(genAction -> {
-                        LfBus bus = genAction.getGenerator().getBus();
-                        double deltaTargetP = genAction.getNewTargetP() - genAction.getGenerator().getTargetP();
-                        loadFlowContext.getEquationSystem().getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
-                                .filter(Equation::isActive)
-                                .ifPresent(eq -> targetVectorArray[eq.getColumn()] += deltaTargetP);
-                    });
-
-            // apply load actions: a load increase reduces the bus net injection (generation - load)
-            lfActions.stream()
-                    .filter(LfLoadAction.class::isInstance)
-                    .map(LfLoadAction.class::cast)
-                    .filter(a -> a.isValid() && !a.getLfLoad().isOriginalLoadDisabled(a.getLoadId()))
-                    .forEach(loadAction -> {
-                        LfBus bus = loadAction.getLfLoad().getBus();
-                        double deltaTargetP = -loadAction.getPowerShift().getActive();
-                        loadFlowContext.getEquationSystem().getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
-                                .filter(Equation::isActive)
-                                .ifPresent(eq -> targetVectorArray[eq.getColumn()] += deltaTargetP);
                     });
 
             // set transformer phase shift to 0 for disabled phase tap changers by actions
