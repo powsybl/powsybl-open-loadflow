@@ -9,9 +9,9 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfElement;
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.map.TIntIntMap;
-import gnu.trove.map.hash.TIntIntHashMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -36,7 +36,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private int[] elementNumToColumn;
 
-    private TIntIntMap columnToElementNum;
+    private Int2IntMap columnToElementNum;
 
     private int length;
 
@@ -73,17 +73,17 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     }
 
     static class MatrixElementIndexes {
-        private final TIntArrayList indexes = new TIntArrayList();
+        private final IntArrayList indexes = new IntArrayList();
 
         private int get(int i) {
             if (i >= indexes.size()) {
                 indexes.add(-1);
             }
-            return indexes.getQuick(i);
+            return indexes.getInt(i);
         }
 
         private void set(int i, int index) {
-            indexes.setQuick(i, index);
+            indexes.set(i, index);
         }
 
         void reset() {
@@ -141,7 +141,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     public int getColumnToElementNum(int column) {
         if (columnToElementNum == null) {
-            columnToElementNum = new TIntIntHashMap(elementCount);
+            columnToElementNum = new Int2IntOpenHashMap(elementCount);
             for (int elementNum = 0; elementNum < elementCount; elementNum++) {
                 int c = getElementNumToColumn(elementNum);
                 if (c != -1) {
@@ -288,7 +288,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     int iEnd = termNumsConcatenatedStartIndices[elementNum + 1];
                     var termNums = termArray.getTermNumsConcatenated();
                     for (int i = iStart; i < iEnd; i++) {
-                        int termNum = termNums.getQuick(i);
+                        int termNum = termNums.getInt(i);
                         int termElementNum = termArray.getTermElementNum(termNum);
                         terms.add((T) new EquationTermArray.EquationTermArrayElementImpl<>(termArray, termElementNum));
                     }
@@ -327,7 +327,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     int iEnd = termNumsConcatenatedStartIndices[elementNum + 1];
                     var termNums = termArray.getTermNumsConcatenated();
                     for (int i = iStart; i < iEnd; i++) {
-                        int termNum = termNums.getQuick(i);
+                        int termNum = termNums.getInt(i);
                         // skip inactive terms
                         if (termArray.isTermActive(termNum)) {
                             int termElementNum = termArray.getTermElementNum(termNum);
@@ -369,7 +369,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 int iStart = termNumsConcatenatedStartIndices[elementNum];
                 int iEnd = termNumsConcatenatedStartIndices[elementNum + 1];
                 for (int i = iStart; i < iEnd; i++) {
-                    int termNum = termNums.getQuick(i);
+                    int termNum = termNums.getInt(i);
                     // skip inactive terms
                     if (termArray.isTermActive(termNum)) {
                         int termElementNum = termArray.getTermElementNum(termNum);
@@ -417,7 +417,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             int iEnd = termNumsConcatenatedStartIndices[elementNum + 1];
             var termNums = termArray.getTermNumsConcatenated();
             for (int i = iStart; i < iEnd; i++) {
-                int termNum = termNums.getQuick(i);
+                int termNum = termNums.getInt(i);
                 // for each term of each, add an entry for each derivative operation we need
                 var termDerivatives = termArray.getTermDerivatives(termNum);
                 for (Derivative<V> derivative : termDerivatives) {
