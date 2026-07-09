@@ -16,7 +16,7 @@ import java.util.Objects;
 /**
  * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
-public class LfAsymBus {
+public class LfAsymBus implements LfCopyable<LfAsymBus, LfNetwork> {
 
     private LfBus bus;
 
@@ -53,6 +53,11 @@ public class LfAsymBus {
         this.totalDeltaQc = totalDeltaQc;
     }
 
+    @Override
+    public LfAsymBus copy(LfNetwork copyNetwork) {
+        return new LfAsymBus(this);
+    }
+
     /**
      * Deep copy constructor (see {@code LfNetworkCopier}). The solver state (zero and negative
      * sequence voltages and angles) is copied; the equivalent shunts are left at zero because they
@@ -61,7 +66,7 @@ public class LfAsymBus {
      * Solver injected evaluables are left at their default. The bus back reference is wired by
      * {@link LfBus#setAsym}.
      */
-    public LfAsymBus(LfAsymBus other) {
+    private LfAsymBus(LfAsymBus other) {
         this.totalDeltaPa = other.totalDeltaPa;
         this.totalDeltaQa = other.totalDeltaQa;
         this.totalDeltaPb = other.totalDeltaPb;

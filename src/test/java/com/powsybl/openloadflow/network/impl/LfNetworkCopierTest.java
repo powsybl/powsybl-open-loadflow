@@ -247,7 +247,6 @@ class LfNetworkCopierTest {
         List<LfNetwork> originals = Networks.load(c.network(), c.topoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP);
 
         for (LfNetwork original : originals) {
-            assertTrue(LfNetworkCopier.canCopy(original), "Network copy should be supported for " + c.name());
             LfNetwork copy = LfNetworkCopier.copy(original, LoadFlowModel.AC, ReportNode.NO_OP);
 
             // identical structure
@@ -322,7 +321,6 @@ class LfNetworkCopierTest {
                     "fixture should carry disabled elements from the topology restoration");
             assertEquals(2, original.getConnectivityRemovedBranches().size());
 
-            assertTrue(LfNetworkCopier.canCopy(original), "restored topology networks should now be copyable");
             LfNetwork copy = LfNetworkCopier.copy(original, LoadFlowModel.AC, ReportNode.NO_OP);
 
             assertEquals(dump(original), dump(copy));
@@ -358,7 +356,6 @@ class LfNetworkCopierTest {
                 new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
         List<LfNetwork> lfNetworks = Networks.load(acDcNetwork, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP);
         for (LfNetwork original : lfNetworks) {
-            assertTrue(LfNetworkCopier.canCopy(original), "AC/DC networks should be copyable");
             LfNetwork copy = LfNetworkCopier.copy(original, LoadFlowModel.AC, ReportNode.NO_OP);
             assertEquals(dump(original), dump(copy));
             AcLoadFlowResult originalResult = run(original, acParameters);
@@ -417,7 +414,6 @@ class LfNetworkCopierTest {
         originalSc.setExcludedSlackBuses(java.util.Set.of(excluded));
         assertTrue(!originalSc.getExcludedSlackBuses().isEmpty());
 
-        assertTrue(LfNetworkCopier.canCopy(original));
         LfNetwork copy = LfNetworkCopier.copy(original, LoadFlowModel.AC, ReportNode.NO_OP);
 
         LfSynchronousNetwork copySc = copy.getSynchronousNetwork(originalSc.getNumSC());

@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.contingency.violations.ViolationLocation;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
@@ -30,7 +31,12 @@ public class LfStarBus extends AbstractLfBus {
         nominalV = t3wt.getRatedU0();
     }
 
-    protected LfStarBus(LfStarBus other, LfNetwork network) {
+    @Override
+    public LfBus copy(LfNetwork copyNetwork) {
+        return new LfStarBus(this, copyNetwork);
+    }
+
+    private LfStarBus(LfStarBus other, LfNetwork network) {
         super(other, network);
         this.t3wtRef = other.t3wtRef;
         this.nominalV = other.nominalV;

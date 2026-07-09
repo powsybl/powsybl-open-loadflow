@@ -97,7 +97,12 @@ public class LfBusImpl extends AbstractLfBus {
         lfBus.setAsym(new LfAsymBus(totalDeltaPa, totalDeltaQa, totalDeltaPb, totalDeltaQb, totalDeltaPc, totalDeltaQc));
     }
 
-    protected LfBusImpl(LfBusImpl other, LfNetwork network) {
+    @Override
+    public LfBus copy(LfNetwork copyNetwork) {
+        return new LfBusImpl(this, copyNetwork);
+    }
+
+    private LfBusImpl(LfBusImpl other, LfNetwork network) {
         super(other, network);
         this.busRef = other.busRef;
         this.nominalV = other.nominalV;

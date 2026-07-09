@@ -36,7 +36,15 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         this.branchRef = Ref.create(branch, parameters.isCacheEnabled());
     }
 
-    protected LfBranchImpl(LfBranchImpl other, LfNetwork network, LfBus bus1, LfBus bus2) {
+    @Override
+    public LfBranch copy(LfNetwork copyNetwork) {
+        return new LfBranchImpl(this,
+                copyNetwork,
+                bus1 == null ? null : copyNetwork.getBusById(bus1.getId()),
+                bus2 == null ? null : copyNetwork.getBusById(bus2.getId()));
+    }
+
+    private LfBranchImpl(LfBranchImpl other, LfNetwork network, LfBus bus1, LfBus bus2) {
         super(other, network, bus1, bus2);
         this.branchRef = other.branchRef;
     }

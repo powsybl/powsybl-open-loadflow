@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
@@ -41,7 +42,19 @@ public class LfAreaImpl extends AbstractElement implements LfArea {
         return lfArea;
     }
 
-    protected LfAreaImpl(LfAreaImpl other, Set<LfBus> buses, Set<Boundary> boundaries, LfNetwork network) {
+    public LfArea copy(LfNetwork copyNetwork) {
+        Set<LfBus> buses = getBuses().stream()
+                .map(b -> copyNetwork.getBusById(b.getId()))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<LfArea.Boundary> boundaries = getBoundaries().stream()
+                .map(b -> (LfArea.Boundary) new LfAreaImpl.BoundaryImpl(copyNetwork.getBranchById(b.getBranch().getId()), b.getSide()))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        LfAreaImpl copiedArea = new LfAreaImpl(this, buses, boundaries, copyNetwork);
+        buses.forEach(bus -> bus.setArea(copiedArea));
+        return copiedArea;
+    }
+
+    private LfAreaImpl(LfAreaImpl other, Set<LfBus> buses, Set<Boundary> boundaries, LfNetwork network) {
         super(network);
         this.areaRef = other.areaRef;
         this.interchangeTarget = other.interchangeTarget;

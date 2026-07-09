@@ -39,7 +39,15 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
         this.id = tieLine.getId();
     }
 
-    protected LfTieLineBranch(LfTieLineBranch other, LfNetwork network, LfBus bus1, LfBus bus2) {
+    @Override
+    public LfBranch copy(LfNetwork copyNetwork) {
+        return new LfTieLineBranch(this,
+                copyNetwork,
+                bus1 == null ? null : copyNetwork.getBusById(bus1.getId()),
+                bus2 == null ? null : copyNetwork.getBusById(bus2.getId()));
+    }
+
+    private LfTieLineBranch(LfTieLineBranch other, LfNetwork network, LfBus bus1, LfBus bus2) {
         super(other, network, bus1, bus2);
         this.boundaryLine1Ref = other.boundaryLine1Ref;
         this.boundaryLine2Ref = other.boundaryLine2Ref;

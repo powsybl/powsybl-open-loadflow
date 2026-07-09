@@ -10,9 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Battery;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.VoltageRegulation;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -60,7 +58,12 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         }
     }
 
-    protected LfBatteryImpl(LfBatteryImpl other, LfNetwork network) {
+    @Override
+    public LfGenerator copy(LfBus copyBus) {
+        return new LfBatteryImpl(this, copyBus.getNetwork());
+    }
+
+    private LfBatteryImpl(LfBatteryImpl other, LfNetwork network) {
         super(other, network);
         this.batteryRef = other.batteryRef;
         this.initialParticipating = other.initialParticipating;
