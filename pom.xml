@@ -107,6 +107,14 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Use the snapshot powsybl-math-native (built with the optional cuDSS
+                 GPU library) instead of the released version pinned by the core BOM.
+                 An explicit entry takes precedence over the imported BOM below. -->
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-math-native</artifactId>
+                <version>1.5.0-SNAPSHOT</version>
+            </dependency>
             <dependency>
                 <groupId>com.powsybl</groupId>
                 <artifactId>powsybl-core</artifactId>
@@ -137,6 +145,13 @@
             <groupId>org.usefultoys</groupId>
             <artifactId>slf4j-toys</artifactId>
             <version>${slf4jtoys.version}</version>
+        </dependency>
+        <!-- Classpath loader for the optional GPU native library natives/<arch>/libolfgpu
+             (built by the root CMakeLists, see native/build-gpu.sh). Version managed by the
+             powsybl-core BOM; already a transitive compile dependency via powsybl-math. -->
+        <dependency>
+            <groupId>org.scijava</groupId>
+            <artifactId>native-lib-loader</artifactId>
         </dependency>
 
         <dependency>
