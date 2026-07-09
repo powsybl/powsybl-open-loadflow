@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
+import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.lf.outerloop.config.AbstractAcOuterLoopConfig;
@@ -88,6 +89,18 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     @Override
     protected AcLoadFlowParameters copyParameters(AcLoadFlowParameters parameters) {
         return new AcLoadFlowParameters(parameters);
+    }
+
+    @Override
+    protected boolean canPresolveNetworks(OpenLoadFlowParameters lfParametersExt) {
+        // an automation system can change the topology during the pre-contingency simulation, which
+        // makes the solved networks non copyable
+        return !lfParametersExt.isSimulateAutomationSystems();
+    }
+
+    @Override
+    protected void initStateFromPresolvedNetwork(AcLoadFlowContext context) {
+        AcSolverUtil.initStateVector(context.getNetwork(), context.getEquationSystem(), new PreviousValueVoltageInitializer(true));
     }
 
     @Override

@@ -13,6 +13,7 @@ import com.powsybl.sensitivity.SensitivityAnalysisParameters;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -23,6 +24,17 @@ public class OpenSensitivityAnalysisParameters extends AbstractExtension<Sensiti
     private String debugDir;
     private boolean startWithFrozenACEmulation = START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE;
     private int threadCount = THREAD_COUNT_DEFAULT_VALUE;
+    private NetworkPerThreadMode networkPerThreadMode = NETWORK_PER_THREAD_MODE_DEFAULT_VALUE;
+
+    /**
+     * How each additional thread of a multi-threaded analysis gets its own LfNetwork:
+     * {@link #COPY} deep copies the network built once (faster, results identical to single thread),
+     * {@link #REBUILD} rebuilds it from the IIDM network under a lock (legacy behavior).
+     */
+    public enum NetworkPerThreadMode {
+        COPY,
+        REBUILD
+    }
 
     public static final String DEBUG_DIR_PARAM_NAME = "debugDir";
     public static final String DEBUG_DIR_DEFAULT_VALUE = "";
@@ -31,7 +43,11 @@ public class OpenSensitivityAnalysisParameters extends AbstractExtension<Sensiti
     public static final String THREAD_COUNT_PARAM_NAME = "threadCount";
     public static final int THREAD_COUNT_DEFAULT_VALUE = 1;
 
-    public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(DEBUG_DIR_PARAM_NAME, START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, THREAD_COUNT_PARAM_NAME);
+    public static final String NETWORK_PER_THREAD_MODE_PARAM_NAME = "networkPerThreadMode";
+    public static final NetworkPerThreadMode NETWORK_PER_THREAD_MODE_DEFAULT_VALUE = NetworkPerThreadMode.COPY;
+
+    public static final List<String> SPECIFIC_PARAMETERS_NAMES = List.of(DEBUG_DIR_PARAM_NAME, START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, THREAD_COUNT_PARAM_NAME,
+            NETWORK_PER_THREAD_MODE_PARAM_NAME);
 
     @Override
     public String getName() {
@@ -60,6 +76,15 @@ public class OpenSensitivityAnalysisParameters extends AbstractExtension<Sensiti
         return threadCount;
     }
 
+    public NetworkPerThreadMode getNetworkPerThreadMode() {
+        return networkPerThreadMode;
+    }
+
+    public OpenSensitivityAnalysisParameters setNetworkPerThreadMode(NetworkPerThreadMode networkPerThreadMode) {
+        this.networkPerThreadMode = Objects.requireNonNull(networkPerThreadMode);
+        return this;
+    }
+
     public OpenSensitivityAnalysisParameters setThreadCount(int threadCount) {
         this.threadCount = threadCount;
         return this;
@@ -83,7 +108,8 @@ public class OpenSensitivityAnalysisParameters extends AbstractExtension<Sensiti
                 .ifPresent(config -> parameters
                         .setDebugDir(config.getStringProperty(DEBUG_DIR_PARAM_NAME, DEBUG_DIR_DEFAULT_VALUE))
                         .setStartWithFrozenACEmulation(config.getBooleanProperty(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE))
-                        .setThreadCount(config.getIntProperty(THREAD_COUNT_PARAM_NAME, THREAD_COUNT_DEFAULT_VALUE)));
+                        .setThreadCount(config.getIntProperty(THREAD_COUNT_PARAM_NAME, THREAD_COUNT_DEFAULT_VALUE))
+                        .setNetworkPerThreadMode(config.getEnumProperty(NETWORK_PER_THREAD_MODE_PARAM_NAME, NetworkPerThreadMode.class, NETWORK_PER_THREAD_MODE_DEFAULT_VALUE)));
         return parameters;
     }
 
@@ -94,6 +120,8 @@ public class OpenSensitivityAnalysisParameters extends AbstractExtension<Sensiti
                 .ifPresent(value -> parameters.setStartWithFrozenACEmulation(Boolean.parseBoolean(value)));
         Optional.ofNullable(properties.get(THREAD_COUNT_PARAM_NAME))
                 .ifPresent(value -> parameters.setThreadCount(Integer.parseInt(value)));
+        Optional.ofNullable(properties.get(NETWORK_PER_THREAD_MODE_PARAM_NAME))
+                .ifPresent(value -> parameters.setNetworkPerThreadMode(NetworkPerThreadMode.valueOf(value)));
         return parameters;
     }
 }
