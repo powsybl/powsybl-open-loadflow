@@ -21,7 +21,7 @@ import java.util.Objects;
 /**
  * @author Pierre Arvy {@literal <pierre.arvy@artelys.com>}
  */
-public final class ComputedSwitchBranchElement extends AbstractComputedElement implements ComputedElement {
+public final class ComputedSwitchBranchElement extends AbstractComputedBranchElement implements ComputedElement {
 
     private final boolean enabled; // indicates whether the action opens or closes the branch
 

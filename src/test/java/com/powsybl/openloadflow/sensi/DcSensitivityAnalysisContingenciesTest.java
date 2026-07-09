@@ -2811,6 +2811,10 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                                                   new Contingency("bus", new BusContingency("b2")));
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l34", "l4"));
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1", true);
+        // AC emulation disabled: this test checks fixed-setpoint HVDC contingency behaviour.
+        // Supporting HVDC-line contingencies with AC emulation requires extending the Woodbury engine
+        // to treat the droop coupling as a virtual branch (separate TODO).
+        sensiParameters.getLoadFlowParameters().setHvdcAcEmulation(false);
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
