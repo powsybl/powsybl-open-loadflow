@@ -243,17 +243,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         List<LfAction> actions = operatorStrategy != null ? operatorStrategy.getActions().stream().filter(LfAction::isValid).toList()
                                                           : Collections.emptyList();
 
-        // dedup action elements by their LF element: an operator strategy may reference the same action more than
-        // once (e.g. a line reconnection that closes a breaker at each end both convert to the same branch action),
-        // which would otherwise put two identical rows in the Woodbury matrix and make it singular
-        List<ComputedElement> actionElements = actions.stream()
-                .map(actionElementByLfAction::get)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfBranch().getId()))
-                .collect(Collectors.toMap(ComputedElement::getLfBranch, e -> e, (a, b) -> a, LinkedHashMap::new))
-                .values().stream().toList();
-
         // collect branch IDs enabled by actions (used to exclude from permanent disabled set)
         Set<String> actionEnabledBranchIds = actions.stream()
                 .filter(a -> a instanceof AbstractLfBranchAction<?>)
@@ -293,12 +282,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 Stream.concat(permanentElements.stream(), realContingencyElements.stream()),
                 hvdcContingencyElements.stream()).toList();
 
+        // dedup action elements by their LF element: an operator strategy may reference the same action more than
+        // once (e.g. a line reconnection that closes a breaker at each end both convert to the same branch action),
+        // which would otherwise put two identical rows in the Woodbury matrix and make it singular
         List<ComputedElement> actionElements = actions.stream()
                 .map(actionElementByLfAction::get)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfElement().getId()))
-                .toList();
+                .collect(Collectors.toMap(ComputedElement::getLfElement, e -> e, (a, b) -> a, LinkedHashMap::new))
+                .values().stream().toList();
 
         Set<LfBranch> disabledBranches = findDisabledBranchIds(contingency, actions).stream().map(lfNetwork::getBranchById).filter(Objects::nonNull).collect(Collectors.toSet());
         disabledBranches.addAll(partialDisabledBranches);
