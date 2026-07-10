@@ -175,11 +175,11 @@ public class WoodburyEngine {
      */
     private double getAlphaRhsValue(DenseMatrix states, ComputedElement element, int columnState) {
         double newAlpha = 0;
-        if (computedElement instanceof ComputedTapPositionChangeElement computedTapPositionChangeElement) {
+        if (element instanceof ComputedTapPositionChangeElement computedTapPositionChangeElement) {
             TapPositionChange tapPositionChange = computedTapPositionChangeElement.getTapPositionChange();
             PiModel newPiModel = tapPositionChange.getNewPiModel();
             newAlpha = newPiModel.getA1();
-        } else if (computedElement instanceof ComputedSwitchBranchElement switchElement && switchElement.isEnabled()
+        } else if (element instanceof ComputedSwitchBranchElement switchElement && switchElement.isEnabled()
                 && switchElement.getLfBranch().isDisabled()) {
             // when closing a branch that is currently disabled (absent from the base flow states), and if it is a phase
             // shifting transformer, its phase shift must be injected the same way a tap position change injects the new
