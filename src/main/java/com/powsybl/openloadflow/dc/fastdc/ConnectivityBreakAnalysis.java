@@ -297,8 +297,19 @@ public final class ConnectivityBreakAnalysis {
                                                                                                           List<String> additionalBranchIds) {
         Map<String, ComputedBranchContingencyElement> contingencyElementByBranch =
                 Stream.concat(
-                                contingencies.stream().flatMap(contingency -> contingency.getBranchIdsToOpen().keySet().stream()),
-                                additionalBranchIds.stream())
+                        contingencies.stream().flatMap(contingency -> contingency.getBranchIdsToOpen().keySet().stream()),
+                        additionalBranchIds.stream()
+                )
+                        // an id may not correspond to a branch of this connected component's LF network: a permanent
+                        // contingency (reconnectable) branch is global to the whole network and may belong to another
+                        // connected component. Such a branch carries no flow here, so it is safely ignored.
+                        .filter(branchId -> {
+                            if (lfNetwork.getBranchById(branchId) == null) {
+                                LOGGER.debug("Contingency or reconnectable branch '{}' is not in the LF network and is ignored in fast DC connectivity analysis", branchId);
+                                return false;
+                            }
+                            return true;
+                        })
                         .map(branch -> new ComputedBranchContingencyElement(new BranchContingency(branch), lfNetwork, equationSystem))
                         .filter(element -> element.getEquation() != null)
                         .collect(Collectors.toMap(
