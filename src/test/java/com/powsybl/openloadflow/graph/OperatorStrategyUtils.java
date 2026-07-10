@@ -1,8 +1,8 @@
 /**
- * Copyright (c) 2026, RTE (http://www.rte-france.com)  
- * This Source Code Form is subject to the terms of the Mozilla Public  
- * License, v. 2.0. If a copy of the MPL was not distributed with this  
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.  
+ * Copyright (c) 2026, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.graph;
@@ -34,64 +34,64 @@ public class OperatorStrategyUtils {
     public static Pair<List<OperatorStrategy>, List<Action>> operatorStrategiesFor(Network network, List<Contingency> contingencies, Random random) {
         // vertex = node in a voltage level node breaker view
         // edge = something between two nodes
-//        NetworkGraphBase<?> ng = BusBreakerGraph.create(network);
-//        Map<String, Edge<?>> idToEdge = ng.idToEdge;
-//
-//        System.out.println(ng.vertexSet().size() + " - " + ng.edgeSet().size());
-//
-//        List<Switch> switches = ng.edgeSet().stream()
-//                .map(Edge::switchh)
-//                .filter(Objects::nonNull)
-//                .filter(Switch::isOpen)
-//                .collect(Collectors.toList());
-//
-//        // compute connected components, but open switch are filtered
-//        GraphConnectivity<Vertex, Edge<?>> connectivity = new DTreeGraphConnectivity<>();
-//        initialConnectivity(ng, connectivity);
-//
-//        // simulate each contingency
-//        BFSShortestPath<Vertex, Edge> sp = new BFSShortestPath<>(graph);
-//
-//        Set<Action> actions = new HashSet<>();
-//        List<OperatorStrategy> strategies = new ArrayList<>();
-//
-//        int pathFoundCount = 0;
-//        int noPathCount = 0;
-//
-//        for (Contingency contingency : contingencies) {
-//            Line line = network.getLine(contingency.getElements().getFirst().getId());
-//            Edge edge = Objects.requireNonNull(idToEdge.get(line.getId()));
-//
-//            strategies.add(randomSwitch(contingency, switches, random, actions));
-//
-//            /*connectivity.startTemporaryChanges();
-//            int prev = connectivity.getNbConnectedComponents();
-//            connectivity.removeEdge(edge);
-//            int after = connectivity.getNbConnectedComponents();
-//            connectivity.undoTemporaryChanges();
-//
-//            if (after - prev > 0) {
-//                // find a path between edge.src and edge.dest in the original graph
-//                // but without edge.
-//                graph.removeEdge(edge);
-//
-//                GraphPath<Vertex, Edge> path = sp.getPath(edge.src(), edge.dest());
-//                if (path != null) {
-//                    strategies.add(createOperatorStrategy(contingency, path.getEdgeList(), actions));
-//                } else {
-//                    System.err.println("no path found for " + contingency.getId());
-//                    noPathCount++;
-//                }
-//
-//                graph.addEdge(edge.src(), edge.dest(), edge);
-//            }*/ /* else {
-//                strategies.add(operatorStrategyConnectNearest(contingency, actions, network, 1));
-//            }*/
-//        }
-//
-//        System.out.printf("Path found/No path: %d / %d%n", pathFoundCount, noPathCount);
-//
-//        return new ImmutablePair<>(strategies, new ArrayList<>(actions));
+        //        NetworkGraphBase<?> ng = BusBreakerGraph.create(network);
+        //        Map<String, Edge<?>> idToEdge = ng.idToEdge;
+        //
+        //        System.out.println(ng.vertexSet().size() + " - " + ng.edgeSet().size());
+        //
+        //        List<Switch> switches = ng.edgeSet().stream()
+        //                .map(Edge::switchh)
+        //                .filter(Objects::nonNull)
+        //                .filter(Switch::isOpen)
+        //                .collect(Collectors.toList());
+        //
+        //        // compute connected components, but open switch are filtered
+        //        GraphConnectivity<Vertex, Edge<?>> connectivity = new DTreeGraphConnectivity<>();
+        //        initialConnectivity(ng, connectivity);
+        //
+        //        // simulate each contingency
+        //        BFSShortestPath<Vertex, Edge> sp = new BFSShortestPath<>(graph);
+        //
+        //        Set<Action> actions = new HashSet<>();
+        //        List<OperatorStrategy> strategies = new ArrayList<>();
+        //
+        //        int pathFoundCount = 0;
+        //        int noPathCount = 0;
+        //
+        //        for (Contingency contingency : contingencies) {
+        //            Line line = network.getLine(contingency.getElements().getFirst().getId());
+        //            Edge edge = Objects.requireNonNull(idToEdge.get(line.getId()));
+        //
+        //            strategies.add(randomSwitch(contingency, switches, random, actions));
+        //
+        //            /*connectivity.startTemporaryChanges();
+        //            int prev = connectivity.getNbConnectedComponents();
+        //            connectivity.removeEdge(edge);
+        //            int after = connectivity.getNbConnectedComponents();
+        //            connectivity.undoTemporaryChanges();
+        //
+        //            if (after - prev > 0) {
+        //                // find a path between edge.src and edge.dest in the original graph
+        //                // but without edge.
+        //                graph.removeEdge(edge);
+        //
+        //                GraphPath<Vertex, Edge> path = sp.getPath(edge.src(), edge.dest());
+        //                if (path != null) {
+        //                    strategies.add(createOperatorStrategy(contingency, path.getEdgeList(), actions));
+        //                } else {
+        //                    System.err.println("no path found for " + contingency.getId());
+        //                    noPathCount++;
+        //                }
+        //
+        //                graph.addEdge(edge.src(), edge.dest(), edge);
+        //            }*/ /* else {
+        //                strategies.add(operatorStrategyConnectNearest(contingency, actions, network, 1));
+        //            }*/
+        //        }
+        //
+        //        System.out.printf("Path found/No path: %d / %d%n", pathFoundCount, noPathCount);
+        //
+        //        return new ImmutablePair<>(strategies, new ArrayList<>(actions));
 
         throw new UnsupportedOperationException();
     }

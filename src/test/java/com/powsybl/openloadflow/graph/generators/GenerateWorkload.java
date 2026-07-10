@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.graph.generators;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
+import com.powsybl.openloadflow.graph.SecurityAnalysisRunner;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -62,7 +63,7 @@ public class GenerateWorkload {
         workload.sar.disconnectLinesPreserveConnectivity(5000);
         workload.sar.generateContingenciesAndActions(10000, 10, 10);
         workload.sar.threadCount = Runtime.getRuntime().availableProcessors();
-        workload.sar.dc = true;
+        workload.sar.mode = SecurityAnalysisRunner.Mode.DC;
 
         System.out.println(Instant.now());
         long start = System.currentTimeMillis();

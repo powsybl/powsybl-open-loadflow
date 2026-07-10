@@ -48,7 +48,7 @@ public class SecurityAnalysisRunner {
     public List<OperatorStrategy> operatorStrategies = new ArrayList<>();
     public Set<Action> actions = new HashSet<>();
     public GraphConnectivityFactory<LfBus, LfBranch> connectivity;
-    public boolean dc;
+    public Mode mode;
     public int threadCount;
 
     public SecurityAnalysisRunner(Network network) {
@@ -232,14 +232,18 @@ public class SecurityAnalysisRunner {
     public AverageStopWatch run(GraphConnectivityFactory<LfBus, LfBranch> connectivity) {
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(new LoadFlowParameters()
-                .setDc(dc)
+                .setDc(mode != Mode.AC)
                 .setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS));
         // TODO: OpenLoadFlowParameters setNetworkCacheEnabled(true)
 
+        OpenSecurityAnalysisParameters osap = new OpenSecurityAnalysisParameters();
         if (threadCount > 1) {
-            securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class,
-                    new OpenSecurityAnalysisParameters().setThreadCount(threadCount));
+            osap.setThreadCount(threadCount);
         }
+        if (mode == Mode.FAST_DC) {
+            osap.setDcFastMode(true);
+        }
+        securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, osap);
 
         SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
                 .setSecurityAnalysisParameters(securityAnalysisParameters);
@@ -262,5 +266,11 @@ public class SecurityAnalysisRunner {
         new SecurityAnalysis.Runner(provider).run(network, contingencies, runParameters);
         sa.stop();
         return sa;
+    }
+
+    public enum Mode {
+        AC,
+        DC,
+        FAST_DC
     }
 }
