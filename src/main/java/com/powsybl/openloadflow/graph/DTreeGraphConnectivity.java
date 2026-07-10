@@ -212,8 +212,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     public static final class DTGraph<V, E> implements GraphModel<V, E> {
 
-        public static boolean debug = false;
-
         private final Map<V, DTNode> vertexToTreeNode = new HashMap<>();
         private final Map<E, Edge> edges = new HashMap<>();
 
@@ -233,65 +231,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
         DTNode rootOf(V vertex) {
             return vertexToTreeNode.get(vertex).findRootOptReroot();
-        }
-
-        // ==============
-        // * INVARIANTS *
-        // ==============
-
-        private void check() {
-            if (!debug) {
-                return;
-            }
-
-            checkEdges();
-            checkParentChildRelation();
-        }
-
-        private void checkEdges() {
-            for (DTNode node : vertexToTreeNode.values()) {
-                for (E nonTreeEdge : node.nonTreeEdges) {
-                    assert edges.containsKey(nonTreeEdge) && !edges.get(nonTreeEdge).treeEdge;
-                }
-            }
-
-            for (Map.Entry<E, Edge> entry : edges.entrySet()) {
-                E e = entry.getKey();
-                Edge edge = entry.getValue();
-
-                DTNode src = Objects.requireNonNull(vertexToTreeNode.get(edge.u));
-                DTNode dest = Objects.requireNonNull(vertexToTreeNode.get(edge.v));
-
-                if (edge.treeEdge) {
-                    assert src.parent == dest && src.parentEdge == e || dest.parent == src && dest.parentEdge == e;
-                } else {
-                    assert src.nonTreeEdges.contains(e);
-                    assert dest.nonTreeEdges.contains(e);
-                }
-            }
-        }
-
-        private void checkParentChildRelation() {
-            for (DTNode node : vertexToTreeNode.values()) {
-                DTNode child = node.firstChild;
-
-                while (child != null) {
-                    assert child.parent == node;
-                    child = child.nextSibling;
-                }
-
-                if (node.parent != null) {
-                    DTNode parentChild = node.parent.firstChild;
-                    boolean present = false;
-
-                    while (parentChild != null && !present) {
-                        present = parentChild == node;
-                        parentChild = parentChild.nextSibling;
-                    }
-
-                    assert present;
-                }
-            }
         }
 
         // =============
@@ -321,8 +260,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             }
 
             edges.put(e, new Edge(u, v, treeEdge));
-
-            check();
         }
 
         private boolean insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, E edge) {
@@ -398,8 +335,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             } else {
                 removeNonTreeEdge(nodeU, nodeV, e);
             }
-
-            check();
         }
 
         private void removeTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
