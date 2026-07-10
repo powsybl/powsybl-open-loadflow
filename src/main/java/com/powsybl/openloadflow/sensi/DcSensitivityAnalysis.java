@@ -736,6 +736,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 List<ComputedContingencyElement> permanentElements = permanentContingencyBranchIds.stream()
                         .map(connectivityBreakAnalysisResults.contingencyElementByBranch()::get)
                         .filter(Objects::nonNull)
+                        // exclude permanent branches isolating a bus (radial bridge to a region disabled in the base flow
+                        // states): they would give a singular Woodbury interaction matrix and their opening is already
+                        // reflected by the disabled bus. Same treatment as the post-contingency states computation.
+                        .filter(element -> !isIncidentToBus(element.getLfBranch(), permanentlyIsolatedBuses))
                         .toList();
                 DenseMatrix permanentFlowStates = new DenseMatrix(baseFlowStates.getRowCount(), baseFlowStates.getColumnCount());
                 permanentFlowStates.copyValuesFrom(baseFlowStates);

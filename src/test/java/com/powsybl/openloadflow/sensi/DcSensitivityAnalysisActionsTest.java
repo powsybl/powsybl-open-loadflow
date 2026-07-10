@@ -308,6 +308,72 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testPermanentContingencyRadialReconnectionIsSingular() {
+        // b5 and b6 are dead-end buses connected to the grid only through l35 and l46, both open at both
+        // ends in the base case. Two curative actions close them (open=false), so both branches are added
+        // to topoConfig.getBranchIdsToClose() (Actions.addAllBranchesToClose): OLF force-closes them in the
+        // LF network and records them as permanent contingencies, then re-opens them on the base network
+        // with a Woodbury correction.
+        Network network = FourBusNetworkFactory.createWithTwoRadialBusesReconnectableByOneBranchEach();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g2")),
+                List.of(network.getBranch("l13"), network.getBranch("l23")));
+        List<Contingency> contingencies = List.of(new Contingency("l12", new BranchContingency("l12")));
+        List<Action> actions = List.of(new TerminalsConnectionAction("close l35", "l35", false),
+                new TerminalsConnectionAction("close l46", "l46", false));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("reconnect dead-ends",
+                ContingencyContext.all(), new TrueCondition(), List.of("close l35", "close l46")));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions));
+
+        // without the fix the analysis throws "Matrix is singular"; once fixed, both states must be computed
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency("l12")));
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(new SensitivityState("l12", "reconnect dead-ends")));
+    }
+
+    @Test
+    void testReconnectBranchInOtherConnectedComponent() {
+        // permanentContingencyBranchIds (the reconnectable branches) is global to the whole network, while each
+        // LfNetwork is a single connected component. A branch to close located in another connected component is not
+        // present in the LfNetwork being analysed, so lfNetwork.getBranchById(id) is null. The fast DC connectivity
+        // analysis must ignore such an id instead of throwing a NullPointerException.
+        Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
+        // l56 belongs to the second connected component (b4, b5, b6); disconnect it so it becomes a branch to close
+        network.getLine("l56").getTerminal1().disconnect();
+        network.getLine("l56").getTerminal2().disconnect();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+
+        // contingency and factors are in the first connected component (b1, b2, b3)
+        List<Contingency> contingencies = List.of(new Contingency("l12", new BranchContingency("l12")));
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g2")),
+                List.of(network.getBranch("l13"), network.getBranch("l23")));
+
+        // the operator strategy reconnects l56, in the other connected component
+        List<Action> actions = List.of(new TerminalsConnectionAction("reclose l56", "l56", false));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyReclose",
+                ContingencyContext.all(), new TrueCondition(), List.of("reclose l56")));
+
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions));
+
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency("l12")));
+    }
+
+    @Test
     void testReconnectContingencyLine() {
         Network network = FourBusNetworkFactory.create();
         runDcLf(network);
