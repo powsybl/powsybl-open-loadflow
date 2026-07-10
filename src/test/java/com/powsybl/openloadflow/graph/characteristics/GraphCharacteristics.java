@@ -5,9 +5,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.graph;
+package com.powsybl.openloadflow.graph.characteristics;
 
 import com.powsybl.iidm.network.Network;
+import com.powsybl.openloadflow.graph.log.Log;
+import com.powsybl.openloadflow.graph.log.ProgressFormatter;
+import com.powsybl.openloadflow.graph.log.ProgressManager;
+import com.powsybl.openloadflow.graph.log.TProgress;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -30,6 +34,8 @@ import java.util.concurrent.CompletableFuture;
  */
 public final class GraphCharacteristics {
 
+    private static final Log LOG = Log.init();
+
     private GraphCharacteristics() { }
 
     public static void main(String[] args) {
@@ -48,56 +54,35 @@ public final class GraphCharacteristics {
 
         List<LfBus> vertices = new ArrayList<>(graph.vertexSet());
 
-        // diameter(graph, vertices);
+        diameter(graph, vertices);
         diameterMultithreaded(graph, vertices, Runtime.getRuntime().availableProcessors() - 1);
         degree(graph);
         multiEdges(graph, vertices);
     }
 
     public static <V, E> void diameter(Graph<V, E> graph, List<V> vertices) {
-        TIntIntHashMap distToCount = new TIntIntHashMap();
+        ProgressManager<Progress> manager = new ProgressManager<>();
+        manager.setFormatter(new Formatter());
 
-        long sumShortestPath = 0;
-        long diameter = 0;
-        BFSShortestPath<V, E> shortestPath = new BFSShortestPath<>(graph);
-        for (int i = 0; i < vertices.size(); i++) {
-            ShortestPathAlgorithm.SingleSourcePaths<V, E> pathsFromV1 = shortestPath.getPaths(vertices.get(i));
+        Progress progress = manager.newProgress(new Progress());
+        TaskResult result = diameterSingleTask(progress, graph, vertices, 0, vertices.size());
 
-            for (int j = 0; j < i; j++) {
-                int length = (int) pathsFromV1.getWeight(vertices.get(j));
-                distToCount.adjustOrPutValue(length, 1, 1);
-                diameter = Math.max(diameter, length);
-
-                sumShortestPath += length;
-            }
-
-            if (i % 1000 == 0) {
-                System.out.println(i + "/" + graph.vertexSet().size());
-            }
-        }
-
-        System.out.println("Diameter: " + diameter);
-        for (int j = 0; j <= diameter; j++) {
-            System.out.println("Number of unordered pair of vertices separated by " + j + " edges : " + distToCount.get(j));
-        }
-
-        System.out.println(sumShortestPath);
-        long n = vertices.size();
-        double avgsp = sumShortestPath / (n * (n - 1d) / 2d);
-        System.out.println("AVGsp: " + avgsp);
+        result.print(vertices.size());
     }
 
     public static <V, E> void diameterMultithreaded(Graph<V, E> graph, List<V> vertices, int threadCount) {
+        ProgressManager<Progress> manager = new ProgressManager<>();
+        manager.setFormatter(new Formatter());
+
         int n = vertices.size();
         int delta = n / threadCount;
 
-        Monitor monitor = new Monitor();
         CompletableFuture<TaskResult> result = null;
         for (int i = 0; i < threadCount; i++) {
             int start = delta * i;
             int end = i == threadCount - 1 ? n : start + delta;
 
-            Progress progress = monitor.newProgress();
+            Progress progress = manager.newProgress(new Progress());
             progress.setProgress(0, end - start);
             var future = CompletableFuture.supplyAsync(() -> diameterSingleTask(progress, graph, vertices, start, end));
             if (result == null) {
@@ -106,6 +91,8 @@ public final class GraphCharacteristics {
                 result = result.thenCombine(future, TaskResult::merge);
             }
         }
+
+        manager.printProgress(true);
 
         TaskResult taskResult = Objects.requireNonNull(result).join();
         taskResult.print(n);
@@ -130,22 +117,10 @@ public final class GraphCharacteristics {
         return new TaskResult(distToCount);
     }
 
-    private static final class Monitor {
+    private static final class Formatter implements ProgressFormatter<Progress> {
 
-        private final List<Progress> progresses = new ArrayList<>();
-        private long lastTime;
-
-        public Progress newProgress() {
-            Progress progress = new Progress(this);
-            progresses.add(progress);
-            return progress;
-        }
-
-        public synchronized void progressChanged() {
-            if (System.currentTimeMillis() - lastTime < 1000) {
-                return;
-            }
-
+        @Override
+        public String format(List<Progress> progresses, long elapsedTime) {
             int progress = 0;
             int total = 0;
             for (Progress p : progresses) {
@@ -155,29 +130,26 @@ public final class GraphCharacteristics {
 
             StringBuilder sb = new StringBuilder();
             sb.append(progress).append("/").append(total);
-            for (Progress p : progresses) {
-                sb.append(" [").append(p.progress).append("/").append(p.total).append("]");
+
+            if (progresses.size() > 1) {
+                for (Progress p : progresses) {
+                    sb.append(" [").append(p.progress).append("/").append(p.total).append("]");
+                }
             }
 
-            System.out.println(sb);
-            lastTime = System.currentTimeMillis();
+            return sb.toString();
         }
     }
 
-    private static class Progress {
+    private static final class Progress extends TProgress<Progress> {
 
-        private final Monitor monitor;
         private int progress;
         private int total;
-
-        Progress(Monitor monitor) {
-            this.monitor = monitor;
-        }
 
         public void setProgress(int progress, int total) {
             this.progress = progress;
             this.total = total;
-            monitor.progressChanged();
+            notifyProgressManager();
         }
     }
 

@@ -12,9 +12,11 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
+import com.powsybl.openloadflow.graph.log.Log;
+import com.powsybl.openloadflow.graph.log.ProgressFormatter;
+import com.powsybl.openloadflow.graph.log.ProgressManager;
+import com.powsybl.openloadflow.graph.log.TProgress;
 
-import java.io.BufferedWriter;
-import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,11 +38,11 @@ public final class WorkloadRunner {
     private static final int WARMUP = 10;
     private static final int MEASUREMENT = 10;
 
-    private static final Log LOG = new Log();
-    private static final ProgressManager PROGRESS = new ProgressManager();
+    private static final Log LOG = Log.init("results.txt");
+    private static final MyProgressManager PROGRESS = new MyProgressManager();
 
     public static void main(String[] args) {
-        List<Workload> workloads = getAllWorkloads(Path.of("workload/"), Set.of("chen_1000000_1.04_10_2026-06-05T12:43:38.813172770Z.txt"));
+        List<Workload> workloads = getAllWorkloads(Path.of("workload/"), Set.of("spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"));
         /*List<Workload> workloads = List.of(
                 Workload.inMemory(Path.of("workload/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt"))
         );*/
@@ -75,12 +77,6 @@ public final class WorkloadRunner {
                     String partialResults = run(executor, workload, factory);
                     LOG.log(partialResults);
                 }
-            }
-        } finally {
-            try {
-                LOG.close();
-            } catch (IOException e) {
-                e.printStackTrace();
             }
         }
     }
@@ -129,7 +125,7 @@ public final class WorkloadRunner {
         SpyGraphConnectivity<Integer, Integer> spy = new SpyGraphConnectivity<>();
 
         try (Operations operations = workload.operations(0)) {
-            runOperationsMultipleTimes(PROGRESS.newProgress(), operations, spy, factory, null);
+            runOperationsMultipleTimes(PROGRESS.newProgress(new Progress()), operations, spy, factory, null);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -157,7 +153,8 @@ public final class WorkloadRunner {
 
             var future = executor.submit(() -> {
                 try (Operations operations = workload.operations(threadId)) {
-                    runOperationsMultipleTimes(PROGRESS.newProgress(), operations, spyFactory.create(), factory, barrier);
+                    runOperationsMultipleTimes(PROGRESS.newProgress(new Progress()),
+                            operations, spyFactory.create(), factory, barrier);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -238,93 +235,53 @@ public final class WorkloadRunner {
         }
     }
 
-    private static final class Log implements Closeable {
-
-        private final BufferedWriter output;
-        private boolean lastIsProgress = false;
-
-        Log() {
-            try {
-                output = Files.newBufferedWriter(Path.of("results.txt"));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public void log(String format, Object... args) {
-            if (lastIsProgress) {
-                System.out.println();
-            }
-
-            String line = format.formatted(args);
-            System.out.println(line);
-            lastIsProgress = false;
-
-            try {
-                output.write(line);
-                output.write(System.lineSeparator());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public void logProgress(String format, Object... args) {
-            System.out.printf("\r\033[2K" + format, args);
-            System.out.flush();
-
-            lastIsProgress = true;
-        }
-
-        @Override
-        public void close() throws IOException {
-            output.close();
-        }
-    }
-
-    private static final class ProgressManager {
+    private static final class MyProgressManager extends ProgressManager<Progress> implements ProgressFormatter<Progress> {
 
         private Workload workload;
         private GraphConnectivityFactory<?, ?> connectivity;
 
-        private final List<Progress> threadProgresses = new ArrayList<>();
-
-        private long last = 0;
+        MyProgressManager() {
+            setFormatter(this);
+        }
 
         public void advance(Workload workload, GraphConnectivityFactory<?, ?> connectivity) {
             this.workload = workload;
             this.connectivity = connectivity;
-
-            threadProgresses.clear();
+            removeAll();
         }
 
-        public synchronized Progress newProgress() {
-            Progress progress = new Progress(this);
-            threadProgresses.add(progress);
-            return progress;
-        }
+        @Override
+        public String format(List<Progress> progresses, long elapsedTime) {
+            Progress first = progresses.getFirst();
 
-        private void printProgress() {
-            if (System.currentTimeMillis() - last > 1000) {
-                // multiple threads can reach this point
-                synchronized (this) {
-                    if (System.currentTimeMillis() - last > 1000) {
-                        // but only one can print
-                        Progress first = threadProgresses.getFirst();
-                        int iter = first.iter;
-                        int maxIter = first.warmup ? WARMUP : MEASUREMENT;
-                        String warmup = first.warmup ? " (warmup)" : "";
+            int progress = 0;
+            int total = 0;
+            for (Progress p : progresses) {
+                progress += p.operation;
+                total += p.maxOperation;
+            }
 
-                        LOG.logProgress("%s - %s: %d/%d%s", workload.source(), connectivity, iter, maxIter, warmup);
-                        last = System.currentTimeMillis();
-                    }
+            StringBuilder sb = new StringBuilder();
+            sb.append(workload.source()).append(" - ").append(connectivity).append(": ")
+                    .append(first.iter).append("/");
+            if (first.warmup) {
+                sb.append(WARMUP).append(" (warmup)");
+            } else {
+                sb.append(MEASUREMENT);
+            }
+            sb.append(" - ").append(progress).append("/").append(total);
+
+            if (progresses.size() > 1) {
+                for (Progress p : progresses) {
+                    sb.append(" [").append(p.operation).append("/").append(p.maxOperation).append("]");
                 }
             }
+
+            return sb.toString();
         }
     }
 
-    private static final class Progress {
-
-        private final ProgressManager manager;
+    private static final class Progress extends TProgress<Progress> {
 
         private boolean warmup;
         private int iter;
@@ -332,20 +289,16 @@ public final class WorkloadRunner {
         private int operation;
         private int maxOperation;
 
-        Progress(ProgressManager manager) {
-            this.manager = manager;
-        }
-
         public void newIteration(int iteration, boolean warmup) {
             iter = iteration;
             this.warmup = warmup;
-            manager.printProgress();
+            notifyProgressManager();
         }
 
         public void newOperation(int operation, int maxOperation) {
             this.operation = operation;
             this.maxOperation = maxOperation;
-            manager.printProgress();
+            notifyProgressManager();
         }
     }
 

@@ -89,7 +89,7 @@ public final class WorkloadUtils {
                 }
             }
             default -> {
-                System.err.println("Unexpected operation: " + parts[0]);
+                //System.err.println("Unexpected operation: " + parts[0]);
             }
         }
     }
