@@ -11,6 +11,8 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * D-Tree implementation from <a href="https://arxiv.org/pdf/2207.06887"/>
@@ -368,7 +370,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             while (!queue.isEmpty()) {
                 DTNode n = queue.poll();
 
-                if (n.size > rootSmall.size / 2) {
+                if (n != rootSmall && n.size > rootSmall.size / 2) {
                     newRoot = n;
                 }
 
