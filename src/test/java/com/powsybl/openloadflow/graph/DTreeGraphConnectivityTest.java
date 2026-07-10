@@ -39,6 +39,7 @@ public class DTreeGraphConnectivityTest {
         for (int i = 0; i < 6; i++) {
             assertEquals(0, connectivity.getComponentNumber(i));
         }
+        assertEquals(8, connectivity.computeSd());
 
         // Adding this edge doesn't affect connectivity.
         // However, it modifies the spanning tree.
@@ -58,5 +59,6 @@ public class DTreeGraphConnectivityTest {
         for (int i = 0; i < 6; i++) {
             assertEquals(0, connectivity.getComponentNumber(i));
         }
+        assertEquals(6, connectivity.computeSd());
     }
 }
