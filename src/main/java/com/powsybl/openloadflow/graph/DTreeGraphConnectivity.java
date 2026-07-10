@@ -9,10 +9,9 @@ package com.powsybl.openloadflow.graph;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jgrapht.graph.Pseudograph;
 
 import java.util.*;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 /**
  * D-Tree implementation from <a href="https://arxiv.org/pdf/2207.06887"/>
@@ -306,8 +305,8 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 return;
             }
 
-            DTNode nodeU = vertexToTreeNode.get(u);
-            DTNode nodeV = vertexToTreeNode.get(v);
+            DTNode nodeU = getNodeThrowIfInexistent(u);
+            DTNode nodeV = getNodeThrowIfInexistent(v);
 
             Pair<DTNode, Integer> rootUdist = nodeU.findRootWithDist();
             Pair<DTNode, Integer> rootVdist = nodeV.findRootWithDist();
@@ -325,6 +324,15 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             edges.put(e, new Edge(u, v, treeEdge));
 
             check();
+        }
+
+        private DTNode getNodeThrowIfInexistent(V v) {
+            DTNode node = vertexToTreeNode.get(v);
+            if (node == null) {
+                throw new IllegalArgumentException("no such vertex in graph: " + v);
+            }
+
+            return node;
         }
 
         private boolean insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, E edge) {
@@ -478,7 +486,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         // ======================
 
         private void link(DTNode rootU, DTNode nodeU, DTNode rootV, E edge) {
-            // first step: update parent/child relations
+            // first: update parent/child relations
             nodeU.addChildUnchecked(rootV, edge);
 
             rootV.parent = nodeU;
@@ -486,20 +494,23 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
             // next: update size attributes in the parent tree
             DTNode newCentroid = null;
-            DTNode i = nodeU;
+            DTNode cur = nodeU;
 
-            while (i != null) {
-                i.size += rootV.size;
+            while (cur != null) {
+                cur.size += rootV.size;
 
-                if (newCentroid == null && i.size > (rootU.size + rootV.size) / 2) {
-                    newCentroid = i;
+                if (newCentroid == null && cur != rootU && cur.size > (rootU.size + rootV.size) / 2) {
+                    // the new root is the first node in the path from nodeU to rootU
+                    // such that it contains more than half of the nodes in the merged
+                    // tree. This reduces the sum of distances.
+                    newCentroid = cur;
                 }
 
-                i = i.parent;
+                cur = cur.parent;
             }
 
             // eventually, change the root to a better one
-            if (newCentroid != null && newCentroid != rootU) {
+            if (newCentroid != null) {
                 newCentroid.makeRoot(true);
             }
         }
