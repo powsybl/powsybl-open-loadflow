@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.graph;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import java.time.Duration;
 import java.util.Set;

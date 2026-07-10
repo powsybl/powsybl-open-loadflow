@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.graph;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.jgrapht.graph.Pseudograph;
 
 import java.util.*;
 
