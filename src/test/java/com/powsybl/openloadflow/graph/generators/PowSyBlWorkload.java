@@ -7,7 +7,7 @@
  */
 package com.powsybl.openloadflow.graph.generators;
 
-import com.powsybl.openloadflow.graph.PerfUtils;
+import com.powsybl.openloadflow.graph.RandomUtils;
 import org.jgrapht.Graph;
 
 import java.io.BufferedWriter;
@@ -65,7 +65,7 @@ public class PowSyBlWorkload extends AbstractGenerateWorkload {
                 WorkloadUtils.write(bw, START_TEMPORARY_CHANGES);
             }
 
-            List<Integer> toRemove = PerfUtils.sample(random, removable, minEdgePerContingency, maxEdgePerContingency).toList();
+            List<Integer> toRemove = RandomUtils.sample(random, removable, minEdgePerContingency, maxEdgePerContingency).toList();
 
             for (int edge : toRemove) {
                 WorkloadUtils.remove(bw, edge);
@@ -78,7 +78,7 @@ public class PowSyBlWorkload extends AbstractGenerateWorkload {
 
             for (int action = 0; action < actionPerContingency; action++) {
                 WorkloadUtils.write(bw, START_TEMPORARY_CHANGES);
-                List<Integer> toAdd = PerfUtils.sample(random, insertable, minEdgePerAction, maxEdgePerAction).toList();
+                List<Integer> toAdd = RandomUtils.sample(random, insertable, minEdgePerAction, maxEdgePerAction).toList();
 
                 for (int edge : toAdd) {
                     insert(bw, edge);
