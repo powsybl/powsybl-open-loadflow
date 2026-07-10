@@ -8,17 +8,15 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
-import org.jgrapht.Graph;
-import org.jgrapht.generate.ScaleFreeGraphGenerator;
-import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.DefaultUndirectedGraph;
-import org.jgrapht.util.SupplierUtil;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.*;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.ToIntFunction;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -130,6 +128,7 @@ class ConnectivityTest {
         Integer v4 = 4;
         Integer v5 = 5;
         Integer v6 = 6;
+        Integer v7 = 7;
         String e11 = "1-1";
         String e12 = "1-2";
         String e23 = "2-3";
@@ -230,7 +229,6 @@ class ConnectivityTest {
         //  1   2---3---4---5
         // |_|
 
-        Integer v7 = 7;
         c.addVertex(v7);
         assertEquals(2, c.getNbConnectedComponents());
         assertEquals(Set.of(v7), c.getConnectedComponent(v7));
@@ -241,6 +239,32 @@ class ConnectivityTest {
         //  |-----------|
         //  1   2---3---4---5    7
         // |_|
+
+        c.undoTemporaryChanges();
+        assertEquals(3, c.getNbConnectedComponents());
+        assertEquals(Set.of(v1), c.getConnectedComponent(v1));
+        assertEquals(Set.of(v2, v3, v6), c.getConnectedComponent(v2));
+        assertEquals(Set.of(v4, v5), c.getConnectedComponent(v5));
+        assertEquals(Collections.emptySet(), c.getEdgesAddedToMainComponent());
+        assertEquals(Collections.emptySet(), c.getVerticesAddedToMainComponent());
+        assertEquals(Set.of(v1), c.getVerticesRemovedFromMainComponent());
+        assertEquals(Set.of(e11, e12, e31), c.getEdgesRemovedFromMainComponent());
+        //  1   2---3---6   4---5
+        // |_|
+
+        c.startTemporaryChanges();
+        String e27 = "2-7";
+        String e67 = "6-7";
+        c.addVertex(7);
+        c.addEdge(v2, v7, e27);
+        c.addEdge(v6, v7, e67);
+        assertEquals(3, c.getNbConnectedComponents());
+        assertEquals(Set.of(e27, e67), c.getEdgesAddedToMainComponent());
+        assertEquals(Set.of(v7), c.getVerticesAddedToMainComponent());
+        assertEquals(Collections.emptySet(), c.getVerticesRemovedFromMainComponent());
+        assertEquals(Collections.emptySet(), c.getEdgesRemovedFromMainComponent());
+        //  1   2---3---6   4---5
+        // |_|  |---7---|
 
         c.undoTemporaryChanges();
         c.undoTemporaryChanges();
