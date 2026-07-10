@@ -132,7 +132,7 @@ public class SecurityAnalysisRunner {
 
         List<Contingency> contingencies = new ArrayList<>();
         for (int i = 0; i < contingencyCount; i++) {
-            List<ContingencyElement> contingencyLine = PerfUtils.sample(random, lines, minLine, maxLine)
+            List<ContingencyElement> contingencyLine = RandomUtils.sample(random, lines, minLine, maxLine)
                     .map(id -> (ContingencyElement) new BranchContingency(id))
                     .toList();
             contingencies.add(new Contingency("Contingency " + i, contingencyLine));
@@ -194,14 +194,14 @@ public class SecurityAnalysisRunner {
                 .collect(Collectors.toList());
 
         for (int i = 0; i < contingencyCount; i++) {
-            List<ContingencyElement> contingencyLines = PerfUtils.sample(random, linesInComponent, linePerCt, linePerCt)
+            List<ContingencyElement> contingencyLines = RandomUtils.sample(random, linesInComponent, linePerCt, linePerCt)
                     .map(id -> (ContingencyElement) new BranchContingency(id))
                     .toList();
             Contingency ct = new Contingency("ct-" + i, contingencyLines);
             contingencies.add(ct);
 
             if (actionPerOp > 0) {
-                List<String> ids = PerfUtils.sample(random, disconnectedLines, actionPerOp, actionPerOp).toList();
+                List<String> ids = RandomUtils.sample(random, disconnectedLines, actionPerOp, actionPerOp).toList();
 
                 for (String lineId : ids) {
                     actions.add(new TerminalsConnectionAction(lineId, lineId, false));
