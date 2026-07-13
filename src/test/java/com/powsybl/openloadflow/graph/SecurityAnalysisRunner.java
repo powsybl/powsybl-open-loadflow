@@ -141,7 +141,7 @@ public class SecurityAnalysisRunner {
         return contingencies;
     }
 
-    public void setDefaultActions(Random random) {
+    public void setDefaultActions() {
         Pair<List<OperatorStrategy>, List<Action>> opAndActions = OperatorStrategyUtils.operatorStrategiesFor(network, contingencies, random);
         operatorStrategies.addAll(opAndActions.getLeft());
         actions.addAll(opAndActions.getRight());

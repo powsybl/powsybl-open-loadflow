@@ -35,8 +35,8 @@ public final class WorkloadRunner {
 
     }
 
-    private static final int WARMUP = 10;
-    private static final int MEASUREMENT = 10;
+    private static final int WARMUP = 0;
+    private static final int MEASUREMENT = 1;
 
     private static final Log LOG = Log.init("results.txt");
     private static final MyProgressManager PROGRESS = new MyProgressManager();
