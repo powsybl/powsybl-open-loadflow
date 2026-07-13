@@ -200,6 +200,10 @@ public class ModificationsContext<V, E> {
         this.mainComponentVertex = mainComponentVertex;
     }
 
+    public V getMainComponentVertex() {
+        return mainComponentVertex;
+    }
+
     public boolean isInMainComponentBefore(V vertex) {
         return !verticesNotInMainComponentBefore.contains(vertex);
     }

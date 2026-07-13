@@ -9,9 +9,10 @@ package com.powsybl.openloadflow.graph;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.jgrapht.graph.Pseudograph;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * D-Tree implementation from <a href="https://arxiv.org/pdf/2207.06887"/>
@@ -22,6 +23,13 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     public DTreeGraphConnectivity() {
         super(new DTGraph<>());
+        getGraph().isInMainComponent = n -> {
+            if (getModificationsContexts().isEmpty()) {
+                return false;
+            } else {
+                return getMainComponentRoot(getModificationsContexts().getLast().getMainComponentVertex()) == n.findRoot();
+            }
+        };
     }
 
     @Override
@@ -211,6 +219,100 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         return getGraph().sumOfDistances();
     }
 
+    @Override
+    public void startTemporaryChanges(boolean quick) {
+        super.startTemporaryChanges(quick);
+        getGraph().push();
+    }
+
+    @Override
+    public void undoTemporaryChanges() {
+        super.undoTemporaryChanges();
+        getGraph().pop();
+    }
+
+    @Override
+    public Set<V> getVerticesAddedToMainComponent() {
+        Set<V> v = super.getVerticesAddedToMainComponent();
+        assertEquals(v, myGetVerticesAddedToMainComponent());
+        return v;
+    }
+
+    private Set<V> myGetVerticesAddedToMainComponent() {
+        return getGraph().verticesState.peek()
+                .entrySet()
+                .stream()
+                .filter(e -> e.getValue() == State.ADDED || e.getValue() == State.ADDED_NEW)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<V> getVerticesRemovedFromMainComponent() {
+        Set<V> v = super.getVerticesRemovedFromMainComponent();
+        assertEquals(v, myGetVerticesRemovedFromMainComponent());
+        return v;
+    }
+
+    private Set<V> myGetVerticesRemovedFromMainComponent() {
+        return getGraph().verticesState.peek()
+                .entrySet()
+                .stream()
+                .filter(e -> e.getValue() == State.REMOVED)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<E> getEdgesAddedToMainComponent() {
+        Set<E> e = super.getEdgesAddedToMainComponent();
+        assertEquals(e, myGetEdgesAddedToMainComponent());
+        return e;
+    }
+
+    private Set<E> myGetEdgesAddedToMainComponent() {
+        return getGraph().edgesState.peek()
+                .entrySet()
+                .stream()
+                .filter(e -> e.getValue() == State.ADDED || e.getValue() == State.ADDED_NEW)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<E> getEdgesRemovedFromMainComponent() {
+        Set<E> e = super.getEdgesRemovedFromMainComponent();
+        assertEquals(e, myGetEdgesRemovedFromMainComponent());
+        return e;
+    }
+
+    private Set<E> myGetEdgesRemovedFromMainComponent() {
+        return getGraph().edgesState.peek()
+                .entrySet()
+                .stream()
+                .filter(e -> e.getValue() == State.REMOVED)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+    }
+
+    private static <T> void assertEquals(T expected, T current) {
+        if (!Objects.equals(expected, current)) {
+            throw new IllegalStateException("Expected " + expected + " but got " + current);
+        }
+    }
+
+    enum State {
+        // the vertex/edge was added to the main component and was
+        // already in the graph before the last startTemporaryChanges
+        ADDED,
+        // the vertex/edge was removed from the main component and was
+        // already in the graph before the last startTemporaryChanges
+        REMOVED,
+        // the vertex/edge was added to the main component and was not
+        // in the graph before the last startTemporaryChanges
+        ADDED_NEW,
+    }
+
     public static final class DTGraph<V, E> implements GraphModel<V, E> {
 
         public static boolean debug = false;
@@ -221,6 +323,11 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         private final List<DTNode> roots = new ArrayList<>();
 
         private final AllComponentsView components = new AllComponentsView();
+
+        private final Deque<Map<V, State>> verticesState = new ArrayDeque<>();
+        private final Deque<Map<E, State>> edgesState = new ArrayDeque<>();
+
+        private Function<DTNode, Boolean> isInMainComponent;
 
         public long sumOfDistances() {
             long sum = 0;
@@ -234,6 +341,46 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
         DTNode rootOf(V vertex) {
             return vertexToTreeNode.get(vertex).findRootOptReroot();
+        }
+
+        boolean isInMainComponent(DTNode node) {
+            if (isInMainComponent == null) {
+                return false;
+            } else {
+                return isInMainComponent.apply(node);
+            }
+        }
+
+        public void push() {
+            verticesState.push(new HashMap<>());
+            edgesState.push(new HashMap<>());
+        }
+
+        public void pop() {
+            verticesState.pop();
+            edgesState.pop();
+        }
+
+        private static <T> void stateMapMarkRemoved(Map<T, State> stateMap, T element) {
+            stateMap.compute(element, (k, state) -> {
+                if (state == State.ADDED_NEW) {
+                    return null;
+                } else {
+                    return State.REMOVED;
+                }
+            });
+        }
+
+        private static <T> void stateMapMarkAdded(Map<T, State> stateMap, T element) {
+            stateMap.compute(element, (k, state) -> {
+                if (state == State.ADDED_NEW) {
+                    return State.ADDED_NEW;
+                } else if (state == State.REMOVED) {
+                    return null;
+                } else {
+                    return State.ADDED;
+                }
+            });
         }
 
         // ==============
@@ -311,13 +458,28 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             Pair<DTNode, Integer> rootUdist = nodeU.findRootWithDist();
             Pair<DTNode, Integer> rootVdist = nodeV.findRootWithDist();
 
+            DTNode rootU = rootUdist.getKey();
+            DTNode rootV = rootVdist.getKey();
+
             boolean treeEdge;
-            if (rootUdist.getKey() == rootVdist.getKey()) {
+            if (rootU == rootV) {
+                if (isInMainComponent(rootU)) {
+                    stateMapMarkAdded(edgesState.peek(), e);
+                }
+
                 // insert non tree edge
-                treeEdge = insertNonTreeEdge(rootUdist.getKey(), nodeU, rootUdist.getValue(), nodeV, rootVdist.getValue(), e);
+                treeEdge = insertNonTreeEdge(rootU, nodeU, rootUdist.getValue(), nodeV, rootVdist.getValue(), e);
             } else {
+                if (isInMainComponent(rootV)) {
+                    stateMapMarkAdded(edgesState.peek(), e);
+                    markAllAdded(rootU);
+                } else if (isInMainComponent(rootU)) {
+                    stateMapMarkAdded(edgesState.peek(), e);
+                    markAllAdded(rootV);
+                }
+
                 // insert tree edge
-                insertTreeEdge(rootUdist.getKey(), nodeU, rootVdist.getKey(), nodeV, e);
+                insertTreeEdge(rootU, nodeU, rootV, nodeV, e);
                 treeEdge = true;
             }
 
@@ -425,16 +587,24 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             addRoot(child);
 
             DTNode small;
+            DTNode large;
             if (child.size < otherTree.size) {
                 small = child;
+                large = otherTree;
             } else {
                 small = otherTree;
+                large = child;
             }
 
-            replace(small);
+            replace(small, large, edge);
         }
 
-        private void replace(DTNode rootSmall) {
+        private void replace(DTNode rootSmall, DTNode rootLarge, E removedEdge) {
+            int minDist = Integer.MAX_VALUE;
+            DTNode nodeSmall = null; // a node in the small tree that will be linked with a node in the large tree
+            DTNode nodeLarge = null; // opposite
+            E nte = null; // the actual edge
+
             DTNode newRoot = null; // a potential new root in case no replacement edge is found
 
             ArrayDeque<DTNode> queue = new ArrayDeque<>();
@@ -452,15 +622,13 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
                     V opp = edge.opposite(n.vertex);
                     DTNode oppNode = vertexToTreeNode.get(opp);
-                    DTNode oppRoot = oppNode.findRoot();
+                    Pair<DTNode, Integer> oppRoot = oppNode.findRootWithDist();
 
-                    if (oppRoot != rootSmall) {
+                    if (oppRoot.getLeft() != rootSmall && oppRoot.getRight() < minDist) {
                         // found a replacement edge
-                        removeNonTreeEdge(n, oppNode, nonTreeEdge);
-                        insertTreeEdge(rootSmall, n, oppRoot, oppNode, nonTreeEdge);
-                        edge.treeEdge = true;
-
-                        return;
+                        nodeSmall = n;
+                        nodeLarge = oppNode;
+                        nte = nonTreeEdge;
                     }
                 }
 
@@ -471,14 +639,73 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
             }
 
-            if (newRoot != null) {
-                newRoot.makeRoot(true);
+            stateMapMarkRemoved(edgesState.peek(), removedEdge);
+            if (nodeSmall != null) {
+                removeNonTreeEdge(nodeSmall, nodeLarge, nte);
+                insertTreeEdge(rootSmall, nodeSmall, rootLarge, nodeLarge, nte);
+                edges.get(nte).treeEdge = true;
+            } else {
+                if (isInMainComponent(rootLarge)) {
+                    markAllRemoved(rootSmall);
+                } else if (isInMainComponent(rootSmall)) {
+                    markAllRemoved(rootLarge);
+                }
+
+                if (newRoot != null) {
+                    newRoot.makeRoot(true);
+                }
             }
         }
 
         private void removeNonTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
+            if (isInMainComponent(nodeU)) {
+                stateMapMarkRemoved(edgesState.peek(), edge);
+            }
+
             nodeU.nonTreeEdges.remove(edge);
             nodeV.nonTreeEdges.remove(edge);
+        }
+
+        private void markAllAdded(DTNode root) {
+            for (DFSIterator it = iterator(root); it.hasNext();) {
+                V vertex = it.next();
+                stateMapMarkAdded(verticesState.peek(), vertex);
+
+                DTNode node = it.node();
+                if (node.parentEdge != null) {
+                    stateMapMarkAdded(edgesState.peek(), node.parentEdge);
+                }
+
+                for (E nte : node.nonTreeEdges) {
+                    stateMapMarkAdded(edgesState.peek(), nte);
+                }
+
+                // we don't mark child tree edges as removed
+                // because for each child tree edge, there is a parentEdge
+                // so if we mark a parent edge as removed, we also mark
+                // the corresponding child tree edge as removed
+            }
+        }
+
+        private void markAllRemoved(DTNode root) {
+            for (DFSIterator it = iterator(root); it.hasNext();) {
+                V vertex = it.next();
+                stateMapMarkRemoved(verticesState.peek(), vertex);
+
+                DTNode node = it.node();
+                if (node.parentEdge != null) {
+                    stateMapMarkRemoved(edgesState.peek(), node.parentEdge);
+                }
+
+                for (E nte : node.nonTreeEdges) {
+                    stateMapMarkRemoved(edgesState.peek(), nte);
+                }
+
+                // we don't mark child tree edges as removed
+                // because for each child tree edge, there is a parentEdge
+                // so if we mark a parent edge as removed, we also mark
+                // the corresponding child tree edge as removed
+            }
         }
 
         // ======================
@@ -550,7 +777,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         // * OTHER *
         // =========
 
-        public Iterator<V> iterator(DTNode root) {
+        DFSIterator iterator(DTNode root) {
             return new DFSIterator(root);
         }
 
@@ -890,6 +1117,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         private final class DFSIterator implements Iterator<V> {
 
             private DTNode cursor;
+            private DTNode current;
 
             DFSIterator(DTNode root) {
                 cursor = root;
@@ -906,7 +1134,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     throw new NoSuchElementException();
                 }
 
-                DTNode next = cursor;
+                current = cursor;
 
                 // update cursor
                 if (cursor.firstChild != null) {
@@ -923,7 +1151,11 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     }
                 }
 
-                return next.vertex;
+                return current.vertex;
+            }
+
+            public DTNode node() {
+                return current;
             }
         }
 
