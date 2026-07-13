@@ -7,9 +7,8 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import gnu.trove.map.hash.TCustomHashMap;
-import gnu.trove.set.hash.TCustomHashSet;
-import gnu.trove.strategy.HashingStrategy;
+import gnu.trove.map.hash.THashMap;
+import gnu.trove.set.hash.THashSet;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -26,8 +25,6 @@ public class ModificationsContext<V, E> {
 
     private final Deque<GraphModification<V, E>> modifications = new ArrayDeque<>();
     private final Function<V, Set<V>> verticesNotInMainComponentGetter;
-    private final HashingStrategy<V> vertexHasher;
-    private final HashingStrategy<E> edgeHasher;
 
     private Set<V> verticesNotInMainComponentBefore;
     private Set<V> verticesAddedToMainComponent;
@@ -37,10 +34,8 @@ public class ModificationsContext<V, E> {
     private Map<E, AbstractEdgeModification<V, E>> edgeFirstModificationMap;
     private V mainComponentVertex;
 
-    public ModificationsContext(Function<V, Set<V>> verticesNotInMainComponentGetter, HashingStrategy<V> vertexHasher, HashingStrategy<E> edgeHasher, V mainComponentVertex) {
+    public ModificationsContext(Function<V, Set<V>> verticesNotInMainComponentGetter, V mainComponentVertex) {
         this.verticesNotInMainComponentGetter = verticesNotInMainComponentGetter;
-        this.vertexHasher = vertexHasher;
-        this.edgeHasher = edgeHasher;
         this.mainComponentVertex = mainComponentVertex;
     }
 
@@ -48,7 +43,7 @@ public class ModificationsContext<V, E> {
         this.verticesNotInMainComponentBefore = verticesNotInMainComponentGetter.apply(mainComponentVertex);
 
         if (this.verticesNotInMainComponentBefore instanceof AbstractSetView<V>) {
-            this.verticesNotInMainComponentBefore = new TCustomHashSet<>(vertexHasher, this.verticesNotInMainComponentBefore);
+            this.verticesNotInMainComponentBefore = new THashSet<>(this.verticesNotInMainComponentBefore);
         }
     }
 
@@ -79,7 +74,7 @@ public class ModificationsContext<V, E> {
     public Set<V> getVerticesRemovedFromMainComponent() {
         if (verticesRemovedFromMainComponent == null) {
             // result = after - before
-            Set<V> result = new TCustomHashSet<>(vertexHasher);
+            Set<V> result = new THashSet<>();
 
             for (V vertex : getVerticesNotInMainComponentAfter()) {
                 if (!verticesNotInMainComponentBefore.contains(vertex)) { // filter before doing the copy
@@ -107,7 +102,7 @@ public class ModificationsContext<V, E> {
     public Set<V> getVerticesAddedToMainComponent() {
         if (verticesAddedToMainComponent == null) {
             // result = before - after
-            Set<V> result = new TCustomHashSet<>(vertexHasher);
+            Set<V> result = new THashSet<>();
 
             Set<V> verticesNotInMainComponentAfter = getVerticesNotInMainComponentAfter();
             for (V vertex : verticesNotInMainComponentBefore) {
@@ -131,7 +126,7 @@ public class ModificationsContext<V, E> {
     private Set<E> computeEdgesRemovedFromMainComponent(GraphModel<V, E> graph) {
         Set<V> verticesRemoved = getVerticesRemovedFromMainComponent();
         Set<E> result = verticesRemoved.stream().map(graph::getNeighborEdgesOf).flatMap(Set::stream)
-                .collect(Collectors.toCollection(() -> new TCustomHashSet<>(edgeHasher)));
+                .collect(Collectors.toCollection(THashSet::new));
 
         // We need to look in modifications to adjust the computation of the edges above, indeed:
         //  - result contains the edges which were added in the small components
@@ -157,7 +152,7 @@ public class ModificationsContext<V, E> {
 
     private Set<E> computeEdgesAddedToMainComponent(GraphModel<V, E> graph) {
         Set<E> result = getVerticesAddedToMainComponent().stream().map(graph::getNeighborEdgesOf).flatMap(Set::stream)
-                .collect(Collectors.toCollection(() -> new TCustomHashSet<>(edgeHasher)));
+                .collect(Collectors.toCollection(THashSet::new));
 
         // We need to look in modifications to adjust the computation of the edges above
         // Indeed result is missing the edges added in main component with an EdgeAdd modification
@@ -181,7 +176,7 @@ public class ModificationsContext<V, E> {
                     .filter(AbstractEdgeModification.class::isInstance)
                     .map(m -> (AbstractEdgeModification<V, E>) m)
                     .collect(Collectors.toMap(m -> m.e, m -> m, (m1, m2) -> m1,
-                            () -> new TCustomHashMap<>(edgeHasher)));
+                            THashMap::new));
         }
     }
 

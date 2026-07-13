@@ -94,16 +94,6 @@ public class NewDTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
     }
 
     @Override
-    public HashingStrategy<V> getVertexHasher() {
-        return vertexHasher;
-    }
-
-    @Override
-    public HashingStrategy<E> getEdgeHasher() {
-        return edgeHasher;
-    }
-
-    @Override
     protected int getQuickComponentNumber(V vertex) {
         return getGraph().rootOf(vertex).rootIndex;
     }

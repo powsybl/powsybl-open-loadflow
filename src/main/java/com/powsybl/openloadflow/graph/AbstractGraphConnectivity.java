@@ -8,8 +8,6 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
-import gnu.trove.strategy.HashingStrategy;
-import gnu.trove.strategy.IdentityHashingStrategy;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -92,20 +90,12 @@ public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>
 
     @Override
     public void startTemporaryChanges(boolean quick) {
-        ModificationsContext<V, E> modificationsContext = new ModificationsContext<>(this::getVerticesNotInMainComponent, getVertexHasher(), getEdgeHasher(), defaultMainComponentVertex);
+        ModificationsContext<V, E> modificationsContext = new ModificationsContext<>(this::getVerticesNotInMainComponent, defaultMainComponentVertex);
         modificationsContexts.add(modificationsContext);
 
         if (!quick) {
             modificationsContext.computeVerticesNotInMainComponentBefore();
         }
-    }
-
-    public HashingStrategy<V> getVertexHasher() {
-        return new IdentityHashingStrategy<>();
-    }
-
-    public HashingStrategy<E> getEdgeHasher() {
-        return new IdentityHashingStrategy<>();
     }
 
     @Override
