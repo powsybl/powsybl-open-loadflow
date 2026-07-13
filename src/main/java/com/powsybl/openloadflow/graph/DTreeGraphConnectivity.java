@@ -363,7 +363,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
         private static <T> void stateMapMarkRemoved(Map<T, State> stateMap, T element) {
             stateMap.compute(element, (k, state) -> {
-                if (state == State.ADDED_NEW) {
+                if (state == State.ADDED_NEW || state == State.ADDED) {
                     return null;
                 } else {
                     return State.REMOVED;
@@ -381,6 +381,11 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     return State.ADDED;
                 }
             });
+        }
+
+        private static <T> void stateMapMarkNew(Map<T, State> stateMap, T element) {
+            //stateMap.put(element, State.ADDED_NEW);
+            stateMapMarkAdded(stateMap, element);
         }
 
         // ==============
@@ -464,17 +469,17 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             boolean treeEdge;
             if (rootU == rootV) {
                 if (isInMainComponent(rootU)) {
-                    stateMapMarkAdded(edgesState.peek(), e);
+                    stateMapMarkNew(edgesState.peek(), e);
                 }
 
                 // insert non tree edge
                 treeEdge = insertNonTreeEdge(rootU, nodeU, rootUdist.getValue(), nodeV, rootVdist.getValue(), e);
             } else {
                 if (isInMainComponent(rootV)) {
-                    stateMapMarkAdded(edgesState.peek(), e);
+                    stateMapMarkNew(edgesState.peek(), e);
                     markAllAdded(rootU);
                 } else if (isInMainComponent(rootU)) {
-                    stateMapMarkAdded(edgesState.peek(), e);
+                    stateMapMarkNew(edgesState.peek(), e);
                     markAllAdded(rootV);
                 }
 
@@ -639,7 +644,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
             }
 
-            stateMapMarkRemoved(edgesState.peek(), removedEdge);
+            if (isInMainComponent(rootLarge) || isInMainComponent(rootSmall)) {
+                stateMapMarkRemoved(edgesState.peek(), removedEdge);
+            }
             if (nodeSmall != null) {
                 removeNonTreeEdge(nodeSmall, nodeLarge, nte);
                 insertTreeEdge(rootSmall, nodeSmall, rootLarge, nodeLarge, nte);
@@ -677,7 +684,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
 
                 for (E nte : node.nonTreeEdges) {
-                    stateMapMarkAdded(edgesState.peek(), nte);
+                    if (getEdgeSource(nte) == vertex) {
+                        stateMapMarkAdded(edgesState.peek(), nte);
+                    }
                 }
 
                 // we don't mark child tree edges as removed
@@ -698,7 +707,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
 
                 for (E nte : node.nonTreeEdges) {
-                    stateMapMarkRemoved(edgesState.peek(), nte);
+                    if (getEdgeSource(nte) == vertex) {
+                        stateMapMarkRemoved(edgesState.peek(), nte);
+                    }
                 }
 
                 // we don't mark child tree edges as removed
