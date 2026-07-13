@@ -301,6 +301,27 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         }
     }
 
+    @Override
+    public void setMainComponentVertex(V mainComponentVertex) {
+        ModificationsContext<V, E> context = getModificationsContexts().peekLast();
+
+        if (context != null) {
+            V old = context.getMainComponentVertex();
+
+            if (old != mainComponentVertex) {
+                DTGraph<V, E>.DTNode root1 = getGraph().rootOf(old);
+                DTGraph<V, E>.DTNode root2 = getGraph().rootOf(mainComponentVertex);
+
+                if (root1 != root2) {
+                    getGraph().markAllRemoved(root1);
+                    getGraph().markAllAdded(root2);
+                }
+            }
+        }
+
+        super.setMainComponentVertex(mainComponentVertex);
+    }
+
     enum State {
         // the vertex/edge was added to the main component and was
         // already in the graph before the last startTemporaryChanges
@@ -340,7 +361,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         }
 
         DTNode rootOf(V vertex) {
-            return vertexToTreeNode.get(vertex).findRootOptReroot();
+            return vertexToTreeNode.get(vertex).findRoot(); // .findRootOptReroot();
         }
 
         boolean isInMainComponent(DTNode node) {
@@ -684,7 +705,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
 
                 for (E nte : node.nonTreeEdges) {
-                    if (getEdgeSource(nte) == vertex) {
+                    if (getEdgeSource(nte).equals(vertex)) {
                         stateMapMarkAdded(edgesState.peek(), nte);
                     }
                 }
@@ -707,7 +728,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
 
                 for (E nte : node.nonTreeEdges) {
-                    if (getEdgeSource(nte) == vertex) {
+                    if (getEdgeSource(nte).equals(vertex)) {
                         stateMapMarkRemoved(edgesState.peek(), nte);
                     }
                 }
