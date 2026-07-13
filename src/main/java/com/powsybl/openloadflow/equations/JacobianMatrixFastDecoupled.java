@@ -195,6 +195,12 @@ public class JacobianMatrixFastDecoupled
     }
 
     @Override
+    protected boolean supportsPartialValueUpdate() {
+        // this matrix overrides the derivation walks (sub blocks), the base class partial patching does not apply
+        return false;
+    }
+
+    @Override
     protected void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 

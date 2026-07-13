@@ -12,7 +12,9 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.util.Derivable;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
@@ -20,15 +22,26 @@ import java.util.stream.Stream;
  */
 public class InjectionDerivable<V extends Enum<V> & Quantity> implements Derivable<V> {
 
-    private final Equation<V, ?> equation;
+    private final Supplier<List<EquationTerm<V, ?>>> termsSupplier;
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public InjectionDerivable(Equation<V, ?> equation) {
         Objects.requireNonNull(equation);
-        this.equation = equation;
+        this.termsSupplier = () -> (List) equation.getTerms();
+    }
+
+    /**
+     * Same as {@link #InjectionDerivable(Equation)} for a bus modeled with a alternative equation, whose injection
+     * is derivable from the power balance alternative whatever the active alternative is.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public InjectionDerivable(AlternativeEquation.Alternative alternative) {
+        Objects.requireNonNull(alternative);
+        this.termsSupplier = () -> (List) alternative.getTerms();
     }
 
     private Stream<? extends EquationTerm<V, ?>> getBranchTermStream() {
-        return equation.getTerms().stream().filter(EquationTerm::isActive)
+        return termsSupplier.get().stream().filter(EquationTerm::isActive)
                 .filter(t -> t.getElementType() == ElementType.BRANCH);
     }
 

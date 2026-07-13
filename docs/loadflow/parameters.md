@@ -181,6 +181,18 @@ Whether simulation of static VAR compensators with voltage control enabled and a
 (See [voltage per reactive power control extension](inv:powsyblcore:*:*:#voltage-per-reactive-power-control-extension)).<br>
 The default value is `false`.
 
+(param-lf-alternative-equations)=
+### alternativeEquations
+Experimental. Whether buses should be modeled with alternative equations: a single equation owning a single Jacobian
+matrix column but alternating between several bodies (power balance, voltage target, reactive power distribution,
+trivial equation for disabled or islanded buses). PV/PQ switching in the outer loops, and bus or branch disabling by
+security analysis contingencies (including islanding ones), then preserve the matrix structure, so the symbolic
+factorization of the Jacobian matrix is computed once and reused, only numerical refactorizations being needed.
+Only applies to the default `NEWTON_RAPHSON` solver and is ignored when secondary voltage control or asymmetrical
+calculation is enabled. Buses connected to voltage source converters or zero impedance branches, and merged voltage
+controls, stay on the legacy modeling.<br>
+The default value is `false`.
+
 (param-lf-generator-reactive-power-remote-control)=
 ### generatorReactivePowerRemoteControl
 Whether simulation of generators reactive power remote control should be enabled

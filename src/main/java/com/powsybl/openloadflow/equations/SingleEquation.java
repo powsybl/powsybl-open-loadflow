@@ -162,11 +162,20 @@ public class SingleEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return termsByVariable;
     }
 
+    /**
+     * Whether the given term contributes to the equation value and derivatives. By default a term contributes when
+     * it is active. {@link AlternativeEquation} restricts the contribution to terms of the active alternative,
+     * keeping all terms in the matrix structure (inactive alternatives contribute zeros).
+     */
+    protected boolean isTermContributing(EquationTerm<V, E> term) {
+        return term.isActive();
+    }
+
     @Override
     public double eval() {
         double value = 0;
         for (SingleEquationTerm<V, E> term : terms) {
-            if (term.isActive()) {
+            if (isTermContributing(term)) {
                 value += term.eval();
             }
         }
@@ -176,7 +185,7 @@ public class SingleEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     public double evalLhs() {
         double value = 0;
         for (SingleEquationTerm<V, E> term : terms) {
-            if (term.isActive()) {
+            if (isTermContributing(term)) {
                 value += term.evalLhs();
             }
         }
@@ -191,10 +200,10 @@ public class SingleEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             int row = variable.getRow();
             if (row != -1) {
                 double value = 0;
-                // create a derivative even if all terms are not active, to allow later reactivation of terms
+                // create a derivative even if all terms are not contributing, to allow later reactivation of terms
                 // that won't create a new matrix element and a simple update of the matrix
                 for (EquationTerm<V, E> term : e.getValue()) {
-                    if (term.isActive()) {
+                    if (isTermContributing(term)) {
                         value += term.der(variable);
                     }
                 }
@@ -215,7 +224,7 @@ public class SingleEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
         double rhs = 0;
         for (var term : terms) {
-            if (term.isActive() && term.hasRhs()) {
+            if (isTermContributing(term) && term.hasRhs()) {
                 rhs += term.rhs();
             }
         }
@@ -254,14 +263,14 @@ public class SingleEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         writer.append(type.getSymbol())
                 .append(Integer.toString(elementNum))
                 .append(" = ");
-        List<SingleEquationTerm<V, E>> termsToWrite = writeInactiveTerms ? terms : terms.stream().filter(SingleEquationTerm::isActive).collect(Collectors.toList());
+        List<SingleEquationTerm<V, E>> termsToWrite = writeInactiveTerms ? terms : terms.stream().filter(this::isTermContributing).collect(Collectors.toList());
         for (Iterator<SingleEquationTerm<V, E>> it = termsToWrite.iterator(); it.hasNext();) {
             SingleEquationTerm<V, E> term = it.next();
-            if (!term.isActive()) {
+            if (!isTermContributing(term)) {
                 writer.write("[ ");
             }
             term.write(writer);
-            if (!term.isActive()) {
+            if (!isTermContributing(term)) {
                 writer.write(" ]");
             }
             if (it.hasNext()) {

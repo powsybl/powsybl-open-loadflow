@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
+import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
@@ -27,6 +28,7 @@ import com.powsybl.openloadflow.lf.outerloop.config.AcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.DefaultAcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.ExplicitAcOuterLoopConfig;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.Reports;
@@ -116,6 +118,18 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     @Override
     protected void initStateFromPresolvedNetwork(AcLoadFlowContext context) {
         AcSolverUtil.initStateVector(context.getNetwork(), context.getEquationSystem(), new PreviousValueVoltageInitializer(true));
+    }
+
+    @Override
+    protected void adaptParameters(AcLoadFlowParameters parameters, LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies) {
+        AcEquationSystemCreationParameters creationParameters = parameters.getEquationSystemCreationParameters();
+        if (creationParameters.isAlternativeEquations()) {
+            // keep the matrix structure stable when contingencies island buses, with trivial disabled
+            // alternatives on the buses the contingency list can actually island
+            parameters.setEquationSystemCreationParameters(
+                    new AcEquationSystemCreationParameters(creationParameters.isForceA1Var(), true)
+                            .setAlternativeIslandableBusIds(PropagatedContingency.islandableBusIds(lfNetwork, propagatedContingencies)));
+        }
     }
 
     @Override

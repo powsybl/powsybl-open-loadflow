@@ -385,6 +385,35 @@ public class PropagatedContingency {
         return branchesToOpen;
     }
 
+    /**
+     * Union of the buses these contingencies can island (vertices leaving the main component) or directly lose,
+     * computed with the network connectivity — the same machinery
+     * {@link #findBusesAndBranchesImpactedBecauseOfConnectivityLoss} runs during the simulations. Used to decide
+     * which bus equations need a structure-preserving disabled alternative (alternative equations).
+     */
+    public static Set<String> islandableBusIds(LfNetwork network, Collection<PropagatedContingency> contingencies) {
+        GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
+        Set<String> islandableBusIds = new LinkedHashSet<>();
+        for (PropagatedContingency contingency : contingencies) {
+            contingency.busIdsToLose.stream().map(network::getBusById).filter(Objects::nonNull)
+                    .forEach(bus -> islandableBusIds.add(bus.getId()));
+            Map<LfBranch, DisabledBranchStatus> branchesToOpen = contingency.findBranchToOpenDirectlyImpactedByContingency(network);
+            if (branchesToOpen.isEmpty()) {
+                continue;
+            }
+            connectivity.startTemporaryChanges();
+            try {
+                branchesToOpen.keySet().stream()
+                        .filter(LfBranch::isConnectedAtBothSides)
+                        .forEach(connectivity::removeEdge);
+                connectivity.getVerticesRemovedFromMainComponent().forEach(bus -> islandableBusIds.add(bus.getId()));
+            } finally {
+                connectivity.undoTemporaryChanges();
+            }
+        }
+        return islandableBusIds;
+    }
+
     public record ContingencyConnectivityLossImpact(int createdSynchronousComponents, Set<LfBus> busesToLost, Set<LfHvdc> hvdcsWithoutPower) {
     }
 

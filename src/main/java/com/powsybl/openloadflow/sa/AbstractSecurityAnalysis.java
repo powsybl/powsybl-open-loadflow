@@ -511,6 +511,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected abstract C createLoadFlowContext(LfNetwork lfNetwork, P parameters);
 
+    /**
+     * Last chance to adapt the (already copied) parameters to the network and contingency list before the
+     * load flow context creation.
+     */
+    protected void adaptParameters(P parameters, LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies) {
+        // nothing by default
+    }
+
     protected abstract LoadFlowEngine<V, E, P, R> createLoadFlowEngine(C context);
 
     private boolean checkZeroImpedanceLine(LfNetwork lfNetwork, String id) {
@@ -629,6 +637,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         boolean createResultExtension = openSecurityAnalysisParameters.isCreateResultExtension();
 
         P p = copyParameters(acParameters);
+        adaptParameters(p, lfNetwork, propagatedContingencies);
 
         try (C context = createLoadFlowContext(lfNetwork, p)) {
             ReportNode networkReportNode = lfNetwork.getReportNode();

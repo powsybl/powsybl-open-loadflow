@@ -475,6 +475,17 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter, contingencies, new HashMap<>(), parameters);
         var validLfFactors = validFactorHolder.getAllFactors();
 
+        AcEquationSystemCreationParameters creationParameters = acParameters.getEquationSystemCreationParameters();
+        if (creationParameters.isAlternativeEquations()) {
+            // keep the matrix structure stable when contingencies island buses, with trivial disabled
+            // alternatives on the buses the contingency list can actually island; replace the creation parameters
+            // (as the security analysis does) rather than mutating them in place, so the instance shared by
+            // reference through AcLoadFlowParameters copies is never mutated with this network's islandable buses
+            acParameters.setEquationSystemCreationParameters(
+                    new AcEquationSystemCreationParameters(creationParameters.isForceA1Var(), true)
+                            .setAlternativeIslandableBusIds(PropagatedContingency.islandableBusIds(lfNetwork, contingencies)));
+        }
+
         try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
 
             runLoadFlow(context, true);

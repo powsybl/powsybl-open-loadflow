@@ -18,6 +18,7 @@ class EquationDerivativeVector {
 
     private final int[] termArrayNums;
     private final int[] termNums;
+    private final int[] equationElementNums;
 
     // cache
     private final Number[] rowRefs;
@@ -38,6 +39,7 @@ class EquationDerivativeVector {
 
         termArrayNums = new int[size];
         termNums = new int[size];
+        equationElementNums = new int[size];
         rowRefs = new MutableInt[size];
         rows = new int[size];
         termElementNum = new int[size];
@@ -50,6 +52,7 @@ class EquationDerivativeVector {
             termNums[i] = element.termNum;
             var termArray = termArrays.get(element.termArrayNum);
             termElementNum[i] = termArray.getTermElementNum(element.termNum);
+            equationElementNums[i] = termArray.getEquationElementNum(element.termNum);
             Variable<?> variable = element.derivative.getVariable();
             rowRefs[i] = variable.getRowRef();
             localIndexes[i] = element.derivative.getLocalIndex();
@@ -64,22 +67,32 @@ class EquationDerivativeVector {
     }
 
     void update(EquationArray<?, ?> equationArray) {
+        updateRange(equationArray, 0, termNums.length);
+    }
+
+    /**
+     * Partial variant of {@link #update}: only refresh the entries of the given range (an element's slice, see
+     * {@link EquationArray#derElementPartial}).
+     */
+    void updateRange(EquationArray<?, ?> equationArray, int from, int to) {
         var termArrays = equationArray.getTermArrays();
-        for (int i = 0; i < termNums.length; i++) {
+        for (int i = from; i < to; i++) {
             int termNum = termNums[i];
             // get term array to which this term belongs
             int termArrayNum = termArrayNums[i];
             var termArray = termArrays.get(termArrayNum);
 
-            // skip inactive terms and get term derivative value
-            if (termArray.isTermActive(termNum)) {
+            // skip inactive terms (and array terms of an element whose active alternative is not the default body,
+            // contributing explicit zeros to preserve the matrix structure) and get term derivative value
+            if (termArray.isTermActive(termNum)
+                    && equationArray.isElementBalanceContributing(equationElementNums[i])) {
                 // add value (!!! we can have multiple terms contributing to same matrix element)
                 values[i] = termDerValues[i][termElementNum[i]];
             } else {
                 values[i] = 0.0;
             }
         }
-        for (int i = 0; i < termNums.length; i++) {
+        for (int i = from; i < to; i++) {
             rows[i] = rowRefs[i].intValue();
         }
     }

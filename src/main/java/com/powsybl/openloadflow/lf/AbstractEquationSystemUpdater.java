@@ -52,7 +52,11 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
         } else {
             // update all equations related to the element
             for (var equation : equationSystem.getEquations(element.getType(), element.getNum())) {
-                if (equation.isActive() != enable) {
+                if (equation.hasDisabledAlternative()) {
+                    // the equation stays active, disabling is represented by switching to the disabled (trivial)
+                    // alternative, preserving the matrix structure
+                    equation.setElementDisabled(!enable);
+                } else if (!isEquationActivationManagedExternally(equation) && equation.isActive() != enable) {
                     equation.setActive(enable);
                 }
             }
@@ -69,6 +73,15 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
                 equationArray.updateElementEquation(element, enable);
             }
         }
+    }
+
+    /**
+     * Whether the activation of this equation is fully managed outside of {@link #updateElementEquations}, so that
+     * disabling/enabling the element must not toggle it (avoiding spurious structural activations at re-enabling
+     * that another part of the code would deactivate right after).
+     */
+    protected boolean isEquationActivationManagedExternally(Equation<V, E> equation) {
+        return false;
     }
 
     protected abstract E getTypeBusTargetP();

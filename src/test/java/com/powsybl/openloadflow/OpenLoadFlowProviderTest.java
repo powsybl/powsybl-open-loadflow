@@ -98,7 +98,7 @@ class OpenLoadFlowProviderTest {
                 "areaInterchangeControl=false, areaInterchangeControlAreaType=ControlArea, forceTargetQInReactiveLimits=false, " +
                 "disableInconsistentVoltageControls=false, extrapolateReactiveLimits=false, generatorsWithZeroMwTargetAreNotStarted=true, " +
                 "isAcDcNetwork=false, detailedReport=false, includeElementsReconnectingSmallComponents=true, allowNonLinearShuntZeroSection=true), " +
-                "equationSystemCreationParameters=AcEquationSystemCreationParameters(forceA1Var=false), acSolverParameters=NewtonRaphsonParameters(maxIterations=15, " +
+                "equationSystemCreationParameters=AcEquationSystemCreationParameters(forceA1Var=false, alternativeEquations=false), acSolverParameters=NewtonRaphsonParameters(maxIterations=15, " +
                 "stoppingCriteria=DefaultNewtonRaphsonStoppingCriteria, stateVectorScalingMode=NONE, alwaysUpdateNetwork=false, " +
                 "lineSearchStateVectorScalingMaxIteration=10, lineSearchStateVectorScalingStepFold=1.3333333333333333, " +
                 "maxVoltageChangeStateVectorScalingMaxDv=0.1, maxVoltageChangeStateVectorScalingMaxDphi=0.17453292519943295), " +
@@ -136,7 +136,7 @@ class OpenLoadFlowProviderTest {
     void specificParametersTest() {
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
 
-        assertEquals(82, provider.getSpecificParameters().size());
+        assertEquals(83, provider.getSpecificParameters().size());
 
         LoadFlowParameters parameters = new LoadFlowParameters();
 
@@ -162,7 +162,7 @@ class OpenLoadFlowProviderTest {
         Map<String, String> map = provider.createMapFromSpecificParameters(parametersExt);
         // Null values are not serialized by the provider
         long nullValueCount = parametersExt.toMap().values().stream().filter(Objects::isNull).count();
-        assertEquals(82, map.size() + nullValueCount);
+        assertEquals(83, map.size() + nullValueCount);
         assertEquals(2, nullValueCount); // debugDir and outerLoopNames are nullable
         assertEquals(provider.getRawSpecificParameters().size(), map.size() + nullValueCount);
     }

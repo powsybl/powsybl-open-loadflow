@@ -38,6 +38,14 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
     public JacobianMatrix<AcVariableType, AcEquationType> getJacobianMatrix() {
         if (jacobianMatrix == null) {
             jacobianMatrix = new AcJacobianMatrix(getEquationSystem(), parameters.getMatrixFactory(), network);
+            // the partial (restore-and-patch) Jacobian value update only preserves the matrix structure, and thus
+            // only pays off, when alternative equations are used (structure-preserving PV/PQ and disabling switches);
+            // keep it off otherwise so the plain load flow does not pay the per-update state-vector equality check
+            jacobianMatrix.setPartialValueUpdateEnabled(parameters.getEquationSystemCreationParameters().isAlternativeEquations());
+            // note: incremental LU updates on alternative switches (setAllowIncrementalUpdateOnZeroChanges) were
+            // benchmarked on Pegase security analyses and are NOT enabled here: PV/PQ switches change the pivot
+            // structure of the switched columns so often that the failed incremental attempts plus their full
+            // refactorization fallbacks cost more than direct full numerical refactorizations
         }
         return jacobianMatrix;
     }

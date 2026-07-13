@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
@@ -90,6 +91,19 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                 .setActive(!enable);
     }
 
+    /**
+     * For buses modeled with alternative equations, the voltage target equation activation is only managed by the
+     * voltage controls update, so that disabling/enabling the bus does not fire spurious structural
+     * activation/deactivation events.
+     */
+    @Override
+    protected boolean isEquationActivationManagedExternally(Equation<AcVariableType, AcEquationType> equation) {
+        return equation.getType() == AcEquationType.BUS_TARGET_V
+                && equationSystem.getEquation(equation.getElementNum(), AcEquationType.BUS_TARGET_Q)
+                        .map(Equation::hasDisabledAlternative)
+                        .orElse(false);
+    }
+
     @Override
     public void onDisableChange(LfElement element, boolean disabled) {
         updateElementEquations(element, !disabled);
@@ -100,11 +114,14 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
                 equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_PHI)
                         .ifPresent(eq -> eq.setActive(!bus.isDisabled() && bus.isReference()));
                 equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_P)
+                        // alternative equations handle disabling with their trivial alternative and stay active
+                        .filter(eq -> !eq.hasDisabledAlternative())
                         .ifPresent(eq -> eq.setActive(!bus.isDisabled() && !bus.isSlack()));
                 // set voltage target equation inactive, various voltage control will set next to the correct value
+                // (buses modeled with a alternative BUS_TARGET_Q / BUS_TARGET_V equation have no separate voltage
+                // target equation, the equation activity is already handled by updateElementEquations)
                 equationSystem.getEquation(bus.getNum(), AcEquationType.BUS_TARGET_V)
-                        .orElseThrow()
-                        .setActive(false);
+                        .ifPresent(eq -> eq.setActive(false));
                 bus.getGeneratorVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
                 bus.getTransformerVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
                 bus.getShuntVoltageControl().ifPresent(vc -> updateVoltageControls(vc.getControlledBus()));
