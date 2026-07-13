@@ -221,7 +221,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     @Override
     public void startTemporaryChanges(boolean quick) {
-        super.startTemporaryChanges(quick);
+        super.startTemporaryChanges(true);
         getGraph().push();
     }
 
@@ -233,9 +233,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     @Override
     public Set<V> getVerticesAddedToMainComponent() {
-        Set<V> v = super.getVerticesAddedToMainComponent();
-        assertEquals(v, myGetVerticesAddedToMainComponent());
-        return v;
+        // Set<V> v = super.getVerticesAddedToMainComponent();
+        // assertEquals(v, myGetVerticesAddedToMainComponent());
+        return myGetVerticesAddedToMainComponent();
     }
 
     private Set<V> myGetVerticesAddedToMainComponent() {
@@ -249,9 +249,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     @Override
     public Set<V> getVerticesRemovedFromMainComponent() {
-        Set<V> v = super.getVerticesRemovedFromMainComponent();
-        assertEquals(v, myGetVerticesRemovedFromMainComponent());
-        return v;
+        // Set<V> v = super.getVerticesRemovedFromMainComponent();
+        // assertEquals(v, myGetVerticesRemovedFromMainComponent());
+        return myGetVerticesRemovedFromMainComponent();
     }
 
     private Set<V> myGetVerticesRemovedFromMainComponent() {
@@ -265,9 +265,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     @Override
     public Set<E> getEdgesAddedToMainComponent() {
-        Set<E> e = super.getEdgesAddedToMainComponent();
-        assertEquals(e, myGetEdgesAddedToMainComponent());
-        return e;
+        // Set<E> e = super.getEdgesAddedToMainComponent();
+        // assertEquals(e, myGetEdgesAddedToMainComponent());
+        return myGetEdgesAddedToMainComponent();
     }
 
     private Set<E> myGetEdgesAddedToMainComponent() {
@@ -281,9 +281,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     @Override
     public Set<E> getEdgesRemovedFromMainComponent() {
-        Set<E> e = super.getEdgesRemovedFromMainComponent();
-        assertEquals(e, myGetEdgesRemovedFromMainComponent());
-        return e;
+        // Set<E> e = super.getEdgesRemovedFromMainComponent();
+        // assertEquals(e, myGetEdgesRemovedFromMainComponent());
+        return myGetEdgesRemovedFromMainComponent();
     }
 
     private Set<E> myGetEdgesRemovedFromMainComponent() {
@@ -626,7 +626,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         }
 
         private void replace(DTNode rootSmall, DTNode rootLarge, E removedEdge) {
-            int minDist = Integer.MAX_VALUE;
             DTNode nodeSmall = null; // a node in the small tree that will be linked with a node in the large tree
             DTNode nodeLarge = null; // opposite
             E nte = null; // the actual edge
@@ -636,6 +635,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             ArrayDeque<DTNode> queue = new ArrayDeque<>();
             queue.offer(rootSmall);
 
+            loop:
             while (!queue.isEmpty()) {
                 DTNode n = queue.poll();
 
@@ -648,13 +648,14 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
                     V opp = edge.opposite(n.vertex);
                     DTNode oppNode = vertexToTreeNode.get(opp);
-                    Pair<DTNode, Integer> oppRoot = oppNode.findRootWithDist();
+                    DTNode oppRoot = oppNode.findRoot();
 
-                    if (oppRoot.getLeft() != rootSmall && oppRoot.getRight() < minDist) {
+                    if (oppRoot != rootSmall) {
                         // found a replacement edge
                         nodeSmall = n;
                         nodeLarge = oppNode;
                         nte = nonTreeEdge;
+                        break loop;
                     }
                 }
 

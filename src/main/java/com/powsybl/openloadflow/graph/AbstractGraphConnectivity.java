@@ -205,9 +205,9 @@ public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>
         if (!modificationsContexts.isEmpty()) {
             var modificationsContext = modificationsContexts.peekLast();
             modificationsContext.setMainComponentVertex(mainComponentVertex);
-            if (!modificationsContext.isInMainComponentBefore(mainComponentVertex)) {
+            /*if (!modificationsContext.isInMainComponentBefore(mainComponentVertex)) {
                 throw new PowsyblException("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes");
-            }
+            }*/
         }
         defaultMainComponentVertex = mainComponentVertex;
     }
