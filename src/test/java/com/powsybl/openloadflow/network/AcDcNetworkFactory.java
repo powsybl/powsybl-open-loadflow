@@ -2431,4 +2431,130 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         return net;
     }
+
+    /**
+     * ACDC droop-control test case.
+     *
+     * This is a back-to-back case between 2 VSC which are directly connected in the DC part.
+     * On the AC side they are also connected by a resistive AC line in parallel, and we have
+     * a generator on one side and a load on the other side. This configuration gives a full control
+     * on the DC side and makes it possible for power transfer to be always balanced.
+     *
+     * convVdc (V_DC) pins the DC voltage; convDroop (P_PCC_DROOP) enforces
+     * {@code P = refP + k*(U_dc - refVdc)} with a 3-band droop curve. Sweeping convVdc's
+     * {@code targetVdc} walks convDroop's solved {@code U_dc} through each band of the curve and past
+     * the extremes (clamping). convDroop has no losses so the droop law applies directly to its AC power.
+     */
+    public static Network createAcDcNetworkWithDroopControl() {
+
+        Network network = Network.create("vsc", "test");
+
+        // AC network: a generator and a load connected by an AC line.
+        Substation s1 = network.newSubstation()
+                .setId("S1")
+                .add();
+        VoltageLevel vl1 = s1.newVoltageLevel()
+                .setId("vl1")
+                .setNominalV(400.)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl1.getBusBreakerView().newBus()
+                .setId("b1")
+                .add();
+        vl1.newGenerator()
+                .setId("g1")
+                .setConnectableBus("b1")
+                .setBus("b1")
+                .setTargetP(100.)
+                .setTargetV(400.)
+                .setMinP(0)
+                .setMaxP(500)
+                .setVoltageRegulatorOn(true)
+                .add();
+
+        Substation s2 = network.newSubstation()
+                .setId("S2")
+                .add();
+        VoltageLevel vl2 = s2.newVoltageLevel()
+                .setId("vl2")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl2.getBusBreakerView().newBus()
+                .setId("b2")
+                .add();
+        vl2.newLoad()
+                .setId("ld2")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setP0(100.0)
+                .setQ0(0.0)
+                .add();
+
+        network.newLine()
+                .setId("l12")
+                .setBus1("b1")
+                .setBus2("b2")
+                .setR(1)
+                .setX(3)
+                .add();
+
+        // DC network: back-to-back converters with a ground.
+        // One of converters is in DC voltage control mode, while the other is in droop control.
+        network.newDcNode().
+                setId("dn1").
+                setNominalV(400.).
+                add();
+        network.newDcNode().
+                setId("dnGround").
+                setNominalV(400.).
+                add();
+        network.newDcGround()
+                .setId("dcGround")
+                .setDcNode("dnGround")
+                .add();
+
+        vl1.newVoltageSourceConverter()
+                .setIdleLoss(0)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(400.)
+                .setId("convVdc")
+                .setBus1("b1")
+                .setDcNode1("dn1")
+                .setDcNode2("dnGround")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+
+        // Droop-controlled converter (no losses so the law applies directly to AC power).
+        VoltageSourceConverter droopConverter = vl2.newVoltageSourceConverter()
+                .setIdleLoss(0)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC_DROOP)
+                .setTargetP(50.)
+                .setTargetVdc(400.)
+                .setId("convDroop")
+                .setBus1("b2")
+                .setDcNode1("dn1")
+                .setDcNode2("dnGround")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+
+        // 3-band droop curve: coefficient k (MW/kV) piecewise-constant over DC-voltage bands (kV).
+        droopConverter.newDroopCurve()
+                .beginSegment().setK(0.5).setMinV(380.).setMaxV(390.).endSegment()
+                .beginSegment().setK(1.0).setMinV(390.).setMaxV(410.).endSegment()
+                .beginSegment().setK(2.0).setMinV(410.).setMaxV(420.).endSegment()
+                .add();
+
+        return network;
+    }
 }

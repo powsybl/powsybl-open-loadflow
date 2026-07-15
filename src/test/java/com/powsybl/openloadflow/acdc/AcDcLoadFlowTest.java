@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.acdc;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.AcDcConverter.ControlMode;
 import com.powsybl.iidm.network.test.DcDetailedNetworkFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -1048,4 +1049,70 @@ class AcDcLoadFlowTest {
         result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged()); // Load flow do not succeed but no exception is thrown because of open switch
     }
+
+    @Test
+    void testDroopLaw() {
+        // A P_PCC_DROOP converter enforces P = refP + k*(U_dc - refVdc), where:
+        //   - k      = curve.getK(U_dc), the coefficient of the band containing the solved U_dc (clamped),
+        //   - refVdc = the min voltage of that band.
+        //   - refP   = the reference power, corresponding to the previous point in the curve.
+        // The paired V_DC converter (convVdc) pins the DC voltage, so sweeping its targetVdc walks the
+        // droop converter's solved U_dc through each band and past the extremes. The assertion reads the
+        // SOLVED U_dc, so it stays exact regardless of the DC-line voltage drop.
+        //
+        // Note that the droop curve has the following reference points:
+        // V = 380 kV => P = 35 MW
+        // V = 390 kV => P = 40 MW
+        // V = 410 kV => P = 60 MW
+        // V = 420 kV => P = 80 MW
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        VoltageSourceConverter droopConverter = network.getVoltageSourceConverter("convDroop");
+        final double targetP = 50.0;
+        final double targetVdc = 400.0;
+
+        // Sanity check: let's make sure we have kept consistency.
+        assertEquals(targetP, droopConverter.getTargetP());
+        assertEquals(targetVdc, droopConverter.getTargetVdc());
+
+        // Basic check: when Vdc = targetVdc, then Pac must be equal to targetP.
+        // This is also right in the middle of the middle droop segment.
+        checkDroopResult(network, targetVdc, targetP);
+
+        // Then check expected values on each segment.
+        // We take midpoints to simplify computations.
+        checkDroopResult(network, 385., 37.5);
+        checkDroopResult(network, 415., 70.);
+
+        // Finally check extrapolation
+        checkDroopResult(network, 370., 30.);
+        checkDroopResult(network, 430., 100.);
+    }
+
+    private void checkDroopResult(Network network, double vdc, double expectedPac) {
+        VoltageSourceConverter droopConverter = network.getVoltageSourceConverter("convDroop");
+        droopConverter.setTargetVdc(vdc);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged(), "load flow did not converge for targetVdc=" + vdc);
+
+        assertActivePowerEquals(expectedPac, droopConverter.getTerminal1());
+    }
+
+    @Test
+    void testDroopCountsAsVdcControl() {
+        // Check a DC component whose only DC-voltage-controlling converter is in P_PCC_DROOP mode
+        // is accepted.
+        // This is the mirror of testNoVdcControl, which rejects a component with only P_PCC converters.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        network.getVoltageSourceConverter("convVdc").setId("convPAC")
+                .setTargetP(50.)
+                .setControlMode(ControlMode.P_PCC);
+
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+    }
+
 }
