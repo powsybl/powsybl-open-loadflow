@@ -36,10 +36,13 @@ public class LfAreaImpl extends AbstractElement implements LfArea {
         this.boundaries = boundaries;
     }
 
-    public static LfAreaImpl create(Area area, Set<LfBus> buses, Set<Boundary> boundaries, LfNetwork network, LfNetworkParameters parameters) {
-        LfAreaImpl lfArea = new LfAreaImpl(area, buses, boundaries, network, parameters);
-        lfArea.getBuses().forEach(bus -> bus.setArea(lfArea));
-        return lfArea;
+    private LfAreaImpl(LfAreaImpl other, Set<LfBus> buses, Set<Boundary> boundaries, LfNetwork network) {
+        super(network);
+        this.areaRef = other.areaRef;
+        this.interchangeTarget = other.interchangeTarget;
+        this.buses = buses;
+        this.boundaries = boundaries;
+        this.disabled = other.disabled;
     }
 
     public LfArea copy(LfNetwork copyNetwork) {
@@ -54,13 +57,10 @@ public class LfAreaImpl extends AbstractElement implements LfArea {
         return copiedArea;
     }
 
-    private LfAreaImpl(LfAreaImpl other, Set<LfBus> buses, Set<Boundary> boundaries, LfNetwork network) {
-        super(network);
-        this.areaRef = other.areaRef;
-        this.interchangeTarget = other.interchangeTarget;
-        this.buses = buses;
-        this.boundaries = boundaries;
-        this.disabled = other.disabled;
+    public static LfAreaImpl create(Area area, Set<LfBus> buses, Set<Boundary> boundaries, LfNetwork network, LfNetworkParameters parameters) {
+        LfAreaImpl lfArea = new LfAreaImpl(area, buses, boundaries, network, parameters);
+        lfArea.getBuses().forEach(bus -> bus.setArea(lfArea));
+        return lfArea;
     }
 
     private Area getArea() {

@@ -15,7 +15,7 @@ import com.powsybl.openloadflow.network.impl.LfNetworkCopier;
  *
  * @author Sylvestre Prabakaran {@literal <sylvestre.prabakaran at rte-france.com>}
  */
-public interface LfCopyable<E, P > {
+public interface LfCopyable<E, P> {
 
     /**
      * Create a flat copy of the object in the given copyNetwork. The object should be added manually then

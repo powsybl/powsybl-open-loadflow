@@ -40,13 +40,13 @@ public final class LfBoundaryLineGenerator extends AbstractLfGenerator {
         }
     }
 
-    public LfGenerator copy(LfBus copyBus) {
-        return new LfBoundaryLineGenerator(this, copyBus.getNetwork());
-    }
-
     private LfBoundaryLineGenerator(LfBoundaryLineGenerator other, LfNetwork network) {
         super(other, network);
         this.boundaryLineRef = other.boundaryLineRef;
+    }
+
+    public LfGenerator copy(LfBus copyBus) {
+        return new LfBoundaryLineGenerator(this, copyBus.getNetwork());
     }
 
     public static LfBoundaryLineGenerator create(BoundaryLine boundaryLine, LfNetwork network, String controlledLfBusId, LfNetworkParameters parameters,

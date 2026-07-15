@@ -58,11 +58,6 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         }
     }
 
-    @Override
-    public LfGenerator copy(LfBus copyBus) {
-        return new LfBatteryImpl(this, copyBus.getNetwork());
-    }
-
     private LfBatteryImpl(LfBatteryImpl other, LfNetwork network) {
         super(other, network);
         this.batteryRef = other.batteryRef;
@@ -72,6 +67,11 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         this.participationFactor = other.participationFactor;
         this.maxTargetP = other.maxTargetP;
         this.minTargetP = other.minTargetP;
+    }
+
+    @Override
+    public LfGenerator copy(LfBus copyBus) {
+        return new LfBatteryImpl(this, copyBus.getNetwork());
     }
 
     public static LfBatteryImpl create(Battery battery, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {

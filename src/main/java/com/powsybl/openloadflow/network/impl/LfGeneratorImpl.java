@@ -95,11 +95,6 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         }
     }
 
-    @Override
-    public LfGenerator copy(LfBus copyBus) {
-        return new LfGeneratorImpl(this, copyBus.getNetwork());
-    }
-
     private LfGeneratorImpl(LfGeneratorImpl other, LfNetwork network) {
         super(other, network);
         this.generatorRef = other.generatorRef;
@@ -113,6 +108,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         this.maxTargetP = other.maxTargetP;
         this.minTargetP = other.minTargetP;
         this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
+    }
+
+    @Override
+    public LfGenerator copy(LfBus copyBus) {
+        return new LfGeneratorImpl(this, copyBus.getNetwork());
     }
 
     @Override

@@ -53,11 +53,6 @@ public class LfAsymBus implements LfCopyable<LfAsymBus, LfNetwork> {
         this.totalDeltaQc = totalDeltaQc;
     }
 
-    @Override
-    public LfAsymBus copy(LfNetwork copyNetwork) {
-        return new LfAsymBus(this);
-    }
-
     /**
      * Deep copy constructor (see {@code LfNetworkCopier}). The solver state (zero and negative
      * sequence voltages and angles) is copied; the equivalent shunts are left at zero because they
@@ -77,6 +72,11 @@ public class LfAsymBus implements LfCopyable<LfAsymBus, LfNetwork> {
         this.angleZ = other.angleZ;
         this.vn = other.vn;
         this.angleN = other.angleN;
+    }
+
+    @Override
+    public LfAsymBus copy(LfNetwork copyNetwork) {
+        return new LfAsymBus(this);
     }
 
     public void setBus(LfBus bus) {

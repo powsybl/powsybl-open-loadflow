@@ -29,11 +29,6 @@ public class LfDcBusImpl extends AbstractLfDcBus {
         this.dcBusRef = Ref.create(dcBus, parameters.isCacheEnabled());
     }
 
-    @Override
-    public LfDcBus copy(LfNetwork copyNetwork) {
-        return new LfDcBusImpl(this, copyNetwork);
-    }
-
     /**
      * Deep copy constructor (see {@link LfNetworkCopier}).
      */
@@ -41,6 +36,11 @@ public class LfDcBusImpl extends AbstractLfDcBus {
         super(other, network);
         this.dcBusRef = other.dcBusRef;
         this.isGrounded = other.isGrounded;
+    }
+
+    @Override
+    public LfDcBus copy(LfNetwork copyNetwork) {
+        return new LfDcBusImpl(this, copyNetwork);
     }
 
     public static LfDcBusImpl create(DcBus dcBus, LfNetwork network, LfNetworkParameters parameters) {
