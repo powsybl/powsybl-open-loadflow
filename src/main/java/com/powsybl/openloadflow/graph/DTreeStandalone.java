@@ -124,17 +124,17 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         boolean treeEdge;
         if (rootU == rootV) {
             if (isInMainComponent(rootU)) {
-                checkSavedContext().edgesState.markAdded(edge);
+                checkSavedContext().markEdgeAdded(edge);
             }
 
             // insert non tree edge
             treeEdge = insertNonTreeEdge(rootU, nodeU, rootUdist.getValue(), nodeV, rootVdist.getValue(), edge);
         } else {
             if (isInMainComponent(rootV)) {
-                checkSavedContext().edgesState.markAdded(edge);
+                checkSavedContext().markEdgeAdded(edge);
                 markAllAdded(rootU);
             } else if (isInMainComponent(rootU)) {
-                checkSavedContext().edgesState.markAdded(edge);
+                checkSavedContext().markEdgeAdded(edge);
                 markAllAdded(rootV);
             }
 
@@ -310,7 +310,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         }
 
         if (isInMainComponent(rootLarge) || isInMainComponent(rootSmall)) {
-            checkSavedContext().edgesState.markRemoved(removedEdge);
+            checkSavedContext().markEdgeRemoved(removedEdge);
         }
         if (nodeSmall != null) {
             removeNonTreeEdge(nodeSmall, nodeLarge, nte);
@@ -331,7 +331,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
     private void removeNonTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
         if (isInMainComponent(nodeU)) {
-            checkSavedContext().edgesState.markRemoved(edge);
+            checkSavedContext().markEdgeRemoved(edge);
         }
 
         nodeU.nonTreeEdges.remove(edge);
@@ -410,7 +410,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
     @Override
     public void startTemporaryChanges(boolean quick) {
-        modificationsStack.push(new Modifications(defaultMainComponentVertex));
+        modificationsStack.push(new Modifications(defaultMainComponentVertex, !quick));
     }
 
     @Override
@@ -420,6 +420,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         }
 
         Modifications modifications = modificationsStack.peek();
+        modifications.undoing = true;
 
         for (var it = modifications.modifications.descendingIterator(); it.hasNext();) {
             switch (it.next()) {
@@ -521,26 +522,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
             return;
         }
 
-        for (DFSIterator it = new DFSIterator(root); it.hasNext();) {
-            V vertex = it.next();
-            modifications.verticesState.markAdded(vertex);
-
-            DTNode node = it.node();
-            if (node.parentEdge != null) {
-                modifications.edgesState.markAdded(node.parentEdge);
-            }
-
-            for (E nte : node.nonTreeEdges) {
-                if (getEdgeSource(nte).equals(vertex)) {
-                    modifications.edgesState.markAdded(nte);
-                }
-            }
-
-            // we don't mark child tree edges as removed
-            // because for each child tree edge, there is a parentEdge
-            // so if we mark a parent edge as removed, we also mark
-            // the corresponding child tree edge as removed
-        }
+        modifications.markAllAdded(root);
     }
 
     private void markAllRemoved(DTNode root) {
@@ -549,26 +531,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
             return;
         }
 
-        for (DFSIterator it = new DFSIterator(root); it.hasNext();) {
-            V vertex = it.next();
-            modifications.verticesState.markRemoved(vertex);
-
-            DTNode node = it.node();
-            if (node.parentEdge != null) {
-                modifications.edgesState.markRemoved(node.parentEdge);
-            }
-
-            for (E nte : node.nonTreeEdges) {
-                if (getEdgeSource(nte).equals(vertex)) {
-                    modifications.edgesState.markRemoved(nte);
-                }
-            }
-
-            // we don't mark child tree edges as removed
-            // because for each child tree edge, there is a parentEdge
-            // so if we mark a parent edge as removed, we also mark
-            // the corresponding child tree edge as removed
-        }
+        modifications.markAllRemoved(root);
     }
 
     @Override
@@ -965,20 +928,36 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
     private final class Modifications {
 
         private final Deque<GraphModification<V, E>> modifications = new ArrayDeque<>();
-        private final StateMap<V> verticesState = new StateMap<>();
-        private final StateMap<E> edgesState = new StateMap<>();
+        private final StateMap<V> verticesState;
+        private final StateMap<E> edgesState;
 
         private V mainComponentVertex;
 
-        Modifications(V mainComponentVertex) {
+        private boolean undoing = false;
+
+        Modifications(V mainComponentVertex, boolean computeStates) {
             this.mainComponentVertex = mainComponentVertex;
+
+            if (computeStates) {
+                verticesState = new StateMap<>();
+                edgesState = new StateMap<>();
+            } else {
+                verticesState = null;
+                edgesState = null;
+            }
         }
 
         public void push(GraphModification<V, E> modification) {
-            modifications.push(modification);
+            if (!undoing) {
+                modifications.push(modification);
+            }
         }
 
         public void setMainComponentVertex(V mainComponentVertex) {
+            if (verticesState == null || edgesState == null || undoing) {
+                return;
+            }
+
             V old = this.mainComponentVertex;
             this.mainComponentVertex = mainComponentVertex;
 
@@ -996,26 +975,71 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
                 }
             }
         }
+
+        public void markEdgeAdded(E edge) {
+            if (edgesState != null && !undoing) {
+                edgesState.markAdded(edge);
+            }
+        }
+
+        public void markEdgeRemoved(E edge) {
+            if (edgesState != null && !undoing) {
+                edgesState.markRemoved(edge);
+            }
+        }
+
+        public void markAllAdded(DTNode root) {
+            markAll(root, State.ADDED);
+        }
+
+        public void markAllRemoved(DTNode root) {
+            markAll(root, State.REMOVED);
+        }
+
+        public void markAll(DTNode root, State newState) {
+            if (verticesState == null || edgesState == null || undoing) {
+                return;
+            }
+
+            for (DFSIterator it = new DFSIterator(root); it.hasNext();) {
+                V vertex = it.next();
+                verticesState.mark(vertex, newState);
+
+                DTNode node = it.node();
+                if (node.parentEdge != null) {
+                    edgesState.mark(node.parentEdge, newState);
+                }
+
+                for (E nte : node.nonTreeEdges) {
+                    if (getEdgeSource(nte).equals(vertex)) {
+                        edgesState.mark(nte, newState);
+                    }
+                }
+
+                // we don't mark child tree edges as removed
+                // because for each child tree edge, there is a parentEdge
+                // so if we mark a parent edge as removed, we also mark
+                // the corresponding child tree edge as removed
+            }
+        }
     }
 
     private static final class StateMap<T> extends HashMap<T, State> {
 
         public void markAdded(T element) {
-            compute(element, (k, state) -> {
-                if (state == State.REMOVED) {
-                    return null;
-                } else {
-                    return State.ADDED;
-                }
-            });
+            mark(element, State.ADDED);
         }
 
         public void markRemoved(T element) {
+            mark(element, State.REMOVED);
+        }
+
+        public void mark(T element, State newState) {
             compute(element, (k, state) -> {
-                if (state == State.ADDED) {
-                    return null;
+                if (state == null || state == newState) {
+                    return newState;
                 } else {
-                    return State.REMOVED;
+                    return null;
                 }
             });
         }
