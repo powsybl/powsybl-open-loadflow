@@ -52,6 +52,15 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         };
     }
 
+    private DTNode getNodeOrThrow(V v) {
+        DTNode node = vertexToTreeNode.get(v);
+        if (node == null) {
+            throw new IllegalArgumentException("given vertex " + v + " is not in the graph");
+        }
+
+        return node;
+    }
+
     private DTNode rootOf(V vertex) {
         return vertexToTreeNode.get(vertex).findRoot();
     }
@@ -64,6 +73,16 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
             }
             isSorted = true;
         }
+    }
+
+    public long computeSd() {
+        long sum = 0;
+
+        for (DTNode node : vertexToTreeNode.values()) {
+            sum += node.findRootWithDepth().getValue();
+        }
+
+        return sum;
     }
 
     @Override
@@ -100,6 +119,8 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
         DTNode root = vertexToTreeNode.remove(v);
         removeRoot(root);
+
+        // no VertexRemove modification, so don't update stack
     }
 
     // =============
@@ -116,32 +137,21 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
             return;
         }
 
+        // first update the spanning tree
         DTNode nodeU = getNodeOrThrow(vertex1);
         DTNode nodeV = getNodeOrThrow(vertex2);
 
-        Pair<DTNode, Integer> rootUdist = nodeU.findRootWithDist();
-        Pair<DTNode, Integer> rootVdist = nodeV.findRootWithDist();
+        Pair<DTNode, Integer> rootUdepth = nodeU.findRootWithDepth();
+        Pair<DTNode, Integer> rootVdepth = nodeV.findRootWithDepth();
 
-        DTNode rootU = rootUdist.getKey();
-        DTNode rootV = rootVdist.getKey();
+        DTNode rootU = rootUdepth.getKey();
+        DTNode rootV = rootVdepth.getKey();
 
         boolean treeEdge;
         if (rootU == rootV) {
-            if (isInMainComponent(rootU)) {
-                checkSavedContext().markEdgeAdded(edge);
-            }
-
             // insert non tree edge
-            treeEdge = insertNonTreeEdge(rootU, nodeU, rootUdist.getValue(), nodeV, rootVdist.getValue(), edge);
+            treeEdge = insertNonTreeEdge(rootU, nodeU, rootUdepth.getValue(), nodeV, rootVdepth.getValue(), edge);
         } else {
-            if (isInMainComponent(rootV)) {
-                checkSavedContext().markEdgeAdded(edge);
-                markAllAdded(rootU);
-            } else if (isInMainComponent(rootU)) {
-                checkSavedContext().markEdgeAdded(edge);
-                markAllAdded(rootV);
-            }
-
             // insert tree edge
             insertTreeEdge(rootU, nodeU, rootV, nodeV, edge);
             treeEdge = true;
@@ -149,25 +159,22 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
         edges.put(edge, new Edge(vertex1, vertex2, treeEdge));
 
-        check();
-
+        // keep track of modifications
         if (!modificationsStack.isEmpty()) {
             modificationsStack.peek().push(new EdgeAdd<>(vertex1, vertex2, edge));
         }
 
+        // invalidate roots ordering
         isSorted = false;
-    }
 
-    private DTNode getNodeOrThrow(V v) {
-        DTNode node = vertexToTreeNode.get(v);
-        if (node == null) {
-            throw new IllegalArgumentException("given vertex " + v + " is not in the graph");
-        }
-
-        return node;
+        check();
     }
 
     private boolean insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, E edge) {
+        if (isInMainComponent(root)) {
+            checkSavedContext().markEdgeAdded(edge);
+        }
+
         DTNode deep;
         DTNode shallow;
         int delta;
@@ -207,6 +214,14 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
     }
 
     private void insertTreeEdge(DTNode rootU, DTNode nodeU, DTNode rootV, DTNode nodeV, E edge) {
+        if (isInMainComponent(rootV)) {
+            checkSavedContext().markEdgeAdded(edge);
+            markAllAdded(rootU);
+        } else if (isInMainComponent(rootU)) {
+            checkSavedContext().markEdgeAdded(edge);
+            markAllAdded(rootV);
+        }
+
         DTNode toRemove;
         if (rootU.size < rootV.size) {
             nodeU.makeRoot(true);
@@ -233,6 +248,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
             return;
         }
 
+        // update the spanning tree
         DTNode nodeU = vertexToTreeNode.get(e.u);
         DTNode nodeV = vertexToTreeNode.get(e.v);
 
@@ -242,13 +258,15 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
             removeNonTreeEdge(nodeU, nodeV, edge);
         }
 
-        check();
-
+        // keep track of modifications
         if (!modificationsStack.isEmpty()) {
             modificationsStack.peek().push(new EdgeRemove<>(e.u, e.v, edge));
         }
 
+        // invalidate roots ordering
         isSorted = false;
+
+        check();
     }
 
     private void removeTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
@@ -276,11 +294,9 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         replace(small, large, edge);
     }
 
+    // search a replacement edge by doing a BFS over the smaller tree between rootSmall and rooLarge
     private void replace(DTNode rootSmall, DTNode rootLarge, E removedEdge) {
-        DTNode nodeSmall = null; // a node in the small tree that will be linked with a node in the large tree
-        DTNode nodeLarge = null; // opposite
-        E nte = null; // the actual edge
-
+        boolean replacementEdgeFound = false;
         DTNode newRoot = null; // a potential new root in case no replacement edge is found
 
         ArrayDeque<DTNode> queue = new ArrayDeque<>();
@@ -303,9 +319,11 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
                 if (oppRoot != rootSmall) {
                     // found a replacement edge
-                    nodeSmall = n;
-                    nodeLarge = oppNode;
-                    nte = nonTreeEdge;
+                    removeNonTreeEdge(n, oppNode, nonTreeEdge);
+                    insertTreeEdge(rootSmall, n, rootLarge, oppNode, nonTreeEdge);
+                    edges.get(nonTreeEdge).treeEdge = true;
+                    replacementEdgeFound = true;
+
                     break loop;
                 }
             }
@@ -320,11 +338,8 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         if (isInMainComponent(rootLarge) || isInMainComponent(rootSmall)) {
             checkSavedContext().markEdgeRemoved(removedEdge);
         }
-        if (nodeSmall != null) {
-            removeNonTreeEdge(nodeSmall, nodeLarge, nte);
-            insertTreeEdge(rootSmall, nodeSmall, rootLarge, nodeLarge, nte);
-            edges.get(nte).treeEdge = true;
-        } else {
+
+        if (!replacementEdgeFound) {
             if (isInMainComponent(rootLarge)) {
                 markAllRemoved(rootSmall);
             } else if (isInMainComponent(rootSmall)) {
@@ -621,7 +636,58 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         }
     }
 
+    /**
+     * A DTNode (Dynamic Tree Node) is a node in a spanning tree.
+     * Each DTNode maintains the following information:
+     * <ul>
+     *     <li>the vertex in the graph,</li>
+     *     <li>the size of the subtree,</li>
+     *     <li>its parent in the tree and the edge linking them,</li>
+     *     <li>its children in the tree,</li>
+     *     <li>all non tree edges having at least one endpoint that is the DTNode</li>
+     * </ul>
+     *
+     * <p>
+     * However, children are stored in a particular way, allowing
+     * fast iteration over a tree and insertion and removal of a child,
+     * but slow access to an arbitrary element. Instead of storing them
+     * in a list or a map, each DTNode has a pointer to its previous sibling,
+     * its next sibling and its first child. In other words, the children of
+     * a DTNode are stored in a doubly-linked list. A DTNode stores the first
+     * element in this list and is also used as an element in its parent doubly
+     * linked list of children.
+     * </p>
+     *
+     * <p>
+     * Example:
+     * <pre>
+     * +----- first child ------ 1
+     * |                         ^
+     * |                         |
+     * |                      parent
+     * |                         |
+     * | +-----------------------+-----------------------+
+     * v/                        |                        \
+     * 2 <-- previous sibling -- 3 <-- previous sibling -- 4
+     *  \_____ next sibling _____^\_____ next sibling _____^
+     * </pre>
+     * X --> Y indicates that X contains a pointer to Y.
+     *</p>
+     *
+     * <p>
+     * This complex structure allows fast insertion and removal as we only need
+     * to update the sibling list and eventually the first child pointer. But the
+     * biggest advantage is that it allows fast iteration of a tree with 0 memory
+     * allocations by only following pointers. See {@link DFSIterator}
+     * </p>
+     *
+     */
     private final class DTNode {
+
+        private final V vertex;
+
+        // the size of this subtree
+        private int size;
 
         private DTNode parent = null;
         private E parentEdge = null;
@@ -632,10 +698,6 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         private DTNode nextSibling = null;
         private DTNode firstChild = null;
 
-        // the size of this subtree
-        private int size;
-
-        private final V vertex;
         private final Set<E> childTreeEdges = new LinkedHashSet<>();
         private final Set<E> nonTreeEdges = new LinkedHashSet<>();
 
@@ -752,16 +814,16 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
             return node;
         }
 
-        private Pair<DTNode, Integer> findRootWithDist() {
+        private Pair<DTNode, Integer> findRootWithDepth() {
             DTNode node = this;
-            int dist = 0;
+            int depth = 0;
 
             while (node.parent != null) {
                 node = node.parent;
-                dist++;
+                depth++;
             }
 
-            return new ImmutablePair<>(node, dist);
+            return new ImmutablePair<>(node, depth);
         }
 
         private DTNode findRootOptReroot() {
@@ -859,6 +921,13 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         private DTNode cursor;
         private DTNode current;
 
+        /**
+         * Creates a new depth-first iterator starting at the specified root node
+         * and returning node according to the pre-order.
+         *
+         * @param root the root of the tree to traverse. It must be a root otherwise,
+         *             the iterator may visit nodes outside the subtree
+         */
         DFSIterator(DTNode root) {
             cursor = root;
         }
@@ -876,7 +945,13 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
             current = cursor;
 
-            // update cursor
+            // Advances to the next node for the next iteration.
+            // The iterator try to:
+            // - descend one level whenever possible,
+            // - otherwise, moves to the next sibling if any,
+            // - otherwise, moves up until it finds a node with
+            //   a next (unvisited) sibling or the tree is fully visited.
+
             if (cursor.firstChild != null) {
                 cursor = cursor.firstChild;
             } else if (cursor.nextSibling != null) {

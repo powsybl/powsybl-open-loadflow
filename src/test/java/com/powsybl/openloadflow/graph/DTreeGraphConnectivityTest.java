@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.graph;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import java.time.Duration;
 import java.util.Set;
@@ -92,7 +91,7 @@ public class DTreeGraphConnectivityTest {
         }
 
         connectivity.removeEdge("0-1");
-        // the root is now 3, it involves getting the great parent of 1 (which is 3)
+        // the root is now 3, changing the root involves updating the great parent of 1 (which is 3)
         // 1 <-- 2 <-- 3 --> 4 --> 0
         assertEquals(6, connectivity.computeSd());
         for (int i = 0; i < 5; i++) {
