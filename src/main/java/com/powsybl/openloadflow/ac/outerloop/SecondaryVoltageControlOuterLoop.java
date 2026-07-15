@@ -36,8 +36,10 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
     public static final String NAME = "SecondaryVoltageControl";
 
-    private static final double DV_EPS = 1E-4; // 0.1 kV
-    private static final double DK_DIFF_MAX_EPS = 1E-3; // 1 MVar
+    private static final double DV_EPS = 5E-4;
+    private static final double DK_DIFF_MAX_EPS = 5E-3;
+    private static final double K_SATURATION_EPS = 5E-2;
+    private static final double MAX_TARGET_VOLTAGE_STEP_KV = 2;
 
     private final double minPlausibleTargetVoltage;
 
@@ -216,6 +218,49 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return secondaryVoltageControl.getTargetValue() - secondaryVoltageControl.getPilotBus().getV();
     }
 
+    private static boolean shouldAdjustSecondaryVoltageControl(double pilotDv, KStats kStats) {
+        if (Math.abs(pilotDv) > DV_EPS) {
+            return pilotDv > 0 && kStats.kAverage() < 1 - K_SATURATION_EPS
+                    || pilotDv < 0 && kStats.kAverage() > -1 + K_SATURATION_EPS;
+        }
+        if (kStats.allAtLimits()) {
+            return false;
+        }
+        // Once the pilot target is reached, do not keep adjusting a globally saturated zone just to improve reactive
+        // power sharing.
+        if (kStats.kAverage() <= -1 + K_SATURATION_EPS || kStats.kAverage() >= 1 - K_SATURATION_EPS) {
+            return false;
+        }
+        return Math.abs(kStats.dkDiffMax()) > DK_DIFF_MAX_EPS;
+    }
+
+    private record TargetVoltageChange(DenseMatrix dv, int clippedTargetVoltageCount, double maxTargetVoltageStepKv) {
+    }
+
+    private static TargetVoltageChange clipTargetVoltageChange(List<LfBus> controlledBuses, DenseMatrix dv,
+                                                               Map<Integer, Integer> controlledBusIndex) {
+        DenseMatrix clippedDv = new DenseMatrix(dv.getRowCount(), dv.getColumnCount());
+        int clippedTargetVoltageCount = 0;
+        double maxTargetVoltageStepKv = 0;
+        for (LfBus controlledBus : controlledBuses) {
+            int i = controlledBusIndex.get(controlledBus.getNum());
+            double dvValue = dv.get(i, 0);
+            double stepKv = dvValue * controlledBus.getNominalV();
+            double absStepKv = Math.abs(stepKv);
+            maxTargetVoltageStepKv = Math.max(maxTargetVoltageStepKv, absStepKv);
+            if (stepKv > MAX_TARGET_VOLTAGE_STEP_KV) {
+                clippedDv.set(i, 0, MAX_TARGET_VOLTAGE_STEP_KV / controlledBus.getNominalV());
+                clippedTargetVoltageCount++;
+            } else if (stepKv < -MAX_TARGET_VOLTAGE_STEP_KV) {
+                clippedDv.set(i, 0, -MAX_TARGET_VOLTAGE_STEP_KV / controlledBus.getNominalV());
+                clippedTargetVoltageCount++;
+            } else {
+                clippedDv.set(i, 0, dvValue);
+            }
+        }
+        return new TargetVoltageChange(clippedDv, clippedTargetVoltageCount, maxTargetVoltageStepKv);
+    }
+
     private Optional<List<String>> processSecondaryVoltageControl(List<LfSecondaryVoltageControl> secondaryVoltageControls,
                                                                   AcLoadFlowContext loadFlowContext) {
         List<String> adjustedZoneNames = new ArrayList<>();
@@ -224,7 +269,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             double pilotDv = calculatePilotPointDv(secondaryVoltageControl);
             List<LfBus> controllerBuses = secondaryVoltageControl.getControllerBuses();
             KStats kStats = calculateKStats(controllerBuses);
-            if (Math.abs(pilotDv) > DV_EPS || !kStats.allAtLimits() && Math.abs(kStats.dkDiffMax()) > DK_DIFF_MAX_EPS) {
+            if (shouldAdjustSecondaryVoltageControl(pilotDv, kStats)) {
                 var pilotBus = secondaryVoltageControl.getPilotBus();
                 if (LOGGER.isDebugEnabled()) {
                     int allControllerBusesCount = secondaryVoltageControl.getControllerBuses().size();
@@ -263,7 +308,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         DenseMatrix jK = createJk(sensitivityContext, allControllerBuses, allControlledBuses, controllerBusIndex, controlledBusIndex).transpose();
         DenseMatrix b = a.times(jK);
 
-        // replace last row for each of the secondary voltage control block
+        // replace last row for each secondary voltage control block
         for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
             List<LfBus> controllerBuses = secondaryVoltageControl.getEnabledControllerBuses();
             List<LfBus> controlledBuses = controllerBuses.stream()
@@ -288,12 +333,19 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         @SuppressWarnings("UnnecessaryLocalVariable")
         DenseMatrix dv = rhs;
 
+        TargetVoltageChange targetVoltageChange = clipTargetVoltageChange(allControlledBuses, dv, controlledBusIndex);
+        if (targetVoltageChange.clippedTargetVoltageCount() > 0) {
+            LOGGER.info("Clip {} secondary voltage control target voltage changes to {} kV (unclipped max step was {} kV)",
+                    targetVoltageChange.clippedTargetVoltageCount(), MAX_TARGET_VOLTAGE_STEP_KV,
+                    targetVoltageChange.maxTargetVoltageStepKv());
+        }
+
         // compute new controlled bus target voltages
         Map<LfBus, Double> newControlledBusTargetV = new HashMap<>(allControllerBuses.size());
         for (LfBus controlledBus : allControlledBuses) {
             int i = controlledBusIndex.get(controlledBus.getNum());
             var vc = controlledBus.getGeneratorVoltageControl().orElseThrow();
-            double newTargetV = vc.getTargetValue() + dv.get(i, 0);
+            double newTargetV = vc.getTargetValue() + targetVoltageChange.dv().get(i, 0);
             newControlledBusTargetV.put(controlledBus, newTargetV);
         }
 
