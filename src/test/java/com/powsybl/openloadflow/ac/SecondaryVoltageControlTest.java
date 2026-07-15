@@ -559,9 +559,9 @@ class SecondaryVoltageControlTest {
     }
 
     @Test
-    void testNotPlausibleTargetV() {
+    void testTargetVClippedToPlausibleRange() {
         // Same far pilot point as above, but with a tighter plausibility range. The first clipped SVC correction would
-        // move B8 target voltage below 1.0 pu, so the SVC outer loop must reject it.
+        // move B8 target voltage below 1.0 pu, so the SVC outer loop clips it to the plausible bound.
         network.newExtension(SecondaryVoltageControlAdder.class)
                 .newControlZone()
                 .withName("z1")
@@ -570,13 +570,14 @@ class SecondaryVoltageControlTest {
                 .add()
                 .add();
 
+        parameters.setUseReactiveLimits(false);
         parametersExt.setSecondaryVoltageControl(true)
                 .setMinPlausibleTargetVoltage(1.0);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
-        assertEquals("Outer loop 'SecondaryVoltageControl' failed: Cannot adjust secondary voltage control because some calculated controlled bus target voltages are not plausible",
-                result.getComponentResults().get(0).getStatusText());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(20.0, b8);
     }
 
     @Test
