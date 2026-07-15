@@ -34,6 +34,19 @@ public class LfBoundaryLineBranch extends AbstractImpedantLfBranch {
         this.boundaryLineRef = Ref.create(boundaryLine, parameters.isCacheEnabled());
     }
 
+    private LfBoundaryLineBranch(LfBoundaryLineBranch other, LfNetwork network, LfBus bus1, LfBus bus2) {
+        super(other, network, bus1, bus2);
+        this.boundaryLineRef = other.boundaryLineRef;
+    }
+
+    @Override
+    public LfBranch copy(LfNetwork copyNetwork) {
+        return new LfBoundaryLineBranch(this,
+                copyNetwork,
+                bus1 == null ? null : copyNetwork.getBusById(bus1.getId()),
+                bus2 == null ? null : copyNetwork.getBusById(bus2.getId()));
+    }
+
     public static LfBoundaryLineBranch create(BoundaryLine boundaryLine, LfNetwork network, LfBus bus1, LfBus bus2,
                                               LfNetworkParameters parameters) {
         Objects.requireNonNull(boundaryLine);

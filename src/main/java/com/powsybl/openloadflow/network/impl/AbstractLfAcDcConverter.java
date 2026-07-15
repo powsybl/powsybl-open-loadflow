@@ -57,6 +57,25 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         this.qAc = converter.getTerminal1().getQ();
     }
 
+    /**
+     * Deep copy constructor (see {@link LfNetworkCopier}). Buses must be the copied ones. The loss
+     * factor list is immutable and shared. Solver injected evaluables are left at their default, as
+     * on a freshly built network.
+     */
+    protected AbstractLfAcDcConverter(AbstractLfAcDcConverter other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
+        super(network);
+        this.dcBus1 = dcBus1;
+        this.dcBus2 = dcBus2;
+        this.bus1 = bus1;
+        this.lossFactors = other.lossFactors;
+        this.controlMode = other.controlMode;
+        this.targetP = other.targetP;
+        this.targetVdc = other.targetVdc;
+        this.pAc = other.pAc;
+        this.qAc = other.qAc;
+        this.disabled = other.disabled;
+    }
+
     @Override
     public LfBus getBus1() {
         return bus1;

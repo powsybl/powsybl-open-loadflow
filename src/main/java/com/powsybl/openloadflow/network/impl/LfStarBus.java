@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.contingency.violations.ViolationLocation;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
@@ -28,6 +29,17 @@ public class LfStarBus extends AbstractLfBus {
         super(network, Networks.getPropertyV(t3wt), Math.toRadians(Networks.getPropertyAngle(t3wt)), numSC, parameters);
         this.t3wtRef = Ref.create(t3wt, parameters.isCacheEnabled());
         nominalV = t3wt.getRatedU0();
+    }
+
+    private LfStarBus(LfStarBus other, LfNetwork network) {
+        super(other, network);
+        this.t3wtRef = other.t3wtRef;
+        this.nominalV = other.nominalV;
+    }
+
+    @Override
+    public LfBus copy(LfNetwork copyNetwork) {
+        return new LfStarBus(this, copyNetwork);
     }
 
     private ThreeWindingsTransformer getT3wt() {

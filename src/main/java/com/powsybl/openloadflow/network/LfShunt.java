@@ -19,7 +19,7 @@ import java.util.Optional;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public interface LfShunt extends LfElement {
+public interface LfShunt extends LfElement, LfCopyable<LfShunt, LfBus> {
 
     Logger LOGGER = LoggerFactory.getLogger(LfShunt.class);
 
@@ -54,6 +54,10 @@ public interface LfShunt extends LfElement {
 
         public List<Double> getSectionsB() {
             return sectionsB;
+        }
+
+        public List<Double> getSectionsG() {
+            return sectionsG;
         }
 
         public int getPosition() {
