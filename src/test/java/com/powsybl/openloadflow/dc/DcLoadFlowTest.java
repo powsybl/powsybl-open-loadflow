@@ -262,7 +262,9 @@ class DcLoadFlowTest {
         assertTrue(result.isFullyConverged());
         assertEquals(49.86, network.getLine("L1").getTerminal1().getP(), 0.01);
         assertEquals(150.13, network.getTwoWindingsTransformer("PS1").getTerminal1().getP(), 0.01);
-        assertEquals(0, network.getTwoWindingsTransformer("PS1").getTerminal2().getP() + network.getLine("L2").getTerminal1().getP() + network.getLine("L2Bis").getTerminal1().getP(), 0.01); // Temporary comment : P without fix = 133.87
+        assertEquals(0, network.getTwoWindingsTransformer("PS1").getTerminal2().getP()
+            + network.getLine("L2").getTerminal1().getP()
+            + network.getLine("L2Bis").getTerminal1().getP(), 0.01); // Temporary comment : P without fix = 133.87
         assertEquals(-200, network.getGenerator("G1").getTerminal().getP());
     }
 
@@ -529,7 +531,7 @@ class DcLoadFlowTest {
         assertFalse(result.isFullyConverged());
 
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
-        assertEquals("Outer loop failed: Failed to distribute active power mismatch", result.getComponentResults().get(0).getStatusText());
+        assertEquals("Outer loop 'AreaInterchangeControl' failed: Failed to distribute active power mismatch", result.getComponentResults().get(0).getStatusText());
     }
 
     @Test
@@ -651,7 +653,7 @@ class DcLoadFlowTest {
         assertFalse(result.isFullyConverged());
         assertEquals(1, result.getComponentResults().size());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
-        assertEquals("Outer loop failed: Failed to distribute slack bus active power mismatch, 321.90 MW remains", result.getComponentResults().get(0).getStatusText());
+        assertEquals("Outer loop 'DistributedSlack' failed: Failed to distribute slack bus active power mismatch, 321.90 MW remains", result.getComponentResults().get(0).getStatusText());
         assertEquals(321.9, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 0.01);
         assertEquals(0, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
         assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?321\\.\\d* MW remains", reportNode);

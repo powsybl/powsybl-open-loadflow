@@ -21,7 +21,7 @@ public interface LfHvdc extends LfElement, LfCopyable<LfHvdc, LfNetwork> {
             LINEAR_MODE,
             SATURATION_MODE_FROM_CS1_TO_CS2,
             SATURATION_MODE_FROM_CS2_TO_CS1,
-            FROZEN;
+            FROZEN
         }
 
         private final LfHvdc hvdc;

@@ -141,7 +141,7 @@ class OpenSecurityAnalysisGraphTest {
         private final LfNetworkList lfNetworks;
         private final List<List<LfContingency>> listLfContingencies;
 
-        public TestData(LfNetworkList lfNetworks, List<List<LfContingency>> listLfContingencies) {
+        TestData(LfNetworkList lfNetworks, List<List<LfContingency>> listLfContingencies) {
             this.lfNetworks = lfNetworks;
             this.listLfContingencies = listLfContingencies;
         }

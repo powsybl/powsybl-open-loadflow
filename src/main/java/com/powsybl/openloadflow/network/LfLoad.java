@@ -34,6 +34,8 @@ public interface LfLoad extends PropertyBag, LfCopyable<LfLoad, LfBus> {
 
     void setTargetP(double targetP);
 
+    void setInitialTargetP(double initialTargetP);
+
     double getTargetQ();
 
     void setTargetQ(double targetQ);

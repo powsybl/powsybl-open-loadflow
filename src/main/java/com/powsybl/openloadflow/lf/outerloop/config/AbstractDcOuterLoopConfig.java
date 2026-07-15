@@ -9,8 +9,8 @@ package com.powsybl.openloadflow.lf.outerloop.config;
 
 import com.google.common.base.Suppliers;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.LoadFlowParametersOverride;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcAreaInterchangeControlOuterLoop;
 import com.powsybl.openloadflow.dc.DcHvdcAcEmulationLimitsOuterLoop;
 import com.powsybl.openloadflow.dc.DcIncrementalPhaseControlOuterLoop;
@@ -34,10 +34,13 @@ public abstract class AbstractDcOuterLoopConfig implements DcOuterLoopConfig {
         return CONFIG_SUPPLIER.get();
     }
 
-    protected static Optional<DcOuterLoop> createAreaInterchangeControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
+    protected static Optional<DcOuterLoop> createAreaInterchangeControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
+                                                                                 LoadFlowParametersOverride loadFlowParametersOverride) {
         if (loadFlowParametersOverride.isAreaInterchangeControl(parametersExt)) {
-            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(loadFlowParametersOverride.getBalanceType(parameters), parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
-            return Optional.of(new DcAreaInterchangeControlOuterLoop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch(), parametersExt.getAreaInterchangePMaxMismatch()));
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(loadFlowParametersOverride.getBalanceType(parameters),
+                parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
+            return Optional.of(new DcAreaInterchangeControlOuterLoop(activePowerDistribution, parametersExt.getSlackBusPMaxMismatch(),
+                parametersExt.getAreaInterchangePMaxMismatch()));
         }
         return Optional.empty();
     }

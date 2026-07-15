@@ -656,7 +656,7 @@ class AcDcLoadFlowTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFailed());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().getFirst().getStatus());
-        assertEquals("Outer loop failed: Failed to distribute slack bus active power mismatch, 30.00 MW remains",
+        assertEquals("Outer loop 'DistributedSlack' failed: Failed to distribute slack bus active power mismatch, 30.00 MW remains",
                 result.getComponentResults().getFirst().getStatusText());
     }
 
@@ -1018,6 +1018,34 @@ class AcDcLoadFlowTest {
 
         List<String> secondScSlackBusIds = result.getComponentResults().getLast().getSlackBusResults().stream().map(LoadFlowResult.SlackBusResult::getId).toList();
         assertEquals(List.of("vl5_0"), secondScSlackBusIds); // Only one bus on this synchronous component
+    }
 
+    @Test
+    void testUnsupportedDcSwitchWithNonZeroR() {
+        Network network = AcDcNetworkFactory.createMtDcNetworkWithThreeAcZones();
+        network.getDcLine("dl47").remove();
+        DcSwitch sw47 = network.newDcSwitch()
+                .setId("sw47")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn4p")
+                .setDcNode2("dn7")
+                .setOpen(false)
+                .setR(0.0)
+                .add();
+        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
+        parametersExt.setMaxSlackBusCount(2);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged()); // Load flow succeeds because DcSwitch has R = 0
+
+        sw47.setR(0.1);
+        CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("DcSwitch sw47 has non zero resistance: not handled yet in AC DC load flow (R = 0.1)", e.getCause().getMessage());
+
+        sw47.setOpen(true);
+        network.getVoltageSourceConverter("conv14")
+                .setTargetVdc(525.)
+                .setControlMode(AcDcConverter.ControlMode.V_DC);
+        result = loadFlowRunner.run(network, parameters);
+        assertFalse(result.isFullyConverged()); // Load flow do not succeed but no exception is thrown because of open switch
     }
 }

@@ -21,12 +21,9 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
-import com.powsybl.openloadflow.equations.Equation;
-import com.powsybl.openloadflow.equations.InjectionDerivable;
-import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.Quantity;
+import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.*;
@@ -37,6 +34,7 @@ import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.Indexed;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.sensitivity.*;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -321,6 +319,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 case BUS_TARGET_VOLTAGE:
                     LfBus lfBus = (LfBus) variableElement;
                     return ((EquationTerm<V, E>) lfBus.getCalculatedV()).getEquation();
+                case SVC_PILOT_POINT_TARGET_VOLTAGE:
+                    return null; // not a state variable
                 default:
                     return null;
             }
@@ -349,8 +349,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                         // shunt contingency not supported yet.
                         // ratio tap changer in a three windings transformer not supported yet.
                         return contingency.getGeneratorIdsToLose().contains(variableId) || contingency.getBranchIdsToOpen().containsKey(variableId);
-                    case TRANSFORMER_PHASE:
-                        // a phase shifter on a two windings transformer.
+                    case TRANSFORMER_PHASE, BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE:
+                        // a phase shifter on a two windings transformer or a branch parameter.
                         return contingency.getBranchIdsToOpen().containsKey(variableId);
                     default:
                         return false;
@@ -515,14 +515,138 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 case INJECTION_REACTIVE_POWER:
                     addBusReactiveInjection(rhs, (LfBus) variableElement, 1d);
                     break;
+                case SVC_PILOT_POINT_TARGET_VOLTAGE:
+                    // No-op here: the RHS column for this factor group is filled at the
+                    // AC-orchestration level (AcSensitivityAnalysis.fillSvcPilotFactorsRhs)
+                    // once the Jacobian is factored and SVC weights can be computed.
+                    break;
                 case BUS_TARGET_VOLTAGE:
                     if (variableEquation.isActive()) {
                         rhs.set(variableEquation.getColumn(), getIndex(), 1d);
                     }
                     break;
+                case SHUNT_COMPENSATOR_SUSCEPTANCE:
+                    LfBus shuntLfBus = (LfBus) variableElement;
+                    double vShunt = shuntLfBus.getV();
+                    addBusReactiveInjection(rhs, shuntLfBus, vShunt * vShunt);
+                    break;
+                case BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE:
+                    fillRhsBranchParameter(rhs, (LfBranch) variableElement, variableType);
+                    break;
                 default:
                     throw createVariableTypeNotImplementedException(variableType);
             }
+        }
+
+        /**
+         * Returns the four flow partials [∂p1/∂u, ∂q1/∂u, ∂p2/∂u, ∂q2/∂u] of a branch w.r.t. one of its
+         * parameters u, evaluated at the converged operating point (state V/θ held fixed):
+         * <ul>
+         *     <li>{@code BRANCH_RESISTANCE}: u = R</li>
+         *     <li>{@code BRANCH_REACTANCE}: u = X</li>
+         *     <li>{@code BRANCH_ADMITTANCE}: u = the series admittance modulus y, at constant ksi</li>
+         * </ul>
+         * The partials are obtained from the shared branch-flow equation-term derivatives w.r.t. (y, ksi),
+         * chained to u. Returns an empty array if the branch is open at either end.
+         */
+        public static double[] computeBranchFlowParameterPartials(LfBranch branch, SensitivityVariableType varType) {
+            // OLF's branch model:
+            //   p1 = r1²·v1²·g1 + y·r1²·v1²·sin(ksi) − y·r1·R2·v1·v2·sin(θ1)
+            //   q1 = -r1²·v1²·b1 + y·r1²·v1²·cos(ksi) − y·r1·R2·v1·v2·cos(θ1)
+            //   p2 =  R2²·v2²·g2 + y·R2²·v2²·sin(ksi) − y·r1·R2·v1·v2·sin(θ2)
+            //   q2 = -R2²·v2²·b2 + y·R2²·v2²·cos(ksi) − y·r1·R2·v1·v2·cos(θ2)
+            // where y = 1/|Z| = 1/√(R² + X²), ksi = atan2(R, X),
+            //       θ1 = ksi − a1 + A2 − ph1 + ph2,
+            //       θ2 = ksi + a1 − A2 + ph1 − ph2.
+            //
+            // Partials wrt y, ksi (state V/θ held fixed):
+            //   ∂p1/∂y   =  r1²·v1²·sin(ksi) − r1·R2·v1·v2·sin(θ1)
+            //   ∂p1/∂ksi =  y·r1²·v1²·cos(ksi) − y·r1·R2·v1·v2·cos(θ1)
+            //   ∂q1/∂y   =  r1²·v1²·cos(ksi) − r1·R2·v1·v2·cos(θ1)
+            //   ∂q1/∂ksi = -y·r1²·v1²·sin(ksi) + y·r1·R2·v1·v2·sin(θ1)
+            //   ∂p2/∂y   =  R2²·v2²·sin(ksi) − r1·R2·v1·v2·sin(θ2)
+            //   ∂p2/∂ksi =  y·R2²·v2²·cos(ksi) − y·r1·R2·v1·v2·cos(θ2)
+            //   ∂q2/∂y   =  R2²·v2²·cos(ksi) − r1·R2·v1·v2·cos(θ2)
+            //   ∂q2/∂ksi = -y·R2²·v2²·sin(ksi) + y·r1·R2·v1·v2·sin(θ2)
+            //
+            // Chain through R, X, Y (Y = series admittance modulus y, perturbed at constant ksi):
+            //   ∂y/∂R   = -R·y³ = -R / (R²+X²)^(3/2),    ∂y/∂X   = -X·y³ = -X / (R²+X²)^(3/2),    ∂y/∂Y   = 1
+            //   ∂ksi/∂R =  X·y² =  X / (R²+X²),          ∂ksi/∂X = -R·y² = -R / (R²+X²),          ∂ksi/∂Y = 0
+            LfBus bus1 = branch.getBus1();
+            LfBus bus2 = branch.getBus2();
+            if (bus1 == null || bus2 == null) {
+                return ArrayUtils.EMPTY_DOUBLE_ARRAY;
+            }
+            PiModel piModel = branch.getPiModel();
+            double y = piModel.getY();
+            double ksi = piModel.getKsi();
+            double r1 = piModel.getR1();
+            double v1 = bus1.getV();
+            double v2 = bus2.getV();
+            double ph1 = bus1.getAngle();
+            double ph2 = bus2.getAngle();
+            double a1 = piModel.getA1();
+
+            double theta1 = AbstractClosedBranchAcFlowEquationTerm.theta1(ksi, ph1, a1, ph2);
+            double theta2 = AbstractClosedBranchAcFlowEquationTerm.theta2(ksi, ph1, a1, ph2);
+            double sinTheta1 = Math.sin(theta1);
+            double cosTheta1 = Math.cos(theta1);
+            double sinTheta2 = Math.sin(theta2);
+            double cosTheta2 = Math.cos(theta2);
+            double sinKsi = Math.sin(ksi);
+            double cosKsi = Math.cos(ksi);
+
+            // Flow partials w.r.t. y and ksi (shared with the Jacobian equation terms).
+            double dp1dy = ClosedBranchSide1ActiveFlowEquationTerm.dp1dy(r1, v1, v2, sinKsi, sinTheta1);
+            double dp1dksi = ClosedBranchSide1ActiveFlowEquationTerm.dp1dksi(y, r1, v1, v2, cosKsi, cosTheta1);
+            double dp2dy = ClosedBranchSide2ActiveFlowEquationTerm.dp2dy(r1, v1, v2, sinKsi, sinTheta2);
+            double dp2dksi = ClosedBranchSide2ActiveFlowEquationTerm.dp2dksi(y, r1, v1, v2, cosKsi, cosTheta2);
+            double dq1dy = ClosedBranchSide1ReactiveFlowEquationTerm.dq1dy(r1, v1, v2, cosKsi, cosTheta1);
+            double dq1dksi = ClosedBranchSide1ReactiveFlowEquationTerm.dq1dksi(y, r1, v1, v2, sinKsi, sinTheta1);
+            double dq2dy = ClosedBranchSide2ReactiveFlowEquationTerm.dq2dy(r1, v1, v2, cosKsi, cosTheta2);
+            double dq2dksi = ClosedBranchSide2ReactiveFlowEquationTerm.dq2dksi(y, r1, v1, v2, sinKsi, sinTheta2);
+
+            // Chain rule from (y, ksi) to the requested parameter u.
+            double dydu;
+            double dksidu;
+            switch (varType) {
+                case BRANCH_RESISTANCE:
+                    dydu = -piModel.getR() * y * y * y;
+                    dksidu = piModel.getX() * y * y;
+                    break;
+                case BRANCH_REACTANCE:
+                    dydu = -piModel.getX() * y * y * y;
+                    dksidu = -piModel.getR() * y * y;
+                    break;
+                case BRANCH_ADMITTANCE:
+                    // y modulus perturbation at constant ksi
+                    dydu = 1.0;
+                    dksidu = 0.0;
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected branch parameter variable type: " + varType);
+            }
+
+            return new double[] {
+                dp1dy * dydu + dp1dksi * dksidu,   // ∂p1/∂u
+                dq1dy * dydu + dq1dksi * dksidu,   // ∂q1/∂u
+                dp2dy * dydu + dp2dksi * dksidu,   // ∂p2/∂u
+                dq2dy * dydu + dq2dksi * dksidu    // ∂q2/∂u
+            };
+        }
+
+        private void fillRhsBranchParameter(Matrix rhs, LfBranch branch, SensitivityVariableType varType) {
+            double[] partials = computeBranchFlowParameterPartials(branch, varType);
+            if (partials.length == 0) {
+                return;
+            }
+            LfBus bus1 = branch.getBus1();
+            LfBus bus2 = branch.getBus2();
+            // RHS = -∂f/∂param at the P and Q equations of both buses.
+            addBusInjection(rhs, bus1, -partials[0]);          // -∂p1/∂param
+            addBusReactiveInjection(rhs, bus1, -partials[1]);  // -∂q1/∂param
+            addBusInjection(rhs, bus2, -partials[2]);          // -∂p2/∂param
+            addBusReactiveInjection(rhs, bus2, -partials[3]);  // -∂q2/∂param
         }
     }
 
@@ -612,11 +736,13 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             Pair<SensitivityVariableType, String> id = Pair.of(factor.getVariableType(), factor.getVariableId());
             if (factor instanceof SingleVariableLfSensitivityFactor) {
                 SingleVariableLfSensitivityFactor<V, E> singleVarFactor = (SingleVariableLfSensitivityFactor<V, E>) factor;
-                SensitivityFactorGroup<V, E> factorGroup = groupIndexedById.computeIfAbsent(id, k -> new SingleVariableFactorGroup<>(singleVarFactor.getVariableElement(), singleVarFactor.getVariableEquation(), factor.getVariableType()));
+                SensitivityFactorGroup<V, E> factorGroup = groupIndexedById.computeIfAbsent(id,
+                    k -> new SingleVariableFactorGroup<>(singleVarFactor.getVariableElement(), singleVarFactor.getVariableEquation(), factor.getVariableType()));
                 factorGroup.addFactor(factor);
                 factor.setGroup(factorGroup);
             } else if (factor instanceof MultiVariablesLfSensitivityFactor) {
-                SensitivityFactorGroup<V, E> factorGroup = groupIndexedById.computeIfAbsent(id, k -> new MultiVariablesFactorGroup<>(((MultiVariablesLfSensitivityFactor<V, E>) factor).getWeightedVariableElements(), factor.getVariableType()));
+                SensitivityFactorGroup<V, E> factorGroup = groupIndexedById.computeIfAbsent(id,
+                    k -> new MultiVariablesFactorGroup<>(((MultiVariablesLfSensitivityFactor<V, E>) factor).getWeightedVariableElements(), factor.getVariableType()));
                 factorGroup.addFactor(factor);
                 factor.setGroup(factorGroup);
             }
@@ -631,15 +757,21 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return new SensitivityFactorGroupList<>(new ArrayList<>(groupIndexedById.values()));
     }
 
-    protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType, OpenLoadFlowParameters openLoadFlowParameters) {
-        ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
+    protected List<ParticipatingElement> getParticipatingElements(Collection<LfBus> buses, LoadFlowParameters.BalanceType balanceType,
+                                                                  OpenLoadFlowParameters openLoadFlowParameters) {
+        ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType,
+            openLoadFlowParameters.isLoadPowerFactorConstant(),
+            openLoadFlowParameters.isUseActiveLimits());
         var participatingBuses = ActivePowerDistribution.filterParticipatingBuses(buses);
-        List<ParticipatingElement> participatingElements = step.getParticipatingElements(participatingBuses, Double.NaN); // The value of the mismatch cannot be known here. It is not needed for the distribution types supported in sensitivity analysis and checked in #checkLoadFlowParameters
+        // The value of the mismatch cannot be known here. It is not needed for the distribution types supported in sensitivity analysis and checked in #checkLoadFlowParameters
+        List<ParticipatingElement> participatingElements = step.getParticipatingElements(participatingBuses, Double.NaN);
         ParticipatingElement.normalizeParticipationFactors(participatingElements);
         return participatingElements;
     }
 
-    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> DenseMatrix initFactorsRhs(EquationSystem<V, E> equationSystem, SensitivityFactorGroupList<V, E> factorsGroups, Map<LfBus, Double> participationByBus) {
+    static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> DenseMatrix initFactorsRhs(EquationSystem<V, E> equationSystem,
+                                                                                                   SensitivityFactorGroupList<V, E> factorsGroups,
+                                                                                                   Map<LfBus, Double> participationByBus) {
         // otherwise, defining the rhs matrix will result in integer overflow
         int equationCount = equationSystem.getIndex().getColumnCount();
         int factorsGroupCount = factorsGroups.getList().size();
@@ -654,7 +786,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         return rhs;
     }
 
-    protected static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> void fillRhsSensitivityVariable(SensitivityFactorGroupList<V, E> factorGroups, Matrix rhs, Map<LfBus, Double> participationByBus) {
+    protected static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> void fillRhsSensitivityVariable(SensitivityFactorGroupList<V, E> factorGroups,
+                                                                                                                  Matrix rhs,
+                                                                                                                  Map<LfBus, Double> participationByBus) {
         for (SensitivityFactorGroup<V, E> factorGroup : factorGroups.getList()) {
             factorGroup.fillRhs(rhs, participationByBus);
         }
@@ -748,38 +882,54 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             } else {
                 validFactorHolder.addFactor(factor);
             }
-            sensitivityVariableToWrite.ifPresent(value -> {
-                // directly write output for zero and invalid factors
-                if (factor.getContingencyContext().getContextType() == ContingencyContextType.NONE) {
-                    resultWriter.writeSensitivityValue(factor.getIndex(), -1, -1, value, Double.NaN);
-                } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.SPECIFIC &&
-                        // If run in batch of contingencies, the contingency may not be part of this result
-                        contingencyIndexById.containsKey(factor.getContingencyContext().getContingencyId())) {
-                    int contingencyIndex = contingencyIndexById.get(factor.getContingencyContext().getContingencyId());
-                    resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, -1, value, Double.NaN);
-                    if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
-                        for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(factor.getContingencyContext().getContingencyId(), Collections.emptyList())) {
-                            resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, operatorStrategy.index(), value, Double.NaN);
-                        }
-                    }
-                } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.ALL) {
-                    resultWriter.writeSensitivityValue(factor.getIndex(), -1, -1, value, Double.NaN);
-                    contingencyIndexById.forEach((contingencyId, contingencyIndex) -> {
-                        resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, -1, value, Double.NaN);
-                        if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
-                            for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(contingencyId, Collections.emptyList())) {
-                                resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, operatorStrategy.index(), value, Double.NaN);
-                            }
-                        }
-                    });
-                }
-            });
+            sensitivityVariableToWrite.ifPresent(value -> writeSensitivityValue(value, factor, resultWriter, contingencyIndexById, operatorStrategiesByContingencyId));
         }
         if (!skippedVariables.isEmpty() && LOGGER.isWarnEnabled()) {
             LOGGER.warn("Skipping all factors with variables: '{}', as they cannot be found in the network",
                     String.join(", ", skippedVariables));
         }
         return validFactorHolder;
+    }
+
+    private void writeSensitivityValue(Double value, LfSensitivityFactor<V, E> factor, SensitivityResultWriter resultWriter,
+                                       Map<String, Integer> contingencyIndexById, Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId) {
+        // directly write output for zero and invalid factors
+        if (factor.getContingencyContext().getContextType() == ContingencyContextType.NONE) {
+            resultWriter.writeSensitivityValue(factor.getIndex(), -1, -1, value, Double.NaN);
+        } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.SPECIFIC &&
+            // If run in batch of contingencies, the contingency may not be part of this result
+            contingencyIndexById.containsKey(factor.getContingencyContext().getContingencyId())) {
+            writeSensitivityValueContingencyContextTypeSpecific(value, factor, resultWriter, contingencyIndexById, operatorStrategiesByContingencyId);
+        } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.ALL) {
+            writeSensitivityValueContingencyContextTypeAll(value, factor, resultWriter, contingencyIndexById, operatorStrategiesByContingencyId);
+        }
+    }
+
+    private void writeSensitivityValueContingencyContextTypeSpecific(Double value, LfSensitivityFactor<V, E> factor, SensitivityResultWriter resultWriter,
+                                                                     Map<String, Integer> contingencyIndexById,
+                                                                     Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId) {
+        int contingencyIndex = contingencyIndexById.get(factor.getContingencyContext().getContingencyId());
+        resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, -1, value, Double.NaN);
+        if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
+            for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(factor.getContingencyContext().getContingencyId(),
+                Collections.emptyList())) {
+                resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, operatorStrategy.index(), value, Double.NaN);
+            }
+        }
+    }
+
+    private void writeSensitivityValueContingencyContextTypeAll(Double value, LfSensitivityFactor<V, E> factor, SensitivityResultWriter resultWriter,
+                                                                Map<String, Integer> contingencyIndexById,
+                                                                Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId) {
+        resultWriter.writeSensitivityValue(factor.getIndex(), -1, -1, value, Double.NaN);
+        contingencyIndexById.forEach((contingencyId, contingencyIndex) -> {
+            resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, -1, value, Double.NaN);
+            if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
+                for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(contingencyId, Collections.emptyList())) {
+                    resultWriter.writeSensitivityValue(factor.getIndex(), contingencyIndex, operatorStrategy.index(), value, Double.NaN);
+                }
+            }
+        });
     }
 
     protected void checkVariableSet(List<SensitivityVariableSet> variableSets) {
@@ -820,7 +970,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     throw new PowsyblException("Boundary line " + functionId + " is paired. Sensitivity function can only be computed on its side 1 (given type " + functionType + ")");
                 }
                 TieLine tieLine = boundaryLine.getTieLine().orElseThrow();
-                TwoSides boundaryLineSide = tieLine.getBoundaryLine(TwoSides.ONE) == boundaryLine ? TwoSides.ONE : TwoSides.TWO; // Search side of the tie line corresponding to the studied boundary line
+                // Search side of the tie line corresponding to the studied boundary line
+                TwoSides boundaryLineSide = tieLine.getBoundaryLine(TwoSides.ONE) == boundaryLine ? TwoSides.ONE : TwoSides.TWO;
                 if (LOGGER.isInfoEnabled()) {
                     LOGGER.info("Boundary line {} is paired. Computing sensitivity function of its tie line {} on side {}", functionId, tieLine.getId(), boundaryLineSide.getNum());
                 }
@@ -965,6 +1116,9 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             if (injection == null) {
                 injection = network.getBattery(injectionId);
             }
+            if (injection == null) {
+                injection = network.getShuntCompensator(injectionId);
+            }
             return injection;
         }
 
@@ -1030,170 +1184,209 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         final Map<String, Bus> busCache = new HashMap<>();
         InjectionVariableIdToBusIdCache injectionVariableIdToBusIdCache = new InjectionVariableIdToBusIdCache();
         int[] factorIndex = new int[1];
-        factorReader.read((functionTypeToCheck, functionIdToCheck, variableType, variableId, variableSet, contingencyContext) -> {
-            SensitivityFunctionType functionType = functionTypeToCheck;
-            String functionId = functionIdToCheck;
-            if (network.getBoundaryLine(functionIdToCheck) != null && network.getBoundaryLine(functionIdToCheck).isPaired()) {
-                //In case of boundary line associated to a tie line, we have to update the sensitivity function
-                Pair<SensitivityFunctionType, String> updatedFunction = checkAndUpdateFunctionTypeBoundaryLine(network, functionTypeToCheck, functionIdToCheck);
-                functionType = updatedFunction.getLeft();
-                functionId = updatedFunction.getRight();
-            }
-            if (variableSet) {
-                if (isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType)) {
-                    if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
-                        LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
-                        LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
-                        Map<LfElement, Double> injectionLfBuses = injectionBusesByVariableId.get(variableId);
-                        Set<String> originalVariableSetIds = originalVariableSetIdsByVariableId.get(variableId);
-                        if (injectionLfBuses == null && originalVariableSetIds == null) {
-                            injectionLfBuses = new LinkedHashMap<>();
-                            originalVariableSetIds = new HashSet<>();
-                            injectionBusesByVariableId.put(variableId, injectionLfBuses);
-                            originalVariableSetIdsByVariableId.put(variableId, originalVariableSetIds);
-                            SensitivityVariableSet set = variableSetsById.get(variableId);
-                            if (set == null) {
-                                throw new PowsyblException("Variable set '" + variableId + NOT_FOUND);
-                            }
-                            List<String> skippedInjection = new ArrayList<>(set.getVariables().size());
-                            for (WeightedSensitivityVariable variable : set.getVariables()) {
-                                String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variable.getId(), breakers);
-                                LfBus injectionLfBus = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
-                                if (injectionLfBus == null) {
-                                    skippedInjection.add(variable.getId());
-                                    continue;
-                                }
-                                injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
-                                originalVariableSetIds.add(variable.getId());
-                            }
-                            if (!skippedInjection.isEmpty() && LOGGER.isWarnEnabled()) {
-                                LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
-                            }
+        factorReader.read((functionTypeToCheck, functionIdToCheck, variableType,
+                           variableId, variableSet, contingencyContext) ->
+            readAndCheck(functionTypeToCheck, functionIdToCheck, network, variableSet, variableType, lfNetwork, factorHolder,
+                contingencyContext, injectionBusesByVariableId, originalVariableSetIdsByVariableId, busCache, variableSetsById,
+                injectionVariableIdToBusIdCache, factorIndex, variableId, breakers));
+        return factorHolder;
+    }
+
+    private void readAndCheck(SensitivityFunctionType functionTypeToCheck, String functionIdToCheck, Network network,
+                              boolean variableSet, SensitivityVariableType variableType, LfNetwork lfNetwork,
+                              SensitivityFactorHolder<V, E> factorHolder, ContingencyContext contingencyContext,
+                              Map<String, Map<LfElement, Double>> injectionBusesByVariableId,
+                              Map<String, Set<String>> originalVariableSetIdsByVariableId,
+                              Map<String, Bus> busCache, Map<String, SensitivityVariableSet> variableSetsById,
+                              InjectionVariableIdToBusIdCache injectionVariableIdToBusIdCache,
+                              int[] factorIndex, String variableId, boolean breakers) {
+        SensitivityFunctionType functionType = functionTypeToCheck;
+        String functionId = functionIdToCheck;
+        if (network.getBoundaryLine(functionIdToCheck) != null && network.getBoundaryLine(functionIdToCheck).isPaired()) {
+            //In case of boundary line associated to a tie line, we have to update the sensitivity function
+            Pair<SensitivityFunctionType, String> updatedFunction = checkAndUpdateFunctionTypeBoundaryLine(network, functionTypeToCheck, functionIdToCheck);
+            functionType = updatedFunction.getLeft();
+            functionId = updatedFunction.getRight();
+        }
+        if (variableSet) {
+            if (isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType)) {
+                if (variableType == SensitivityVariableType.INJECTION_ACTIVE_POWER) {
+                    LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
+                    LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
+                    Map<LfElement, Double> injectionLfBuses = injectionBusesByVariableId.get(variableId);
+                    Set<String> originalVariableSetIds = originalVariableSetIdsByVariableId.get(variableId);
+                    if (injectionLfBuses == null && originalVariableSetIds == null) {
+                        injectionLfBuses = new LinkedHashMap<>();
+                        originalVariableSetIds = new HashSet<>();
+                        injectionBusesByVariableId.put(variableId, injectionLfBuses);
+                        originalVariableSetIdsByVariableId.put(variableId, originalVariableSetIds);
+                        SensitivityVariableSet set = variableSetsById.get(variableId);
+                        if (set == null) {
+                            throw new PowsyblException("Variable set '" + variableId + NOT_FOUND);
                         }
-                        factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorIndex[0], variableId,
-                                    functionId, functionElement, functionType,
-                                    injectionLfBuses, variableType, contingencyContext, originalVariableSetIds));
-                    } else {
-                        throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
+                        List<String> skippedInjection = new ArrayList<>(set.getVariables().size());
+                        for (WeightedSensitivityVariable variable : set.getVariables()) {
+                            String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variable.getId(), breakers);
+                            LfBus injectionLfBus = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
+                            if (injectionLfBus == null) {
+                                skippedInjection.add(variable.getId());
+                                continue;
+                            }
+                            injectionLfBuses.put(injectionLfBus, injectionLfBuses.getOrDefault(injectionLfBus, 0d) + variable.getWeight());
+                            originalVariableSetIds.add(variable.getId());
+                        }
+                        if (!skippedInjection.isEmpty() && LOGGER.isWarnEnabled()) {
+                            LOGGER.warn("Injections {} cannot be found for glsk {} and will be ignored", String.join(", ", skippedInjection), variableId);
+                        }
                     }
+                    factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorIndex[0], variableId,
+                        functionId, functionElement, functionType,
+                        injectionLfBuses, variableType, contingencyContext, originalVariableSetIds));
+                } else {
+                    throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
+                }
+            } else {
+                throw createFunctionTypeNotSupportedException(functionType);
+            }
+        } else {
+            if ((isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType)) && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
+                LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
+                LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
+
+                HvdcLine hvdcLine = network.getHvdcLine(variableId);
+                if (hvdcLine == null) {
+                    throw new PowsyblException("HVDC line '" + variableId + "' cannot be found in the network.");
+                }
+                Bus bus1 = Networks.getBus(hvdcLine.getConverterStation1().getTerminal(), breakers);
+                Bus bus2 = Networks.getBus(hvdcLine.getConverterStation2().getTerminal(), breakers);
+
+                if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class) != null) {
+                    if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class).isEnabled() && parameters.getLoadFlowParameters().isHvdcAcEmulation()) {
+                        throw new PowsyblException("HVDC line " + variableId + " has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported");
+                    }
+                }
+
+                // corresponds to an augmentation of +1 on the active power setpoint on each side on the HVDC line
+                // => we create a multi (bi) variables factor
+                Map<LfElement, Double> injectionLfBuses = new HashMap<>(2);
+                Set<String> originalVariableSetIds = new HashSet<>(2);
+                if (bus1 != null) {
+                    LfBus lfBus1 = lfNetwork.getBusById(bus1.getId());
+                    if (lfBus1 != null) {
+                        injectionLfBuses.put(lfBus1, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation1()));
+                        originalVariableSetIds.add(hvdcLine.getConverterStation1().getId());
+                    }
+                }
+                if (bus2 != null) {
+                    LfBus lfBus2 = lfNetwork.getBusById(bus2.getId());
+                    if (lfBus2 != null) {
+                        injectionLfBuses.put(lfBus2, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation2()));
+                        originalVariableSetIds.add(hvdcLine.getConverterStation2().getId());
+                    }
+                }
+
+                factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorIndex[0], variableId,
+                    functionId, functionElement, functionType, injectionLfBuses, variableType, contingencyContext, originalVariableSetIds));
+            } else {
+                LfElement functionElement;
+                LfElement variableElement;
+                if (isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType)) {
+                    LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
+                    functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
+                    switch (variableType) {
+                        case INJECTION_ACTIVE_POWER, INJECTION_REACTIVE_POWER, SHUNT_COMPENSATOR_SUSCEPTANCE:
+                            String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
+                            variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
+                            break;
+                        case TRANSFORMER_PHASE:
+                            checkPhaseShifter(network, variableId);
+                            LfBranch twt = lfNetwork.getBranchById(variableId);
+                            variableElement = twt != null && twt.getBus1() != null && twt.getBus2() != null ? twt : null;
+                            break;
+                        case TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
+                            checkThreeWindingsTransformerPhaseShifter(network, variableId, variableType);
+                            LfBranch leg = lfNetwork.getBranchById(LfLegBranch.getId(variableId, getLegNumber(variableType)));
+                            variableElement = leg != null && leg.getBus1() != null && leg.getBus2() != null ? leg : null;
+                            break;
+                        case BUS_TARGET_VOLTAGE:
+                            variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
+                            break;
+                        case BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE:
+                            LfBranch varBranch = lfNetwork.getBranchById(variableId);
+                            variableElement = varBranch != null && varBranch.getBus1() != null && varBranch.getBus2() != null ? varBranch : null;
+                            break;
+                        case SVC_PILOT_POINT_TARGET_VOLTAGE:
+                            variableElement = findSvcPilotBus(lfNetwork, variableId);
+                            break;
+                        default:
+                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
+                    }
+                } else if (functionType == SensitivityFunctionType.BUS_VOLTAGE) {
+                    checkBus(network, functionId, busCache, breakers);
+                    functionElement = lfNetwork.getBusById(functionId);
+                    switch (variableType) {
+                        case BUS_TARGET_VOLTAGE:
+                            variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
+                            break;
+                        case INJECTION_REACTIVE_POWER, SHUNT_COMPENSATOR_SUSCEPTANCE:
+                            String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
+                            variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
+                            break;
+                        case BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE:
+                            LfBranch varBranch2 = lfNetwork.getBranchById(variableId);
+                            variableElement = varBranch2 != null && varBranch2.getBus1() != null && varBranch2.getBus2() != null ? varBranch2 : null;
+                            break;
+                        case SVC_PILOT_POINT_TARGET_VOLTAGE:
+                            variableElement = findSvcPilotBus(lfNetwork, variableId);
+                            break;
+                        default:
+                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
+                    }
+                } else if (isReactivePowerFunctionType(functionType)) {
+                    LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
+                    functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
+                    switch (variableType) {
+                        case BUS_TARGET_VOLTAGE:
+                            variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
+                            break;
+                        case INJECTION_REACTIVE_POWER, SHUNT_COMPENSATOR_SUSCEPTANCE:
+                            String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
+                            variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
+                            break;
+                        case BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE:
+                            LfBranch varBranch3 = lfNetwork.getBranchById(variableId);
+                            variableElement = varBranch3 != null && varBranch3.getBus1() != null && varBranch3.getBus2() != null ? varBranch3 : null;
+                            break;
+                        case SVC_PILOT_POINT_TARGET_VOLTAGE:
+                            variableElement = findSvcPilotBus(lfNetwork, variableId);
+                            break;
+                        default:
+                            throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
+                    }
+                } else if (functionType == SensitivityFunctionType.BUS_REACTIVE_POWER) {
+                    String functionInjectionBusId = injectionVariableIdToBusIdCache.getBusId(network, functionId, breakers);
+                    functionElement = functionInjectionBusId != null ? lfNetwork.getBusById(functionInjectionBusId) : null;
+                    variableElement = switch (variableType) {
+                        case BUS_TARGET_VOLTAGE -> findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
+                        case INJECTION_REACTIVE_POWER, SHUNT_COMPENSATOR_SUSCEPTANCE -> {
+                            String variableInjectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
+                            yield variableInjectionBusId != null ? lfNetwork.getBusById(variableInjectionBusId) : null;
+                        }
+                        case BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE -> {
+                            LfBranch varBranch4 = lfNetwork.getBranchById(variableId);
+                            yield varBranch4 != null && varBranch4.getBus1() != null && varBranch4.getBus2() != null ? varBranch4 : null;
+                        }
+                        case SVC_PILOT_POINT_TARGET_VOLTAGE -> findSvcPilotBus(lfNetwork, variableId);
+                        default -> throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
+                    };
                 } else {
                     throw createFunctionTypeNotSupportedException(functionType);
                 }
-            } else {
-                if ((isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType)) && variableType == SensitivityVariableType.HVDC_LINE_ACTIVE_POWER) {
-                    LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
-                    LfElement functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
-
-                    HvdcLine hvdcLine = network.getHvdcLine(variableId);
-                    if (hvdcLine == null) {
-                        throw new PowsyblException("HVDC line '" + variableId + "' cannot be found in the network.");
-                    }
-                    Bus bus1 = Networks.getBus(hvdcLine.getConverterStation1().getTerminal(), breakers);
-                    Bus bus2 = Networks.getBus(hvdcLine.getConverterStation2().getTerminal(), breakers);
-
-                    if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class) != null) {
-                        if (hvdcLine.getExtension(HvdcAngleDroopActivePowerControl.class).isEnabled() && parameters.getLoadFlowParameters().isHvdcAcEmulation()) {
-                            throw new PowsyblException("HVDC line " + variableId + " has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported");
-                        }
-                    }
-
-                    // corresponds to an augmentation of +1 on the active power setpoint on each side on the HVDC line
-                    // => we create a multi (bi) variables factor
-                    Map<LfElement, Double> injectionLfBuses = new HashMap<>(2);
-                    Set<String> originalVariableSetIds = new HashSet<>(2);
-                    if (bus1 != null) {
-                        LfBus lfBus1 = lfNetwork.getBusById(bus1.getId());
-                        if (lfBus1 != null) {
-                            injectionLfBuses.put(lfBus1, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation1()));
-                            originalVariableSetIds.add(hvdcLine.getConverterStation1().getId());
-                        }
-                    }
-                    if (bus2 != null) {
-                        LfBus lfBus2 = lfNetwork.getBusById(bus2.getId());
-                        if (lfBus2 != null) {
-                            injectionLfBuses.put(lfBus2, HvdcConverterStations.getActivePowerSetpointMultiplier(hvdcLine.getConverterStation2()));
-                            originalVariableSetIds.add(hvdcLine.getConverterStation2().getId());
-                        }
-                    }
-
-                    factorHolder.addFactor(new MultiVariablesLfSensitivityFactor<>(factorIndex[0], variableId,
-                            functionId, functionElement, functionType, injectionLfBuses, variableType, contingencyContext, originalVariableSetIds));
-                } else {
-                    LfElement functionElement;
-                    LfElement variableElement;
-                    if (isActivePowerFunctionType(functionType) || isCurrentFunctionType(functionType)) {
-                        LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
-                        functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
-                        switch (variableType) {
-                            case INJECTION_ACTIVE_POWER, INJECTION_REACTIVE_POWER:
-                                String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
-                                variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
-                                break;
-                            case TRANSFORMER_PHASE:
-                                checkPhaseShifter(network, variableId);
-                                LfBranch twt = lfNetwork.getBranchById(variableId);
-                                variableElement = twt != null && twt.getBus1() != null && twt.getBus2() != null ? twt : null;
-                                break;
-                            case TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
-                                checkThreeWindingsTransformerPhaseShifter(network, variableId, variableType);
-                                LfBranch leg = lfNetwork.getBranchById(LfLegBranch.getId(variableId, getLegNumber(variableType)));
-                                variableElement = leg != null && leg.getBus1() != null && leg.getBus2() != null ? leg : null;
-                                break;
-                            case BUS_TARGET_VOLTAGE:
-                                variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
-                                break;
-                            default:
-                                throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
-                        }
-                    } else if (functionType == SensitivityFunctionType.BUS_VOLTAGE) {
-                        checkBus(network, functionId, busCache, breakers);
-                        functionElement = lfNetwork.getBusById(functionId);
-                        switch (variableType) {
-                            case BUS_TARGET_VOLTAGE :
-                                variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
-                                break;
-                            case INJECTION_REACTIVE_POWER:
-                                String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
-                                variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
-                                break;
-                            default:
-                                throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
-                        }
-                    } else if (isReactivePowerFunctionType(functionType)) {
-                        LfBranch branch = checkAndGetBranchOrLeg(network, functionId, functionType, lfNetwork);
-                        functionElement = branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
-                        switch (variableType) {
-                            case BUS_TARGET_VOLTAGE :
-                                variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
-                                break;
-                            case INJECTION_REACTIVE_POWER:
-                                String injectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
-                                variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
-                                break;
-                            default:
-                                throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
-                        }
-                    } else if (functionType == SensitivityFunctionType.BUS_REACTIVE_POWER) {
-                        String functionInjectionBusId = injectionVariableIdToBusIdCache.getBusId(network, functionId, breakers);
-                        functionElement = functionInjectionBusId != null ? lfNetwork.getBusById(functionInjectionBusId) : null;
-                        variableElement = switch (variableType) {
-                            case BUS_TARGET_VOLTAGE -> findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
-                            case INJECTION_REACTIVE_POWER -> {
-                                String variableInjectionBusId = injectionVariableIdToBusIdCache.getBusId(network, variableId, breakers);
-                                yield variableInjectionBusId != null ? lfNetwork.getBusById(variableInjectionBusId) : null;
-                            }
-                            default -> throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
-                        };
-                    } else {
-                        throw createFunctionTypeNotSupportedException(functionType);
-                    }
-                    factorHolder.addFactor(new SingleVariableLfSensitivityFactor<>(factorIndex[0], variableId,
-                            functionId, functionElement, functionType, variableElement, variableType, contingencyContext));
-                }
+                factorHolder.addFactor(new SingleVariableLfSensitivityFactor<>(factorIndex[0], variableId,
+                    functionId, functionElement, functionType, variableElement, variableType, contingencyContext));
             }
-            factorIndex[0]++;
-        });
-        return factorHolder;
+        }
+        factorIndex[0]++;
     }
 
     protected static LfElement findBusTargetVoltageVariableElement(Network network, String variableId, boolean breakers,
@@ -1202,6 +1395,16 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         Terminal regulatingTerminal = Networks.getEquipmentRegulatingTerminal(network, variableId).orElseThrow(); // this cannot fail because it is checked in checkRegulatingTerminal
         Bus regulatedBus = Networks.getBus(regulatingTerminal, breakers);
         return regulatedBus != null ? lfNetwork.getBusById(regulatedBus.getId()) : null;
+    }
+
+    /**
+     * Resolve the pilot bus of an SVC_PILOT_POINT_TARGET_VOLTAGE variable, identified by its secondary voltage
+     * control zone name. Returns null if no zone with that name exists.
+     */
+    protected static LfBus findSvcPilotBus(LfNetwork lfNetwork, String variableId) {
+        return lfNetwork.getSecondaryVoltageControl(variableId)
+                .map(LfSecondaryVoltageControl::getPilotBus)
+                .orElse(null);
     }
 
     private static boolean isActivePowerFunctionType(SensitivityFunctionType functionType) {
@@ -1300,6 +1503,18 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             case BUS_TARGET_VOLTAGE:
                 LfBus bus = (LfBus) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
                 return bus.getNominalV();
+            case SHUNT_COMPENSATOR_SUSCEPTANCE:
+                LfBus shuntBus = (LfBus) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
+                return 1 / (PerUnit.zb(shuntBus.getNominalV())); // sensi in kV/S
+            case BRANCH_RESISTANCE, BRANCH_REACTANCE:
+                LfBranch branchRX = (LfBranch) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
+                return PerUnit.zb(branchRX.getBus2().getNominalV());
+            case BRANCH_ADMITTANCE:
+                LfBranch branchY = (LfBranch) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
+                return 1.0 / PerUnit.zb(branchY.getBus2().getNominalV());
+            case SVC_PILOT_POINT_TARGET_VOLTAGE:
+                LfBus pilotBus = (LfBus) ((SingleVariableLfSensitivityFactor<V, E>) factor).getVariableElement();
+                return pilotBus.getNominalV(); // same scaling as BUS_TARGET_VOLTAGE (in kV)
             default:
                 throw new IllegalArgumentException("Unknown variable type " + factor.getVariableType());
         }

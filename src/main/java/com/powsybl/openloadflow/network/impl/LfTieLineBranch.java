@@ -115,7 +115,7 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
             half2Result.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
                     Double.NaN, getV2() * nominalV2, Double.NaN, Math.toDegrees(getAngle2())));
         }
-        return List.of(branchResult, half1Result, half2Result);
+        return List.of(branchResult, half1Result, half2Result); // make sure to put the tie-line first in the list, used in post-contingency flow filtering
     }
 
     private <T extends LoadingLimits> Supplier<Map<String, T>> toMapIndexedByOperationalLimitsGroupId(Function<OperationalLimitsGroup, Optional<T>> limitsGetter, TwoSides side) {

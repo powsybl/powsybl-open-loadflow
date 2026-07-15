@@ -328,7 +328,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         }
         if (!consistency) {
             if (report.detailed) {
-                report.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall.add(Reports.createRootReportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(report.firstRootReportNode, this));
+                report.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall.add(
+                    Reports.createRootReportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(report.firstRootReportNode, this));
             }
             report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall++;
         }
@@ -338,7 +339,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     protected boolean checkIfGeneratorStartedForVoltageControl(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         if (parameters.isGeneratorsWithZeroMwTargetAreNotStarted() && Math.abs(getTargetP()) < POWER_EPSILON_SI && getMinP() > POWER_EPSILON_SI) {
             if (report.detailed) {
-                report.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted.add(Reports.createRootReportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(report.firstRootReportNode, this));
+                report.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted.add(
+                    Reports.createRootReportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(report.firstRootReportNode, this));
             }
             LOGGER.trace("Discard generator '{}' from voltage control because not started (targetP={} MW, minP={} MW)", getId(), getTargetP() * PerUnit.SB, getMinP() * PerUnit.SB);
             report.generatorsDiscardedFromVoltageControlBecauseNotStarted++;
@@ -352,9 +354,11 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
             parameters.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits() &&
             (getTargetP() < getMinP() || getTargetP() > getMaxP())) {
             if (report.detailed) {
-                report.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits.add(Reports.createRootReportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(report.firstRootReportNode, this));
+                report.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits.add(
+                    Reports.createRootReportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(report.firstRootReportNode, this));
             }
-            LOGGER.trace("Discard generator '{}' from voltage control because targetP is outside active power limits (targetP={} MW, minP={} MW, maxP={} MW)", getId(), getTargetP() * PerUnit.SB, getMinP() * PerUnit.SB, getMaxP() * PerUnit.SB);
+            LOGGER.trace("Discard generator '{}' from voltage control because targetP is outside active power limits (targetP={} MW, minP={} MW, maxP={} MW)",
+                getId(), getTargetP() * PerUnit.SB, getMinP() * PerUnit.SB, getMaxP() * PerUnit.SB);
             report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits++;
             return false;
         }
@@ -368,7 +372,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
                 generatorId, targetV);
             if (report != null) {
                 if (report.detailed) {
-                    report.reportGeneratorsDiscardedFromVoltageControlBecauseImplausibleTargetVoltage.add(Reports.createRootReportGeneratorsDiscardedFromVoltageControlBecauseImplausibleTargetVoltage(report.firstRootReportNode, generatorId, targetV));
+                    report.reportGeneratorsDiscardedFromVoltageControlBecauseImplausibleTargetVoltage.add(
+                        Reports.createRootReportGeneratorsDiscardedFromVoltageControlBecauseImplausibleTargetVoltage(report.firstRootReportNode, generatorId, targetV));
                 }
                 report.generatorsDiscardedFromVoltageControlBecauseImplausibleTargetVoltage++;
             }
@@ -422,7 +427,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
                     generatorId, targetP);
             if (report != null) {
                 if (report.detailed) {
-                    report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero.add(Reports.createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero(report.firstRootReportNode, generatorId, targetP));
+                    report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero.add(
+                        Reports.createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero(report.firstRootReportNode, generatorId, targetP));
                 }
                 report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero++;
             }
@@ -438,7 +444,9 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
                     generatorId, maxP, parameters.getPlausibleActivePowerLimit());
             if (report != null) {
                 if (report.detailed) {
-                    report.reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible.add(Reports.createRootReportGeneratorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible(report.firstRootReportNode, generatorId, maxP, parameters.getPlausibleActivePowerLimit()));
+                    report.reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible.add(
+                        Reports.createRootReportGeneratorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible(report.firstRootReportNode,
+                            generatorId, maxP, parameters.getPlausibleActivePowerLimit()));
                 }
                 report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible++;
             }
@@ -453,7 +461,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
                     generatorId, targetP, maxTargetP);
             if (report != null) {
                 if (report.detailed) {
-                    report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP.add(Reports.createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(report.firstRootReportNode, generatorId, targetP, maxTargetP));
+                    report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP.add(
+                        Reports.createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(report.firstRootReportNode, generatorId, targetP, maxTargetP));
                 }
                 report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP++;
             }
@@ -464,7 +473,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
                     generatorId, targetP, minTargetP);
             if (report != null) {
                 if (report.detailed) {
-                    report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP.add(Reports.createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP(report.firstRootReportNode, generatorId, targetP, minTargetP));
+                    report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP.add(
+                        Reports.createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP(report.firstRootReportNode, generatorId, targetP, minTargetP));
                 }
                 report.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP++;
             }
@@ -475,7 +485,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
                     generatorId, maxTargetP, minTargetP);
             if (report != null) {
                 if (report.detailed) {
-                    report.reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP.add(Reports.createRootReportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP(report.firstRootReportNode, generatorId, maxTargetP, minTargetP));
+                    report.reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP.add(
+                        Reports.createRootReportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP(report.firstRootReportNode, generatorId, maxTargetP, minTargetP));
                 }
                 report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP++;
             }

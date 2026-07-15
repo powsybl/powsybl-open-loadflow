@@ -29,7 +29,7 @@ public interface LfArea extends LfElement, LfCopyable<LfArea, LfNetwork> {
 
     LfNetwork getNetwork();
 
-    public interface Boundary {
+    interface Boundary {
         LfBranch getBranch();
 
         TwoSides getSide();

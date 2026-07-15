@@ -379,92 +379,259 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             .put("phaseShifterRegulationOn", PHASE_CONTROL_CATEGORY_KEY)
             .put("voltageInitMode", VOLTAGE_INIT_CATEGORY_KEY)
             .put("hvdcAcEmulation", HVDC_CATEGORY_KEY)
-            .put("computedComponentScope", PERFORMANCE_CATEGORY_KEY)
+            .put("componentMode", PERFORMANCE_CATEGORY_KEY)
             .build();
 
     public static final List<Parameter> SPECIFIC_PARAMETERS = List.of(
-        new Parameter(SLACK_BUS_SELECTION_MODE_PARAM_NAME, ParameterType.STRING, "Slack bus selection mode", SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(SlackBusSelectionMode.class), ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(SLACK_BUSES_IDS_PARAM_NAME, ParameterType.STRING_LIST, "Slack bus IDs", null, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, ParameterType.STRING, "Low impedance branch mode", LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(LowImpedanceBranchMode.class), ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
-        new Parameter(VOLTAGE_REMOTE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Generator voltage remote control", VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, ParameterType.STRING, "Behavior in case of slack distribution failure", SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE.name(), getEnumPossibleValues(SlackDistributionFailureBehavior.class), ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, ParameterType.BOOLEAN, "Load power factor is constant", LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, ParameterType.DOUBLE, "Plausible active power limit", LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Slack bus max active power mismatch", SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Voltage per reactive power slope", VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Generator remote reactive power control", GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, REACTIVE_POWER_CONTROL_CATEGORY_KEY),
-        new Parameter(TRANSFORMER_REACTIVE_POWER_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Transformer reactive power control", TRANSFORMER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, REACTIVE_POWER_CONTROL_CATEGORY_KEY),
-        new Parameter(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Max iterations per Newton-Raphson", NewtonRaphsonParameters.DEFAULT_MAX_ITERATIONS, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
-        new Parameter(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Max outer loop iterations", AbstractLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS, ParameterScope.FUNCTIONAL, OUTER_LOOPS_CATEGORY_KEY),
-        new Parameter(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, ParameterType.DOUBLE, "Newton-Raphson convergence epsilon per equation", NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
-        new Parameter(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME, ParameterType.STRING, "Voltage init mode override", VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE.name(), getEnumPossibleValues(VoltageInitModeOverride.class), ParameterScope.FUNCTIONAL, VOLTAGE_INIT_CATEGORY_KEY),
-        new Parameter(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Transformer voltage control mode", TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(TransformerVoltageControlMode.class), ParameterScope.FUNCTIONAL, TRANSFORMER_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Shunt voltage control mode", SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ShuntVoltageControlMode.class), ParameterScope.FUNCTIONAL, SHUNT_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Min plausible target voltage", LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
-        new Parameter(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Max plausible target voltage", LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
-        new Parameter(MIN_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Min realistic voltage", AcLoadFlowParameters.DEFAULT_MIN_REALISTIC_VOLTAGE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
-        new Parameter(MAX_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Max realistic voltage", AcLoadFlowParameters.DEFAULT_MAX_REALISTIC_VOLTAGE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
-        new Parameter(MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK_PARAM_NAME, ParameterType.DOUBLE, "Min nominal voltage realistic voltage check", AcLoadFlowParameters.DEFAULT_MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
-        new Parameter(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ParameterType.STRING, "Reactive range check mode", LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactiveRangeCheckMode.class), ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME, ParameterType.DOUBLE, "Low impedance threshold in per unit", LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
-        new Parameter(NETWORK_CACHE_ENABLED_PARAM_NAME, ParameterType.BOOLEAN, "Network cache enabled", LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, FAST_RESTART_CATEGORY_KEY),
-        new Parameter(SVC_VOLTAGE_MONITORING_PARAM_NAME, ParameterType.BOOLEAN, "SVC voltage monitoring", SVC_VOLTAGE_MONITORING_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(STATE_VECTOR_SCALING_MODE_PARAM_NAME, ParameterType.STRING, "State vector scaling mode", NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE.name(), getEnumPossibleValues(StateVectorScalingMode.class), ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
-        new Parameter(MAX_SLACK_BUS_COUNT_PARAM_NAME, ParameterType.INTEGER, "Maximum slack buses count", LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(DEBUG_DIR_PARAM_NAME, ParameterType.STRING, "Directory to dump debug files", LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE, null, ParameterScope.TECHNICAL, DEBUG_CATEGORY_KEY),
-        new Parameter(INCREMENTAL_TRANSFORMER_RATIO_TAP_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, ParameterType.INTEGER, "Incremental transformer ratio tap control maximum tap shift per outer loop", INCREMENTAL_TRANSFORMER_RATIO_TAP_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, TRANSFORMER_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Secondary voltage control simulation", LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
-        new Parameter(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ParameterType.INTEGER, "Reactive limits maximum Pq Pv switch", ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_PARAM_NAME, ParameterType.STRING, "Newton-Raphson stopping criteria type", NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(NewtonRaphsonStoppingCriteriaType.class), ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
-        new Parameter(MAX_ACTIVE_POWER_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum active power for per equation stopping criteria", MAX_ACTIVE_POWER_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
-        new Parameter(MAX_REACTIVE_POWER_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum reactive power for per equation stopping criteria", MAX_REACTIVE_POWER_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
-        new Parameter(MAX_VOLTAGE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum voltage for per equation stopping criteria", MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
-        new Parameter(MAX_ANGLE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum angle for per equation stopping criteria", MAX_ANGLE_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
-        new Parameter(MAX_RATIO_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum ratio for per equation stopping criteria", MAX_RATIO_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
-        new Parameter(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Maximum susceptance for per equation stopping criteria", MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
-        new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING, "Phase shifter control mode", PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class), ParameterScope.FUNCTIONAL, PHASE_CONTROL_CATEGORY_KEY),
-        new Parameter(ALWAYS_UPDATE_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "Update network even if Newton-Raphson algorithm has diverged", NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, DEBUG_CATEGORY_KEY),
-        new Parameter(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, ParameterType.DOUBLE, "In case of most meshed slack bus selection, the max nominal voltage percentile", MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(REPORTED_FEATURES_PARAM_NAME, ParameterType.STRING_LIST, "List of extra reported features to be added to report", null, getEnumPossibleValues(ReportedFeatures.class), ParameterScope.FUNCTIONAL, REPORTING_CATEGORY_KEY),
-        new Parameter(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, ParameterType.STRING_LIST, "Slack bus selection country filter (no filtering if empty)", new ArrayList<>(LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE), getEnumPossibleValues(Country.class), ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable switches IDs (used with fast restart)", new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE), ParameterScope.FUNCTIONAL, FAST_RESTART_CATEGORY_KEY),
-        new Parameter(ACTIONABLE_TRANSFORMERS_IDS_PARAM_NAME, ParameterType.STRING_LIST, "List of actionable transformers IDs (used with fast restart for tap position change)", new ArrayList<>(ACTIONABLE_TRANSFORMERS_IDS_DEFAULT_VALUE), ParameterScope.FUNCTIONAL, FAST_RESTART_CATEGORY_KEY),
-        new Parameter(ASYMMETRICAL_PARAM_NAME, ParameterType.BOOLEAN, "Asymmetrical calculation", LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
-        new Parameter(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, ParameterType.DOUBLE, "Min nominal voltage for target voltage check", LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
-        new Parameter(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ParameterType.STRING, "Generators reactive power from bus dispatch mode", REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactivePowerDispatchMode.class), ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(OUTER_LOOP_NAMES_PARAM_NAME, ParameterType.STRING_LIST, "Ordered explicit list of outer loop names, supported outer loops are for AC : [" + String.join(", ", ExplicitAcOuterLoopConfig.NAMES) + "], and for DC : [" + String.join(", ", ExplicitDcOuterLoopConfig.NAMES) + "]", OUTER_LOOP_NAMES_DEFAULT_VALUE, ParameterScope.TECHNICAL, OUTER_LOOPS_CATEGORY_KEY),
-        new Parameter(USE_ACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Use active power limits in slack distribution", LfNetworkParameters.USE_ACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Disable voltage control of generators outside active power limits", LfNetworkParameters.DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATION_PARAM_NAME, ParameterType.INTEGER, "Max iteration for the line search state vector scaling", LineSearchStateVectorScaling.DEFAULT_MAX_ITERATION, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
-        new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, ParameterType.DOUBLE, "Step fold for the line search state vector scaling", LineSearchStateVectorScaling.DEFAULT_STEP_FOLD, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
-        new Parameter(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, ParameterType.DOUBLE, "Max voltage magnitude change for the max voltage change state vector scaling", MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
-        new Parameter(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME, ParameterType.DOUBLE, "Max voltage angle change for the max voltage change state vector scaling", MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
-        new Parameter(LINE_PER_UNIT_MODE_PARAM_NAME, ParameterType.STRING, "Line per unit mode", LinePerUnitMode.IMPEDANCE.name(), getEnumPossibleValues(LinePerUnitMode.class), ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
-        new Parameter(USE_LOAD_MODEL_PARAM_NAME, ParameterType.BOOLEAN, "Use load model (with voltage dependency) for simulation", LfNetworkParameters.USE_LOAD_MODE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
-        new Parameter(DC_APPROXIMATION_TYPE_PARAM_NAME, ParameterType.STRING, "DC approximation type", DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(DcApproximationType.class), ParameterScope.FUNCTIONAL, DC_CATEGORY_KEY),
-        new Parameter(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, ParameterType.BOOLEAN, "Automation systems simulation", LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, AUTOMATION_CATEGORY_KEY),
-        new Parameter(AC_SOLVER_TYPE_PARAM_NAME, ParameterType.STRING, "AC solver type", NewtonRaphsonFactory.NAME, getAcSolverTypePossibleValues(), ParameterScope.FUNCTIONAL, SOLVER_CATEGORY_KEY),
-        new Parameter(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, ParameterType.INTEGER, "Newton-Krylov max number of iterations", NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS, ParameterScope.FUNCTIONAL, NEWTON_KRYLOV_CATEGORY_KEY),
-        new Parameter(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, ParameterType.BOOLEAN, "Newton-Krylov line search activation", NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, NEWTON_KRYLOV_CATEGORY_KEY),
-        new Parameter(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ParameterType.STRING, "Reference bus selection mode", ReferenceBusSelector.DEFAULT_MODE.name(), getEnumPossibleValues(ReferenceBusSelectionMode.class), ParameterScope.FUNCTIONAL, REFERENCE_BUS_CATEGORY_KEY),
-        new Parameter(WRITE_REFERENCE_TERMINALS_PARAM_NAME, ParameterType.BOOLEAN, "Write Reference Terminals", WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, REFERENCE_BUS_CATEGORY_KEY),
-        new Parameter(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, ParameterType.STRING_LIST, "Voltage target priorities for voltage controls", LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE, getEnumPossibleValues(VoltageControl.Type.class), ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
-        new Parameter(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, ParameterType.BOOLEAN, "Maintain initial tap position if possible", LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, TRANSFORMER_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE, "Nominal voltage under which generator voltage controls are disabled during transformer voltage control outer loop of mode AFTER_GENERATOR_VOLTAGE_CONTROL, < 0 means automatic detection", OpenLoadFlowParameters.GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, TRANSFORMER_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, ParameterType.STRING, "Specifies fictitious generators active power checks exemption for voltage control", OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(FictitiousGeneratorVoltageControlCheckMode.class), ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(AREA_INTERCHANGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN, "Area interchange control", AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, ParameterType.STRING, "Area type for area interchange control", LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, ParameterType.DOUBLE, "Area interchange max active power mismatch", AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
-        new Parameter(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME, ParameterType.BOOLEAN, "Generator voltage remote control robust mode", VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Force targetQ in the reactive limit diagram", FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, ParameterType.BOOLEAN, "Disable inconsistent voltage controls", LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN, "Extrapolate reactive limits diagram when outside active power limits", LfNetworkParameters.EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, ParameterType.BOOLEAN, "Start simulation with HVDC in AC emulation frozen to previous value", START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, HVDC_CATEGORY_KEY),
-        new Parameter(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, ParameterType.BOOLEAN, "Generators with zero MW target are considered not started and do not participate in slack distribution nor voltage control", LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
-        new Parameter(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME, ParameterType.INTEGER, "Incremental shunt control maximum section shift per outer loop", IncrementalShuntVoltageControlOuterLoop.MAX_SECTION_SHIFT_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SHUNT_VOLTAGE_CONTROL_CATEGORY_KEY),
-        new Parameter(FIX_VOLTAGE_TARGETS_PARAM_NAME, ParameterType.BOOLEAN, "Automatically fix problematic voltage targets", AcLoadFlowParameters.FIX_VOLTAGE_TARGETS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
-        new Parameter(AC_DC_NETWORK_PARAM_NAME, ParameterType.BOOLEAN, "AC DC simultaneous loadflow", AC_DC_NETWORK_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
-        new Parameter(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME, ParameterType.BOOLEAN, "Allow Non-Linear Shunt Compensator zero section position", LfNetworkParameters.ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY)
+        new Parameter(SLACK_BUS_SELECTION_MODE_PARAM_NAME, ParameterType.STRING,
+            "Slack bus selection mode",
+            SLACK_BUS_SELECTION_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(SlackBusSelectionMode.class), ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(SLACK_BUSES_IDS_PARAM_NAME, ParameterType.STRING_LIST,
+            "Slack bus IDs",
+            null, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, ParameterType.STRING,
+            "Low impedance branch mode",
+            LOW_IMPEDANCE_BRANCH_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(LowImpedanceBranchMode.class), ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
+        new Parameter(VOLTAGE_REMOTE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN,
+            "Generator voltage remote control",
+            VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, ParameterType.STRING,
+            "Behavior in case of slack distribution failure",
+            SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE.name(), getEnumPossibleValues(SlackDistributionFailureBehavior.class), ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, ParameterType.BOOLEAN,
+            "Load power factor is constant",
+            LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME, ParameterType.DOUBLE,
+            "Plausible active power limit",
+            LfNetworkParameters.PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME, ParameterType.DOUBLE,
+            "Slack bus max active power mismatch",
+            SLACK_BUS_P_MAX_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME, ParameterType.BOOLEAN,
+            "Voltage per reactive power slope",
+            VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN,
+            "Generator remote reactive power control",
+            GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, REACTIVE_POWER_CONTROL_CATEGORY_KEY),
+        new Parameter(TRANSFORMER_REACTIVE_POWER_CONTROL_PARAM_NAME, ParameterType.BOOLEAN,
+            "Transformer reactive power control",
+            TRANSFORMER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, REACTIVE_POWER_CONTROL_CATEGORY_KEY),
+        new Parameter(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME, ParameterType.INTEGER,
+            "Max iterations per Newton-Raphson",
+            NewtonRaphsonParameters.DEFAULT_MAX_ITERATIONS, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
+        new Parameter(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME, ParameterType.INTEGER,
+            "Max outer loop iterations",
+            AbstractLoadFlowParameters.DEFAULT_MAX_OUTER_LOOP_ITERATIONS, ParameterScope.FUNCTIONAL, OUTER_LOOPS_CATEGORY_KEY),
+        new Parameter(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME, ParameterType.DOUBLE,
+            "Newton-Raphson convergence epsilon per equation",
+            NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
+        new Parameter(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME, ParameterType.STRING,
+            "Voltage init mode override",
+            VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE.name(), getEnumPossibleValues(VoltageInitModeOverride.class), ParameterScope.FUNCTIONAL, VOLTAGE_INIT_CATEGORY_KEY),
+        new Parameter(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME, ParameterType.STRING,
+            "Transformer voltage control mode",
+            TRANSFORMER_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(TransformerVoltageControlMode.class),
+            ParameterScope.FUNCTIONAL, TRANSFORMER_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, ParameterType.STRING,
+            "Shunt voltage control mode",
+            SHUNT_VOLTAGE_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ShuntVoltageControlMode.class), ParameterScope.FUNCTIONAL, SHUNT_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE,
+            "Min plausible target voltage",
+            LfNetworkParameters.MIN_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
+        new Parameter(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE,
+            "Max plausible target voltage",
+            LfNetworkParameters.MAX_PLAUSIBLE_TARGET_VOLTAGE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
+        new Parameter(MIN_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE,
+            "Min realistic voltage",
+            AcLoadFlowParameters.DEFAULT_MIN_REALISTIC_VOLTAGE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
+        new Parameter(MAX_REALISTIC_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE,
+            "Max realistic voltage",
+            AcLoadFlowParameters.DEFAULT_MAX_REALISTIC_VOLTAGE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
+        new Parameter(MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK_PARAM_NAME, ParameterType.DOUBLE,
+            "Min nominal voltage realistic voltage check",
+            AcLoadFlowParameters.DEFAULT_MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
+        new Parameter(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ParameterType.STRING,
+            "Reactive range check mode",
+            LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactiveRangeCheckMode.class),
+            ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME, ParameterType.DOUBLE,
+            "Low impedance threshold in per unit",
+            LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
+        new Parameter(NETWORK_CACHE_ENABLED_PARAM_NAME, ParameterType.BOOLEAN,
+            "Network cache enabled",
+            LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, FAST_RESTART_CATEGORY_KEY),
+        new Parameter(SVC_VOLTAGE_MONITORING_PARAM_NAME, ParameterType.BOOLEAN,
+            "SVC voltage monitoring",
+            SVC_VOLTAGE_MONITORING_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(STATE_VECTOR_SCALING_MODE_PARAM_NAME, ParameterType.STRING,
+            "State vector scaling mode",
+            NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE.name(), getEnumPossibleValues(StateVectorScalingMode.class), ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
+        new Parameter(MAX_SLACK_BUS_COUNT_PARAM_NAME, ParameterType.INTEGER,
+            "Maximum slack buses count",
+            LfNetworkParameters.DEFAULT_MAX_SLACK_BUS_COUNT, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(DEBUG_DIR_PARAM_NAME, ParameterType.STRING,
+            "Directory to dump debug files",
+            LfNetworkParameters.DEBUG_DIR_DEFAULT_VALUE, null, ParameterScope.TECHNICAL, DEBUG_CATEGORY_KEY),
+        new Parameter(INCREMENTAL_TRANSFORMER_RATIO_TAP_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, ParameterType.INTEGER,
+            "Incremental transformer ratio tap control maximum tap shift per outer loop",
+            INCREMENTAL_TRANSFORMER_RATIO_TAP_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, TRANSFORMER_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN,
+            "Secondary voltage control simulation",
+            LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
+        new Parameter(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ParameterType.INTEGER,
+            "Reactive limits maximum Pq Pv switch",
+            ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_PARAM_NAME, ParameterType.STRING,
+            "Newton-Raphson stopping criteria type",
+            NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(NewtonRaphsonStoppingCriteriaType.class), ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
+        new Parameter(MAX_ACTIVE_POWER_MISMATCH_PARAM_NAME, ParameterType.DOUBLE,
+            "Maximum active power for per equation stopping criteria",
+            MAX_ACTIVE_POWER_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
+        new Parameter(MAX_REACTIVE_POWER_MISMATCH_PARAM_NAME, ParameterType.DOUBLE,
+            "Maximum reactive power for per equation stopping criteria",
+            MAX_REACTIVE_POWER_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
+        new Parameter(MAX_VOLTAGE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE,
+            "Maximum voltage for per equation stopping criteria",
+            MAX_VOLTAGE_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
+        new Parameter(MAX_ANGLE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE,
+            "Maximum angle for per equation stopping criteria",
+            MAX_ANGLE_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
+        new Parameter(MAX_RATIO_MISMATCH_PARAM_NAME, ParameterType.DOUBLE,
+            "Maximum ratio for per equation stopping criteria",
+            MAX_RATIO_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
+        new Parameter(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, ParameterType.DOUBLE,
+            "Maximum susceptance for per equation stopping criteria",
+            MAX_SUSCEPTANCE_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
+        new Parameter(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, ParameterType.STRING,
+            "Phase shifter control mode",
+            PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(PhaseShifterControlMode.class), ParameterScope.FUNCTIONAL, PHASE_CONTROL_CATEGORY_KEY),
+        new Parameter(ALWAYS_UPDATE_NETWORK_PARAM_NAME, ParameterType.BOOLEAN,
+            "Update network even if Newton-Raphson algorithm has diverged",
+            NewtonRaphsonParameters.ALWAYS_UPDATE_NETWORK_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, DEBUG_CATEGORY_KEY),
+        new Parameter(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, ParameterType.DOUBLE,
+            "In case of most meshed slack bus selection, the max nominal voltage percentile",
+            MostMeshedSlackBusSelector.MAX_NOMINAL_VOLTAGE_PERCENTILE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(REPORTED_FEATURES_PARAM_NAME, ParameterType.STRING_LIST,
+            "List of extra reported features to be added to report",
+            null, getEnumPossibleValues(ReportedFeatures.class), ParameterScope.FUNCTIONAL, REPORTING_CATEGORY_KEY),
+        new Parameter(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, ParameterType.STRING_LIST,
+            "Slack bus selection country filter (no filtering if empty)",
+            new ArrayList<>(LfNetworkParameters.SLACK_BUS_COUNTRY_FILTER_DEFAULT_VALUE), getEnumPossibleValues(Country.class), ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(ACTIONABLE_SWITCHES_IDS_PARAM_NAME, ParameterType.STRING_LIST,
+            "List of actionable switches IDs (used with fast restart)",
+            new ArrayList<>(ACTIONABLE_SWITCH_IDS_DEFAULT_VALUE), ParameterScope.FUNCTIONAL, FAST_RESTART_CATEGORY_KEY),
+        new Parameter(ACTIONABLE_TRANSFORMERS_IDS_PARAM_NAME, ParameterType.STRING_LIST,
+            "List of actionable transformers IDs (used with fast restart for tap position change)",
+            new ArrayList<>(ACTIONABLE_TRANSFORMERS_IDS_DEFAULT_VALUE), ParameterScope.FUNCTIONAL, FAST_RESTART_CATEGORY_KEY),
+        new Parameter(ASYMMETRICAL_PARAM_NAME, ParameterType.BOOLEAN,
+            "Asymmetrical calculation",
+            LfNetworkParameters.ASYMMETRICAL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
+        new Parameter(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME, ParameterType.DOUBLE,
+            "Min nominal voltage for target voltage check",
+            LfNetworkParameters.MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
+        new Parameter(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ParameterType.STRING,
+            "Generators reactive power from bus dispatch mode",
+            REACTIVE_POWER_DISPATCH_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactivePowerDispatchMode.class), ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(OUTER_LOOP_NAMES_PARAM_NAME, ParameterType.STRING_LIST,
+            "Ordered explicit list of outer loop names, supported outer loops are for AC : [" + String.join(", ", ExplicitAcOuterLoopConfig.NAMES) +
+                "], and for DC : [" + String.join(", ", ExplicitDcOuterLoopConfig.NAMES) + "]",
+            OUTER_LOOP_NAMES_DEFAULT_VALUE, ParameterScope.TECHNICAL, OUTER_LOOPS_CATEGORY_KEY),
+        new Parameter(USE_ACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN,
+            "Use active power limits in slack distribution",
+            LfNetworkParameters.USE_ACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_PARAM_NAME, ParameterType.BOOLEAN,
+            "Disable voltage control of generators outside active power limits",
+            LfNetworkParameters.DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATION_PARAM_NAME, ParameterType.INTEGER,
+            "Max iteration for the line search state vector scaling",
+            LineSearchStateVectorScaling.DEFAULT_MAX_ITERATION, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
+        new Parameter(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME, ParameterType.DOUBLE,
+            "Step fold for the line search state vector scaling",
+            LineSearchStateVectorScaling.DEFAULT_STEP_FOLD, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
+        new Parameter(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME, ParameterType.DOUBLE,
+            "Max voltage magnitude change for the max voltage change state vector scaling",
+            MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
+        new Parameter(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME, ParameterType.DOUBLE,
+            "Max voltage angle change for the max voltage change state vector scaling",
+            MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI, ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
+        new Parameter(LINE_PER_UNIT_MODE_PARAM_NAME, ParameterType.STRING,
+            "Line per unit mode",
+            LinePerUnitMode.IMPEDANCE.name(), getEnumPossibleValues(LinePerUnitMode.class), ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
+        new Parameter(USE_LOAD_MODEL_PARAM_NAME, ParameterType.BOOLEAN,
+            "Use load model (with voltage dependency) for simulation",
+            LfNetworkParameters.USE_LOAD_MODE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
+        new Parameter(DC_APPROXIMATION_TYPE_PARAM_NAME, ParameterType.STRING,
+            "DC approximation type",
+            DcEquationSystemCreationParameters.DC_APPROXIMATION_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(DcApproximationType.class), ParameterScope.FUNCTIONAL, DC_CATEGORY_KEY),
+        new Parameter(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME, ParameterType.BOOLEAN,
+            "Automation systems simulation",
+            LfNetworkParameters.SIMULATE_AUTOMATION_SYSTEMS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, AUTOMATION_CATEGORY_KEY),
+        new Parameter(AC_SOLVER_TYPE_PARAM_NAME, ParameterType.STRING,
+            "AC solver type",
+            NewtonRaphsonFactory.NAME, getAcSolverTypePossibleValues(), ParameterScope.FUNCTIONAL, SOLVER_CATEGORY_KEY),
+        new Parameter(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME, ParameterType.INTEGER,
+            "Newton-Krylov max number of iterations",
+            NewtonKrylovParameters.DEFAULT_MAX_ITERATIONS, ParameterScope.FUNCTIONAL, NEWTON_KRYLOV_CATEGORY_KEY),
+        new Parameter(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME, ParameterType.BOOLEAN,
+            "Newton-Krylov line search activation",
+            NewtonKrylovParameters.LINE_SEARCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, NEWTON_KRYLOV_CATEGORY_KEY),
+        new Parameter(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ParameterType.STRING,
+            "Reference bus selection mode",
+            ReferenceBusSelector.DEFAULT_MODE.name(), getEnumPossibleValues(ReferenceBusSelectionMode.class), ParameterScope.FUNCTIONAL, REFERENCE_BUS_CATEGORY_KEY),
+        new Parameter(WRITE_REFERENCE_TERMINALS_PARAM_NAME, ParameterType.BOOLEAN,
+            "Write Reference Terminals",
+            WRITE_REFERENCE_TERMINALS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, REFERENCE_BUS_CATEGORY_KEY),
+        new Parameter(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME, ParameterType.STRING_LIST,
+            "Voltage target priorities for voltage controls",
+            LfNetworkParameters.VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE, getEnumPossibleValues(VoltageControl.Type.class), ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
+        new Parameter(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME, ParameterType.BOOLEAN,
+            "Maintain initial tap position if possible",
+            LfNetworkParameters.TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, TRANSFORMER_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME, ParameterType.DOUBLE,
+            "Nominal voltage under which generator voltage controls are disabled during transformer voltage control outer loop of mode AFTER_GENERATOR_VOLTAGE_CONTROL, < 0 means automatic detection",
+            OpenLoadFlowParameters.GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, TRANSFORMER_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, ParameterType.STRING,
+            "Specifies fictitious generators active power checks exemption for voltage control",
+            OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(FictitiousGeneratorVoltageControlCheckMode.class),
+            ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(AREA_INTERCHANGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN,
+            "Area interchange control",
+            AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME, ParameterType.STRING,
+            "Area type for area interchange control",
+            LfNetworkParameters.AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME, ParameterType.DOUBLE,
+            "Area interchange max active power mismatch",
+            AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+        new Parameter(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME, ParameterType.BOOLEAN,
+            "Generator voltage remote control robust mode",
+            VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN,
+            "Force targetQ in the reactive limit diagram",
+            FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME, ParameterType.BOOLEAN,
+            "Disable inconsistent voltage controls",
+            LfNetworkParameters.DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME, ParameterType.BOOLEAN,
+            "Extrapolate reactive limits diagram when outside active power limits",
+            LfNetworkParameters.EXTRAPOLATE_REACTIVE_LIMITS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME, ParameterType.BOOLEAN,
+            "Start simulation with HVDC in AC emulation frozen to previous value", START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, HVDC_CATEGORY_KEY),
+        new Parameter(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME, ParameterType.BOOLEAN,
+            "Generators with zero MW target are considered not started and do not participate in slack distribution nor voltage control",
+            LfNetworkParameters.GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
+        new Parameter(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME, ParameterType.INTEGER,
+            "Incremental shunt control maximum section shift per outer loop",
+            IncrementalShuntVoltageControlOuterLoop.MAX_SECTION_SHIFT_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SHUNT_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(FIX_VOLTAGE_TARGETS_PARAM_NAME, ParameterType.BOOLEAN,
+            "Automatically fix problematic voltage targets",
+            AcLoadFlowParameters.FIX_VOLTAGE_TARGETS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
+        new Parameter(AC_DC_NETWORK_PARAM_NAME, ParameterType.BOOLEAN,
+            "AC DC simultaneous loadflow",
+            AC_DC_NETWORK_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
+        new Parameter(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME, ParameterType.BOOLEAN,
+            "Allow Non-Linear Shunt Compensator zero section position",
+            LfNetworkParameters.ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {
@@ -1527,116 +1694,118 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters update(PlatformConfig platformConfig) {
         platformConfig.getOptionalModuleConfig(MODULE_SPECIFIC_PARAMETERS)
-                .ifPresent((ModuleConfig config) -> {
-                    config.getOptionalEnumProperty(SLACK_BUS_SELECTION_MODE_PARAM_NAME, SlackBusSelectionMode.class)
-                            .ifPresent(this::setSlackBusSelectionMode);
-                    config.getOptionalStringListProperty(SLACK_BUSES_IDS_PARAM_NAME).ifPresent(this::setSlackBusesIds);
-                    config.getOptionalEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class)
-                            .ifPresent(this::setLowImpedanceBranchMode);
-                    config.getOptionalBooleanProperty(VOLTAGE_REMOTE_CONTROL_PARAM_NAME).ifPresent(this::setVoltageRemoteControl);
-                    config.getOptionalEnumProperty(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, SlackDistributionFailureBehavior.class)
-                            .ifPresent(this::setSlackDistributionFailureBehavior);
-                    config.getOptionalBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME).ifPresent(this::setLoadPowerFactorConstant);
-                    config.getOptionalDoubleProperty(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME).ifPresent(this::setPlausibleActivePowerLimit);
-                    config.getOptionalEnumProperty(NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_PARAM_NAME, NewtonRaphsonStoppingCriteriaType.class)
-                            .ifPresent(this::setNewtonRaphsonStoppingCriteriaType);
-                    config.getOptionalDoubleProperty(MAX_ACTIVE_POWER_MISMATCH_PARAM_NAME).ifPresent(this::setMaxActivePowerMismatch);
-                    config.getOptionalDoubleProperty(MAX_REACTIVE_POWER_MISMATCH_PARAM_NAME).ifPresent(this::setMaxReactivePowerMismatch);
-                    config.getOptionalDoubleProperty(MAX_VOLTAGE_MISMATCH_PARAM_NAME).ifPresent(this::setMaxVoltageMismatch);
-                    config.getOptionalDoubleProperty(MAX_ANGLE_MISMATCH_PARAM_NAME).ifPresent(this::setMaxAngleMismatch);
-                    config.getOptionalDoubleProperty(MAX_RATIO_MISMATCH_PARAM_NAME).ifPresent(this::setMaxRatioMismatch);
-                    config.getOptionalDoubleProperty(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME).ifPresent(this::setMaxSusceptanceMismatch);
-                    config.getOptionalDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME).ifPresent(this::setSlackBusPMaxMismatch);
-                    config.getOptionalBooleanProperty(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME).ifPresent(this::setVoltagePerReactivePowerControl);
-                    config.getOptionalBooleanProperty(GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME).ifPresent(this::setGeneratorReactivePowerRemoteControl);
-                    config.getOptionalBooleanProperty(TRANSFORMER_REACTIVE_POWER_CONTROL_PARAM_NAME).ifPresent(this::setTransformerReactivePowerControl);
-                    config.getOptionalIntProperty(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME).ifPresent(this::setMaxNewtonRaphsonIterations);
-                    config.getOptionalIntProperty(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME).ifPresent(this::setMaxOuterLoopIterations);
-                    config.getOptionalDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME).ifPresent(this::setNewtonRaphsonConvEpsPerEq);
-                    config.getOptionalEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME, VoltageInitModeOverride.class)
-                            .ifPresent(this::setVoltageInitModeOverride);
-                    config.getOptionalEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME, TransformerVoltageControlMode.class)
-                            .ifPresent(this::setTransformerVoltageControlMode);
-                    config.getOptionalEnumProperty(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, ShuntVoltageControlMode.class)
-                            .ifPresent(this::setShuntVoltageControlMode);
-                    config.getOptionalDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME).ifPresent(this::setMinPlausibleTargetVoltage);
-                    config.getOptionalDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME).ifPresent(this::setMaxPlausibleTargetVoltage);
-                    config.getOptionalDoubleProperty(MIN_REALISTIC_VOLTAGE_PARAM_NAME).ifPresent(this::setMinRealisticVoltage);
-                    config.getOptionalDoubleProperty(MAX_REALISTIC_VOLTAGE_PARAM_NAME).ifPresent(this::setMaxRealisticVoltage);
-                    config.getOptionalDoubleProperty(MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK_PARAM_NAME).ifPresent(this::setMinNominalVoltageRealisticVoltageCheck);
-                    config.getOptionalEnumProperty(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ReactiveRangeCheckMode.class)
-                            .ifPresent(this::setReactiveRangeCheckMode);
-                    config.getOptionalDoubleProperty(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME).ifPresent(this::setLowImpedanceThreshold);
-                    config.getOptionalBooleanProperty(NETWORK_CACHE_ENABLED_PARAM_NAME).ifPresent(this::setNetworkCacheEnabled);
-                    config.getOptionalBooleanProperty(SVC_VOLTAGE_MONITORING_PARAM_NAME).ifPresent(this::setSvcVoltageMonitoring);
-                    config.getOptionalEnumProperty(STATE_VECTOR_SCALING_MODE_PARAM_NAME, StateVectorScalingMode.class)
-                            .ifPresent(this::setStateVectorScalingMode);
-                    config.getOptionalIntProperty(MAX_SLACK_BUS_COUNT_PARAM_NAME).ifPresent(this::setMaxSlackBusCount);
-                    config.getOptionalStringProperty(DEBUG_DIR_PARAM_NAME).ifPresent(this::setDebugDir);
-                    config.getOptionalIntProperty(INCREMENTAL_TRANSFORMER_RATIO_TAP_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME)
-                            .ifPresent(this::setIncrementalTransformerRatioTapControlOuterLoopMaxTapShift);
-                    config.getOptionalBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME).ifPresent(this::setSecondaryVoltageControl);
-                    config.getOptionalIntProperty(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME).ifPresent(this::setReactiveLimitsMaxPqPvSwitch);
-                    config.getOptionalEnumProperty(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, PhaseShifterControlMode.class)
-                            .ifPresent(this::setPhaseShifterControlMode);
-                    config.getOptionalBooleanProperty(ALWAYS_UPDATE_NETWORK_PARAM_NAME).ifPresent(this::setAlwaysUpdateNetwork);
-                    config.getOptionalDoubleProperty(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME)
-                            .ifPresent(this::setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile);
-                    config.getOptionalEnumSetProperty(REPORTED_FEATURES_PARAM_NAME, ReportedFeatures.class).ifPresent(this::setReportedFeatures);
-                    config.getOptionalEnumSetProperty(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, Country.class).ifPresent(this::setSlackBusCountryFilter);
-                    config.getOptionalStringListProperty(ACTIONABLE_SWITCHES_IDS_PARAM_NAME)
-                            .ifPresent(ids -> this.setActionableSwitchesIds(new HashSet<>(ids)));
-                    config.getOptionalStringListProperty(ACTIONABLE_TRANSFORMERS_IDS_PARAM_NAME)
-                            .ifPresent(ids -> this.setActionableTransformersIds(new HashSet<>(ids)));
-                    config.getOptionalBooleanProperty(ASYMMETRICAL_PARAM_NAME).ifPresent(this::setAsymmetrical);
-                    config.getOptionalDoubleProperty(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME).ifPresent(this::setMinNominalVoltageTargetVoltageCheck);
-                    config.getOptionalEnumProperty(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ReactivePowerDispatchMode.class)
-                            .ifPresent(this::setReactivePowerDispatchMode);
-                    config.getOptionalStringListProperty(OUTER_LOOP_NAMES_PARAM_NAME).ifPresent(this::setOuterLoopNames);
-                    config.getOptionalBooleanProperty(USE_ACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setUseActiveLimits);
-                    config.getOptionalBooleanProperty(DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_PARAM_NAME)
-                            .ifPresent(this::setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits);
-                    config.getOptionalIntProperty(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATION_PARAM_NAME)
-                            .ifPresent(this::setLineSearchStateVectorScalingMaxIteration);
-                    config.getOptionalDoubleProperty(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME)
-                            .ifPresent(this::setLineSearchStateVectorScalingStepFold);
-                    config.getOptionalDoubleProperty(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME)
-                            .ifPresent(this::setMaxVoltageChangeStateVectorScalingMaxDv);
-                    config.getOptionalDoubleProperty(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME)
-                            .ifPresent(this::setMaxVoltageChangeStateVectorScalingMaxDphi);
-                    config.getOptionalEnumProperty(LINE_PER_UNIT_MODE_PARAM_NAME, LinePerUnitMode.class).ifPresent(this::setLinePerUnitMode);
-                    config.getOptionalBooleanProperty(USE_LOAD_MODEL_PARAM_NAME).ifPresent(this::setUseLoadModel);
-                    config.getOptionalEnumProperty(DC_APPROXIMATION_TYPE_PARAM_NAME, DcApproximationType.class).ifPresent(this::setDcApproximationType);
-                    config.getOptionalBooleanProperty(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME).ifPresent(this::setSimulateAutomationSystems);
-                    config.getOptionalStringProperty(AC_SOLVER_TYPE_PARAM_NAME).ifPresent(this::setAcSolverType);
-                    config.getOptionalIntProperty(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME).ifPresent(this::setMaxNewtonKrylovIterations);
-                    config.getOptionalBooleanProperty(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME).ifPresent(this::setNewtonKrylovLineSearch);
-                    config.getOptionalEnumProperty(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ReferenceBusSelectionMode.class)
-                            .ifPresent(this::setReferenceBusSelectionMode);
-                    config.getOptionalBooleanProperty(WRITE_REFERENCE_TERMINALS_PARAM_NAME).ifPresent(this::setWriteReferenceTerminals);
-                    config.getOptionalStringListProperty(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME).ifPresent(this::setVoltageTargetPriorities);
-                    config.getOptionalBooleanProperty(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME)
-                            .ifPresent(this::setTransformerVoltageControlUseInitialTapPosition);
-                    config.getOptionalDoubleProperty(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME)
-                            .ifPresent(this::setGeneratorVoltageControlMinNominalVoltage);
-                    config.getOptionalBooleanProperty(AREA_INTERCHANGE_CONTROL_PARAM_NAME).ifPresent(this::setAreaInterchangeControl);
-                    config.getOptionalStringProperty(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME).ifPresent(this::setAreaInterchangeControlAreaType);
-                    config.getOptionalDoubleProperty(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME).ifPresent(this::setAreaInterchangePMaxMismatch);
-                    config.getOptionalBooleanProperty(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME).ifPresent(this::setDisableInconsistentVoltageControls);
-                    config.getOptionalBooleanProperty(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setForceTargetQInReactiveLimits);
-                    config.getOptionalEnumProperty(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, FictitiousGeneratorVoltageControlCheckMode.class)
-                            .ifPresent(this::setFictitiousGeneratorVoltageControlCheckMode);
-                    config.getOptionalBooleanProperty(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME).ifPresent(this::setVoltageRemoteControlRobustMode);
-                    config.getOptionalBooleanProperty(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setExtrapolateReactiveLimits);
-                    config.getOptionalBooleanProperty(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME).ifPresent(this::setStartWithFrozenACEmulation);
-                    config.getOptionalBooleanProperty(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME).ifPresent(this::setGeneratorsWithZeroMwTargetAreNotStarted);
-                    config.getOptionalIntProperty(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME)
-                            .ifPresent(this::setIncrementalShuntControlOuterLoopMaxSectionShift);
-                    config.getOptionalBooleanProperty(FIX_VOLTAGE_TARGETS_PARAM_NAME).ifPresent(this::setFixVoltageTargets);
-                    config.getOptionalBooleanProperty(AC_DC_NETWORK_PARAM_NAME).ifPresent(this::setAcDcNetwork);
-                    config.getOptionalBooleanProperty(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME).ifPresent(this::setAllowNonLinearShuntZeroSection);
-                });
+                .ifPresent(this::updateModuleConfig);
         return this;
+    }
+
+    private void updateModuleConfig(ModuleConfig config) {
+        config.getOptionalEnumProperty(SLACK_BUS_SELECTION_MODE_PARAM_NAME, SlackBusSelectionMode.class)
+            .ifPresent(this::setSlackBusSelectionMode);
+        config.getOptionalStringListProperty(SLACK_BUSES_IDS_PARAM_NAME).ifPresent(this::setSlackBusesIds);
+        config.getOptionalEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class)
+            .ifPresent(this::setLowImpedanceBranchMode);
+        config.getOptionalBooleanProperty(VOLTAGE_REMOTE_CONTROL_PARAM_NAME).ifPresent(this::setVoltageRemoteControl);
+        config.getOptionalEnumProperty(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, SlackDistributionFailureBehavior.class)
+            .ifPresent(this::setSlackDistributionFailureBehavior);
+        config.getOptionalBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME).ifPresent(this::setLoadPowerFactorConstant);
+        config.getOptionalDoubleProperty(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME).ifPresent(this::setPlausibleActivePowerLimit);
+        config.getOptionalEnumProperty(NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_PARAM_NAME, NewtonRaphsonStoppingCriteriaType.class)
+            .ifPresent(this::setNewtonRaphsonStoppingCriteriaType);
+        config.getOptionalDoubleProperty(MAX_ACTIVE_POWER_MISMATCH_PARAM_NAME).ifPresent(this::setMaxActivePowerMismatch);
+        config.getOptionalDoubleProperty(MAX_REACTIVE_POWER_MISMATCH_PARAM_NAME).ifPresent(this::setMaxReactivePowerMismatch);
+        config.getOptionalDoubleProperty(MAX_VOLTAGE_MISMATCH_PARAM_NAME).ifPresent(this::setMaxVoltageMismatch);
+        config.getOptionalDoubleProperty(MAX_ANGLE_MISMATCH_PARAM_NAME).ifPresent(this::setMaxAngleMismatch);
+        config.getOptionalDoubleProperty(MAX_RATIO_MISMATCH_PARAM_NAME).ifPresent(this::setMaxRatioMismatch);
+        config.getOptionalDoubleProperty(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME).ifPresent(this::setMaxSusceptanceMismatch);
+        config.getOptionalDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME).ifPresent(this::setSlackBusPMaxMismatch);
+        config.getOptionalBooleanProperty(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME).ifPresent(this::setVoltagePerReactivePowerControl);
+        config.getOptionalBooleanProperty(GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME).ifPresent(this::setGeneratorReactivePowerRemoteControl);
+        config.getOptionalBooleanProperty(TRANSFORMER_REACTIVE_POWER_CONTROL_PARAM_NAME).ifPresent(this::setTransformerReactivePowerControl);
+        config.getOptionalIntProperty(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME).ifPresent(this::setMaxNewtonRaphsonIterations);
+        config.getOptionalIntProperty(MAX_OUTER_LOOP_ITERATIONS_PARAM_NAME).ifPresent(this::setMaxOuterLoopIterations);
+        config.getOptionalDoubleProperty(NEWTON_RAPHSON_CONV_EPS_PER_EQ_PARAM_NAME).ifPresent(this::setNewtonRaphsonConvEpsPerEq);
+        config.getOptionalEnumProperty(VOLTAGE_INIT_MODE_OVERRIDE_PARAM_NAME, VoltageInitModeOverride.class)
+            .ifPresent(this::setVoltageInitModeOverride);
+        config.getOptionalEnumProperty(TRANSFORMER_VOLTAGE_CONTROL_MODE_PARAM_NAME, TransformerVoltageControlMode.class)
+            .ifPresent(this::setTransformerVoltageControlMode);
+        config.getOptionalEnumProperty(SHUNT_VOLTAGE_CONTROL_MODE_PARAM_NAME, ShuntVoltageControlMode.class)
+            .ifPresent(this::setShuntVoltageControlMode);
+        config.getOptionalDoubleProperty(MIN_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME).ifPresent(this::setMinPlausibleTargetVoltage);
+        config.getOptionalDoubleProperty(MAX_PLAUSIBLE_TARGET_VOLTAGE_PARAM_NAME).ifPresent(this::setMaxPlausibleTargetVoltage);
+        config.getOptionalDoubleProperty(MIN_REALISTIC_VOLTAGE_PARAM_NAME).ifPresent(this::setMinRealisticVoltage);
+        config.getOptionalDoubleProperty(MAX_REALISTIC_VOLTAGE_PARAM_NAME).ifPresent(this::setMaxRealisticVoltage);
+        config.getOptionalDoubleProperty(MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK_PARAM_NAME).ifPresent(this::setMinNominalVoltageRealisticVoltageCheck);
+        config.getOptionalEnumProperty(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ReactiveRangeCheckMode.class)
+            .ifPresent(this::setReactiveRangeCheckMode);
+        config.getOptionalDoubleProperty(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME).ifPresent(this::setLowImpedanceThreshold);
+        config.getOptionalBooleanProperty(NETWORK_CACHE_ENABLED_PARAM_NAME).ifPresent(this::setNetworkCacheEnabled);
+        config.getOptionalBooleanProperty(SVC_VOLTAGE_MONITORING_PARAM_NAME).ifPresent(this::setSvcVoltageMonitoring);
+        config.getOptionalEnumProperty(STATE_VECTOR_SCALING_MODE_PARAM_NAME, StateVectorScalingMode.class)
+            .ifPresent(this::setStateVectorScalingMode);
+        config.getOptionalIntProperty(MAX_SLACK_BUS_COUNT_PARAM_NAME).ifPresent(this::setMaxSlackBusCount);
+        config.getOptionalStringProperty(DEBUG_DIR_PARAM_NAME).ifPresent(this::setDebugDir);
+        config.getOptionalIntProperty(INCREMENTAL_TRANSFORMER_RATIO_TAP_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME)
+            .ifPresent(this::setIncrementalTransformerRatioTapControlOuterLoopMaxTapShift);
+        config.getOptionalBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME).ifPresent(this::setSecondaryVoltageControl);
+        config.getOptionalIntProperty(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME).ifPresent(this::setReactiveLimitsMaxPqPvSwitch);
+        config.getOptionalEnumProperty(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, PhaseShifterControlMode.class)
+            .ifPresent(this::setPhaseShifterControlMode);
+        config.getOptionalBooleanProperty(ALWAYS_UPDATE_NETWORK_PARAM_NAME).ifPresent(this::setAlwaysUpdateNetwork);
+        config.getOptionalDoubleProperty(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME)
+            .ifPresent(this::setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile);
+        config.getOptionalEnumSetProperty(REPORTED_FEATURES_PARAM_NAME, ReportedFeatures.class).ifPresent(this::setReportedFeatures);
+        config.getOptionalEnumSetProperty(SLACK_BUS_COUNTRY_FILTER_PARAM_NAME, Country.class).ifPresent(this::setSlackBusCountryFilter);
+        config.getOptionalStringListProperty(ACTIONABLE_SWITCHES_IDS_PARAM_NAME)
+            .ifPresent(ids -> this.setActionableSwitchesIds(new HashSet<>(ids)));
+        config.getOptionalStringListProperty(ACTIONABLE_TRANSFORMERS_IDS_PARAM_NAME)
+            .ifPresent(ids -> this.setActionableTransformersIds(new HashSet<>(ids)));
+        config.getOptionalBooleanProperty(ASYMMETRICAL_PARAM_NAME).ifPresent(this::setAsymmetrical);
+        config.getOptionalDoubleProperty(MIN_NOMINAL_VOLTAGE_TARGET_VOLTAGE_CHECK_PARAM_NAME).ifPresent(this::setMinNominalVoltageTargetVoltageCheck);
+        config.getOptionalEnumProperty(REACTIVE_POWER_DISPATCH_MODE_PARAM_NAME, ReactivePowerDispatchMode.class)
+            .ifPresent(this::setReactivePowerDispatchMode);
+        config.getOptionalStringListProperty(OUTER_LOOP_NAMES_PARAM_NAME).ifPresent(this::setOuterLoopNames);
+        config.getOptionalBooleanProperty(USE_ACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setUseActiveLimits);
+        config.getOptionalBooleanProperty(DISABLE_VOLTAGE_CONTROL_OF_GENERATORS_OUTSIDE_ACTIVE_POWER_LIMITS_PARAM_NAME)
+            .ifPresent(this::setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits);
+        config.getOptionalIntProperty(LINE_SEARCH_STATE_VECTOR_SCALING_MAX_ITERATION_PARAM_NAME)
+            .ifPresent(this::setLineSearchStateVectorScalingMaxIteration);
+        config.getOptionalDoubleProperty(LINE_SEARCH_STATE_VECTOR_SCALING_STEP_FOLD_PARAM_NAME)
+            .ifPresent(this::setLineSearchStateVectorScalingStepFold);
+        config.getOptionalDoubleProperty(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DV_PARAM_NAME)
+            .ifPresent(this::setMaxVoltageChangeStateVectorScalingMaxDv);
+        config.getOptionalDoubleProperty(MAX_VOLTAGE_CHANGE_STATE_VECTOR_SCALING_MAX_DPHI_PARAM_NAME)
+            .ifPresent(this::setMaxVoltageChangeStateVectorScalingMaxDphi);
+        config.getOptionalEnumProperty(LINE_PER_UNIT_MODE_PARAM_NAME, LinePerUnitMode.class).ifPresent(this::setLinePerUnitMode);
+        config.getOptionalBooleanProperty(USE_LOAD_MODEL_PARAM_NAME).ifPresent(this::setUseLoadModel);
+        config.getOptionalEnumProperty(DC_APPROXIMATION_TYPE_PARAM_NAME, DcApproximationType.class).ifPresent(this::setDcApproximationType);
+        config.getOptionalBooleanProperty(SIMULATE_AUTOMATION_SYSTEMS_PARAM_NAME).ifPresent(this::setSimulateAutomationSystems);
+        config.getOptionalStringProperty(AC_SOLVER_TYPE_PARAM_NAME).ifPresent(this::setAcSolverType);
+        config.getOptionalIntProperty(MAX_NEWTON_KRYLOV_ITERATIONS_PARAM_NAME).ifPresent(this::setMaxNewtonKrylovIterations);
+        config.getOptionalBooleanProperty(NEWTON_KRYLOV_LINE_SEARCH_PARAM_NAME).ifPresent(this::setNewtonKrylovLineSearch);
+        config.getOptionalEnumProperty(REFERENCE_BUS_SELECTION_MODE_PARAM_NAME, ReferenceBusSelectionMode.class)
+            .ifPresent(this::setReferenceBusSelectionMode);
+        config.getOptionalBooleanProperty(WRITE_REFERENCE_TERMINALS_PARAM_NAME).ifPresent(this::setWriteReferenceTerminals);
+        config.getOptionalStringListProperty(VOLTAGE_TARGET_PRIORITIES_PARAM_NAME).ifPresent(this::setVoltageTargetPriorities);
+        config.getOptionalBooleanProperty(TRANSFORMER_VOLTAGE_CONTROL_USE_INITIAL_TAP_POSITION_PARAM_NAME)
+            .ifPresent(this::setTransformerVoltageControlUseInitialTapPosition);
+        config.getOptionalDoubleProperty(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME)
+            .ifPresent(this::setGeneratorVoltageControlMinNominalVoltage);
+        config.getOptionalBooleanProperty(AREA_INTERCHANGE_CONTROL_PARAM_NAME).ifPresent(this::setAreaInterchangeControl);
+        config.getOptionalStringProperty(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME).ifPresent(this::setAreaInterchangeControlAreaType);
+        config.getOptionalDoubleProperty(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME).ifPresent(this::setAreaInterchangePMaxMismatch);
+        config.getOptionalBooleanProperty(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME).ifPresent(this::setDisableInconsistentVoltageControls);
+        config.getOptionalBooleanProperty(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setForceTargetQInReactiveLimits);
+        config.getOptionalEnumProperty(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, FictitiousGeneratorVoltageControlCheckMode.class)
+            .ifPresent(this::setFictitiousGeneratorVoltageControlCheckMode);
+        config.getOptionalBooleanProperty(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME).ifPresent(this::setVoltageRemoteControlRobustMode);
+        config.getOptionalBooleanProperty(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setExtrapolateReactiveLimits);
+        config.getOptionalBooleanProperty(START_WITH_FROZEN_AC_EMULATION_PARAM_NAME).ifPresent(this::setStartWithFrozenACEmulation);
+        config.getOptionalBooleanProperty(GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_PARAM_NAME).ifPresent(this::setGeneratorsWithZeroMwTargetAreNotStarted);
+        config.getOptionalIntProperty(INCREMENTAL_SHUNT_CONTROL_OUTER_LOOP_MAX_SECTION_SHIFT_PARAM_NAME)
+            .ifPresent(this::setIncrementalShuntControlOuterLoopMaxSectionShift);
+        config.getOptionalBooleanProperty(FIX_VOLTAGE_TARGETS_PARAM_NAME).ifPresent(this::setFixVoltageTargets);
+        config.getOptionalBooleanProperty(AC_DC_NETWORK_PARAM_NAME).ifPresent(this::setAcDcNetwork);
+        config.getOptionalBooleanProperty(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME).ifPresent(this::setAllowNonLinearShuntZeroSection);
     }
 
     public OpenLoadFlowParameters update(Map<String, String> properties) {
@@ -1951,6 +2120,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                     return c;
                 }
             }
+
             Map<String, Object> parametersMap = new HashMap<>();
             parametersMap.putAll(parameters.toMap());
             parametersMap.putAll(parametersExt.toMap());
@@ -1983,7 +2153,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             case PREVIOUS_VALUES:
                 return new PreviousValueVoltageInitializer();
             case DC_VALUES:
-                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl(), parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), parametersExt.getDcApproximationType(), matrixFactory, parametersExt.getMaxOuterLoopIterations());
+                return new DcValueVoltageInitializer(networkParameters, parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl(),
+                    parameters.getBalanceType(), parameters.isDcUseTransformerRatio(), parametersExt.getDcApproximationType(), matrixFactory, parametersExt.getMaxOuterLoopIterations());
             default:
                 throw new UnsupportedOperationException("Unsupported voltage init mode: " + parameters.getVoltageInitMode());
         }
@@ -2029,7 +2200,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(parametersExt.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits())
                 .setComponentMode(parameters.getComponentMode())
                 .setCountriesToBalance(parameters.getCountriesToBalance())
-                .setDistributedOnConformLoad((parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl()) && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setDistributedOnConformLoad((parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl())
+                    && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(parameters.isPhaseShifterRegulationOn())
                 .setTransformerVoltageControl(parameters.isTransformerVoltageControlOn())
                 .setVoltagePerReactivePowerControl(parametersExt.isVoltagePerReactivePowerControl())
@@ -2162,7 +2334,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(parametersExt.isDisableVoltageControlOfGeneratorsOutsideActivePowerLimits())
                 .setComponentMode(parameters.getComponentMode())
                 .setCountriesToBalance(parameters.getCountriesToBalance())
-                .setDistributedOnConformLoad((parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl()) && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setDistributedOnConformLoad((parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl())
+                    && parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setPhaseControl(parameters.isPhaseShifterRegulationOn())
                 .setTransformerVoltageControl(false)
                 .setVoltagePerReactivePowerControl(false)
