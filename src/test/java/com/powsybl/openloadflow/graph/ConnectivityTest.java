@@ -565,6 +565,7 @@ class ConnectivityTest {
                 Arguments.of(new HolmEtAlGraphConnectivity<>()),
                 Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>()),
                 Arguments.of(new DTreeGraphConnectivity<>()),
+                Arguments.of(new DTreeStandalone<>()),
                 Arguments.of(new NewDTreeGraphConnectivity<Integer, String>(v -> v, new ToIntFunction<String>() {
                     final Map<String, Integer> map = new HashMap<>();
 
@@ -583,6 +584,7 @@ class ConnectivityTest {
                 Arguments.of(new HolmEtAlGraphConnectivity<>()),
                 Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>()),
                 Arguments.of(new DTreeGraphConnectivity<>()),
+                Arguments.of(new DTreeStandalone<>()),
                 Arguments.of(new NewDTreeGraphConnectivity<Integer, String>(v -> v, new ToIntFunction<String>() {
                     final Map<String, Integer> map = new HashMap<>();
 
