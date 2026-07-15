@@ -124,17 +124,17 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         boolean treeEdge;
         if (rootU == rootV) {
             if (isInMainComponent(rootU)) {
-                currentModifications().edgesState.markAdded(edge);
+                checkSavedContext().edgesState.markAdded(edge);
             }
 
             // insert non tree edge
             treeEdge = insertNonTreeEdge(rootU, nodeU, rootUdist.getValue(), nodeV, rootVdist.getValue(), edge);
         } else {
             if (isInMainComponent(rootV)) {
-                currentModifications().edgesState.markAdded(edge);
+                checkSavedContext().edgesState.markAdded(edge);
                 markAllAdded(rootU);
             } else if (isInMainComponent(rootU)) {
-                currentModifications().edgesState.markAdded(edge);
+                checkSavedContext().edgesState.markAdded(edge);
                 markAllAdded(rootV);
             }
 
@@ -310,7 +310,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         }
 
         if (isInMainComponent(rootLarge) || isInMainComponent(rootSmall)) {
-            currentModifications().edgesState.markRemoved(removedEdge);
+            checkSavedContext().edgesState.markRemoved(removedEdge);
         }
         if (nodeSmall != null) {
             removeNonTreeEdge(nodeSmall, nodeLarge, nte);
@@ -331,7 +331,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
     private void removeNonTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
         if (isInMainComponent(nodeU)) {
-            currentModifications().edgesState.markRemoved(edge);
+            checkSavedContext().edgesState.markRemoved(edge);
         }
 
         nodeU.nonTreeEdges.remove(edge);
@@ -433,7 +433,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         modificationsStack.pop();
     }
 
-    private Modifications currentModifications() {
+    private Modifications checkSavedContext() {
         if (modificationsStack.isEmpty()) {
             throw new PowsyblException("Cannot compute connectivity without a saved state, please call GraphConnectivity::startTemporaryChanges at least once beforehand");
         }
@@ -442,7 +442,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
     @Override
     public int getComponentNumber(V vertex) {
-        currentModifications();
+        checkSavedContext();
         DTNode node = getNodeOrThrow(vertex);
         sortComponents();
 
@@ -454,9 +454,6 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         if (!modificationsStack.isEmpty()) {
             var modifications = modificationsStack.peek();
             modifications.setMainComponentVertex(mainComponentVertex);
-            /*if (!modifications.isInMainComponentBefore(mainComponentVertex)) {
-                throw new PowsyblException("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes");
-            }*/
         }
         defaultMainComponentVertex = mainComponentVertex;
     }
@@ -495,19 +492,20 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
     @Override
     public int getNbConnectedComponents() {
+        checkSavedContext();
         return roots.size();
     }
 
     @Override
     public Set<V> getConnectedComponent(V vertex) {
-        currentModifications();
+        checkSavedContext();
         DTNode node = getNodeOrThrow(vertex);
         return node.findRootOptReroot().componentView();
     }
 
     @Override
     public Set<V> getLargestConnectedComponent() {
-        currentModifications();
+        checkSavedContext();
         sortComponents();
 
         return roots.getFirst().componentView();
@@ -575,22 +573,22 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
     @Override
     public Set<V> getVerticesRemovedFromMainComponent() {
-        return currentModifications().verticesState.getRemoved();
+        return checkSavedContext().verticesState.getRemoved();
     }
 
     @Override
     public Set<E> getEdgesRemovedFromMainComponent() {
-        return currentModifications().edgesState.getRemoved();
+        return checkSavedContext().edgesState.getRemoved();
     }
 
     @Override
     public Set<V> getVerticesAddedToMainComponent() {
-        return currentModifications().verticesState.getAdded();
+        return checkSavedContext().verticesState.getAdded();
     }
 
     @Override
     public Set<E> getEdgesAddedToMainComponent() {
-        return currentModifications().edgesState.getAdded();
+        return checkSavedContext().edgesState.getAdded();
     }
 
     // ==============
@@ -991,6 +989,10 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
                 DTNode root2 = rootOf(mainComponentVertex);
 
                 if (root1 != root2) {
+                    if (verticesState.get(mainComponentVertex) != State.REMOVED) {
+                        throw new PowsyblException("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes");
+                    }
+
                     markAllRemoved(root1);
                     markAllAdded(root2);
                 }
