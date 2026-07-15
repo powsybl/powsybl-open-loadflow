@@ -35,8 +35,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
     public static final String NAME = "SecondaryVoltageControl";
 
-    private static final double DV_EPS = 5E-4;
-    private static final double DK_DIFF_MAX_EPS = 5E-3;
+    private static final double DV_EPS = 1E-4; // 0.1 kV
+    private static final double DK_DIFF_MAX_EPS = 1E-3; // 1 MVar
     private static final double K_SATURATION_EPS = 5E-2;
     private static final double MAX_TARGET_VOLTAGE_STEP_KV = 2;
 

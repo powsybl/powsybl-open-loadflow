@@ -887,11 +887,11 @@ class LoadFlowWithCachingTest {
         PilotPoint pilotPoint = z1.getPilotPoint();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
         var b10 = network.getBusBreakerView().getBus("B10");
         assertVoltageEquals(12.7, b10);
-        assertReactivePowerEquals(-17.854, network.getGenerator("B6-G").getTerminal());
-        assertReactivePowerEquals(-17.798, network.getGenerator("B8-G").getTerminal());
+        assertReactivePowerEquals(-17.825, network.getGenerator("B6-G").getTerminal());
+        assertReactivePowerEquals(-17.827, network.getGenerator("B8-G").getTerminal());
 
         // update pilot point target voltage
         pilotPoint.setTargetV(12.5);
@@ -899,10 +899,10 @@ class LoadFlowWithCachingTest {
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(2, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(12.5, b10);
-        assertReactivePowerEquals(-11.818, network.getGenerator("B6-G").getTerminal());
-        assertReactivePowerEquals(-11.840, network.getGenerator("B8-G").getTerminal());
+        assertReactivePowerEquals(-11.832, network.getGenerator("B6-G").getTerminal());
+        assertReactivePowerEquals(-11.832, network.getGenerator("B8-G").getTerminal());
 
         ControlUnit b6g = z1.getControlUnit("B6-G").orElseThrow();
         b6g.setParticipate(false);
@@ -914,8 +914,8 @@ class LoadFlowWithCachingTest {
         // There is no re-run of secondary voltage control outer loop: the pilot point has already reached its target
         // voltage and the remaining participating control unit cannot improve the SVC objective.
         assertVoltageEquals(12.5, b10);
-        assertReactivePowerEquals(-11.821, network.getGenerator("B6-G").getTerminal());
-        assertReactivePowerEquals(-11.844, network.getGenerator("B8-G").getTerminal());
+        assertReactivePowerEquals(-11.832, network.getGenerator("B6-G").getTerminal());
+        assertReactivePowerEquals(-11.832, network.getGenerator("B8-G").getTerminal());
 
         pilotPoint.setTargetV(12.7);
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has not been invalidated
@@ -923,7 +923,7 @@ class LoadFlowWithCachingTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(4, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(12.613, b10); // we cannot reach back to 12.7 Kv with only one control unit
-        assertReactivePowerEquals(-6.765, network.getGenerator("B6-G").getTerminal());
+        assertReactivePowerEquals(-6.771, network.getGenerator("B6-G").getTerminal());
         assertReactivePowerEquals(-24.0, network.getGenerator("B8-G").getTerminal());
 
         // get b6 generator back
