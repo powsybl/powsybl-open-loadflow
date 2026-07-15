@@ -37,6 +37,8 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected double targetVdc; // in pu
 
+    protected final double vBase; // nominal voltage of the non-grounded DC bus, in kV; per-unit base of the DC voltage
+
     protected final AcDcConverter.ControlMode controlMode;
 
     protected final LfDcBus dcBus1;
@@ -56,8 +58,9 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         // island had no other element imposing the DC voltage (see DcComponentValidator.resolveDcComponent)
         this.controlMode = vdcOverride.isPresent() ? AcDcConverter.ControlMode.V_DC : converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
+        this.vBase = dcBus1.isGrounded() ? dcBus2.getNominalV() : dcBus1.getNominalV();
         double rawTargetVdc = vdcOverride.orElseGet(converter::getTargetVdc);
-        targetVdc = dcBus1.isGrounded() ? rawTargetVdc / dcBus2.getNominalV() : rawTargetVdc / dcBus1.getNominalV();
+        this.targetVdc = rawTargetVdc / this.vBase;
         this.pAc = converter.getTerminal1().getP();
         this.qAc = converter.getTerminal1().getQ();
     }
@@ -110,6 +113,10 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     @Override
     public double getTargetVdc() {
         return targetVdc;
+    }
+
+    public double getDcVoltageBase() {
+        return vBase;
     }
 
     @Override

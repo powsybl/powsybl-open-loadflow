@@ -1098,13 +1098,15 @@ class AcDcLoadFlowTest {
     }
 
     private void checkDroopResult(Network network, double vdc, double expectedPac) {
-        VoltageSourceConverter droopConverter = network.getVoltageSourceConverter("convDroop");
-        droopConverter.setTargetVdc(vdc);
+        // The V_DC converter (convVdc) pins U_dc, so sweeping its targetVdc walks the droop converter's solved
+        // U_dc through the curve bands. The droop converter's own anchor (targetVdc, targetP) stays fixed.
+        network.getVoltageSourceConverter("convVdc").setTargetVdc(vdc);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged(), "load flow did not converge for targetVdc=" + vdc);
 
-        assertActivePowerEquals(expectedPac, droopConverter.getTerminal1());
+        Terminal droopConverterAcTerminal = network.getVoltageSourceConverter("convDroop").getTerminal1();
+        assertActivePowerEquals(expectedPac, droopConverterAcTerminal);
     }
 
     @Test

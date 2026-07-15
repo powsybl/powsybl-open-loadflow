@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.equations.dcnetwork.*;
 import com.powsybl.openloadflow.equations.*;
@@ -993,20 +992,26 @@ public class AcEquationSystemCreator {
         LfBus bus = converter.getBus1();
         LfDcBus dcBus1 = converter.getDcBus1();
         LfDcBus dcBus2 = converter.getDcBus2();
-        if (converter.getControlMode() == AcDcConverter.ControlMode.P_PCC) {
-            // if a converter is in PCC Mode, we add an equation to set Pac injected into the converter
-            equationSystem.createEquation(converter, AcEquationType.AC_CONV_TARGET_P_REF)
-                    .addTerm(equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_P_AC)
-                            .createTerm());
-        } else {
-            // if a converter is in V Mode, we add an equation to set V = v1 - v2 the tension of the two dc buses connected to the converter
-            EquationTerm<AcVariableType, AcEquationType> v1 = equationSystem.getVariable(dcBus1.getNum(), AcVariableType.DC_BUS_V)
-                    .createTerm();
-            EquationTerm<AcVariableType, AcEquationType> v2 = equationSystem.getVariable(dcBus2.getNum(), AcVariableType.DC_BUS_V)
-                    .createTerm();
-            equationSystem.createEquation(converter, AcEquationType.DC_BUS_TARGET_V_REF)
-                    .addTerm(v1)
-                    .addTerm(v2.minus());
+        switch (converter.getControlMode()) {
+            case P_PCC ->
+                // in PCC mode, we add an equation to set Pac injected into the converter
+                equationSystem.createEquation(converter, AcEquationType.AC_CONV_TARGET_P_REF)
+                        .addTerm(equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_P_AC)
+                                .createTerm());
+            case P_PCC_DROOP ->
+                // in droop mode, we add an equation enforcing P = refP + k*(U_dc - refVdc), coupling Pac and the DC voltage
+                equationSystem.createEquation(converter, AcEquationType.AC_CONV_TARGET_P_DROOP)
+                        .addTerm(new ConverterDroopEquationTerm(converter, dcBus1, dcBus2, equationSystem.getVariableSet()));
+            case V_DC -> {
+                // in V mode, we add an equation to set V = v1 - v2 the tension of the two dc buses connected to the converter
+                EquationTerm<AcVariableType, AcEquationType> v1 = equationSystem.getVariable(dcBus1.getNum(), AcVariableType.DC_BUS_V)
+                        .createTerm();
+                EquationTerm<AcVariableType, AcEquationType> v2 = equationSystem.getVariable(dcBus2.getNum(), AcVariableType.DC_BUS_V)
+                        .createTerm();
+                equationSystem.createEquation(converter, AcEquationType.DC_BUS_TARGET_V_REF)
+                        .addTerm(v1)
+                        .addTerm(v2.minus());
+            }
         }
 
         // The converter add its power pAc in AC power balance
