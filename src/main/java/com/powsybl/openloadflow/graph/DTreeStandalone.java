@@ -1034,6 +1034,9 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
     private static final class StateMap<T> extends HashMap<T, State> {
 
+        private Set<T> removed;
+        private Set<T> added;
+
         public void markAdded(T element) {
             mark(element, State.ADDED);
         }
@@ -1050,21 +1053,31 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
                     return null;
                 }
             });
+
+            removed = null;
+            added = null;
         }
 
         private Set<T> getRemoved() {
-            return entrySet().stream()
-                    .filter(e -> e.getValue() == State.REMOVED)
-                    .map(Entry::getKey)
-                    .collect(Collectors.toSet());
+            if (removed == null) {
+                removed = entrySet().stream()
+                        .filter(e -> e.getValue() == State.REMOVED)
+                        .map(Entry::getKey)
+                        .collect(Collectors.toSet());
+            }
+
+            return removed;
         }
 
         private Set<T> getAdded() {
-            return entrySet()
-                    .stream()
-                    .filter(e -> e.getValue() == State.ADDED)
-                    .map(Entry::getKey)
-                    .collect(Collectors.toSet());
+            if (added == null) {
+                added = entrySet()
+                        .stream()
+                        .filter(e -> e.getValue() == State.ADDED)
+                        .map(Entry::getKey)
+                        .collect(Collectors.toSet());
+            }
+            return added;
         }
     }
 }
