@@ -7,10 +7,7 @@
  */
 package com.powsybl.openloadflow.graph.workload;
 
-import com.powsybl.openloadflow.graph.DTreeGraphConnectivityFactory;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.*;
 import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
 import com.powsybl.openloadflow.graph.log.Log;
 import com.powsybl.openloadflow.graph.log.ProgressFormatter;
@@ -35,8 +32,8 @@ public final class WorkloadRunner {
 
     }
 
-    private static final int WARMUP = 0;
-    private static final int MEASUREMENT = 1;
+    private static final int WARMUP = 10;
+    private static final int MEASUREMENT = 10;
 
     private static final Log LOG = Log.init("results.txt");
     private static final MyProgressManager PROGRESS = new MyProgressManager();
@@ -55,6 +52,7 @@ public final class WorkloadRunner {
                 // new HolmEtAlGraphConnectivityFactory<>(),
                 // new HolmEtAlWithoutLevelGraphConnectivityFactory<>(),
                 new DTreeGraphConnectivityFactory<>()
+                // new DTreeStandaloneFactory<>()
                 //new NewDTreeGraphConnectivityFactory<>(i -> i, i -> i)
         );
 

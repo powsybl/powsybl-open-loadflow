@@ -23,7 +23,7 @@ public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>
 
     protected List<Set<V>> componentSets;
 
-    private V defaultMainComponentVertex;
+    protected V defaultMainComponentVertex;
 
     protected abstract void updateConnectivity(EdgeRemove<V, E> edgeRemove);
 

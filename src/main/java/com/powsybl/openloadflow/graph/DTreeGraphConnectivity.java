@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import com.powsybl.commons.PowsyblException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -313,13 +314,18 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 DTGraph<V, E>.DTNode root2 = getGraph().rootOf(mainComponentVertex);
 
                 if (root1 != root2) {
+                    if (getGraph().verticesState.peek().get(mainComponentVertex) != State.REMOVED) {
+                        throw new PowsyblException("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes");
+                    }
+
                     getGraph().markAllRemoved(root1);
                     getGraph().markAllAdded(root2);
                 }
+
+                context.setMainComponentVertex(mainComponentVertex);
             }
         }
-
-        super.setMainComponentVertex(mainComponentVertex);
+        defaultMainComponentVertex = mainComponentVertex;
     }
 
     enum State {
