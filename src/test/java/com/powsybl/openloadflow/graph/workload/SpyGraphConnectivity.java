@@ -45,11 +45,6 @@ public class SpyGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
 
     private final List<Long> sumOfDistances = new ArrayList<>();
 
-    private final Aggregator verticesAddedTo = new Aggregator();
-    private final Aggregator verticesRemovedFrom = new Aggregator();
-    private final Aggregator edgesAddedTo = new Aggregator();
-    private final Aggregator edgesRemovedFrom = new Aggregator();
-
     public SpyGraphConnectivity() {
         for (int i = 0; i < initialGraphBuild.length; i++) {
             initialGraphBuild[i] = new Aggregator();
@@ -176,7 +171,6 @@ public class SpyGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
         Set<V> vertices = delegate.getVerticesRemovedFromMainComponent();
         sw.stop();
         current[GraphConnectivityMethod.GET_VERTICES_REMOVED_FROM_MAIN_COMPONENT.ordinal()].add(sw.elapsed());
-        verticesRemovedFrom.add(vertices.size());
         return vertices;
     }
 
@@ -186,7 +180,6 @@ public class SpyGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
         Set<E> edges = delegate.getEdgesRemovedFromMainComponent();
         sw.stop();
         current[GraphConnectivityMethod.GET_EDGES_REMOVED_FROM_MAIN_COMPONENT.ordinal()].add(sw.elapsed());
-        edgesRemovedFrom.add(edges.size());
         return edges;
     }
 
@@ -196,7 +189,6 @@ public class SpyGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
         Set<V> vertices = delegate.getVerticesAddedToMainComponent();
         sw.stop();
         current[GraphConnectivityMethod.GET_VERTICES_ADDED_TO_MAIN_COMPONENT.ordinal()].add(sw.elapsed());
-        verticesAddedTo.add(vertices.size());
         return vertices;
     }
 
@@ -206,7 +198,6 @@ public class SpyGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
         Set<E> edges = delegate.getEdgesAddedToMainComponent();
         sw.stop();
         current[GraphConnectivityMethod.GET_EDGES_ADDED_TO_MAIN_COMPONENT.ordinal()].add(sw.elapsed());
-        edgesAddedTo.add(edges.size());
         return edges;
     }
 
@@ -285,11 +276,6 @@ public class SpyGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
         if (!sumOfDistances.isEmpty()) {
             sb.append(sumOfDistances);
         }
-
-        sb.append(verticesAddedTo).append(System.lineSeparator());
-        sb.append(verticesRemovedFrom).append(System.lineSeparator());
-        sb.append(edgesAddedTo).append(System.lineSeparator());
-        sb.append(edgesRemovedFrom).append(System.lineSeparator());
 
         return sb.toString();
     }

@@ -25,6 +25,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
     private final Map<E, Edge> edges = new HashMap<>();
 
     private final List<DTNode> roots = new ArrayList<>();
+    private boolean isSorted = true;
 
     private final Deque<Modifications> modificationsStack = new ArrayDeque<>();
     private V defaultMainComponentVertex;
@@ -56,9 +57,12 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
     }
 
     private void sortComponents() {
-        roots.sort((s1, s2) -> s2.size - s1.size);
-        for (int i = 0; i < roots.size(); i++) {
-            roots.get(i).rootIndex = i;
+        if (!isSorted) {
+            roots.sort((s1, s2) -> s2.size - s1.size);
+            for (int i = 0; i < roots.size(); i++) {
+                roots.get(i).rootIndex = i;
+            }
+            isSorted = true;
         }
     }
 
@@ -150,6 +154,8 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         if (!modificationsStack.isEmpty()) {
             modificationsStack.peek().push(new EdgeAdd<>(vertex1, vertex2, edge));
         }
+
+        isSorted = false;
     }
 
     private DTNode getNodeOrThrow(V v) {
@@ -241,6 +247,8 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         if (!modificationsStack.isEmpty()) {
             modificationsStack.peek().push(new EdgeRemove<>(e.u, e.v, edge));
         }
+
+        isSorted = false;
     }
 
     private void removeTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
