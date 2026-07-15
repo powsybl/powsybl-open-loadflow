@@ -242,7 +242,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         return getGraph().verticesState.peek()
                 .entrySet()
                 .stream()
-                .filter(e -> e.getValue() == State.ADDED || e.getValue() == State.ADDED_NEW)
+                .filter(e -> e.getValue() == State.ADDED)
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
     }
@@ -274,7 +274,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         return getGraph().edgesState.peek()
                 .entrySet()
                 .stream()
-                .filter(e -> e.getValue() == State.ADDED || e.getValue() == State.ADDED_NEW)
+                .filter(e -> e.getValue() == State.ADDED)
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
     }
@@ -328,10 +328,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         ADDED,
         // the vertex/edge was removed from the main component and was
         // already in the graph before the last startTemporaryChanges
-        REMOVED,
-        // the vertex/edge was added to the main component and was not
-        // in the graph before the last startTemporaryChanges
-        ADDED_NEW,
+        REMOVED
     }
 
     public static final class DTGraph<V, E> implements GraphModel<V, E> {
@@ -384,7 +381,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
         private static <T> void stateMapMarkRemoved(Map<T, State> stateMap, T element) {
             stateMap.compute(element, (k, state) -> {
-                if (state == State.ADDED_NEW || state == State.ADDED) {
+                if (state == State.ADDED) {
                     return null;
                 } else {
                     return State.REMOVED;
@@ -394,9 +391,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
         private static <T> void stateMapMarkAdded(Map<T, State> stateMap, T element) {
             stateMap.compute(element, (k, state) -> {
-                if (state == State.ADDED_NEW) {
-                    return State.ADDED_NEW;
-                } else if (state == State.REMOVED) {
+                if (state == State.REMOVED) {
                     return null;
                 } else {
                     return State.ADDED;

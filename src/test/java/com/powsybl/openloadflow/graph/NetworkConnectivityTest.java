@@ -44,6 +44,7 @@ class NetworkConnectivityTest {
         testConnectivity(new HolmEtAlGraphConnectivity<>());
         testConnectivity(new HolmEtAlWithoutLevelGraphConnectivity<>());
         testConnectivity(new DTreeGraphConnectivity<>());
+        testConnectivity(new DTreeStandalone<>());
     }
 
     @Test
@@ -55,6 +56,7 @@ class NetworkConnectivityTest {
         testReducedMainComponent(new HolmEtAlGraphConnectivity<>());
         testReducedMainComponent(new HolmEtAlWithoutLevelGraphConnectivity<>());
         testReducedMainComponent(new DTreeGraphConnectivity<>());
+        testReducedMainComponent(new DTreeStandalone<>());
     }
 
     @Test
@@ -66,6 +68,7 @@ class NetworkConnectivityTest {
         testReaddEdge(new HolmEtAlGraphConnectivity<>(), true);
         testReaddEdge(new HolmEtAlWithoutLevelGraphConnectivity<>(), true);
         testReaddEdge(new DTreeGraphConnectivity<>(), true);
+        testReaddEdge(new DTreeStandalone<>(), true);
     }
 
     @Test
@@ -102,6 +105,7 @@ class NetworkConnectivityTest {
         testConnectedComponents(new HolmEtAlGraphConnectivity<>());
         testConnectedComponents(new HolmEtAlWithoutLevelGraphConnectivity<>());
         testConnectedComponents(new DTreeGraphConnectivity<>());
+        testConnectedComponents(new DTreeStandalone<>());
     }
 
     private void testConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {

@@ -27,12 +27,11 @@ public class RandomConnectivityTest {
 
     @Test
     void randomGraph() {
-        for (int size = 5; size < 50; size++) {
-            for (int seed = 17; seed < 100; seed++) {
+        for (int size = 0; size < 50; size++) {
+            for (int seed = 0; seed < 100; seed++) {
                 System.out.printf("size: %d, seed: %d%n", size, seed);
                 // generate graph
                 Graph<Integer, DefaultEdge> graph = generateGraph(size, seed);
-                System.out.println(graph);
 
                 // generate expected results based on NaiveGraphConnectivity
                 Sample<Integer, DefaultEdge> sample = new Sample<>(size, seed);
@@ -42,9 +41,10 @@ public class RandomConnectivityTest {
 
                 // test others implementations produce same results as NaiveGraphConnectivity
                 List<GraphConnectivity<Integer, DefaultEdge>> toTest = List.of(
-                        //new HolmEtAlWithoutLevelGraphConnectivity<>(),
+                        new HolmEtAlWithoutLevelGraphConnectivity<>(),
                         //new HolmEtAlGraphConnectivity<>(),
-                        new DTreeGraphConnectivity<>()
+                        new DTreeGraphConnectivity<>(),
+                        new DTreeStandalone<>()
                 );
 
                 for (GraphConnectivity<Integer, DefaultEdge> connectivity : toTest) {

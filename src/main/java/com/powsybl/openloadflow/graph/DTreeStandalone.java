@@ -155,7 +155,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
     private DTNode getNodeOrThrow(V v) {
         DTNode node = vertexToTreeNode.get(v);
         if (node == null) {
-            throw new IllegalArgumentException("no such vertex in graph: " + v);
+            throw new IllegalArgumentException("given vertex " + v + " is not in the graph");
         }
 
         return node;
@@ -958,8 +958,6 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
     }
 
     private enum State {
-        @Deprecated
-        ADDED_NEW,
         ADDED,
         REMOVED,
     }
@@ -1004,9 +1002,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
         public void markAdded(T element) {
             compute(element, (k, state) -> {
-                if (state == State.ADDED_NEW) {
-                    return State.ADDED_NEW;
-                } else if (state == State.REMOVED) {
+                if (state == State.REMOVED) {
                     return null;
                 } else {
                     return State.ADDED;
@@ -1016,7 +1012,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
         public void markRemoved(T element) {
             compute(element, (k, state) -> {
-                if (state == State.ADDED_NEW || state == State.ADDED) {
+                if (state == State.ADDED) {
                     return null;
                 } else {
                     return State.REMOVED;
@@ -1034,7 +1030,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         private Set<T> getAdded() {
             return entrySet()
                     .stream()
-                    .filter(e -> e.getValue() == State.ADDED || e.getValue() == State.ADDED_NEW)
+                    .filter(e -> e.getValue() == State.ADDED)
                     .map(Entry::getKey)
                     .collect(Collectors.toSet());
         }

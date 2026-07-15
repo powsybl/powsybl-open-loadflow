@@ -82,6 +82,24 @@ class BridgesTest {
     }
 
     @Test
+    void testDTree() {
+        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new DTreeGraphConnectivity<>(), "DTree");
+        assertEquals(bridgesSetReference, bridges);
+    }
+
+    @Test
+    void testDTreeStandalone() {
+        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new DTreeStandalone<>(), "DTreeStandalone");
+        assertEquals(bridgesSetReference, bridges);
+    }
+
+    @Test
+    void testDTreeIndex() {
+        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new NewDTreeGraphConnectivity<>(LfElement::getNum, LfElement::getNum), "DTreeIndexed");
+        assertEquals(bridgesSetReference, bridges);
+    }
+
+    @Test
     void testFindBridges() {
         BridgesFinder<LfBus> graph = new BridgesFinder<>(lfNetwork.getBuses().size(), LfBus::getNum);
         for (LfBus bus : lfNetwork.getBuses()) {
