@@ -992,7 +992,7 @@ class AcDcLoadFlowTest {
 
         // Run load flow
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("At least one AC/DC converter control mode must be V_DC in each DC component, but DC component 1 does not have any", e5.getCause().getMessage());
+        assertEquals("At least one AC/DC converter control mode must be V_DC or P_PCC_DROOP in each DC component, but DC component 1 does not have any", e5.getCause().getMessage());
     }
 
     @Test
@@ -1091,13 +1091,15 @@ class AcDcLoadFlowTest {
     }
 
     private void checkDroopResult(Network network, double vdc, double expectedPac) {
-        VoltageSourceConverter droopConverter = network.getVoltageSourceConverter("convDroop");
-        droopConverter.setTargetVdc(vdc);
+        // The V_DC converter (convVdc) pins U_dc, so sweeping its targetVdc walks the droop converter's solved
+        // U_dc through the curve bands. The droop converter's own anchor (targetVdc, targetP) stays fixed.
+        network.getVoltageSourceConverter("convVdc").setTargetVdc(vdc);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged(), "load flow did not converge for targetVdc=" + vdc);
 
-        assertActivePowerEquals(expectedPac, droopConverter.getTerminal1());
+        Terminal droopConverterAcTerminal = network.getVoltageSourceConverter("convDroop").getTerminal1();
+        assertActivePowerEquals(expectedPac, droopConverterAcTerminal);
     }
 
     @Test
