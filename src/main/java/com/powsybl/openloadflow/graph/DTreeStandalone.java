@@ -158,9 +158,11 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         boolean treeEdge;
         if (rootU == rootV) {
             // insert non tree edge
+            insertNonTreeEdgeRecordModifications(rootU, edge);
             treeEdge = insertNonTreeEdge(rootU, nodeU, rootUdepth.getValue(), nodeV, rootVdepth.getValue(), edge);
         } else {
             // insert tree edge
+            insertTreeEdgeRecordModifications(rootU, rootV, edge);
             insertTreeEdge(rootU, nodeU, rootV, nodeV, edge);
             treeEdge = true;
         }
@@ -178,11 +180,13 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         check();
     }
 
-    private boolean insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, E edge) {
+    private void insertNonTreeEdgeRecordModifications(DTNode root, E edge) {
         if (isInMainComponent(root)) {
             checkSavedContext().markEdgeAdded(edge);
         }
+    }
 
+    private boolean insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, E edge) {
         DTNode deep;
         DTNode shallow;
         int delta;
@@ -221,7 +225,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         }
     }
 
-    private void insertTreeEdge(DTNode rootU, DTNode nodeU, DTNode rootV, DTNode nodeV, E edge) {
+    private void insertTreeEdgeRecordModifications(DTNode rootU, DTNode rootV, E edge) {
         if (isInMainComponent(rootV)) {
             checkSavedContext().markEdgeAdded(edge);
             markAllAdded(rootU);
@@ -229,7 +233,9 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
             checkSavedContext().markEdgeAdded(edge);
             markAllAdded(rootV);
         }
+    }
 
+    private void insertTreeEdge(DTNode rootU, DTNode nodeU, DTNode rootV, DTNode nodeV, E edge) {
         DTNode toRemove;
         if (rootU.size < rootV.size) {
             nodeU.makeRoot(true);
@@ -263,6 +269,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         if (e.treeEdge) {
             removeTreeEdge(nodeU, nodeV, edge);
         } else {
+            removeNonTreeEdgeRecordModifications(nodeU, edge);
             removeNonTreeEdge(nodeU, nodeV, edge);
         }
 
@@ -360,11 +367,13 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         }
     }
 
-    private void removeNonTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
-        if (isInMainComponent(nodeU)) {
+    private void removeNonTreeEdgeRecordModifications(DTNode node, E edge) {
+        if (isInMainComponent(node)) {
             checkSavedContext().markEdgeRemoved(edge);
         }
+    }
 
+    private void removeNonTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
         nodeU.nonTreeEdges.remove(edge);
         nodeV.nonTreeEdges.remove(edge);
     }
