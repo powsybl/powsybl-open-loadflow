@@ -39,11 +39,6 @@ public interface LfVoltageSourceConverter extends LfAcDcConverter {
     }
 
     /**
-     * @return the per-unit base used for the DC voltage of this converter (nominal voltage of the non-grounded DC bus, in kV).
-     */
-    double getDcVoltageBase();
-
-    /**
      * Look up the droop reference point for a given solved DC voltage. Only relevant when the converter is in
      * {@code P_PCC_DROOP} control mode.
      *
