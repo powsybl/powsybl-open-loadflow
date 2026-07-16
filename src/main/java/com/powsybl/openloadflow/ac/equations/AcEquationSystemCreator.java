@@ -1012,6 +1012,7 @@ public class AcEquationSystemCreator {
                         .addTerm(v1)
                         .addTerm(v2.minus());
             }
+            default -> throw new IllegalStateException("Unsupported converter control mode: " + converter.getControlMode());
         }
 
         // The converter add its power pAc in AC power balance
