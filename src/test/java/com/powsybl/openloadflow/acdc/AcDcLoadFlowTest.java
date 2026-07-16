@@ -1143,4 +1143,23 @@ class AcDcLoadFlowTest {
                 e.getMessage());
     }
 
+    @Test
+    void testDroopCurveWithAllZeroCoefficientsThrows() {
+        // A P_PCC_DROOP converter whose droop curve is flat (all coefficients zero) is equivalent to constant-power
+        // P_PCC control and cannot settle the DC voltage. Such a curve makes no sense, so loading must fail fast.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        network.getVoltageSourceConverter("convDroop").newDroopCurve()
+                .beginSegment().setK(0.).setMinV(380.).setMaxV(420.).endSegment()
+                .add();
+
+        LfNetworkParameters lfParameters = new LfNetworkParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector())
+                .setAcDcNetwork(true);
+
+        PowsyblException e = assertThrows(PowsyblException.class,
+                () -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
+        assertEquals("AC/DC converter 'convDroop' in P_PCC_DROOP control mode must have a droop curve with at least one non-zero coefficient",
+                e.getMessage());
+    }
+
 }
