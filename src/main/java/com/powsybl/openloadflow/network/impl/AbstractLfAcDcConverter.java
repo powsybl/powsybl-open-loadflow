@@ -110,10 +110,6 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         return targetVdc;
     }
 
-    public double getDcVoltageBase() {
-        return vBase;
-    }
-
     @Override
     public double getQac() {
         return qAc / PerUnit.SB;

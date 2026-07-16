@@ -150,7 +150,6 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                  DC_BUS_TARGET_I,
                  DC_BUS_GROUND,
                  AC_CONV_TARGET_P_DROOP:
-                // the droop term carries the full (state-dependent) RHS, so the static target is zero
                 targets[column] = 0;
                 break;
 

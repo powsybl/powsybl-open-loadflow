@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.acdc;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.AcDcConverter.ControlMode;
 import com.powsybl.iidm.network.test.DcDetailedNetworkFactory;
@@ -18,7 +19,12 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.AcDcNetworkFactory;
+import com.powsybl.openloadflow.network.FirstSlackBusSelector;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -1115,6 +1121,26 @@ class AcDcLoadFlowTest {
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
+    }
+
+    @Test
+    void testGetDroopReferenceThrowsOnNonDroopConverter() {
+        // getDroopReference is only meaningful in P_PCC_DROOP mode. On any other converter the droop bands are
+        // empty; the call must fail fast with a clear message.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        LfNetworkParameters lfParameters = new LfNetworkParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector())
+                .setAcDcNetwork(true);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters).get(0);
+
+        // convVdc is in V_DC control mode, so it has no droop bands.
+        LfVoltageSourceConverter vdcConverter = lfNetwork.getVoltageSourceConverters().stream()
+                .filter(c -> "convVdc".equals(c.getId()))
+                .findFirst().orElseThrow();
+
+        PowsyblException e = assertThrows(PowsyblException.class, () -> vdcConverter.getDroopReference(1.0));
+        assertEquals("getDroopReference called on AC/DC converter 'convVdc' which is not in P_PCC_DROOP control mode",
+                e.getMessage());
     }
 
 }
