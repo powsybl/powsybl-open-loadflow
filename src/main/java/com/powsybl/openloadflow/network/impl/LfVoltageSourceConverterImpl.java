@@ -147,7 +147,16 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
     }
 
     @Override
+    public double getDcVoltageBase() {
+        return vBase;
+    }
+
+    @Override
     public DroopReference getDroopReference(double uDc) {
+        if (droopBands.isEmpty()) {
+            throw new PowsyblException("getDroopReference called on AC/DC converter '" + getId()
+                    + "' which is not in P_PCC_DROOP control mode");
+        }
         DroopBand band = selectBand(uDc);
         return new DroopReference(band.kPu(), band.minVpu(), band.refPpu());
     }
