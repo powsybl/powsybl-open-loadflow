@@ -1064,7 +1064,7 @@ class AcDcLoadFlowTest {
         //   - refP   = the reference power, corresponding to the previous point in the curve.
         // The paired V_DC converter (convVdc) pins the DC voltage, so sweeping its targetVdc walks the
         // droop converter's solved U_dc through each band and past the extremes. The assertion reads the
-        // SOLVED U_dc, so it stays exact regardless of the DC-line voltage drop.
+        // SOLVED U_dc, so it stays exact.
         //
         // Note that the droop curve has the following reference points:
         // V = 380 kV => P = 35 MW
