@@ -25,7 +25,7 @@ public class SpyGraphConnectivityFactory<V, E> implements GraphConnectivityFacto
     }
 
     @Override
-    public SpyGraphConnectivity<V, E> create() {
+    public synchronized SpyGraphConnectivity<V, E> create() {
         SpyGraphConnectivity<V, E> conn = new SpyGraphConnectivity<>();
         conn.setDelegate(delegateFactory.create());
         spies.add(conn);

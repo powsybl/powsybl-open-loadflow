@@ -51,8 +51,8 @@ public final class WorkloadRunner {
                 // new EvenShiloachGraphDecrementalConnectivityFactory<>(),
                 // new HolmEtAlGraphConnectivityFactory<>(),
                 // new HolmEtAlWithoutLevelGraphConnectivityFactory<>(),
-                new DTreeGraphConnectivityFactory<>()
-                // new DTreeStandaloneFactory<>()
+                new DTreeGraphConnectivityFactory<>(),
+                new DTreeStandaloneFactory<>()
                 //new NewDTreeGraphConnectivityFactory<>(i -> i, i -> i)
         );
 
@@ -71,7 +71,7 @@ public final class WorkloadRunner {
                         continue;
                     }
 
-                    PROGRESS.advance(workload, factory);
+                    PROGRESS.advance(factory);
                     String partialResults = run(executor, workload, factory);
                     LOG.log(partialResults);
                 }
@@ -148,11 +148,11 @@ public final class WorkloadRunner {
         List<Future<?>> futures = new ArrayList<>();
         for (int thread = 0; thread < workload.threadCount(); thread++) {
             final int threadId = thread;
+            Progress progress = PROGRESS.newProgress(new Progress());
 
             var future = executor.submit(() -> {
                 try (Operations operations = workload.operations(threadId)) {
-                    runOperationsMultipleTimes(PROGRESS.newProgress(new Progress()),
-                            operations, spyFactory.create(), factory, barrier);
+                    runOperationsMultipleTimes(progress, operations, spyFactory.create(), factory, barrier);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -235,15 +235,13 @@ public final class WorkloadRunner {
 
     private static final class MyProgressManager extends ProgressManager<Progress> implements ProgressFormatter<Progress> {
 
-        private Workload workload;
         private GraphConnectivityFactory<?, ?> connectivity;
 
         MyProgressManager() {
             setFormatter(this);
         }
 
-        public void advance(Workload workload, GraphConnectivityFactory<?, ?> connectivity) {
-            this.workload = workload;
+        public void advance(GraphConnectivityFactory<?, ?> connectivity) {
             this.connectivity = connectivity;
             removeAll();
         }
@@ -260,7 +258,7 @@ public final class WorkloadRunner {
             }
 
             StringBuilder sb = new StringBuilder();
-            sb.append(workload.source()).append(" - ").append(connectivity).append(": ")
+            sb.append(connectivity.getClass().getSimpleName()).append(": ")
                     .append(first.iter).append("/");
             if (first.warmup) {
                 sb.append(WARMUP).append(" (warmup)");
@@ -297,44 +295,6 @@ public final class WorkloadRunner {
             this.operation = operation;
             this.maxOperation = maxOperation;
             notifyProgressManager();
-        }
-    }
-
-    private static final class ProgressReporter {
-
-        private String path;
-        private String clazz;
-        private int iter;
-        private int maxIter;
-        private boolean warmup;
-        private int op;
-        private int maxOp;
-
-        private long last = System.currentTimeMillis();
-
-        public void newWorkload(Workload workload) {
-            path = workload.source().toString();
-            maxOp = workload.totalOperations();
-        }
-
-        public void newGraphConnectivity(GraphConnectivity<Integer, Integer> connectivity) {
-            clazz = connectivity.getClass().getSimpleName();
-        }
-
-        public void newIteration(int iteration, boolean warmup) {
-            iter = iteration;
-            maxIter = warmup ? WARMUP : MEASUREMENT;
-            this.warmup = warmup;
-        }
-
-        public void newOperation(int operation) {
-            op = operation;
-
-            if (System.currentTimeMillis() - last > 1000) {
-                System.out.printf("\r\033[2K%s - %s: %d/%d%s - %d/%d", path, clazz, iter, maxIter, warmup ? " (warmup)" : "", op, maxOp);
-                System.out.flush();
-                last = System.currentTimeMillis();
-            }
         }
     }
 }
