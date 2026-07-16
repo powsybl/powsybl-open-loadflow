@@ -12,8 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -102,5 +101,23 @@ public class DTreeGraphConnectivityTest {
                 assertEquals(Set.of(0, 1, 2, 3, 4), connectivity.getConnectedComponent(index));
             });
         }
+    }
+
+    @Test
+    void test() {
+        DTreeStandalone<Integer, String> connectivity = new DTreeStandalone<>();
+        for (int i = 0; i < 11; i++) {
+            connectivity.addVertex(i);
+        }
+        for (int i = 0; i < 8; i++) {
+            connectivity.addEdge(i, 8, i + "-8");
+        }
+        connectivity.addEdge(8, 9, "8-9");
+        connectivity.addEdge(9, 10, "9-10");
+        connectivity.makeRoot(10);
+
+        assertTrue(connectivity.connect(0, 1));
+        assertTrue(connectivity.connect(0, 1));
+        assertTrue(connectivity.connect(0, 1));
     }
 }
