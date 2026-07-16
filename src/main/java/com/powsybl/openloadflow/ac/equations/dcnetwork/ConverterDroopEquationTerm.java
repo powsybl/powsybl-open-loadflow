@@ -41,21 +41,14 @@ public class ConverterDroopEquationTerm extends AbstractConverterDcCurrentEquati
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        // The residual is expressed in the dcNominalV base, but the state variables v1Var/v2Var are per unit of their
-        // own DC bus nominal voltage (see v1()/v2() in the parent). The Jacobian must therefore be taken with respect
-        // to the raw state variables, which introduces the chain-rule factor dcBusX.getNominalV() / dcNominalV that
-        // converts from the equation base to the state-variable base.
-        // This factor is defensive programming: in a well-formed DC network the nominal voltage is the same everywhere
-        // (dcBusX.getNominalV() == dcNominalV) and the factor reduces to 1. We keep it explicit so the Jacobian stays
-        // consistent with the residual should that assumption ever be relaxed.
+        // All DC buses of a DC component share the same nominal voltage (enforced at network loading), which is the
+        // DC voltage base. So v1()/v2() are already in the equation base and dU_dc/dv1 = 1, dU_dc/dv2 = -1.
         if (variable.equals(pAcVar)) {
             return 1;
         } else if (variable.equals(v1Var)) {
-            double k = element.getDroopReference(v1() - v2()).k();
-            return -k * (dcBus1.getNominalV() / dcNominalV);
+            return -element.getDroopReference(v1() - v2()).k();
         } else if (variable.equals(v2Var)) {
-            double k = element.getDroopReference(v1() - v2()).k();
-            return k * (dcBus2.getNominalV() / dcNominalV);
+            return element.getDroopReference(v1() - v2()).k();
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
