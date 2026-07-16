@@ -7,7 +7,10 @@
  */
 package com.powsybl.openloadflow.graph.workload;
 
-import com.powsybl.openloadflow.graph.*;
+import com.powsybl.openloadflow.graph.DTreeGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.DTreeStandaloneFactory;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
 import com.powsybl.openloadflow.graph.log.Log;
 import com.powsybl.openloadflow.graph.log.ProgressFormatter;
@@ -258,22 +261,44 @@ public final class WorkloadRunner {
             }
 
             StringBuilder sb = new StringBuilder();
-            sb.append(connectivity.getClass().getSimpleName()).append(": ")
-                    .append(first.iter).append("/");
+            sb.append(connectivity.getClass().getSimpleName()).append(": ");
             if (first.warmup) {
-                sb.append(WARMUP).append(" (warmup)");
+                appendProgress(sb, first.iter, WARMUP);
+                sb.append(" (warmup)");
             } else {
-                sb.append(MEASUREMENT);
+                appendProgress(sb, first.iter, MEASUREMENT);
             }
-            sb.append(" - ").append(progress).append("/").append(total);
+            sb.append(" - ");
+            appendProgress(sb, progress, total);
 
             if (progresses.size() > 1) {
                 for (Progress p : progresses) {
-                    sb.append(" [").append(p.operation).append("/").append(p.maxOperation).append("]");
+                    sb.append(" [");
+                    appendProgress(sb, p.operation, p.maxOperation);
+                    sb.append("]");
                 }
             }
 
             return sb.toString();
+        }
+
+        private void appendProgress(StringBuilder sb, int current, int max) {
+            int emptySpace = digits(max) - digits(current);
+
+            sb.repeat(" ", Math.max(0, emptySpace))
+                    .append(current)
+                    .append("/")
+                    .append(max);
+        }
+
+        private int digits(int value) {
+            if (value == 0) {
+                return 1;
+            } else if (value < 0) {
+                return (int) (Math.log10(-value) + 2);
+            } else {
+                return (int) (Math.log10(value) + 1);
+            }
         }
     }
 
