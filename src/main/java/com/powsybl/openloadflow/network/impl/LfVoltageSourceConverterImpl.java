@@ -68,6 +68,12 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
             throw new PowsyblException("AC/DC converter '" + converter.getId()
                     + "' in P_PCC_DROOP control mode must have a droop curve");
         }
+        // An all-zero droop curve is flat: the power no longer depends on the DC voltage, which makes it equivalent
+        // to P_PCC control and unable to settle the DC voltage. Reject it rather than silently degrade to P_PCC.
+        if (segments.stream().allMatch(segment -> segment.getK() == 0)) {
+            throw new PowsyblException("AC/DC converter '" + converter.getId()
+                    + "' in P_PCC_DROOP control mode must have a droop curve with at least one non-zero coefficient");
+        }
         double targetVdc = converter.getTargetVdc();
         double targetP = converter.getTargetP();
         if (Double.isNaN(targetVdc) || Double.isNaN(targetP)) {
@@ -150,11 +156,6 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
     @Override
     public double getTargetVac() {
         return targetVac;
-    }
-
-    @Override
-    public double getDcVoltageBase() {
-        return vBase;
     }
 
     @Override
