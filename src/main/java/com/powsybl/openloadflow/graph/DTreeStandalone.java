@@ -85,6 +85,14 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         return sum;
     }
 
+    public boolean connect(V u, V v) {
+        return vertexToTreeNode.get(u).findRootOptReroot() == vertexToTreeNode.get(v).findRootOptReroot();
+    }
+
+    public void makeRoot(V vertex) {
+        vertexToTreeNode.get(vertex).makeRoot(true);
+    }
+
     @Override
     public void addVertex(V vertex) {
         Objects.requireNonNull(vertex);
@@ -368,7 +376,6 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
     private void link(DTNode rootU, DTNode nodeU, DTNode rootV, E edge) {
         // first: update parent/child relations
         nodeU.addChildUnchecked(rootV, edge);
-
         rootV.parent = nodeU;
         rootV.parentEdge = edge;
 
@@ -476,7 +483,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
     @Override
     public void setMainComponentVertex(V mainComponentVertex) {
         if (!modificationsStack.isEmpty()) {
-            var modifications = modificationsStack.peek();
+            Modifications modifications = modificationsStack.peek();
             modifications.setMainComponentVertex(mainComponentVertex);
         }
         defaultMainComponentVertex = mainComponentVertex;
@@ -643,8 +650,9 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
      *     <li>the vertex in the graph,</li>
      *     <li>the size of the subtree,</li>
      *     <li>its parent in the tree and the edge linking them,</li>
-     *     <li>its children in the tree,</li>
+     *     <li>its children in the tree and the edges linking them,</li>
      *     <li>all non tree edges having at least one endpoint that is the DTNode</li>
+     *     <li>if the node is a root, its index in the list of {@link DTreeStandalone#roots}</li>
      * </ul>
      *
      * <p>
@@ -692,16 +700,17 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         private DTNode parent = null;
         private E parentEdge = null;
 
-        // the children of this node. They are stored in a
-        // doubly linked list
+        // the children of this node. They are stored in a doubly linked list
+        // firstChild is the head of the linked list. previousSibling and nextSibling
+        // are used to navigate the list.
+        private DTNode firstChild = null;
         private DTNode previousSibling = null;
         private DTNode nextSibling = null;
-        private DTNode firstChild = null;
 
         private final Set<E> childTreeEdges = new LinkedHashSet<>();
         private final Set<E> nonTreeEdges = new LinkedHashSet<>();
 
-        // valid only if this node is a root
+        // index in the list of roots, valid only if this node is a root
         private int rootIndex;
 
         private ComponentView componentView = null;
@@ -711,6 +720,17 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
             this.size = 1;
         }
 
+        /**
+         * Make this DTNode the root of the tree in which it is. This is a two steps process
+         * with an intermediate optional operation:
+         * <ol>
+         *     <li>Swap parent-child relationship for each DTNode from this dTNode to the original root</li>
+         *     <li>Optionally, update the list of roots. For most cases, it must be {@code true}</li>
+         *     <li>Update the subtree size attribute from the original root to the new root (this DTNode)</li>
+         * </ol>
+         *
+         * @param updateRoots {@code true} to update the list of roots
+         */
         private void makeRoot(boolean updateRoots) {
             if (parent == null) {
                 return;
@@ -730,15 +750,17 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
                 E greatParentEdge = parent.parentEdge;
 
                 // At this point:
-                // - the parent of 'parent' aka greatParent should be changed to child
-                // - parent is in the linked list of child of greatParent
-                // - child is NOT in the linked list of child of parent
+                // - 'parent' is in the linked list of children of 'greatParent', and must be
+                //   removed from it because adding 'parent' as a child of 'child' will break
+                //   this linked list.
+                // - 'child' is NOT in the linked list of children of 'parent'.
+                //   It was removed by the last iteration or before entering in the loop (for the first iteration)
+                // - the parent of 'parent' aka 'greatParent' should be changed to child
                 if (greatParent != null) {
                     greatParent.removeChildUnchecked(parent);
                 }
 
                 child.addChildUnchecked(parent, parentEdge);
-
                 parent.parent = child;
                 parent.parentEdge = parentEdge;
 
@@ -746,27 +768,38 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
                 // - parent isn't anymore is the linked list of child of greatParent
                 // - parent is a child of 'child'
 
+                // process to the next parent/child
                 child = parent;
                 parent = greatParent;
                 parentEdge = greatParentEdge;
             }
 
+            // child is the old root
+            DTNode oldRoot = child;
+
+            // update the list of roots
             if (updateRoots) {
-                // child is the old root, update rootIndex and roots
-                rootIndex = child.rootIndex;
+                rootIndex = oldRoot.rootIndex;
                 roots.set(rootIndex, DTNode.this);
             }
 
-            // update size attributes
-            while (child.parent != null) {
-                child.size -= child.parent.size;
-                child.parent.size += child.size;
-                child = child.parent;
+            // update size attributes, going from oldRoot to this DTNode
+            while (oldRoot.parent != null) {
+                oldRoot.size -= oldRoot.parent.size;
+                oldRoot.parent.size += oldRoot.size;
+                oldRoot = oldRoot.parent;
             }
         }
 
-        // Add child in the doubly linked list of children
-        // no verification is performed
+        /**
+         * Add child in the doubly linked list of children and
+         * the edge linking this node and child in the set of
+         * tree edges. The child mustn't be in a linked list.
+         * No verification is performed.
+         *
+         * @param child the child node to add
+         * @param edge the edge linking this node and child
+         */
         private void addChildUnchecked(DTNode child, E edge) {
             DTNode oldFirstChild = this.firstChild;
 
@@ -780,8 +813,13 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
             childTreeEdges.add(edge);
         }
 
-        // Remove child from the doubly linked list of children
-        // no verification is performed
+        /**
+         * Remove child from the doubly linked list of children.
+         * The child must be in the linked list. No verification
+         * is performed.
+         *
+         * @param child the child node to remove
+         */
         private void removeChildUnchecked(DTNode child) {
             DTNode prev = child.previousSibling;
             DTNode next = child.nextSibling;
@@ -826,15 +864,26 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
             return new ImmutablePair<>(node, depth);
         }
 
+        /**
+         * Returns the root of the tree containing this node
+         * and restores the centroid property by rerooting the
+         * tree. This helps reduce the height of the tree.
+         * <strong>Warning</strong>: rerooting the tree may
+         * break connectivity queries.
+         *
+         * @return the root of the tree
+         */
         private DTNode findRootOptReroot() {
             DTNode nodeRoot = this;
             DTNode nodeRootChild = null; // the child of nodeRoot in the path from nodeRoot to node
 
+            // find the parent
             while (nodeRoot.parent != null) {
                 nodeRootChild = nodeRoot;
                 nodeRoot = nodeRoot.parent;
             }
 
+            // Restores the centroid property. See Theorem 5.12.
             if (nodeRootChild != null && nodeRootChild.size > nodeRoot.size / 2) {
                 nodeRootChild.makeRoot(true);
                 nodeRoot = nodeRootChild;
@@ -950,7 +999,8 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
             // - descend one level whenever possible,
             // - otherwise, moves to the next sibling if any,
             // - otherwise, moves up until it finds a node with
-            //   a next (unvisited) sibling or the tree is fully visited.
+            //   a next sibling (unvisited by construction) or
+            //   the tree is fully visited.
 
             if (cursor.firstChild != null) {
                 cursor = cursor.firstChild;
@@ -1003,11 +1053,13 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         }
     }
 
-    private enum State {
-        ADDED,
-        REMOVED,
-    }
-
+    /**
+     * Contains modifications performed on the graph between
+     * the last call to {@link #startTemporaryChanges(boolean)}
+     * and the current instant. It stores a stack of {@link GraphModification}
+     * and optionally the set of vertices and edges added to the
+     * main component or removed from it.
+     */
     private final class Modifications {
 
         private final Deque<GraphModification<V, E>> modifications = new ArrayDeque<>();
@@ -1036,26 +1088,39 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
             }
         }
 
+        /**
+         * Change the main component vertex to the specified one.
+         *
+         * @param mainComponentVertex new vertex identifying the main component.
+         */
         public void setMainComponentVertex(V mainComponentVertex) {
             if (verticesState == null || edgesState == null || undoing) {
                 return;
             }
 
-            V old = this.mainComponentVertex;
-            this.mainComponentVertex = mainComponentVertex;
+            if (this.mainComponentVertex != mainComponentVertex) {
+                // two things to do:
+                // 1. check if the new main component vertex was in the main component before temporary changes.
+                // 2. if the main component vertex isn't in the current main component vertex, we need to
+                //    update state of edges and vertices
 
-            if (old != mainComponentVertex) {
-                DTNode root1 = rootOf(old);
-                DTNode root2 = rootOf(mainComponentVertex);
+                DTNode oldComponentRoot = rootOf(this.mainComponentVertex);
+                DTNode newComponentRoot = rootOf(mainComponentVertex);
 
-                if (root1 != root2) {
+                if (oldComponentRoot != newComponentRoot) {
+                    // the new main component vertex isn't in the current main component.
+                    // But that doesn't mean it wasn't in the main component before starting temporary changes,
+                    // it may have been removed.
                     if (verticesState.get(mainComponentVertex) != State.REMOVED) {
                         throw new PowsyblException("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes");
                     }
 
-                    markAllRemoved(root1);
-                    markAllAdded(root2);
+                    // last thing to do is update state of vertices and edges in the two tree.
+                    markAllRemoved(oldComponentRoot);
+                    markAllAdded(newComponentRoot);
                 }
+
+                this.mainComponentVertex = mainComponentVertex;
             }
         }
 
@@ -1107,19 +1172,82 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         }
     }
 
+    /**
+     * Describes the state in which an element (vertex or edge)
+     * is relative to the main component and the last call to
+     * {@link #startTemporaryChanges(boolean)}. An element can
+     * either be added or removed.
+     */
+    private enum State {
+        ADDED,
+        REMOVED,
+    }
+
+    /**
+     * Associates to each element whether it was added to the main
+     * component or removed from a main component between the last call
+     * to {@link #startTemporaryChanges(boolean)} and the current instant.
+     * As an element cannot be added and removed at the same time, we can
+     * use one {@link Map}, mapping an element to its {@link State} (removed
+     * or added), instead of two {@link Set} (one for added element and
+     * one for removed element).
+     * <p>
+     * If an element is not found, there are two possibilities:
+     * <ol>
+     *     <li>it was in the main component before and is still in the
+     *     main component,</li>
+     *     <li>it was <strong>not</strong> in the main component before and
+     *     is still <strong>not</strong> in the main component.</li>
+     * </ol>
+     * </p>
+     *
+     * @param <T> the type of the stored element (edges or vertices)
+     */
     private static final class StateMap<T> extends HashMap<T, State> {
 
         private Set<T> removed;
         private Set<T> added;
 
+        /**
+         * Mark the specified element as added. That is, mark the
+         * element as being added to the main component by the
+         * last topological changes.
+         *
+         * @param element the element to mark
+         */
         public void markAdded(T element) {
             mark(element, State.ADDED);
         }
 
+        /**
+         * Mark the specified element as removed. That is, mark the
+         * element as being removed from the main component by the
+         * last topological changes.
+         *
+         * @param element the element to mark
+         */
         public void markRemoved(T element) {
             mark(element, State.REMOVED);
         }
 
+        /**
+         * Update the state of the specified element, according
+         * to the following rules:
+         * <ul>
+         *     <li>An element that is in the same state as it was before the call to
+         *     {@link #startTemporaryChanges(boolean)} is inserted with the specified
+         *     value.</li>
+         *     <li>An element marked as added and removed by the last changes is removed.
+         *     Indeed, it was outside the main component before the last call to
+         *     {@link #startTemporaryChanges(boolean)}, then it was added to it,
+         *     and now it is removed from it.</li>
+         *     <li>An element marked as removed and added by the last changes is removed.</li>
+         * </ul>
+         *
+         * @param element the element to update
+         * @param newState whether the element was added to or removed from
+         *                 the main component
+         */
         public void mark(T element, State newState) {
             compute(element, (k, state) -> {
                 if (state == null || state == newState) {
@@ -1146,8 +1274,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
         private Set<T> getAdded() {
             if (added == null) {
-                added = entrySet()
-                        .stream()
+                added = entrySet().stream()
                         .filter(e -> e.getValue() == State.ADDED)
                         .map(Entry::getKey)
                         .collect(Collectors.toSet());
