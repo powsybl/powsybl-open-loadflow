@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.AcDcNetworkFactory;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkLoader;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
@@ -1156,8 +1157,9 @@ class AcDcLoadFlowTest {
                 .setSlackBusSelector(new FirstSlackBusSelector())
                 .setAcDcNetwork(true);
 
+        LfNetworkLoader<Network> loader = new LfNetworkLoaderImpl();
         PowsyblException e = assertThrows(PowsyblException.class,
-                () -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
+                () -> LfNetwork.load(network, loader, lfParameters));
         assertEquals("AC/DC converter 'convDroop' in P_PCC_DROOP control mode must have a droop curve with at least one non-zero coefficient",
                 e.getMessage());
     }
