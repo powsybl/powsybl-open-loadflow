@@ -9,10 +9,7 @@ package com.powsybl.openloadflow.graph;
 
 import gnu.trove.set.hash.THashSet;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -71,14 +68,8 @@ public class ModificationsContext<V, E> {
 
     public Set<V> getVerticesRemovedFromMainComponent() {
         if (verticesRemovedFromMainComponent == null) {
-            // result = after - before
-            Set<V> result = new THashSet<>();
-
-            for (V vertex : getVerticesNotInMainComponentAfter()) {
-                if (!verticesNotInMainComponentBefore.contains(vertex)) { // filter before doing the copy
-                    result.add(vertex);
-                }
-            }
+            Set<V> result = new HashSet<>(getVerticesNotInMainComponentAfter());
+            result.removeAll(verticesNotInMainComponentBefore);
 
             if (!result.isEmpty()) {
                 // remove vertices added in between
@@ -99,15 +90,9 @@ public class ModificationsContext<V, E> {
 
     public Set<V> getVerticesAddedToMainComponent() {
         if (verticesAddedToMainComponent == null) {
-            // result = before - after
-            Set<V> result = new THashSet<>();
-
+            Set<V> result = new HashSet<>(verticesNotInMainComponentBefore);
             Set<V> verticesNotInMainComponentAfter = getVerticesNotInMainComponentAfter();
-            for (V vertex : verticesNotInMainComponentBefore) {
-                if (!verticesNotInMainComponentAfter.contains(vertex)) { // filter before doing the copy
-                    result.add(vertex);
-                }
-            }
+            result.removeAll(verticesNotInMainComponentAfter);
 
             // add vertices added to main component in between
             // note that there is no VertexRemove modification, thus we do not need to check if vertex is in the graph before / in the end

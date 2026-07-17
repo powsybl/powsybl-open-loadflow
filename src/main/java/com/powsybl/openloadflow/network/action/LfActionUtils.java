@@ -1,5 +1,6 @@
 /**
- * Copyright (c) 2022-2026, RTE (http://www.rte-france.com)
+ * Copyright (c) 2025, Coreso SA (https://www.coreso.eu/) and TSCNET Services GmbH (https://www.tscnet.eu/)
+ * Copyright (c) 2022-2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -85,7 +86,7 @@ public final class LfActionUtils {
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
 
         // re-update connectivity according to post contingency state (revert after LfContingency apply)
-        connectivity.startTemporaryChanges(true);
+        connectivity.startTemporaryChanges();
         contingency.getDisabledNetwork().getBranches().forEach(connectivity::removeEdge);
 
         // update connectivity according to post action state

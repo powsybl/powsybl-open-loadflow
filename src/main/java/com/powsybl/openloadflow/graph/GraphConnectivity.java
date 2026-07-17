@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020-2026, RTE (http://www.rte-france.com)
+ * Copyright (c) 2020, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -48,24 +48,7 @@ public interface GraphConnectivity<V, E> {
     /**
      * Start recording topological changes to undo them later by a {@link #undoTemporaryChanges} call.
      */
-    default void startTemporaryChanges() {
-        startTemporaryChanges(false);
-    }
-
-    /**
-     * Start recording topological changes to undo them later by a {@link #undoTemporaryChanges} call.
-     * When {@code quick} is {@code false}, it becomes possible to call the following methods:
-     * <ul>
-     *     <li>{@link #getVerticesRemovedFromMainComponent()}</li>
-     *     <li>{@link #getEdgesRemovedFromMainComponent()}</li>
-     *     <li>{@link #getVerticesAddedToMainComponent()}</li>
-     *     <li>{@link #getEdgesAddedToMainComponent()}</li>
-     * </ul>
-     * When these methods aren't needed, it is advised to set {@code quick} to {@code true}.
-     *
-     * @param quick {@code false} if you want to use methods relative to macro-topological changes
-     */
-    void startTemporaryChanges(boolean quick);
+    void startTemporaryChanges();
 
     /**
      * Undo all the connectivity changes (possibly none) since last call to {@link #startTemporaryChanges}.
