@@ -212,7 +212,7 @@ public class ModificationsContext<V, E> {
     }
 
     public void setMainComponentVertex(V mainComponentVertex) {
-        if (!computeComparisons) {
+        if (computeComparisons) {
             if (!isInMainComponentBefore(mainComponentVertex)) {
                 throw new PowsyblException("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes");
             }

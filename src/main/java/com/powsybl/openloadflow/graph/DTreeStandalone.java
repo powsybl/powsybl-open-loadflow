@@ -448,8 +448,8 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
     }
 
     @Override
-    public void startTemporaryChanges(boolean quick) {
-        modificationsStack.push(new Modifications(defaultMainComponentVertex, !quick));
+    public void startTemporaryChanges(boolean computeComparisons) {
+        modificationsStack.push(new Modifications(defaultMainComponentVertex, computeComparisons));
     }
 
     @Override
@@ -1079,10 +1079,10 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
         private boolean undoing = false;
 
-        Modifications(V mainComponentVertex, boolean computeStates) {
+        Modifications(V mainComponentVertex, boolean computeComparisons) {
             this.mainComponentVertex = mainComponentVertex;
 
-            if (computeStates) {
+            if (computeComparisons) {
                 verticesState = new StateMap<>();
                 edgesState = new StateMap<>();
             } else {
