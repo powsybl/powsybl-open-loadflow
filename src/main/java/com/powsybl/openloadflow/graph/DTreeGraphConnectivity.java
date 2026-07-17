@@ -705,15 +705,15 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
                 // update the list of roots
                 if (updateRoots) {
-                    rootIndex = child.rootIndex;
+                    rootIndex = oldRoot.rootIndex;
                     roots.set(rootIndex, DTNode.this);
                 }
 
                 // update size attributes, going from oldRoot to this DTNode
-                while (child.parent != null) {
-                    child.size -= child.parent.size;
-                    child.parent.size += child.size;
-                    child = child.parent;
+                while (oldRoot.parent != null) {
+                    oldRoot.size -= oldRoot.parent.size;
+                    oldRoot.parent.size += oldRoot.size;
+                    oldRoot = oldRoot.parent;
                 }
             }
 
@@ -830,40 +830,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     neighborEdges = new NeighborEdges(this);
                 }
                 return neighborEdges;
-            }
-
-            @Override
-            public String toString() {
-                StringBuilder sb = new StringBuilder();
-                sb.append(vertex.toString()).append(" -te-> {");
-
-                Set<V> set = new HashSet<>();
-
-                DTNode child = firstChild;
-                while (child != null) {
-                    if (!set.add(child.vertex)) {
-                        sb.append("loop detected");
-                        break;
-                    } else {
-                        sb.append(child.vertex).append(", ");
-                    }
-                    child = child.nextSibling;
-                }
-                sb.append("} -nte-> ");
-
-                for (E nte : nonTreeEdges) {
-                    Edge e = edges.get(nte);
-
-                    if (e.u.equals(vertex)) {
-                        sb.append(e.v).append(", ");
-                    } else if (e.v.equals(vertex)) {
-                        sb.append(e.u).append(", ");
-                    } else {
-                        sb.append("nte error, ");
-                    }
-                }
-
-                return sb.toString();
             }
         }
 
@@ -1055,15 +1021,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 } else {
                     return u;
                 }
-            }
-
-            @Override
-            public String toString() {
-                return "Edge{" +
-                        "u=" + u +
-                        ", v=" + v +
-                        ", treeEdge=" + treeEdge +
-                        '}';
             }
         }
     }
