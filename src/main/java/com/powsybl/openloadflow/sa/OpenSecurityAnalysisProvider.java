@@ -76,13 +76,12 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
 
         // FIXME implement a fast incremental connectivity algorithm
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory;
-        if (runParameters.getOperatorStrategies().isEmpty() && !loadFlowParametersExt.isSimulateAutomationSystems() || connectivityFactory.create().supportTemporaryChangesNesting()) {
+        if (runParameters.getOperatorStrategies().isEmpty() && !loadFlowParametersExt.isSimulateAutomationSystems()) {
             selectedConnectivityFactory = connectivityFactory;
         } else {
             LOGGER.warn("Naive (and slow!!!) connectivity algorithm has been selected because at least one operator strategy is configured");
             selectedConnectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         }
-        System.out.println("Using " + selectedConnectivityFactory);
 
         AbstractSecurityAnalysis<?, ?, ?, ?, ?> securityAnalysis;
         if (loadFlowParameters.isDc()) {
