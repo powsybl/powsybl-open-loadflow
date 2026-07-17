@@ -221,7 +221,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     }
 
     @Override
-    public void startTemporaryChanges(boolean quick) {
+    public void startTemporaryChanges(boolean computeComparisons) {
         super.startTemporaryChanges(true);
         getGraph().push();
     }

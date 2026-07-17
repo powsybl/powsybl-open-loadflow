@@ -90,12 +90,9 @@ public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>
 
     @Override
     public void startTemporaryChanges(boolean quick) {
-        ModificationsContext<V, E> modificationsContext = new ModificationsContext<>(this::getVerticesNotInMainComponent, defaultMainComponentVertex);
+        ModificationsContext<V, E> modificationsContext = new ModificationsContext<>(!quick, this::getVerticesNotInMainComponent, defaultMainComponentVertex);
         modificationsContexts.add(modificationsContext);
-
-        if (!quick) {
-            modificationsContext.computeVerticesNotInMainComponentBefore();
-        }
+        modificationsContext.computeVerticesNotInMainComponentBefore();
     }
 
     @Override
@@ -205,9 +202,6 @@ public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>
         if (!modificationsContexts.isEmpty()) {
             var modificationsContext = modificationsContexts.peekLast();
             modificationsContext.setMainComponentVertex(mainComponentVertex);
-            if (!modificationsContext.isInMainComponentBefore(mainComponentVertex)) {
-                throw new PowsyblException("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes");
-            }
         }
         defaultMainComponentVertex = mainComponentVertex;
     }

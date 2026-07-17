@@ -85,7 +85,7 @@ public final class LfActionUtils {
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
 
         // re-update connectivity according to post contingency state (revert after LfContingency apply)
-        connectivity.startTemporaryChanges(true);
+        connectivity.startTemporaryChanges(false);
         contingency.getDisabledNetwork().getBranches().forEach(connectivity::removeEdge);
 
         // update connectivity according to post action state

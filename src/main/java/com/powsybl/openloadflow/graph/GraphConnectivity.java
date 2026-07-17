@@ -47,25 +47,29 @@ public interface GraphConnectivity<V, E> {
 
     /**
      * Start recording topological changes to undo them later by a {@link #undoTemporaryChanges} call.
+     * Comparisons will be computed.
+     *
+     * @see #startTemporaryChanges(boolean)
      */
     default void startTemporaryChanges() {
-        startTemporaryChanges(false);
+        startTemporaryChanges(true);
     }
 
     /**
      * Start recording topological changes to undo them later by a {@link #undoTemporaryChanges} call.
-     * When {@code quick} is {@code false}, it becomes possible to call the following methods:
+     * When {@code computeComparisons} is {@code true}, it becomes possible to call the following methods:
      * <ul>
      *     <li>{@link #getVerticesRemovedFromMainComponent()}</li>
      *     <li>{@link #getEdgesRemovedFromMainComponent()}</li>
      *     <li>{@link #getVerticesAddedToMainComponent()}</li>
      *     <li>{@link #getEdgesAddedToMainComponent()}</li>
      * </ul>
-     * When these methods aren't needed, it is advised to set {@code quick} to {@code true}.
+     * When these methods aren't needed, it is advised to set {@code computeComparisons} to {@code false}
+     * for performance reasons.
      *
-     * @param quick {@code false} if you want to use methods relative to macro-topological changes
+     * @param computeComparisons {@code true} to enable computation of comparisons.
      */
-    void startTemporaryChanges(boolean quick);
+    void startTemporaryChanges(boolean computeComparisons);
 
     /**
      * Undo all the connectivity changes (possibly none) since last call to {@link #startTemporaryChanges}.

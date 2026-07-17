@@ -55,8 +55,8 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
     }
 
     @Override
-    public void startTemporaryChanges(boolean quick) {
-        super.startTemporaryChanges(quick);
+    public void startTemporaryChanges(boolean computeComparisons) {
+        super.startTemporaryChanges(computeComparisons);
         if (mst == null) {
             mst = new KruskalMinimumSpanningTrees().getSpanningTree();
         }

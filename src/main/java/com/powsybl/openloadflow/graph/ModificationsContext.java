@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import com.powsybl.commons.PowsyblException;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.set.hash.THashSet;
 
@@ -23,6 +24,7 @@ import java.util.stream.Stream;
  */
 public class ModificationsContext<V, E> {
 
+    private final boolean computeComparisons;
     private final Deque<GraphModification<V, E>> modifications = new ArrayDeque<>();
     private final Function<V, Set<V>> verticesNotInMainComponentGetter;
 
@@ -34,16 +36,19 @@ public class ModificationsContext<V, E> {
     private Map<E, AbstractEdgeModification<V, E>> edgeFirstModificationMap;
     private V mainComponentVertex;
 
-    public ModificationsContext(Function<V, Set<V>> verticesNotInMainComponentGetter, V mainComponentVertex) {
+    public ModificationsContext(boolean computeComparisons, Function<V, Set<V>> verticesNotInMainComponentGetter, V mainComponentVertex) {
+        this.computeComparisons = computeComparisons;
         this.verticesNotInMainComponentGetter = verticesNotInMainComponentGetter;
         this.mainComponentVertex = mainComponentVertex;
     }
 
     public void computeVerticesNotInMainComponentBefore() {
-        this.verticesNotInMainComponentBefore = verticesNotInMainComponentGetter.apply(mainComponentVertex);
+        if (computeComparisons) {
+            this.verticesNotInMainComponentBefore = verticesNotInMainComponentGetter.apply(mainComponentVertex);
 
-        if (this.verticesNotInMainComponentBefore instanceof AbstractSetView<V>) {
-            this.verticesNotInMainComponentBefore = new THashSet<>(this.verticesNotInMainComponentBefore);
+            if (this.verticesNotInMainComponentBefore instanceof AbstractSetView<V>) {
+                this.verticesNotInMainComponentBefore = new THashSet<>(this.verticesNotInMainComponentBefore);
+            }
         }
     }
 
@@ -65,6 +70,10 @@ public class ModificationsContext<V, E> {
     }
 
     public Set<E> getEdgesRemovedFromMainComponent(GraphModel<V, E> graph) {
+        if (!computeComparisons) {
+            throw new PowsyblException("Cannot compute getEdgesRemovedFromMainComponent as requested by the last startTemporaryChanges!");
+        }
+
         if (edgesRemovedFromMainComponent == null) {
             edgesRemovedFromMainComponent = computeEdgesRemovedFromMainComponent(graph);
         }
@@ -72,6 +81,10 @@ public class ModificationsContext<V, E> {
     }
 
     public Set<V> getVerticesRemovedFromMainComponent() {
+        if (!computeComparisons) {
+            throw new PowsyblException("Cannot compute getVerticesRemovedFromMainComponent as requested by the last startTemporaryChanges!");
+        }
+
         if (verticesRemovedFromMainComponent == null) {
             // result = after - before
             Set<V> result = new THashSet<>();
@@ -93,6 +106,10 @@ public class ModificationsContext<V, E> {
     }
 
     public Set<E> getEdgesAddedToMainComponent(GraphModel<V, E> graph) {
+        if (!computeComparisons) {
+            throw new PowsyblException("Cannot compute getEdgesAddedToMainComponent as requested by the last startTemporaryChanges!");
+        }
+
         if (edgesAddedToMainComponent == null) {
             edgesAddedToMainComponent = computeEdgesAddedToMainComponent(graph);
         }
@@ -100,6 +117,10 @@ public class ModificationsContext<V, E> {
     }
 
     public Set<V> getVerticesAddedToMainComponent() {
+        if (!computeComparisons) {
+            throw new PowsyblException("Cannot compute getVerticesAddedToMainComponent as requested by the last startTemporaryChanges!");
+        }
+
         if (verticesAddedToMainComponent == null) {
             // result = before - after
             Set<V> result = new THashSet<>();
@@ -191,7 +212,14 @@ public class ModificationsContext<V, E> {
     }
 
     public void setMainComponentVertex(V mainComponentVertex) {
-        invalidateComparisons();
+        if (!computeComparisons) {
+            if (!isInMainComponentBefore(mainComponentVertex)) {
+                throw new PowsyblException("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes");
+            }
+
+            invalidateComparisons();
+        }
+
         this.mainComponentVertex = mainComponentVertex;
     }
 
@@ -199,7 +227,7 @@ public class ModificationsContext<V, E> {
         return mainComponentVertex;
     }
 
-    public boolean isInMainComponentBefore(V vertex) {
+    private boolean isInMainComponentBefore(V vertex) {
         return !verticesNotInMainComponentBefore.contains(vertex);
     }
 }

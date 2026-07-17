@@ -90,11 +90,11 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
     }
 
     @Override
-    public void startTemporaryChanges(boolean quick) {
+    public void startTemporaryChanges(boolean computeComparisons) {
         if (!getModificationsContexts().isEmpty()) {
             throw new PowsyblException("This implementation supports only one level of temporary changes");
         }
-        super.startTemporaryChanges(quick);
+        super.startTemporaryChanges(computeComparisons);
         if (levelNeighboursMap.isEmpty()) {
             Set<V> vertices = getGraph().getVertices();
             vertices.stream()
