@@ -568,25 +568,74 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             throw new UnsupportedOperationException();
         }
 
+        /**
+         * A DTNode (Dynamic Tree Node) is a node in a spanning tree.
+         * Each DTNode maintains the following information:
+         * <ul>
+         *     <li>the vertex in the graph,</li>
+         *     <li>the size of the subtree,</li>
+         *     <li>its parent in the tree and the edge linking them,</li>
+         *     <li>its children in the tree and the edges linking them,</li>
+         *     <li>all non tree edges having at least one endpoint that is the DTNode</li>
+         *     <li>if the node is a root, its index in the list of {@link DTGraph#roots}</li>
+         * </ul>
+         *
+         * <p>
+         * However, children are stored in a particular way, allowing
+         * fast iteration over a tree and insertion and removal of a child,
+         * but slow access to an arbitrary element. Instead of storing them
+         * in a list or a map, each DTNode has a pointer to its previous sibling,
+         * its next sibling and its first child. In other words, the children of
+         * a DTNode are stored in a doubly-linked list. A DTNode stores the first
+         * element in this list and is also used as an element in its parent doubly
+         * linked list of children.
+         * </p>
+         *
+         * <p>
+         * Example:
+         * <pre>
+         * +----- first child ------ 1
+         * |                         ^
+         * |                         |
+         * |                      parent
+         * |                         |
+         * | +-----------------------+-----------------------+
+         * v/                        |                        \
+         * 2 <-- previous sibling -- 3 <-- previous sibling -- 4
+         *  \_____ next sibling _____^\_____ next sibling _____^
+         * </pre>
+         * X --> Y indicates that X contains a pointer to Y.
+         *</p>
+         *
+         * <p>
+         * This complex structure allows fast insertion and removal as we only need
+         * to update the sibling list and eventually the first child pointer. But the
+         * biggest advantage is that it allows fast iteration of a tree with 0 memory
+         * allocations by only following pointers. See {@link DFSIterator}
+         * </p>
+         *
+         */
         private final class DTNode {
 
-            private DTNode parent = null;
-            private E parentEdge = null;
-
-            // the children of this node. They are stored in a
-            // doubly linked list
-            private DTNode previousSibling = null;
-            private DTNode nextSibling = null;
-            private DTNode firstChild = null;
+            private final V vertex;
 
             // the size of this subtree
             private int size;
 
-            private final V vertex;
+            private DTNode parent = null;
+            private E parentEdge = null;
+
+            // the children of this node. They are stored in a doubly linked list
+            // firstChild is the head of the linked list. previousSibling and nextSibling
+            // are used to navigate the list.
+            private DTNode firstChild = null;
+            private DTNode previousSibling = null;
+            private DTNode nextSibling = null;
+
             private final Set<E> childTreeEdges = new LinkedHashSet<>();
             private final Set<E> nonTreeEdges = new LinkedHashSet<>();
 
-            // valid only if this node is a root
+            // index in the list of roots, valid only if this node is a root
             private int rootIndex;
 
             private ComponentView componentView = null;
@@ -597,6 +646,17 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 this.size = 1;
             }
 
+            /**
+             * Make this DTNode the root of the tree in which it is. This is a two steps process
+             * with an intermediate optional operation:
+             * <ol>
+             *     <li>Swap parent-child relationship for each DTNode from this dTNode to the original root</li>
+             *     <li>Optionally, update the list of roots. For most cases, it must be {@code true}</li>
+             *     <li>Update the subtree size attribute from the original root to the new root (this DTNode)</li>
+             * </ol>
+             *
+             * @param updateRoots {@code true} to update the list of roots
+             */
             private void makeRoot(boolean updateRoots) {
                 if (parent == null) {
                     return;
@@ -616,15 +676,17 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     E greatParentEdge = parent.parentEdge;
 
                     // At this point:
-                    // - the parent of 'parent' aka greatParent should be changed to child
-                    // - parent is in the linked list of child of greatParent
-                    // - child is NOT in the linked list of child of parent
+                    // - 'parent' is in the linked list of children of 'greatParent', and must be
+                    //   removed from it because adding 'parent' as a child of 'child' will break
+                    //   this linked list.
+                    // - 'child' is NOT in the linked list of children of 'parent'.
+                    //   It was removed by the last iteration or before entering in the loop (for the first iteration)
+                    // - the parent of 'parent' aka 'greatParent' should be changed to child
                     if (greatParent != null) {
                         greatParent.removeChildUnchecked(parent);
                     }
 
                     child.addChildUnchecked(parent, parentEdge);
-
                     parent.parent = child;
                     parent.parentEdge = parentEdge;
 
@@ -632,18 +694,22 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     // - parent isn't anymore is the linked list of child of greatParent
                     // - parent is a child of 'child'
 
+                    // process to the next parent/child
                     child = parent;
                     parent = greatParent;
                     parentEdge = greatParentEdge;
                 }
 
+                // child is the old root
+                DTNode oldRoot = child;
+
+                // update the list of roots
                 if (updateRoots) {
-                    // child is the old root, update rootIndex and roots
                     rootIndex = child.rootIndex;
                     roots.set(rootIndex, DTNode.this);
                 }
 
-                // update size attributes
+                // update size attributes, going from oldRoot to this DTNode
                 while (child.parent != null) {
                     child.size -= child.parent.size;
                     child.parent.size += child.size;
@@ -651,8 +717,15 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
             }
 
-            // Add child in the doubly linked list of children
-            // no verification is performed
+            /**
+             * Add child in the doubly linked list of children and
+             * the edge linking this node and child in the set of
+             * tree edges. The child mustn't be in a linked list.
+             * No verification is performed.
+             *
+             * @param child the child node to add
+             * @param edge the edge linking this node and child
+             */
             private void addChildUnchecked(DTNode child, E edge) {
                 DTNode oldFirstChild = this.firstChild;
 
@@ -666,8 +739,13 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 childTreeEdges.add(edge);
             }
 
-            // Remove child from the doubly linked list of children
-            // no verification is performed
+            /**
+             * Remove child from the doubly linked list of children.
+             * The child must be in the linked list. No verification
+             * is performed.
+             *
+             * @param child the child node to remove
+             */
             private void removeChildUnchecked(DTNode child) {
                 DTNode prev = child.previousSibling;
                 DTNode next = child.nextSibling;
@@ -712,6 +790,15 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 return new ImmutablePair<>(node, dist);
             }
 
+            /**
+             * Returns the root of the tree containing this node
+             * and restores the centroid property by rerooting the
+             * tree. This helps reduce the height of the tree.
+             * <strong>Warning</strong>: rerooting the tree may
+             * break connectivity queries.
+             *
+             * @return the root of the tree
+             */
             private DTNode findRootOptReroot() {
                 DTNode nodeRoot = this;
                 DTNode nodeRootChild = null; // the child of nodeRoot in the path from nodeRoot to node
@@ -825,6 +912,13 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
             private DTNode cursor;
 
+            /**
+             * Creates a new depth-first iterator starting at the specified root node
+             * and returning node according to the pre-order.
+             *
+             * @param root the root of the tree to traverse. It must be a root otherwise,
+             *             the iterator may visit nodes outside the subtree
+             */
             DFSIterator(DTNode root) {
                 cursor = root;
             }
@@ -842,7 +936,14 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
                 DTNode next = cursor;
 
-                // update cursor
+                // Advances to the next node for the next iteration.
+                // The iterator try to:
+                // - descend one level whenever possible,
+                // - otherwise, moves to the next sibling if any,
+                // - otherwise, moves up until it finds a node with
+                //   a next sibling (unvisited by construction) or
+                //   the tree is fully visited.
+
                 if (cursor.firstChild != null) {
                     cursor = cursor.firstChild;
                 } else if (cursor.nextSibling != null) {
