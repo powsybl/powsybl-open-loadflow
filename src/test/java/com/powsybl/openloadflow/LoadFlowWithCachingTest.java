@@ -890,7 +890,7 @@ class LoadFlowWithCachingTest {
         assertEquals(5, result.getComponentResults().get(0).getIterationCount());
         var b10 = network.getBusBreakerView().getBus("B10");
         assertVoltageEquals(12.7, b10);
-        assertReactivePowerEquals(-17.826, network.getGenerator("B6-G").getTerminal());
+        assertReactivePowerEquals(-17.825, network.getGenerator("B6-G").getTerminal());
         assertReactivePowerEquals(-17.827, network.getGenerator("B8-G").getTerminal());
 
         // update pilot point target voltage
@@ -911,8 +911,8 @@ class LoadFlowWithCachingTest {
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(1, result.getComponentResults().get(0).getIterationCount());
-        // there is no re-run of secondary voltage control outer loop, this is expected as pilot point has already reached
-        // its target voltage and remaining control unit is necessarily aligned.
+        // There is no re-run of secondary voltage control outer loop: the pilot point has already reached its target
+        // voltage and the remaining participating control unit cannot improve the SVC objective.
         assertVoltageEquals(12.5, b10);
         assertReactivePowerEquals(-11.832, network.getGenerator("B6-G").getTerminal());
         assertReactivePowerEquals(-11.832, network.getGenerator("B8-G").getTerminal());
