@@ -7,24 +7,11 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
-import com.google.common.collect.testing.SafeTreeMap;
-import org.apache.commons.lang3.stream.Streams;
-import org.jgrapht.Graph;
-import org.jgrapht.generate.GraphGenerator;
-import org.jgrapht.generate.HyperCubeGraphGenerator;
-import org.jgrapht.generate.RandomRegularGraphGenerator;
-import org.jgrapht.generate.ScaleFreeGraphGenerator;
-import org.jgrapht.graph.DefaultEdge;
-import org.jgrapht.graph.DefaultUndirectedGraph;
-import org.jgrapht.util.SupplierUtil;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -115,6 +102,28 @@ public class DTreeGraphConnectivityTest {
                 assertEquals(Set.of(0, 1, 2, 3, 4), connectivity.getConnectedComponent(index));
             });
         }
+    }
+
+    @Test
+    void testGetConnectedComponentContains() {
+        DTreeGraphConnectivity<Integer, String> connectivity = new DTreeGraphConnectivity<>();
+        for (int i = 0; i < 2; i++) {
+            connectivity.addVertex(i);
+        }
+        connectivity.startTemporaryChanges();
+
+        Set<Integer> zero = connectivity.getConnectedComponent(0);
+        Set<Integer> one = connectivity.getConnectedComponent(1);
+
+        assertTrue(zero.contains(0));
+        assertFalse(zero.contains(1));
+        assertTrue(one.contains(1));
+        assertFalse(one.contains(0));
+
+        connectivity.addEdge(0, 1, "0-1");
+
+        assertTrue(zero.contains(1));
+        assertTrue(one.contains(0));
     }
 
     @Test
