@@ -63,7 +63,7 @@ public interface LfAcDcConverter extends LfElement {
     double getTargetVdc();
 
     /**
-     * @return the per-unit base used for the DC voltage of this converter (nominal voltage of the non-grounded DC bus, in kV).
+     * @return the per-unit base used for the DC voltage of this converter.
      */
     double getDcVoltageBase();
 
