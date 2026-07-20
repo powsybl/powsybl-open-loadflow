@@ -5,7 +5,7 @@
 Open Load Flow computes power flows from IIDM grid model in bus/view topology. From the view, a very simple network, composed
 of only buses and branches is created. In the graph vision, we rely on a $\Pi$ model for branches (lines, transformers, boundary lines, etc.):
 
-- $R$ and $X$ are respectively the real part (resistance) and the imaginary part (reactance) of the complex impedance ;  
+- $R$ and $X$ are respectively the real part (resistance) and the imaginary part (reactance) of the complex impedance ;
 - $G_1$ and $G_2$ are the real parts (conductance) on respectively side 1 and side 2 of the branch ;
 - $B_1$ and $B_2$ are the imaginary parts (susceptance) on respectively side 1 and side 2 of the branch ;
 - $A_1$ is the angle shifting on side 1, before the series impedance. For classical branches, the default value is zero ;
@@ -23,7 +23,7 @@ Open Load Flow also supports networks with HVDC lines (High Voltage Direct Curre
 
 ### DC detailed model
 
-Additionally, Open Load Flow supports AC-DC load flow formulation with detailed model of DC elements.  
+Additionally, Open Load Flow supports AC-DC load flow formulation with detailed model of DC elements.
 There is no limitation on the number of synchronous components and DC components in a single connected component, except if specific load flow parameters are used (see [acDcNetwork parameter documentation](./parameters.md#acdcnetwork))
 
 (ac-flow-computing)=
@@ -59,7 +59,7 @@ The resulting non-linear system of equations is solved by default via the Newton
 The underlying principle of the algorithm is the following:
 - It starts at a certain point $x_0 = (v_0, \phi_0)$ as an approximate solution to the system of equations;
 - Then, in an iterative fashion, it generates a series $x_1, x_2,.., x_k$ of better approximate solutions to the system of equations;
-- These iterates $x_k$ are found by solving a system of equations using local Jacobian matrix $J(v,\phi)$ at the previous point $x_{k-1}$; 
+- These iterates $x_k$ are found by solving a system of equations using local Jacobian matrix $J(v,\phi)$ at the previous point $x_{k-1}$;
 
 See **acSolverType** below for more details.
 
@@ -68,7 +68,7 @@ See **acSolverType** below for more details.
 PQ-bus and PV-bus are used to model local voltage magnitude or local reactive power controls. Other controls are supported in OpenLoadFLow:
 - Remote voltage control for generators, static var compensators and two and three windings transformers with ratio tap changer. Control shared over several controllers buses is supported ;
 - Remote reactive power control for generators ;
-- For static var compensator with a voltage set point, the support of a voltage per reactive power control, also called slope, that modifies a bit the local voltage at connection bus. We only support a local control. 
+- For static var compensator with a voltage set point, the support of a voltage per reactive power control, also called slope, that modifies a bit the local voltage at connection bus. We only support a local control.
 
 #### Remote voltage control
 
@@ -79,7 +79,7 @@ In our explanation, we have two buses. A generator or more is connected to bus $
     - $P_{b_2}^{in} = \sum_{j \in v(b_2)} p_{b_2,j}$.
     - $Q_{b_2}^{in} = \sum_{j \in v(b_2)} q_{b_2,j}$.
     - $v_{b_2} = V^{c}_{b_1}$.
-    
+
 #### Remote reactive power control
 
 A bus $b_1$ has, through a generator, a remote reactive power control on a branch $(i,j)$. This controller bus is treated as a P-bus: only active power balance is fixed for that bus. The reactive power flowing at side i on line $(i,j)$ is fixed by the control (it could be at side j too). To resume:
@@ -87,8 +87,8 @@ A bus $b_1$ has, through a generator, a remote reactive power control on a branc
     - $P_{b_1}^{in} = \sum_{j \in v(b_1)} p_{b_1,j}$.
 - At controlled branch $(i,j)$:
     - $q_{i,j} = Q^{c}_{b_1}$.
-    
-#### Local voltage control for a static var compensator with a slope 
+
+#### Local voltage control for a static var compensator with a slope
 
 We only support the simple case where:
 - Only one generator controlling voltage is connected to a bus. If other generators are present, they should have a local reactive power control ;
@@ -105,7 +105,7 @@ Where $s$ is the slope of the static var compensator.
 
 #### LCC converters
 
-LCC converters can be considered as fixed loads in the load flow. Indeed, on one side of the line is the rectifier station, and on the other side of the line is the inverter station. 
+LCC converters can be considered as fixed loads in the load flow. Indeed, on one side of the line is the rectifier station, and on the other side of the line is the inverter station.
 The active power flows from the rectifier station to the inverter station, is fixed, and equals to a target value $P$ (AC side). The active power flow at each station at AC side is given by:
   - $P_{rectifier}= P$
   - $P_{inverter}= (1 - LossFactor_{inverter}) * ((1 - LossFactor_{rectifier}) * (P - P_{LineLoss}))$
@@ -127,8 +127,8 @@ from the rectifier station to the inverter station is fixed and equals to a targ
   - $P_{rectifier}= P$
   - $P_{inverter}= (1 - LossFactor_{inverter}) * ((1 - LossFactor_{rectifier}) * (P - P_{LineLoss}))$
 
-- In **AC emulation** mode, the active power flow between both stations is given by: $P = P_0 + k~(\phi_1 - \phi_2)$ 
-with $\phi_1$ and $\phi_2$ being the voltage angles at the bus connection for each converter station, and $P_0$ and $k$ being fixed parameters for the HVDC line. 
+- In **AC emulation** mode, the active power flow between both stations is given by: $P = P_0 + k~(\phi_1 - \phi_2)$
+with $\phi_1$ and $\phi_2$ being the voltage angles at the bus connection for each converter station, and $P_0$ and $k$ being fixed parameters for the HVDC line.
 If $P$ is positive, the converter station 1 is controller, else it is converter station 2. For example, if station 1 is controller, the
 active power flow at each station is given by the formula below (HVDC line losses are described in the next paragraph):
   - $P_{controller} = P_0 + k~(\phi_1 - \phi_2)$
@@ -139,10 +139,10 @@ The HVDC line losses are described in a dedicated section further below.
 In both control modes (active power setpoint mode or in AC emulation mode), the target value $P$ is bounded by a maximum active power $P_{max}$ that can be either:
 - the `maxP` configured for the HVDC line,
 - or alternatively separate limit values for both directions using the [HVDC operator active power range IIDM extension](inv:powsyblcore:*:*:#hvdc-operator-active-power-range-extension)
-In AC Emulation, these boundaries are handled through the HVDC AC emulation limit outer loop. After solving the equation system, if the computed active power flow through the HVDC overpasses the limits, saturation is applied by the outer loop. 
+In AC Emulation, these boundaries are handled through the HVDC AC emulation limit outer loop. After solving the equation system, if the computed active power flow through the HVDC overpasses the limits, saturation is applied by the outer loop.
 Note that this HVDC AC emulation outer loop is only available in AC calculation, and normal DC calculation (not available in DC Woodbury Security analysis and DC Woodbury Sensitivity Analysis).
 
-The reactive power flow on each side of the line depends on whether voltage regulation of the converters is enabled. If the voltage regulation is enabled, then the VSC converter behaves like a generator regulating the voltage. 
+The reactive power flow on each side of the line depends on whether voltage regulation of the converters is enabled. If the voltage regulation is enabled, then the VSC converter behaves like a generator regulating the voltage.
 Otherwise, reactive power of the converter at AC side is given by its reactive power setpoint.
 
 #### HVDC line losses
@@ -181,9 +181,9 @@ Else:
 
 $$J_{i,i} = \sum_{j \in \delta(i)} \frac{1}{X_{i,j}}$$
 
-$$J_{i,j} = - \frac{1}{X_{i,j}}, \quad \forall j \in \delta(i)$$ 
+$$J_{i,j} = - \frac{1}{X_{i,j}}, \quad \forall j \in \delta(i)$$
 
-where $\delta(i)$ is the set of buses linked to bus $i$ in the network graph. All other entries of $J$ are zero. 
+where $\delta(i)$ is the set of buses linked to bus $i$ in the network graph. All other entries of $J$ are zero.
 
 The right-hand-side $b$ of the system satisfied:
 
@@ -242,7 +242,7 @@ $$
 Where:<br>
 * "Interchange" is the sum of the power flows at the boundaries of the area (load sign convention i.e. counted positive for imports).<br>
 * "Interchange Target" is the interchange target parameter of the area.<br>
-* "Slack Injection" is the active power mismatch of the slack bus(es) present in the area (see [Slack bus mismatch attribution](#slack-bus-mismatch-attribution)). 
+* "Slack Injection" is the active power mismatch of the slack bus(es) present in the area (see [Slack bus mismatch attribution](#slack-bus-mismatch-attribution)).
 
 The outer loop iterates until the absolute value of this mismatch is below the configured [parameter `areaInterchangePMaxMismatch`](parameters.md#areainterchangepmaxmismatch) for all areas.
 
@@ -296,7 +296,7 @@ It is computed like this:<br>
 $Factor = sign(Slack Bus Mismatch) * Area Total Mismatch + areaInterchangePMaxMismatch $<br>
 Then factors are normalized to have sum of factors equal to 1.
 
-The distribution is iterative (inside the same outer loop iteration). 
+The distribution is iterative (inside the same outer loop iteration).
 Each area distributes its share, if some areas cannot fully distribute it, they are excluded from this distribution and the remaining slack is distributed among other areas at next iteration.
 The distribution iterates until all the mismatch has been distributed and fails if all areas cannot distribute anymore but some mismatch remains.
 
@@ -345,21 +345,19 @@ When the Fast-Decoupled algorithm is used, we recommend these values for some co
 ## AC DC flows computing
 
 AC DC flows computing in OpenLoadFLow is similar to AC flows computing, but with AC and DC equations in the same system.
-The unknowns are voltage magnitude and phase angle for each AC bus, voltage for each DC bus, and active/reactive 
+The unknowns are voltage magnitude and phase angle for each AC bus, voltage for each DC bus, and active/reactive
 power for each voltage source converter.<br>
-Concerning AC side, the equations are the same as in AC flows computing, concerning DC side, the equations induced by DC
-components are the followings:
+The equations remain the same as AC load flow for the AC parts of the network flows computing. The DC parts are modelled with the following equations.
 
 ### DC bus
 
-At least one DC bus must be connected to the ground in each DC network, its potential is therefore set to 0. 
+At least one DC bus must be connected to the ground in each DC network, its potential is therefore set to 0.
 Therefore, symmetrical configuration are currently not supported.<br>
-For the others DC buses, each one introduces an equation of current balance: $\sum_{i} I_i = 0$ where $I_i$ are the currents going out of the DC bus.
-These terms are introduced by the DC components connected to the DC bus.
+Each other DC bus introduces an equation of current balance: $\sum_{i} I_i = 0$ where $I_i$ are the currents going out of the DC bus.
 
 ### DC Line
 
-Each DC line adds one term in both of its two connected DC buses current balance:
+Each DC line adds one term to each of its two connected DC buses current balance:
 
 $\sum_{i} I_i + \frac{V_1 - V_2}{R}= 0$ for dcBus1
 
@@ -372,16 +370,18 @@ Line commutated converters are not supported yet by Open Load Flow.
 
 ### Voltage source converters
 
-Let consider a network that is composed of one AC network, and one DC network.
-The voltage source converter is the link between AC and DC networks, it is linked to **one** AC bus at one side, and two 
-DC buses at the other side.<br>
-Please note that converters with a second optional AC terminal are not supported by Open Load Flow.
+Voltage source converters are the links between AC and DC networks. They are linked to a single AC bus and two
+DC buses. Additional AC buses are not supported for load flow computations.
 
-The converter can control either the power received by the AC network (`P_PCC` control mode) 
-or the voltage between its two DC buses (`V_DC` control mode).
-At least one of the voltage source converters of the DC network must be in `V_DC` mode. Otherwise, an exception will be thrown.
+#### Control modes
 
-In addition to the control modes `P_PCC` and `V_DC`, the voltage source converter can be set in two modes :
+A converter can control either the power it exchanges with the AC network (`P_PCC` control mode),
+the voltage between its two DC buses (`V_DC` control mode), or follow a DC-voltage droop law
+relating the two (`P_PCC_DROOP` control mode, detailed [below](#droop-control)).
+At least one of the voltage source converters of the DC network must control the DC voltage,
+i.e. be in `V_DC` or `P_PCC_DROOP` mode.
+
+In addition to the control modes `P_PCC`, `V_DC` and `P_PCC_DROOP`, the voltage source converter can be set in two modes :
 - Reactive power control mode, in which it imposes the reactive power received from AC to DC, which is 0 by default.
   In this case, the AC voltage is not fixed.
 - Voltage regulator control mode, in which it imposes the voltage at its AC Bus. In this case the reactive power is not
@@ -389,28 +389,27 @@ In addition to the control modes `P_PCC` and `V_DC`, the voltage source converte
 
 **Warning:** At the moment, the active and reactive power control and the AC voltage control are enforced at the converter AC terminal, not at its PCC terminal.
 
-We note $P_{AC}$ the power flow injected by AC network into the converter. 
-So $P_{AC}>0$ if the power flows from AC to DC and $P_{AC}<0$ otherwise.
+Let $P_{AC}$ be the power flow injected by the AC network into the converter.
+This sign convention means that $P_{AC}>0$ if the power flows from AC to DC and $P_{AC}<0$ otherwise.
 
-If the converter is in `P_PCC` control mode, we add an equation to impose $P_{AC}$ :
+If the converter is in `P_PCC` control mode, then $P_{AC}$ is set to $P_{Ref}$ :
 
-$P_{AC}$ = $P_{Ref}$
+$$P_{AC} = P_{Ref}$$
 
-Else the converter is in `V_DC` control mode, and we add an equation to impose the voltage between its two DC buses :
+Else the converter is in `V_DC` control mode, so the voltage between its two DC buses is set :
 
-$V_{1} - V_{2} = V_{Ref}$
+$$V_{1} - V_{2} = V_{Ref}$$
 
-Similarly, if the converter controls reactive power, we add an equation to impose $Q_{AC}$ :
+Similarly, if the converter controls reactive power, $Q_{AC}$ is set to $Q_{Ref}$:
 
-$Q_{AC}$ = $Q_{Ref}$
+$$Q_{AC} = Q_{Ref}$$
 
-Else the converter controls the AC voltage, and we add an equation to impose $V_{AC}$:
+Else the converter controls the AC voltage, $V_{AC}$ is set to $V_{Ref}$:
 
-$V_{AC}= V_{Ref}$
+$$V_{AC} = V_{Ref}$$
 
-On the AC bus, the active and reactive power injected into the converter is added to its power balance.<br>
-On the DC side, we introduce the variable $I_{Conv}$ which is the current flowing in the converter from dcBus1 to dcBus2.
-It is added to the current balances of dcBus1 and dcBus2
+On the AC bus, the active and reactive power injected into the converter are added to its power balance.<br>
+On the DC side, the current $I_{Conv}$ flowing in the converter from dcBus1 to dcBus2 is added to the current balances of dcBus1 and dcBus2
 
 $\sum_{i} I_i + I_{Conv} = 0$ for dcBus1
 
@@ -424,10 +423,10 @@ $$P_{DC} + P_{AC} = P_{Loss}$$
 
 with:
 - $P_{AC}$ the power injected by the AC network into the converter
-- $P_{Loss}>=0$ the converter losses depending on AC current. Its computation is detailed below.
-- $P_{DC} = I_{Conv}*(V_1-V_2)$ the power injected by the DC network into the converter.
+- $P_{Loss}$ (non-negative) the converter losses depending on AC current. Its computation is detailed below.
+- $P_{DC} = I_{Conv} \cdot (V_1-V_2)$ the power injected by the DC network into the converter.
 
-If the converter acts as rectifier, AC injects power in DC, thus $P_{DC}<0$ and $P_{AC}>0$, so we have :
+If the converter acts as a rectifier, AC injects power in DC, thus $P_{DC}<0$ and $P_{AC}>0$, so we have :
 
 $$
 -|P_{DC}| + P_{AC} = P_{Loss}
@@ -436,7 +435,7 @@ $$
 |P_{DC}| = |P_{AC}| - P_{Loss}
 $$
 
-And if the converter acts as inverter, DC injects power in AC, thus $P_{DC}>0$ and $P_{AC}<0$, so we have :
+And if the converter acts as an inverter, DC injects power in AC, thus $P_{DC}>0$ and $P_{AC}<0$, so we have :
 
 $$
 P_{DC} - |P_{AC}| = P_{Loss}
@@ -449,15 +448,41 @@ In both cases, there is a loss of power when passing through the converter.
 
 
 $P_{Loss}$ is defined as :<br>
-$
-P_{Loss} = IdleLoss + SwitchingLoss * |I_{Conv}| + ResistiveLoss * I_{Conv}^{2}
-$
+
+$$
+P_{Loss} = IdleLoss + SwitchingLoss \cdot |I_{Conv}| + ResistiveLoss \cdot I_{Conv}^{2}
+$$
 
 
 Idle loss, switching loss and resistive loss are loss factors that depend on the converter.
 
 Using the previous equation of power conservation between AC and DC, we have
+
 $$
-I_{Conv}*(V_1-V_2) + P_{AC} = IdleLoss + SwitchingLoss*|I_{Conv}| + ResistiveLoss*I_{Conv}^{2}
+I_{Conv} \cdot (V_1-V_2) + P_{AC} = IdleLoss + SwitchingLoss \cdot |I_{Conv}| + ResistiveLoss \cdot I_{Conv}^{2}
 $$
 
+#### Multi-segment Droop control
+
+In `P_PCC_DROOP` control mode, the converter does not hold a fixed power or a fixed DC voltage.
+Instead it follows a **droop law** that ties its active power to its DC voltage, so that the
+converter naturally shares in regulating the DC voltage of the network:
+
+$$P_{AC} = P_{Ref} + k (U_{dc}) \cdot (U_{dc} - V_{Ref})$$
+
+with:
+- $P_{AC}$ the active power injected by the AC network into the converter,
+- $U_{dc} = V_1 - V_2$ the pole-to-pole DC voltage of the converter,
+- $(V_{Ref}, P_{Ref})$ the reference point read from the droop curve,
+- $k (U_{dc})$ the droop coefficient.
+
+$U_{dc} \rightarrow k (U_{dc})$ is piecewise constant, which makes $U_{dc} \rightarrow P_{AC}$ piecewise linear.
+The droop curve passes through the converter setpoint $(targetVdc, targetP)$. This anchors its
+position in the $(U_{dc}, P)$ plane. A `P_PCC_DROOP` converter must therefore have a droop curve
+and both `targetP` and `targetVdc` defined.
+
+Note that if the solved $U_{dc}$ falls below the lowest band or above the highest band, the nearest
+  band's coefficient is used (clamping), so $k$ is always defined.
+
+The reported solution is self-consistent: for each converter, the applied $k$ is the one its
+curve assigns to that converter's own solved $U_{dc}$, provided that the load flow computation converges.

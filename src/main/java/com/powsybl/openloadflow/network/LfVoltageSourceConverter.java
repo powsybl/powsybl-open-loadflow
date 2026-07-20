@@ -27,4 +27,24 @@ public interface LfVoltageSourceConverter extends LfAcDcConverter {
      * @return the target AC voltage magnitude at the converter AC bus. In per unit.
      */
     double getTargetVac();
+
+    /**
+     * Reference point of the droop law {@code P = refP + k*(U_dc - refVdc)} for a solved DC voltage, all in per unit.
+     *
+     * @param k      the droop coefficient of the band containing the solved DC voltage.
+     * @param refVdc the reference DC voltage of that band (its lower bound).
+     * @param refP   the reference active power of that band (the anchored power at {@code refVdc}).
+     */
+    record DroopReference(double k, double refVdc, double refP) {
+    }
+
+    /**
+     * Look up the droop reference point for a given solved DC voltage. Only relevant when the converter is in
+     * {@code P_PCC_DROOP} control mode.
+     *
+     * @param uDc the solved pole-to-pole DC voltage, in per unit of {@link #getDcVoltageBase()}.
+     * @return the droop reference {@code (k, refVdc, refP)} of the band containing {@code uDc} (clamped to the
+     * nearest band outside the curve range), all in per unit.
+     */
+    DroopReference getDroopReference(double uDc);
 }

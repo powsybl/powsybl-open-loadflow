@@ -52,7 +52,7 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         this.lossFactors = new LossFactors(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
         this.controlMode = converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
-        targetVdc = dcBus1.isGrounded() ? converter.getTargetVdc() / dcBus2.getNominalV() : converter.getTargetVdc() / dcBus1.getNominalV();
+        targetVdc = converter.getTargetVdc() / getDcVoltageBase();
         this.pAc = converter.getTerminal1().getP();
         this.qAc = converter.getTerminal1().getQ();
     }
@@ -105,6 +105,12 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     @Override
     public double getTargetVdc() {
         return targetVdc;
+    }
+
+    @Override
+    public double getDcVoltageBase() {
+        // Hypothesis: all buses in the DC voltage have the same nominal DC voltage.
+        return dcBus1.getNominalV();
     }
 
     @Override

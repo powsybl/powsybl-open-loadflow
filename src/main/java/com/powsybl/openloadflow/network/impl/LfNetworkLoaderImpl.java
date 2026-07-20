@@ -1365,16 +1365,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     throw new PowsyblException("DcSwitch " + s.getId() + " has non zero resistance: not handled yet in AC DC load flow (R = " + s.getR() + ")");
                 });
 
-        // Ensure at least one converter controls V_DC
+        // Ensure at least one converter controls the DC voltage. V_DC controls it directly; P_PCC_DROOP also counts
+        // as DC-voltage control since the droop law settles the DC voltage.
         boolean isVdcControlled = false;
         for (AcDcConverter<?> converter : loadingContext.acDcConverterSet) {
-            if (converter.getControlMode() == AcDcConverter.ControlMode.V_DC) {
+            AcDcConverter.ControlMode controlMode = converter.getControlMode();
+            if (controlMode == AcDcConverter.ControlMode.V_DC || controlMode == AcDcConverter.ControlMode.P_PCC_DROOP) {
                 isVdcControlled = true;
                 break;
             }
         }
         if (!isVdcControlled) {
-            throw new PowsyblException("At least one AC/DC converter control mode must be V_DC in each DC component, but DC component " + numDcc + " does not have any");
+            throw new PowsyblException("At least one AC/DC converter control mode must be V_DC or P_PCC_DROOP in each DC component, but DC component " + numDcc + " does not have any");
         }
 
         postProcessors.forEach(pp -> pp.onLfNetworkLoaded(network, lfNetwork));
