@@ -35,8 +35,6 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected double targetVdc; // in pu
 
-    protected final double vBase; // nominal voltage of the non-grounded DC bus, in kV; per-unit base of the DC voltage
-
     protected final AcDcConverter.ControlMode controlMode;
 
     protected final LfDcBus dcBus1;
@@ -54,8 +52,7 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         this.lossFactors = new LossFactors(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
         this.controlMode = converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
-        this.vBase = dcBus1.isGrounded() ? dcBus2.getNominalV() : dcBus1.getNominalV();
-        targetVdc = converter.getTargetVdc() / vBase;
+        targetVdc = converter.getTargetVdc() / getDcVoltageBase();
         this.pAc = converter.getTerminal1().getP();
         this.qAc = converter.getTerminal1().getQ();
     }
@@ -112,7 +109,8 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     @Override
     public double getDcVoltageBase() {
-        return vBase;
+        // Hypothesis: all buses in the DC voltage have the same nominal DC voltage.
+        return dcBus1.getNominalV();
     }
 
     @Override
