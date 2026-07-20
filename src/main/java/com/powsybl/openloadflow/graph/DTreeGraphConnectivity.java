@@ -341,13 +341,13 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             DTNode nodeV = vertexToTreeNode.get(edge.v);
 
             if (edge.treeEdge) {
-                removeTreeEdge(nodeU, nodeV, e);
+                removeTreeEdge(nodeU, nodeV);
             } else {
                 removeNonTreeEdge(nodeU, nodeV, e);
             }
         }
 
-        private void removeTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
+        private void removeTreeEdge(DTNode nodeU, DTNode nodeV) {
             DTNode child;
 
             if (nodeU == nodeV.parent) {
@@ -664,41 +664,41 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
 
                 DTNode child = this;
-                DTNode parent = child.parent;
-                E parentEdge = child.parentEdge;
-                parent.removeChildUnchecked(child); // remove before making parentEdge null
+                DTNode oldParent = child.parent;
+                E oldParentEdge = child.parentEdge;
+                oldParent.removeChildUnchecked(child); // remove before making parentEdge null
 
                 this.parent = null;
                 this.parentEdge = null;
 
                 // swap parent/child relation
-                while (parent != null) {
-                    DTNode greatParent = parent.parent;
-                    E greatParentEdge = parent.parentEdge;
+                while (oldParent != null) {
+                    DTNode greatParent = oldParent.parent;
+                    E greatParentEdge = oldParent.parentEdge;
 
                     // At this point:
-                    // - 'parent' is in the linked list of children of 'greatParent', and must be
-                    //   removed from it because adding 'parent' as a child of 'child' will break
+                    // - 'oldParent' is in the linked list of children of 'greatParent', and must be
+                    //   removed from it because adding 'oldParent' as a child of 'child' will break
                     //   this linked list.
-                    // - 'child' is NOT in the linked list of children of 'parent'.
+                    // - 'child' is NOT in the linked list of children of 'oldParent'.
                     //   It was removed by the last iteration or before entering in the loop (for the first iteration)
-                    // - the parent of 'parent' aka 'greatParent' should be changed to child
+                    // - the parent of 'oldParent' aka 'greatParent' should be changed to child
                     if (greatParent != null) {
-                        greatParent.removeChildUnchecked(parent);
+                        greatParent.removeChildUnchecked(oldParent);
                     }
 
-                    child.addChildUnchecked(parent, parentEdge);
-                    parent.parent = child;
-                    parent.parentEdge = parentEdge;
+                    child.addChildUnchecked(oldParent, oldParentEdge);
+                    oldParent.parent = child;
+                    oldParent.parentEdge = oldParentEdge;
 
                     // At this point:
-                    // - parent isn't anymore is the linked list of child of greatParent
-                    // - parent is a child of 'child'
+                    // - 'oldParent' isn't anymore is the linked list of child of 'greatParent'
+                    // - 'oldParent' is a child of 'child'
 
                     // process to the next parent/child
-                    child = parent;
-                    parent = greatParent;
-                    parentEdge = greatParentEdge;
+                    child = oldParent;
+                    oldParent = greatParent;
+                    oldParentEdge = greatParentEdge;
                 }
 
                 // child is the old root

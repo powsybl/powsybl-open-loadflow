@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class DTreeGraphConnectivityTest {
+class DTreeGraphConnectivityTest {
 
     @Test
     void testInsertNonTreeEdge() {
