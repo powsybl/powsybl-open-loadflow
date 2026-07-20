@@ -76,7 +76,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     public Set<V> getConnectedComponent(V vertex) {
         checkSavedContext();
         checkVertex(vertex);
-        return getGraph().rootOf(vertex).componentView();
+        return getGraph().vertexToTreeNode.get(vertex).componentView();
     }
 
     @Override
@@ -109,13 +109,13 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
             @Override
             public Iterator<V> iterator() {
-                return new VerticesNotInMainComponentIterator(excludedTree);
+                return new VerticesNotInMainComponentIterator(excludedTree.findRoot());
             }
 
             @Override
             public boolean contains(Object o) {
                 if (o != null) {
-                    return graph.rootOf((V) o) != excludedTree;
+                    return graph.rootOf((V) o) != excludedTree.findRoot();
                 }
 
                 return false;
@@ -125,8 +125,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             public int size() {
                 if (size < 0) {
                     size = 0;
+                    DTGraph<V, E>.DTNode excludedTreeRoot = excludedTree.findRoot();
                     for (DTGraph<V, E>.DTNode root : graph.roots) {
-                        if (root != excludedTree) {
+                        if (root != excludedTreeRoot) {
                             size += root.size;
                         }
                     }
@@ -816,7 +817,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 return nodeRoot;
             }
 
-            // This DNode MUST be a root
             public Set<V> componentView() {
                 if (componentView == null) {
                     componentView = new ComponentView(this);
@@ -856,13 +856,17 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
             @Override
             public Iterator<V> iterator() {
-                return new DFSIterator(node);
+                return new DFSIterator(node.findRoot());
             }
 
             @Override
             public boolean contains(Object o) {
                 if (o != null) {
-                    return rootOf((V) o) == node;
+                    // node might not be the root anymore, so need to use findRoot on node.
+                    // However, don't use findRootOptReroot on node, it might change the root
+                    // after we got the root of 'o'.
+
+                    return rootOf((V) o) == node.findRoot();
                 }
 
                 return false;
@@ -870,7 +874,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
             @Override
             public int size() {
-                return node.size;
+                return node.findRoot().size;
             }
         }
 
