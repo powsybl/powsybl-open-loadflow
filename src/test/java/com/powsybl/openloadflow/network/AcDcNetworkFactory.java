@@ -2450,46 +2450,11 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         Network network = Network.create("vsc", "test");
 
         // AC network: a generator and a load connected by an AC line.
-        Substation s1 = network.newSubstation()
-                .setId("S1")
-                .add();
-        VoltageLevel vl1 = s1.newVoltageLevel()
-                .setId("vl1")
-                .setNominalV(400.)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl1.getBusBreakerView().newBus()
-                .setId("b1")
-                .add();
-        vl1.newGenerator()
-                .setId("g1")
-                .setConnectableBus("b1")
-                .setBus("b1")
-                .setTargetP(100.)
-                .setTargetV(400.)
-                .setMinP(0)
-                .setMaxP(500)
-                .setVoltageRegulatorOn(true)
-                .add();
+        Bus b1 = createBus(network, "b1", 400);
+        createGenerator(b1, "g1", 100., 400).setVoltageRegulatorOn(true);
 
-        Substation s2 = network.newSubstation()
-                .setId("S2")
-                .add();
-        VoltageLevel vl2 = s2.newVoltageLevel()
-                .setId("vl2")
-                .setNominalV(400)
-                .setTopologyKind(TopologyKind.BUS_BREAKER)
-                .add();
-        vl2.getBusBreakerView().newBus()
-                .setId("b2")
-                .add();
-        vl2.newLoad()
-                .setId("ld2")
-                .setConnectableBus("b2")
-                .setBus("b2")
-                .setP0(100.0)
-                .setQ0(0.0)
-                .add();
+        Bus b2 = createBus(network, "b2", 400);
+        createLoad(b2, "ld2", 100, 0);
 
         network.newLine()
                 .setId("l12")
@@ -2514,6 +2479,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode("dnGround")
                 .add();
 
+        VoltageLevel vl1 = b1.getVoltageLevel();
         vl1.newVoltageSourceConverter()
                 .setIdleLoss(0)
                 .setSwitchingLoss(0)
@@ -2531,6 +2497,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .add();
 
         // Droop-controlled converter (no losses so the law applies directly to AC power).
+        VoltageLevel vl2 = b2.getVoltageLevel();
         VoltageSourceConverter droopConverter = vl2.newVoltageSourceConverter()
                 .setIdleLoss(0)
                 .setSwitchingLoss(0)
