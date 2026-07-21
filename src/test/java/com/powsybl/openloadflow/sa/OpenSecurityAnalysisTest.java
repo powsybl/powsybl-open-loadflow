@@ -562,8 +562,15 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertAlmostEquals(new BranchResult("NGEN_NHV1", 606, 225, 15226, -605, -198, 914),
                            preContingencyResult.getNetworkResult().getBranchResult("NGEN_NHV1"), 1);
 
-        //No result when the branch itself is disconnected
-        assertNull(result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("NHV1_NHV2_1"));
+        // The branch itself is disconnected: it is reported with NaN P/Q/I
+        BranchResult disabledBranchResult = result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("NHV1_NHV2_1");
+        assertNotNull(disabledBranchResult);
+        assertTrue(Double.isNaN(disabledBranchResult.getP1()));
+        assertTrue(Double.isNaN(disabledBranchResult.getQ1()));
+        assertTrue(Double.isNaN(disabledBranchResult.getI1()));
+        assertTrue(Double.isNaN(disabledBranchResult.getP2()));
+        assertTrue(Double.isNaN(disabledBranchResult.getQ2()));
+        assertTrue(Double.isNaN(disabledBranchResult.getI2()));
 
         assertAlmostEquals(new BranchResult("NHV1_NHV2_1", 611, 334, 1009, -601, -285, 1048),
                 result.getPostContingencyResults().get(1).getNetworkResult().getBranchResult("NHV1_NHV2_1"), 1);
@@ -746,7 +753,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(4, result.getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
 
         //Branch result for first contingency
-        assertEquals(4, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResults().size());
+        // l14, disabled by its own contingency, is reported with NaN values
+        assertEquals(5, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResults().size());
 
         //Check branch results for flowTransfer computation for contingency on l14
         PostContingencyResult postContl14 = getPostContingencyResult(result, "l14");
@@ -796,8 +804,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals("l12", result.getPreContingencyResult().getNetworkResult().getBranchResults().get(1).getBranchId());
 
         assertEquals(5, result.getPostContingencyResults().size());
-        assertEquals(4, getPostContingencyResult(result, "l14").getNetworkResult().getBranchResults().size());
-        assertEquals(1, getPostContingencyResult(result, "l12").getNetworkResult().getBranchResults().size());
+        // l14, disabled by its own contingency, is reported with NaN values
+        assertEquals(5, getPostContingencyResult(result, "l14").getNetworkResult().getBranchResults().size());
+        // l12, disabled by its own contingency, is reported with NaN values
+        assertEquals(2, getPostContingencyResult(result, "l12").getNetworkResult().getBranchResults().size());
         assertEquals(2, getPostContingencyResult(result, "l13").getNetworkResult().getBranchResults().size());
         assertEquals(2, getPostContingencyResult(result, "l34").getNetworkResult().getBranchResults().size());
         assertEquals(2, getPostContingencyResult(result, "l23").getNetworkResult().getBranchResults().size());
@@ -842,7 +852,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(4, result.getPostContingencyResults().get(4).getLimitViolationsResult().getLimitViolations().size());
 
         //Branch result for first contingency
-        assertEquals(4, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResults().size());
+        // l14, disabled by its own contingency, is reported with NaN values
+        assertEquals(5, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResults().size());
 
         //Check branch results for flowTransfer computation for contingency on l14
         PostContingencyResult postContl14 = getPostContingencyResult(result, "l14");
@@ -878,7 +889,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(5, result.getPostContingencyResults().size());
 
         for (PostContingencyResult r : result.getPostContingencyResults()) {
-            assertEquals(4, r.getNetworkResult().getBranchResults().size());
+            // the contingency's own branch is reported with NaN values
+            assertEquals(5, r.getNetworkResult().getBranchResults().size());
         }
 
         //Check branch results for flowTransfer computation for contingency on l14
@@ -2312,8 +2324,9 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
             PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
             assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
 
-            // verify only flows in slack component have been computed
-            assertEquals(3, postContingencyResult.getNetworkResult().getBranchResults().size());
+            // all monitored branches are reported; those outside the computed slack component have NaN
+            // values, only 3 have real, computed flows
+            assertEquals(12, postContingencyResult.getNetworkResult().getBranchResults().size());
 
             // verify flows on the branches
             assertEquals(-1, postContingencyResult.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
@@ -2412,7 +2425,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(446.765, preContingencyNetworkResult.getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
 
         assertEquals(945.514, getPostContingencyResult(result, "BBS1").getNetworkResult().getBranchResult("L2").getI1(), LoadFlowAssert.DELTA_I);
-        assertNull(getPostContingencyResult(result, "BBS1").getNetworkResult().getBranchResult("L1"));
+        // L1 is disabled by the BBS1 contingency propagation: it is reported with NaN I1
+        assertTrue(Double.isNaN(getPostContingencyResult(result, "BBS1").getNetworkResult().getBranchResult("L1").getI1()));
 
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
         openSecurityAnalysisParameters.setContingencyPropagation(false);
@@ -3091,7 +3105,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals("BBS3", preContingencyResult.getNetworkResult().getBusResults().get(2).getBusId());
         assertEquals(400.0, preContingencyResult.getNetworkResult().getBusResult("BBS3").getV(), LoadFlowAssert.DELTA_V);
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "C1");
-        assertNull(postContingencyResult.getNetworkResult().getBusResult("BBS1"));
+        // BBS1 is disabled by the C1 contingency: it is reported with a NaN V
+        assertTrue(Double.isNaN(postContingencyResult.getNetworkResult().getBusResult("BBS1").getV()));
         assertEquals(400.0, postContingencyResult.getNetworkResult().getBusResult("BBS2").getV(), LoadFlowAssert.DELTA_V);
         assertEquals(400.0, postContingencyResult.getNetworkResult().getBusResult("BBS3").getV(), LoadFlowAssert.DELTA_V);
     }
@@ -3118,7 +3133,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals("BBS3", preContingencyResult.getNetworkResult().getBusResults().get(2).getBusId());
         assertEquals(400.0, preContingencyResult.getNetworkResult().getBusResult("BBS3").getV(), LoadFlowAssert.DELTA_V);
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "C1");
-        assertEmpty(postContingencyResult.getNetworkResult().getBusResults());
+        // BBS1 is disabled by C1: a real V -> NaN transition is always reported, even though BBS2/BBS3 stay
+        // filtered out (unchanged V)
+        assertEquals(1, postContingencyResult.getNetworkResult().getBusResults().size());
+        assertTrue(Double.isNaN(postContingencyResult.getNetworkResult().getBusResult("BBS1").getV()));
     }
 
     @Test
@@ -4613,7 +4631,9 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         // post-contingency tests
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "l25");
         assertEquals(1, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
-        assertEquals(3, postContingencyResult.getNetworkResult().getBranchResults().size()); // only branches in main synchronous component
+        // all monitored branches are reported; those outside the main synchronous component have NaN
+        // values, only 3 have real, computed flows
+        assertEquals(7, postContingencyResult.getNetworkResult().getBranchResults().size());
         assertEquals(network.getLine("l12").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l13").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l23").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
@@ -4649,7 +4669,9 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         // post-contingency tests
         PostContingencyResult postContingencyResult = getPostContingencyResult(result, "l25+l45+l46");
         assertEquals(2, postContingencyResult.getConnectivityResult().getCreatedSynchronousComponentCount());
-        assertEquals(3, postContingencyResult.getNetworkResult().getBranchResults().size()); // only branches in main synchronous component
+        // all monitored branches are reported; those outside the main synchronous component have NaN
+        // values, only 3 have real, computed flows
+        assertEquals(7, postContingencyResult.getNetworkResult().getBranchResults().size());
         assertEquals(network.getLine("l12").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l13").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(network.getLine("l23").getTerminal1().getP(), postContingencyResult.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
@@ -4912,8 +4934,9 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(200.0, postContingencyResult.getNetworkResult().getBranchResult("PS1").getP1(), DELTA_POWER);
         assertEquals(-200.0, postContingencyResult.getNetworkResult().getBranchResult("PS1").getP2(), DELTA_POWER);
         assertEquals(0, postContingencyResult.getLimitViolationsResult().getLimitViolations().size());
-        // in fast dc mode, no branch result is created for disabled branches on one side
-        assertEquals(1, postContingencyResult.getNetworkResult().getBranchResults().size());
+        // in fast dc mode too, disabled-on-one-side branches are reported with NaN values, so both modes
+        // report the same monitored branch count
+        assertEquals(5, postContingencyResult.getNetworkResult().getBranchResults().size());
     }
 
     @Test
@@ -5221,8 +5244,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, loadFlowParameters);
         NetworkResult networkResult = result.getPostContingencyResults().getFirst().getNetworkResult();
-        assertEquals(4, networkResult.getBranchResults().size());
-        networkResult.getBranchResults()
+        // l14, disabled by its own contingency, is reported with NaN values
+        assertEquals(5, networkResult.getBranchResults().size());
+        assertTrue(Double.isNaN(networkResult.getBranchResult("l14").getFlowTransfer()));
+        networkResult.getBranchResults().stream()
+            .filter(br -> !br.getBranchId().equals("l14"))
             .forEach(br -> assertEquals(0., br.getFlowTransfer(), DELTA_POWER));
     }
 
@@ -5338,5 +5364,64 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         parameters.getModifiedMonitoredElementsParameters().setPowerModificationThreshold(170); // MW-MVAr, this time should filter
         SecurityAnalysisResult resultFiltered2 = runSecurityAnalysis(network, contingencies, monitors, parameters);
         assertEmpty(resultFiltered2.getPostContingencyResults().getFirst().getNetworkResult().getThreeWindingsTransformerResults());
+    }
+
+    @Test
+    void testDisabledBranchAlwaysReportedDespiteChangeFilteringThreshold() {
+        Network network = FourBusNetworkFactory.create();
+        List<Contingency> contingencies = List.of(new Contingency("l14", new BranchContingency("l14")));
+        List<StateMonitor> monitors = List.of(
+                new StateMonitor(ContingencyContext.all(), Set.of("l14", "l12", "l23", "l34", "l13"), emptySet(), emptySet()));
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters()
+                .setModifiedMonitoredElementsParameters(new SecurityAnalysisParameters.ModifiedMonitoredElementsParameters()
+                        .setPowerModificationThreshold(1000)); // absurdly high threshold: suppresses any real flow change
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
+
+        NetworkResult postCtg = result.getPostContingencyResults().getFirst().getNetworkResult();
+        // l14 is disabled by its own contingency: real -> NaN is always a change, reported regardless of threshold
+        BranchResult l14Result = postCtg.getBranchResult("l14");
+        assertNotNull(l14Result);
+        assertTrue(Double.isNaN(l14Result.getP1()));
+        // the other branches see their flow redistributed but stay below the (huge) threshold: filtered out
+        assertNull(postCtg.getBranchResult("l12"));
+        assertNull(postCtg.getBranchResult("l23"));
+        assertNull(postCtg.getBranchResult("l34"));
+        assertNull(postCtg.getBranchResult("l13"));
+    }
+
+    @Test
+    void testZeroImpedanceBranchDisabledByOwnContingencyDoesNotThrow() {
+        Network network = ZeroImpedanceNetworkFactory.createWith3BusesNonImpedantSubNetwork();
+        List<Contingency> contingencies = List.of(new Contingency("l23", new BranchContingency("l23")));
+        List<StateMonitor> monitors = List.of(
+                new StateMonitor(ContingencyContext.all(), Set.of("l23"), emptySet(), emptySet()));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors);
+
+        BranchResult postCtg = result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l23");
+        assertNotNull(postCtg);
+        assertTrue(Double.isNaN(postCtg.getP1()));
+        assertTrue(Double.isNaN(postCtg.getQ1()));
+        assertTrue(Double.isNaN(postCtg.getI1()));
+    }
+
+    @Test
+    void testDisabled3wtReportsNanFlows() {
+        Network network = T3wtFactory.create();
+        List<Contingency> contingencies = List.of(new Contingency("3wt", new ThreeWindingsTransformerContingency("3wt")));
+        List<StateMonitor> monitors = List.of(
+                new StateMonitor(ContingencyContext.all(), emptySet(), emptySet(), Set.of("3wt")));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors);
+
+        var postCtg = result.getPostContingencyResults().getFirst().getNetworkResult().getThreeWindingsTransformerResult("3wt");
+        assertNotNull(postCtg);
+        assertTrue(Double.isNaN(postCtg.getP1()));
+        assertTrue(Double.isNaN(postCtg.getQ1()));
+        assertTrue(Double.isNaN(postCtg.getP2()));
+        assertTrue(Double.isNaN(postCtg.getQ2()));
+        assertTrue(Double.isNaN(postCtg.getP3()));
+        assertTrue(Double.isNaN(postCtg.getQ3()));
     }
 }
