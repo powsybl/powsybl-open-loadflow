@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021, RTE (http://www.rte-france.com)
+ * Copyright (c) 2021-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -490,6 +490,77 @@ class ConnectivityTest {
         assertEquals(Set.of(1, 2), c.getVerticesRemovedFromMainComponent());
         assertEquals(Set.of("1-2", "2-3"), c.getEdgesRemovedFromMainComponent());
         // 1---2   3---4---5   6
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideNonRestrictedConnectivities")
+    void quickStartTemporaryChangesTest(GraphConnectivity<Integer, String> c) {
+        String e11 = "1-1";
+        String e12 = "1-2";
+        String e23 = "2-3";
+        String e31 = "3-1";
+        String e45 = "4-5";
+        String e36 = "3-6";
+        String e16 = "1-6";
+
+        c.addVertex(1);
+        c.addVertex(2);
+        c.addVertex(3);
+        c.addVertex(4);
+        c.addVertex(5);
+        c.addVertex(6);
+        c.addEdge(1, 1, e11);
+        c.addEdge(1, 2, e12);
+        c.addEdge(2, 3, e23);
+        c.addEdge(3, 1, e31);
+        c.addEdge(4, 5, e45);
+        c.addEdge(3, 6, e36);
+        //  |-------|
+        //  1---2---3---6   4---5
+        // |_|
+
+        c.startTemporaryChanges(false);
+        c.removeEdge(e36);
+        //  |-------|
+        //  1---2---3   6   4---5
+        // |_|
+
+        assertThrows(PowsyblException.class, c::getVerticesRemovedFromMainComponent);
+        assertThrows(PowsyblException.class, c::getEdgesRemovedFromMainComponent);
+        assertThrows(PowsyblException.class, c::getVerticesAddedToMainComponent);
+        assertThrows(PowsyblException.class, c::getEdgesAddedToMainComponent);
+        assertEquals(3, c.getNbConnectedComponents());
+        assertEquals(Set.of(1, 2, 3), c.getConnectedComponent(1));
+        assertEquals(Set.of(6), c.getConnectedComponent(6));
+        assertEquals(Set.of(4, 5), c.getConnectedComponent(4));
+
+        c.startTemporaryChanges(true);
+        c.removeEdge(e23);
+        c.removeEdge(e31);
+        c.addEdge(1, 6, e16);
+        //  |-------|
+        //  1---2   6   3   4---5
+        // |_|
+
+        assertEquals(Set.of(e16), c.getEdgesAddedToMainComponent());
+        assertEquals(Set.of(6), c.getVerticesAddedToMainComponent());
+        assertEquals(Set.of(3), c.getVerticesRemovedFromMainComponent());
+        assertEquals(Set.of(e23, e31), c.getEdgesRemovedFromMainComponent());
+        assertEquals(3, c.getNbConnectedComponents());
+        assertEquals(Set.of(1, 2, 6), c.getConnectedComponent(1));
+        assertEquals(Set.of(3), c.getConnectedComponent(3));
+        assertEquals(Set.of(4, 5), c.getConnectedComponent(4));
+
+        c.undoTemporaryChanges();
+
+        assertThrows(PowsyblException.class, c::getVerticesRemovedFromMainComponent);
+        assertThrows(PowsyblException.class, c::getEdgesRemovedFromMainComponent);
+        assertThrows(PowsyblException.class, c::getVerticesAddedToMainComponent);
+        assertThrows(PowsyblException.class, c::getEdgesAddedToMainComponent);
+        assertEquals(3, c.getNbConnectedComponents());
+        assertEquals(Set.of(1, 2, 3), c.getConnectedComponent(1));
+        assertEquals(Set.of(6), c.getConnectedComponent(6));
+        assertEquals(Set.of(4, 5), c.getConnectedComponent(4));
     }
 
     private static Stream<Arguments> provideNonRestrictedConnectivities() {

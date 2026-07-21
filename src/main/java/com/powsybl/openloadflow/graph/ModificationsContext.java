@@ -1,11 +1,15 @@
 /**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+ * Copyright (c) 2022-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.graph;
+
+import com.powsybl.commons.PowsyblException;
+import gnu.trove.map.hash.THashMap;
+import gnu.trove.set.hash.THashSet;
 
 import java.util.*;
 import java.util.function.Function;
@@ -17,6 +21,7 @@ import java.util.stream.Stream;
  */
 public class ModificationsContext<V, E> {
 
+    private final boolean computeComparisons;
     private final Deque<GraphModification<V, E>> modifications = new ArrayDeque<>();
     private final Function<V, Set<V>> verticesNotInMainComponentGetter;
     private Set<V> verticesNotInMainComponentBefore;
@@ -27,13 +32,16 @@ public class ModificationsContext<V, E> {
     private Map<E, AbstractEdgeModification<V, E>> edgeFirstModificationMap;
     private V mainComponentVertex;
 
-    public ModificationsContext(Function<V, Set<V>> verticesNotInMainComponentGetter, V mainComponentVertex) {
+    public ModificationsContext(boolean computeComparisons, Function<V, Set<V>> verticesNotInMainComponentGetter, V mainComponentVertex) {
+        this.computeComparisons = computeComparisons;
         this.mainComponentVertex = mainComponentVertex;
         this.verticesNotInMainComponentGetter = verticesNotInMainComponentGetter;
     }
 
     public void computeVerticesNotInMainComponentBefore() {
-        this.verticesNotInMainComponentBefore = verticesNotInMainComponentGetter.apply(mainComponentVertex);
+        if (computeComparisons) {
+            this.verticesNotInMainComponentBefore = verticesNotInMainComponentGetter.apply(mainComponentVertex);
+        }
     }
 
     public void add(GraphModification<V, E> graphModification) {
@@ -54,6 +62,10 @@ public class ModificationsContext<V, E> {
     }
 
     public Set<E> getEdgesRemovedFromMainComponent(GraphModel<V, E> graph) {
+        if (!computeComparisons) {
+            throw new PowsyblException("Cannot compute getEdgesRemovedFromMainComponent as requested by the last startTemporaryChanges!");
+        }
+
         if (edgesRemovedFromMainComponent == null) {
             edgesRemovedFromMainComponent = computeEdgesRemovedFromMainComponent(graph);
         }
@@ -61,9 +73,20 @@ public class ModificationsContext<V, E> {
     }
 
     public Set<V> getVerticesRemovedFromMainComponent() {
+        if (!computeComparisons) {
+            throw new PowsyblException("Cannot compute getVerticesRemovedFromMainComponent as requested by the last startTemporaryChanges!");
+        }
+
         if (verticesRemovedFromMainComponent == null) {
-            Set<V> result = new HashSet<>(getVerticesNotInMainComponentAfter());
-            result.removeAll(verticesNotInMainComponentBefore);
+            // result = after - before
+            Set<V> result = new THashSet<>();
+
+            for (V vertex : getVerticesNotInMainComponentAfter()) {
+                if (!verticesNotInMainComponentBefore.contains(vertex)) { // filter before doing the copy
+                    result.add(vertex);
+                }
+            }
+
             if (!result.isEmpty()) {
                 // remove vertices added in between
                 // note that there is no VertexRemove modification, thus we do not need to check if vertex is in the graph in the end
@@ -75,6 +98,10 @@ public class ModificationsContext<V, E> {
     }
 
     public Set<E> getEdgesAddedToMainComponent(GraphModel<V, E> graph) {
+        if (!computeComparisons) {
+            throw new PowsyblException("Cannot compute getEdgesAddedToMainComponent as requested by the last startTemporaryChanges!");
+        }
+
         if (edgesAddedToMainComponent == null) {
             edgesAddedToMainComponent = computeEdgesAddedToMainComponent(graph);
         }
@@ -82,10 +109,20 @@ public class ModificationsContext<V, E> {
     }
 
     public Set<V> getVerticesAddedToMainComponent() {
+        if (!computeComparisons) {
+            throw new PowsyblException("Cannot compute getVerticesAddedToMainComponent as requested by the last startTemporaryChanges!");
+        }
+
         if (verticesAddedToMainComponent == null) {
-            Set<V> result = new HashSet<>(verticesNotInMainComponentBefore);
+            // result = before - after
+            Set<V> result = new THashSet<>();
             Set<V> verticesNotInMainComponentAfter = getVerticesNotInMainComponentAfter();
-            result.removeAll(verticesNotInMainComponentAfter);
+            for (V vertex : verticesNotInMainComponentBefore) {
+                if (!verticesNotInMainComponentAfter.contains(vertex)) { // filter before doing the copy
+                    result.add(vertex);
+                }
+            }
+
             // add vertices added to main component in between
             // note that there is no VertexRemove modification, thus we do not need to check if vertex is in the graph before / in the end
             getAddedVertexStream().filter(addedVertex -> !verticesNotInMainComponentAfter.contains(addedVertex)).forEach(result::add);
@@ -100,7 +137,8 @@ public class ModificationsContext<V, E> {
 
     private Set<E> computeEdgesRemovedFromMainComponent(GraphModel<V, E> graph) {
         Set<V> verticesRemoved = getVerticesRemovedFromMainComponent();
-        Set<E> result = verticesRemoved.stream().map(graph::getNeighborEdgesOf).flatMap(Set::stream).collect(Collectors.toSet());
+        Set<E> result = verticesRemoved.stream().map(graph::getNeighborEdgesOf).flatMap(Set::stream)
+                .collect(Collectors.toCollection(THashSet::new));
 
         // We need to look in modifications to adjust the computation of the edges above, indeed:
         //  - result contains the edges which were added in the small components
@@ -125,7 +163,8 @@ public class ModificationsContext<V, E> {
     }
 
     private Set<E> computeEdgesAddedToMainComponent(GraphModel<V, E> graph) {
-        Set<E> result = getVerticesAddedToMainComponent().stream().map(graph::getNeighborEdgesOf).flatMap(Set::stream).collect(Collectors.toSet());
+        Set<E> result = getVerticesAddedToMainComponent().stream().map(graph::getNeighborEdgesOf).flatMap(Set::stream)
+                .collect(Collectors.toCollection(THashSet::new));
 
         // We need to look in modifications to adjust the computation of the edges above
         // Indeed result is missing the edges added in main component with an EdgeAdd modification
@@ -148,7 +187,7 @@ public class ModificationsContext<V, E> {
             edgeFirstModificationMap = modifications.stream()
                     .filter(AbstractEdgeModification.class::isInstance)
                     .map(m -> (AbstractEdgeModification<V, E>) m)
-                    .collect(Collectors.toMap(m -> m.e, m -> m, (m1, m2) -> m1));
+                    .collect(Collectors.toMap(m -> m.e, m -> m, (m1, m2) -> m1, THashMap::new));
         }
     }
 
@@ -163,11 +202,18 @@ public class ModificationsContext<V, E> {
     }
 
     public void setMainComponentVertex(V mainComponentVertex) {
-        invalidateComparisons();
+        if (computeComparisons) {
+            if (!isInMainComponentBefore(mainComponentVertex)) {
+                throw new PowsyblException("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes");
+            }
+
+            invalidateComparisons();
+        }
+
         this.mainComponentVertex = mainComponentVertex;
     }
 
-    public boolean isInMainComponentBefore(V vertex) {
+    private boolean isInMainComponentBefore(V vertex) {
         return !verticesNotInMainComponentBefore.contains(vertex);
     }
 }
