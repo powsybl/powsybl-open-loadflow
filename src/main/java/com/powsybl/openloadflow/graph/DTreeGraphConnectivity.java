@@ -213,9 +213,14 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     public static final class DTGraph<V, E> implements GraphModel<V, E> {
 
+        // map a vertex to a node in a spanning tree
         private final Map<V, DTNode> vertexToTreeNode = new HashMap<>();
+        // map an edge to an edge in a spanning tree
         private final Map<E, Edge> edges = new HashMap<>();
 
+        // the list of tree roots. Roots are maintained in a way such that
+        // the value of the attribute 'rootIndex' of the DTNode at index i is i.
+        // In other words: roots.get(i).rootIndex == i
         private final List<DTNode> roots = new ArrayList<>();
 
         private final AllComponentsView components = new AllComponentsView();
@@ -230,6 +235,13 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             return sum;
         }
 
+        /**
+         * Return the root of the tree in which {@code vertex} is and
+         * eventually reroot the tree if a new centroid is found.
+         *
+         * @param vertex the vertex whose tree root is to be returned.
+         * @return the root of the tree in which {@code vertex} is.
+         */
         DTNode rootOf(V vertex) {
             return vertexToTreeNode.get(vertex).findRootOptReroot();
         }
@@ -272,6 +284,26 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             return node;
         }
 
+        /**
+         * Insert a non tree edge between {@code nodeU} (whose depth is {@code depthU})
+         * and {@code nodeV} (whose depth is {@code depthV}). The two node must be in the
+         * same tree rooted at {@code root}.
+         * <p>
+         * If the difference of depth, delta, is less than two, the edge is inserted
+         * as a non-tree edge. Otherwise, assuming depthU < depthV, the delta-2 ancestor of
+         * {@code nodeU} is unlinked from the tree. Then {@code nodeU} and {@code nodeV} are
+         * linked with a tree edge. In this case, the inserted edge is in fact a tree edge
+         * and the method return {@code true}
+         * </p>
+         *
+         * @param root the root of the tree in which an edge is to be added.
+         * @param nodeU one endpoint of the edge to add.
+         * @param depthU the depth of {@code nodeU}.
+         * @param nodeV the other endpoint of the edge to add.
+         * @param depthV the depth of {@code nodeU}
+         * @param edge user data for the edge
+         * @return {@code true} if the edge inserted is a tree edge. This is true if |depthU - depthV| >= 2.
+         */
         private boolean insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, E edge) {
             DTNode deep;
             DTNode shallow;
@@ -293,16 +325,18 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 nodeV.nonTreeEdges.add(edge);
                 return false;
             } else {
-                DTNode i = deep;
+                // get the delta - 2 DTNode.
+                DTNode ancestor = deep;
                 for (int j = 0; j < delta - 2; j++) {
-                    i = i.parent;
+                    ancestor = ancestor.parent;
                 }
 
-                i.parent.nonTreeEdges.add(i.parentEdge);
-                i.nonTreeEdges.add(i.parentEdge);
-                edges.get(i.parentEdge).treeEdge = false;
+                // replace the edge between ancestor and its parent by a non tree edge
+                ancestor.parent.nonTreeEdges.add(ancestor.parentEdge);
+                ancestor.nonTreeEdges.add(ancestor.parentEdge);
+                edges.get(ancestor.parentEdge).treeEdge = false;
+                unlink(ancestor);
 
-                unlink(i);
                 // updating roots is useless because 'deep' will be
                 // connected to 'shallow' juste after.
                 deep.makeRoot(false);
@@ -311,6 +345,18 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             }
         }
 
+        /**
+         * Insert a tree edge between {@code nodeU} (in tree rooted at {@code rootU})
+         * and {@code nodeV} (in tree rooted at {@code rootV}).
+         * Assuming the size of rootU is less than the size of rootV, we simply
+         * make {@code nodeU} a root and link it with {@code nodeV}.
+         *
+         * @param rootU {@code nodeU} tree root
+         * @param nodeU one endpoint of the edge to add.
+         * @param rootV {@code nodeV} tree root
+         * @param nodeV the other endpoint of the edge to add.
+         * @param edge user data for the edge
+         */
         private void insertTreeEdge(DTNode rootU, DTNode nodeU, DTNode rootV, DTNode nodeV, E edge) {
             DTNode toRemove;
             if (rootU.size < rootV.size) {
@@ -347,6 +393,21 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             }
         }
 
+        /**
+         * Remove the tree edge between {@code nodeU} and {@code nodeV}.
+         * Assuming nodeU is a child of nodeV, this is a two steps process :
+         * <ol>
+         *     <li>Unlink nodeU from nodeV. This creates two trees with a smaller one called {@code small},</li>
+         *     <li>Search for a replacement edge and a potential new centroid by iterating over {@code small}.</li>
+         *     <ul>
+         *         <li>if one is found, it is a non-tree edge so it removed and then added as a tree edge</li>
+         *         <li>if none is found, fix the centroid property</li>
+         *     </ul>
+         * </ol>
+         *
+         * @param nodeU one endpoint of the edge to remove.
+         * @param nodeV the other endpoint of the edge to remove.
+         */
         private void removeTreeEdge(DTNode nodeU, DTNode nodeV) {
             DTNode child;
 
@@ -356,6 +417,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 child = nodeU;
             }
 
+            // unlink child from its parent
             DTNode otherTree = unlink(child);
             addRoot(child);
 
@@ -366,22 +428,26 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 small = otherTree;
             }
 
+            // try to reconnect them
             replace(small);
         }
 
         private void replace(DTNode rootSmall) {
             DTNode newRoot = null; // a potential new root in case no replacement edge is found
 
+            // iterate over the nodes of rootSmall using a BFS.
             ArrayDeque<DTNode> queue = new ArrayDeque<>();
             queue.offer(rootSmall);
 
             while (!queue.isEmpty()) {
                 DTNode n = queue.poll();
 
+                // search for a new centroid
                 if (n != rootSmall && n.size > rootSmall.size / 2) {
                     newRoot = n;
                 }
 
+                // search for a replacement edge
                 for (E nonTreeEdge : n.nonTreeEdges) {
                     Edge edge = edges.get(nonTreeEdge);
 
@@ -399,6 +465,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     }
                 }
 
+                // add all children to the queue
                 DTNode child = n.firstChild;
                 while (child != null) {
                     queue.add(child);
@@ -406,11 +473,18 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
             }
 
+            // fix centroid property
             if (newRoot != null) {
                 newRoot.makeRoot(true);
             }
         }
 
+        /**
+         * Remove a non tree edge between {@code nodeU} and {@code nodeV}.
+         * @param nodeU one endpoint of the edge to remove.
+         * @param nodeV the other endpoint of the edge to remove.
+         * @param edge the edge to remove.
+         */
         private void removeNonTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
             nodeU.nonTreeEdges.remove(edge);
             nodeV.nonTreeEdges.remove(edge);
