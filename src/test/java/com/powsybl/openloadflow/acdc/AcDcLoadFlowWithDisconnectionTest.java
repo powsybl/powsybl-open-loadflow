@@ -268,4 +268,139 @@ class AcDcLoadFlowWithDisconnectionTest {
         // Check voltages are in a realistic range
         network.getDcNodes().forEach(this::assertVoltageRealistic);
     }
+
+    /*
+     * AC-DC converter disconnection
+     */
+    @Test
+    void testAcDcConverterDisconnectionInAsymmetricalPointToPointConnection() {
+        /// When disconnecting the converter, the current in the DC line should be null
+
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+        // -- Disconnection on AC side --
+        network.getVoltageSourceConverter("conv23").disconnect();
+
+        // Run load flow
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check current is 0 in the DC system
+        assertEquals(0., network.getDcLine("dl34").getDcTerminal1().getI());
+
+        // -- Disconnection on DC side --
+        network.getVoltageSourceConverter("conv23").connect();
+        network.getVoltageSourceConverter("conv23").disconnectDc();
+
+        // Run load flow
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isFullyConverged());
+
+        // Check current is 0 in the DC system
+        assertEquals(0., network.getDcLine("dl34").getDcTerminal1().getI());
+    }
+
+    @Test
+    void testAcDcConverterDisconnectionInBipolarWithDMRPointToPointConnection() {
+        /// When disconnecting the converter, the current in the DC line at the disconnected pole (positive) should be
+        /// null, but the current should still pass through the negative and neutral pole, due to the second converter.
+
+        Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModel();
+        // -- Disconnection on AC side --
+        network.getVoltageSourceConverter("conv23p").disconnect();
+
+        // Run load flow
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check current is 0 in the positive pole
+        assertEquals(0., network.getDcLine("dl34p").getDcTerminal1().getI());
+        // Check the current still flows in the negative and neutral pole
+        assertNotEquals(0., network.getDcLine("dl34n").getDcTerminal1().getI());
+        assertNotEquals(0., network.getDcLine("dl3Gr").getDcTerminal1().getI());
+        assertNotEquals(0., network.getDcLine("dlG4r").getDcTerminal1().getI());
+
+        // -- Disconnection on DC side --
+        network.getVoltageSourceConverter("conv23p").connect();
+        network.getVoltageSourceConverter("conv23p").disconnectDc();
+
+        // Run load flow
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isFullyConverged());
+
+        // Check current is 0 in the positive pole
+        assertEquals(0., network.getDcLine("dl34p").getDcTerminal1().getI());
+        // Check the current still flows in the negative and neutral pole
+        assertNotEquals(0., network.getDcLine("dl34n").getDcTerminal1().getI());
+        assertNotEquals(0., network.getDcLine("dl3Gr").getDcTerminal1().getI());
+        assertNotEquals(0., network.getDcLine("dlG4r").getDcTerminal1().getI());
+    }
+
+    @Test
+    void testAcDcConverterDisconnectionInRigidBipolarPointToPointConnection() {
+        /// When disconnecting the converter, the current in the DC line at the disconnected pole (positive) should be
+        /// null, but the current should still pass through the negative, due to the second converter.
+
+        Network network = AcDcNetworkFactory.createBipolarModelWithoutMetallicReturn();
+        // -- Disconnection on AC side --
+        network.getVoltageSourceConverter("conv23p").disconnect();
+
+        // Run load flow
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check current is 0 in the positive pole
+        assertEquals(0., network.getDcLine("dl34p").getDcTerminal1().getI());
+        // Check the current still flows in the negative pole
+        assertNotEquals(0., network.getDcLine("dl34n").getDcTerminal1().getI());
+
+        // -- Disconnection on DC side --
+        network.getVoltageSourceConverter("conv23p").connect();
+        network.getVoltageSourceConverter("conv23p").disconnectDc();
+
+        // Run load flow
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isFullyConverged());
+
+        // Check current is 0 in the positive pole
+        assertEquals(0., network.getDcLine("dl34p").getDcTerminal1().getI());
+        // Check the current still flows in the negative pole
+        assertNotEquals(0., network.getDcLine("dl34n").getDcTerminal1().getI());
+    }
+
+    @Test
+    void testAcDcConverterDisconnectionLeadsInMtDcNetwork() {
+        /// When disconnecting the converter, the current in the DC line next to the converter should be null, but
+        /// the current should still pass through other DC lines.
+
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithThreeConverters();
+        // -- Disconnection on AC side --
+        network.getVoltageSourceConverter("conv45").disconnect();
+
+        // Run load flow
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check current is 0 in the DC line connected to the converter
+        assertEquals(0., network.getDcLine("dl4").getDcTerminal1().getI());
+        // Check the current still flows in the rest of the DC system
+        assertNotEquals(0., network.getDcLine("dl3").getDcTerminal1().getI());
+        assertNotEquals(0., network.getDcLine("dl7").getDcTerminal1().getI());
+
+        // -- Disconnection on DC side --
+        network.getVoltageSourceConverter("conv45").connect();
+        network.getVoltageSourceConverter("conv45").disconnectDc();
+
+        // Run load flow
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isFullyConverged());
+
+        // Check current is 0 in the DC line connected to the converter
+        assertEquals(0., network.getDcLine("dl4").getDcTerminal1().getI());
+        // Check the current still flows in the rest of the DC system
+        assertNotEquals(0., network.getDcLine("dl3").getDcTerminal1().getI());
+        assertNotEquals(0., network.getDcLine("dl7").getDcTerminal1().getI());
+    }
+
+    // TODO: add test if the disconnected converter causes to have no V_DC converter / a P_PCC converter without
+    //  connection to voltage reference
 }
