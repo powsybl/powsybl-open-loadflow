@@ -787,7 +787,8 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         assertEquals(200.0, operatorStrategyResult.getNetworkResult().getBranchResult("PS1").getP1(), DELTA_POWER);
         assertEquals(-200.0, operatorStrategyResult.getNetworkResult().getBranchResult("PS1").getP2(), DELTA_POWER);
         assertEquals(0, operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size());
-        // in fast dc mode, no branch result is created for disabled branches on one side
-        assertEquals(1, operatorStrategyResult.getNetworkResult().getBranchResults().size());
+        // in fast dc mode too, disabled-on-one-side branches are reported with NaN values, so both modes
+        // report the same monitored branch count
+        assertEquals(5, operatorStrategyResult.getNetworkResult().getBranchResults().size());
     }
 }

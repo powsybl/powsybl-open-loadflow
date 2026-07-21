@@ -19,7 +19,6 @@ import com.powsybl.security.results.ThreeWindingsTransformerResult;
 
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_1;
 import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_2;
@@ -56,12 +55,11 @@ public abstract class AbstractNetworkResult {
         this.dcPowerFactor = dcPowerFactor;
     }
 
-    protected void addResults(StateMonitor monitor, Consumer<LfBranch> branchConsumer, Predicate<LfBranch> isBranchDisabled,
+    protected void addResults(StateMonitor monitor, Consumer<LfBranch> branchConsumer,
                               Consumer<LfBus> busConsumer, Consumer<String> threeWindingsTransformerResultsConsumer) {
         Objects.requireNonNull(monitor);
         if (!monitor.getBranchIds().isEmpty()) {
             network.getBranches().stream()
-                    .filter(lfBranch -> !isBranchDisabled.test(lfBranch))
                     .forEach(lfBranch -> {
                         for (String originalId : lfBranch.getOriginalIds()) {
                             if (monitor.getBranchIds().contains(originalId)) {
@@ -75,13 +73,12 @@ public abstract class AbstractNetworkResult {
         if (!monitor.getVoltageLevelIds().isEmpty()) {
             network.getBuses().stream()
                     .filter(lfBus -> monitor.getVoltageLevelIds().contains(lfBus.getVoltageLevelId()))
-                    .filter(lfBus -> !lfBus.isDisabled())
                     .forEach(busConsumer);
         }
 
         if (!monitor.getThreeWindingsTransformerIds().isEmpty()) {
             monitor.getThreeWindingsTransformerIds().stream()
-                    .filter(id -> network.getBusById(LfStarBus.getId(id)) != null && !network.getBusById(LfStarBus.getId(id)).isDisabled())
+                    .filter(id -> network.getBusById(LfStarBus.getId(id)) != null)
                     .forEach(threeWindingsTransformerResultsConsumer);
         }
     }
