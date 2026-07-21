@@ -2317,7 +2317,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         List<List<String>> slackBusesIdList = List.of(List.of("b3_vl"), List.of("b3_vl", "b7_vl"), List.of("b3_vl", "b7_vl", "b10_vl"));
         // verify that for each list of slacks buses, fast dc sa runs only in component of first slack bus
-        slackBusesIdList.forEach(slackBusesId -> {
+        for (List<String> slackBusesId : slackBusesIdList) {
             openLoadFlowParameters.setSlackBusesIds(slackBusesId)
                     .setMaxSlackBusCount(slackBusesId.size());
             SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
@@ -2329,14 +2329,25 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
             assertEquals(12, postContingencyResult.getNetworkResult().getBranchResults().size());
 
             // verify flows on the branches
-            assertEquals(-1, postContingencyResult.getNetworkResult().getBranchResult("l12").getP1(), LoadFlowAssert.DELTA_POWER);
-            assertEquals(0, postContingencyResult.getNetworkResult().getBranchResult("l13").getP1(), LoadFlowAssert.DELTA_POWER);
-            assertEquals(1, postContingencyResult.getNetworkResult().getBranchResult("l23").getP1(), LoadFlowAssert.DELTA_POWER);
+            assertEquals(-1, postContingencyResult.getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
+            assertEquals(0, postContingencyResult.getNetworkResult().getBranchResult("l13").getP1(), DELTA_POWER);
+            assertEquals(1, postContingencyResult.getNetworkResult().getBranchResult("l23").getP1(), DELTA_POWER);
+            postContingencyResult.getNetworkResult().getBranchResults().stream()
+                    .filter(br -> !Set.of("l12", "l13", "l23").contains(br.getBranchId()))
+                    .forEach(br -> {
+                        assertTrue(Double.isNaN(br.getP1()));
+                        assertTrue(Double.isNaN(br.getQ1()));
+                        assertTrue(Double.isNaN(br.getI1()));
+                        assertTrue(Double.isNaN(br.getP2()));
+                        assertTrue(Double.isNaN(br.getQ2()));
+                        assertTrue(Double.isNaN(br.getI2()));
+                        assertTrue(Double.isNaN(br.getFlowTransfer()));
+                    });
 
             // verify active load and generation of other components have been lost
-            assertEquals(6, postContingencyResult.getConnectivityResult().getDisconnectedGenerationActivePower(), LoadFlowAssert.DELTA_POWER);
-            assertEquals(7, postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower(), LoadFlowAssert.DELTA_POWER);
-        });
+            assertEquals(6, postContingencyResult.getConnectivityResult().getDisconnectedGenerationActivePower(), DELTA_POWER);
+            assertEquals(7, postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower(), DELTA_POWER);
+        }
     }
 
     @Test
