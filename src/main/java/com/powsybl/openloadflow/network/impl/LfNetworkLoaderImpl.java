@@ -653,6 +653,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 addVoltageSourceConverter(lfNetwork, voltageSourceConverterImpl);
             }
             // lcc converter not implemented yet
+        } else {
+            // Remove previous load flow results (we don't want the user to believe this are results from the new load flow)
+            acDcConverter.unsetSolvedValues();
         }
     }
 

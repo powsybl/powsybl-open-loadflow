@@ -991,7 +991,7 @@ class AcDcLoadFlowTest {
 
         // Run load flow
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("At least one AC/DC converter control mode must be V_DC in each DC component, but DC component 1 does not have any", e5.getCause().getMessage());
+        assertEquals("At least one AC/DC converter control mode must be V_DC or P_PCC_DROOP in each DC component, but DC component 1 does not have any", e5.getCause().getMessage());
     }
 
     @Test

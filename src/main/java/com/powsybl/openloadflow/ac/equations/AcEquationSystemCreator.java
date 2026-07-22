@@ -963,7 +963,6 @@ public class AcEquationSystemCreator {
                                                 SingleEquationTerm<AcVariableType, AcEquationType> closedP2, SingleEquationTerm<AcVariableType, AcEquationType> closedI2,
                                                 SingleEquationTerm<AcVariableType, AcEquationType> openP1, SingleEquationTerm<AcVariableType, AcEquationType> openI1,
                                                 SingleEquationTerm<AcVariableType, AcEquationType> openP2, SingleEquationTerm<AcVariableType, AcEquationType> openI2) {
-        // FIXME include open equations ?
         if (closedI1 != null) {
             equationSystem.getEquation(dcBus1.getNum(), AcEquationType.DC_BUS_TARGET_I).orElseThrow()
                     .addTerm(closedI1);
