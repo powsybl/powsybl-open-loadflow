@@ -543,10 +543,10 @@ class ConnectivityTest {
         //  1---2   6   3   4---5
         // |_|
 
-        assertEquals(Set.of(e16), c.getEdgesAddedToMainComponent());
-        assertEquals(Set.of(6), c.getVerticesAddedToMainComponent());
-        assertEquals(Set.of(3), c.getVerticesRemovedFromMainComponent());
-        assertEquals(Set.of(e23, e31), c.getEdgesRemovedFromMainComponent());
+        assertEquals(Set.of(e16, e12, e11), c.getEdgesAddedToMainComponent());
+        assertEquals(Set.of(1, 2), c.getVerticesAddedToMainComponent());
+        assertEquals(Set.of(), c.getVerticesRemovedFromMainComponent());
+        assertEquals(Set.of(), c.getEdgesRemovedFromMainComponent());
         assertEquals(3, c.getNbConnectedComponents());
         assertEquals(Set.of(1, 2, 6), c.getConnectedComponent(1));
         assertEquals(Set.of(3), c.getConnectedComponent(3));
