@@ -1523,6 +1523,60 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
     }
 
     @Test
+    void testFastRestartWithCacheScope() {
+        NetworkCache.DC_SENSI_INSTANCE.clear();
+
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(sensiParameters.getLoadFlowParameters())
+                .setNetworkCacheEnabled(true);
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().toList(),
+                network.getLineStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+
+        // no scope: historical behaviour, a single entry for the network and its working variant
+        assertEquals(0, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors.subList(0, 1), runParameters);
+        assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertTrue(NetworkCache.DC_SENSI_INSTANCE.findEntry(network).isPresent());
+
+        // a scope gives its own entry, on the very same network and working variant, without evicting the unscoped one
+        parametersExt.setNetworkCacheScope("worker-0");
+        result = sensiRunner.run(network, factors.subList(0, 1), runParameters);
+        assertEquals(2, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        // another scope, another entry
+        parametersExt.setNetworkCacheScope("worker-1");
+        result = sensiRunner.run(network, factors.subList(0, 1), runParameters);
+        assertEquals(3, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        // re-running on an already known scope reuses its entry instead of creating a new one
+        parametersExt.setNetworkCacheScope("worker-0");
+        result = sensiRunner.run(network, factors.subList(1, 2), runParameters);
+        assertEquals(3, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        // entries are looked up by scope
+        assertEquals("worker-0", NetworkCache.DC_SENSI_INSTANCE.findEntry(network, "worker-0").orElseThrow().getCacheScope());
+        assertEquals("worker-1", NetworkCache.DC_SENSI_INSTANCE.findEntry(network, "worker-1").orElseThrow().getCacheScope());
+        assertNull(NetworkCache.DC_SENSI_INSTANCE.findEntry(network).orElseThrow().getCacheScope());
+        assertTrue(NetworkCache.DC_SENSI_INSTANCE.findEntry(network, "unknown").isEmpty());
+
+        // a scope is not a model parameter: it must never evict the entry of another scope
+        parametersExt.setNetworkCacheScope("worker-1");
+        sensiRunner.run(network, factors.subList(0, 1), runParameters);
+        assertEquals(3, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+    }
+
+    @Test
     void testDcSensiInput() {
         LoadFlowParameters parameters = new LoadFlowParameters();
         NetworkCache.DcSensiInput input = new NetworkCache.DcSensiInput(parameters, Set.of("a"));

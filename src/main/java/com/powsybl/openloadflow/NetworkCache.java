@@ -84,6 +84,11 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         String getWorkingVariantId();
 
+        /**
+         * Scope this entry belongs to, or null when the caller did not ask for cache partitioning.
+         */
+        String getCacheScope();
+
         void setVariantCleaner(LfNetworkList.VariantCleaner variantCleaner);
 
         List<V> getValues();
@@ -307,6 +312,9 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         private final WeakReference<Network> networkRef;
 
         private final String workingVariantId;
+
+        private final String cacheScope;
+
         private LfNetworkList.VariantCleaner variantCleaner;
 
         private final I input;
@@ -322,6 +330,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             this.networkRef = new WeakReference<>(network);
             this.workingVariantId = network.getVariantManager().getWorkingVariantId();
             this.input = Objects.requireNonNull(input);
+            this.cacheScope = readCacheScope(input);
             network.addListener(this);
         }
 
@@ -333,6 +342,11 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         @Override
         public String getWorkingVariantId() {
             return workingVariantId;
+        }
+
+        @Override
+        public String getCacheScope() {
+            return cacheScope;
         }
 
         @Override
@@ -928,7 +942,10 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 // release all resources
                 entry.close();
                 it.remove();
-                LOGGER.info("Dead network removed from cache ({} remains)", entries.size());
+                // the network is gone, it cannot be named anymore, but the scope tells which entry has been released
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("Dead network removed from cache{} ({} remains)", describeScope(" for ", entry.getCacheScope()), entries.size());
+                }
             }
         }
     }
@@ -943,23 +960,57 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
     }
 
+    /**
+     * Scope a cache entry is partitioned by, taken from {@link OpenLoadFlowParameters#getNetworkCacheScope()}.
+     * Null when no scope has been set, which is the historical behaviour: one entry per network and variant.
+     */
+    private static String readCacheScope(Input<?> input) {
+        return OpenLoadFlowParameters.get(input.getLoadFlowParameters()).getNetworkCacheScope();
+    }
+
+    /**
+     * Finds the unscoped entry, i.e. the one created by a caller that did not set a network cache scope.
+     */
     public Optional<Entry<I, V>> findEntry(Network network) {
+        return findEntry(network, null);
+    }
+
+    public Optional<Entry<I, V>> findEntry(Network network, String cacheScope) {
         String variantId = network.getVariantManager().getWorkingVariantId();
         return entries.stream()
-                .filter(e -> e.getNetworkRef().get() == network && e.getWorkingVariantId().equals(variantId))
+                .filter(e -> e.getNetworkRef().get() == network
+                        && e.getWorkingVariantId().equals(variantId)
+                        && Objects.equals(e.getCacheScope(), cacheScope))
                 .findFirst();
+    }
+
+    /**
+     * Describes the entry a message is about. The scope is mentioned only when the caller has set one, so that the
+     * logs of the callers that do not partition the cache stay as they were.
+     * <p>
+     * Callers must guard their logging with {@code LOGGER.isInfoEnabled()}: this builds a string eagerly.
+     */
+    private static String describeEntry(Network network, String cacheScope) {
+        return "network '" + network.getId() + "' and variant '" + network.getVariantManager().getWorkingVariantId() + "'"
+                + describeScope(" and ", cacheScope);
+    }
+
+    /** Empty when there is no scope, so that a caller that does not partition the cache gets its former message. */
+    private static String describeScope(String connector, String cacheScope) {
+        return cacheScope == null ? "" : connector + "scope '" + cacheScope + "'";
     }
 
     public Entry<I, V> get(Network network, Input<I> input) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(input);
 
+        String cacheScope = readCacheScope(input);
         Entry<I, V> entry;
         lock.lock();
         try {
             evictDeadEntries();
 
-            entry = findEntry(network).orElse(null);
+            entry = findEntry(network, cacheScope).orElse(null);
 
             // invalid cache if input has changed
             if (entry != null) {
@@ -969,8 +1020,10 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                     entry.close();
                     entries.remove(entry);
                     entry = null;
-                    LOGGER.info("Network cache evicted for network '{}' and variant '{}' because of input change (reason={})",
-                            network.getId(), network.getVariantManager().getWorkingVariantId(), reason);
+                    if (LOGGER.isInfoEnabled()) {
+                        LOGGER.info("Network cache evicted for {} because of input change (reason={})",
+                                describeEntry(network, cacheScope), reason);
+                    }
                 }
             }
 
@@ -978,8 +1031,10 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 entry = entryFactory.apply(network, input.copy());
                 entries.add(entry);
 
-                LOGGER.info("Network cache created for network '{}' and variant '{}'",
-                        network.getId(), network.getVariantManager().getWorkingVariantId());
+                if (LOGGER.isInfoEnabled()) {
+                    LOGGER.info("Network cache created for {} ({} entries in cache)",
+                            describeEntry(network, cacheScope), entries.size());
+                }
 
                 return entry;
             }
@@ -989,13 +1044,16 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         // restart from previous state
         if (entry.getValues() != null) {
-            LOGGER.info("Network cache reused for network '{}' and variant '{}'",
-                    network.getId(), network.getVariantManager().getWorkingVariantId());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Network cache reused for {}", describeEntry(network, cacheScope));
+            }
 
             entry.restart();
         } else {
-            LOGGER.info("Network cache cannot be reused for network '{}' and variant '{}' because invalided (reasons={})",
-                    network.getId(), network.getVariantManager().getWorkingVariantId(), entry.getInvalidationReasons());
+            if (LOGGER.isInfoEnabled()) {
+                LOGGER.info("Network cache cannot be reused for {} because invalided (reasons={})",
+                        describeEntry(network, cacheScope), entry.getInvalidationReasons());
+            }
             entry.clearInvalidationReasons();
         }
 
