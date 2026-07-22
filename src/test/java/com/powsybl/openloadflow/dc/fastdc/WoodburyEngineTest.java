@@ -18,6 +18,7 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
+import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.LfAction;
@@ -294,6 +295,30 @@ class WoodburyEngineTest {
                 "a pure phase-shift tap action must not produce a Woodbury element");
     }
 
+    @Test
+    void testResistanceOnlyTapActionDependsOnDcApproximationType() {
+        // Turn PS1 into a resistance-only tap changer: a non-zero base resistance, the same reactance and ratio on
+        // every step, and only the resistance varying from one tap to the next (effective R = 15 on tap 0, 10 on
+        // tap 1, while X = 100 and rho = 1 on both).
+        pstNetwork.getTwoWindingsTransformer("PS1").setR(10);
+        PhaseTapChanger ptc = pstNetwork.getTwoWindingsTransformer("PS1").getPhaseTapChanger();
+        ptc.getStep(0).setX(0).setR(50);
+        ptc.getStep(1).setX(0).setR(0);
+
+        // IGNORE_R (default): the DC power ignores the resistance, so a resistance-only tap change leaves the power
+        // unchanged. It must not produce a Woodbury element, otherwise its 1 / (oldPower - newPower) diagonal term
+        // would be infinite and corrupt the alpha solve.
+        dcParameters.getEquationSystemCreationParameters().setDcApproximationType(DcApproximationType.IGNORE_R);
+        assertTrue(computedTapChangeElements(pstNetwork, 1, 0).isEmpty(),
+                "a resistance-only tap action must not produce a Woodbury element when the resistance is ignored");
+
+        // IGNORE_G: the DC power depends on the resistance, so the same tap change now modifies the power and must
+        // produce a Woodbury element.
+        dcParameters.getEquationSystemCreationParameters().setDcApproximationType(DcApproximationType.IGNORE_G);
+        assertFalse(computedTapChangeElements(pstNetwork, 1, 0).isEmpty(),
+                "a resistance-only tap action must produce a Woodbury element when the resistance matters");
+    }
+
     private Map<LfAction, List<ComputedElement>> computedTapChangeElements(Network network, int fromTap, int toTap) {
         network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(fromTap);
         LfTopoConfig topoConfig = new LfTopoConfig();
@@ -304,7 +329,8 @@ class WoodburyEngineTest {
             new DcLoadFlowEngine(context).run();
             Map<String, LfAction> lfActions = LfActionUtils.createLfActions(lfNetwork,
                     Set.of(new PhaseTapChangerTapPositionAction("pst", "PS1", false, toTap)), network);
-            return ComputedElement.createActionElementsIndexByLfAction(lfActions, context.getEquationSystem());
+            return ComputedElement.createActionElementsIndexByLfAction(lfActions, context.getEquationSystem(),
+                    context.getParameters().getEquationSystemCreationParameters());
         }
     }
 }

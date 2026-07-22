@@ -16,7 +16,10 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
+import com.powsybl.openloadflow.dc.equations.AbstractClosedBranchDcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
+import com.powsybl.openloadflow.dc.equations.DcApproximationType;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.Equation;
@@ -133,9 +136,10 @@ public interface ComputedElement {
         return elementsStates;
     }
 
-    static Map<LfAction, List<ComputedElement>> createActionElementsIndexByLfAction(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+    static Map<LfAction, List<ComputedElement>> createActionElementsIndexByLfAction(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                                                                    DcEquationSystemCreationParameters creationParameters) {
         Map<LfAction, List<ComputedElement>> computedElements = lfActionById.values().stream()
-            .flatMap(lfAction -> computeActionElementsIndexByLfAction(lfAction, equationSystem))
+            .flatMap(lfAction -> computeActionElementsIndexByLfAction(lfAction, equationSystem, creationParameters))
             .filter(e -> e.getValue().stream().filter(b -> b.getLfBranchEquation() == null).findAny().isEmpty())
             .collect(Collectors.toMap(
                 Map.Entry::getKey,
@@ -148,7 +152,8 @@ public interface ComputedElement {
     }
 
     private static Stream<Map.Entry<LfAction, List<ComputedElement>>> computeActionElementsIndexByLfAction(LfAction lfAction,
-                                                                                                    EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+                                                                                                    EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                                                                                    DcEquationSystemCreationParameters creationParameters) {
         List<ComputedElement> elements = new ArrayList<>();
         switch (lfAction.getType()) {
             case SwitchAction.NAME, TerminalsConnectionAction.NAME -> {
@@ -164,7 +169,7 @@ public interface ComputedElement {
                 // a pure phase shift (no impedance/ratio change) does not modify the branch power and is fully
                 // handled through the target vector: it must not produce a Woodbury element, otherwise its
                 // diagonal term (1 / (oldPower - newPower)) would be infinite and corrupt the alpha solve
-                if (changesBranchPower(change)) {
+                if (changesBranchPower(change, creationParameters)) {
                     elements.add(new ComputedTapPositionChangeElement(change, equationSystem));
                 }
             }
@@ -179,16 +184,22 @@ public interface ComputedElement {
     }
 
     /**
-     * Returns true if the tap position change modifies the branch power, i.e. its impedance or ratio. In DC the branch
-     * power only depends on the resistance, the reactance and the first side ratio (see
-     * {@link com.powsybl.openloadflow.dc.equations.AbstractClosedBranchDcFlowEquationTerm#computePower}). A pure phase
-     * shift leaves the power unchanged and so does not require a Woodbury element.
+     * Returns true if the tap position change modifies the branch power. The Woodbury element built for such a change
+     * has a diagonal term {@code 1 / (oldPower - newPower)} (see {@link WoodburyEngine}), so it must only be created
+     * when the power actually changes, otherwise that term is infinite and corrupts the alpha solve. The power is
+     * evaluated with the exact same inputs as the diagonal, i.e. through
+     * {@link AbstractClosedBranchDcFlowEquationTerm#computePower} with the configured DC approximation type and
+     * transformer ratio usage: depending on those, the power ignores the resistance (IGNORE_R) or the first side ratio
+     * (transformer ratio not used), so comparing the pi model resistance, reactance and ratio directly would wrongly
+     * flag as power changes some tap changes that leave the power unchanged (e.g. a pure phase shift, but also a
+     * resistance-only change in IGNORE_R).
      */
-    private static boolean changesBranchPower(TapPositionChange change) {
+    private static boolean changesBranchPower(TapPositionChange change, DcEquationSystemCreationParameters creationParameters) {
         PiModel oldPiModel = change.getBranch().getPiModel();
         PiModel newPiModel = change.getNewPiModel();
-        return oldPiModel.getR() != newPiModel.getR()
-                || oldPiModel.getX() != newPiModel.getX()
-                || oldPiModel.getR1() != newPiModel.getR1();
+        boolean useTransformerRatio = creationParameters.isUseTransformerRatio();
+        DcApproximationType dcApproximationType = creationParameters.getDcApproximationType();
+        return AbstractClosedBranchDcFlowEquationTerm.computePower(useTransformerRatio, dcApproximationType, oldPiModel)
+                != AbstractClosedBranchDcFlowEquationTerm.computePower(useTransformerRatio, dcApproximationType, newPiModel);
     }
 }
