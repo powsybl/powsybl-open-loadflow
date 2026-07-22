@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+ * Copyright (c) 2022-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -89,8 +89,8 @@ public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>
     }
 
     @Override
-    public void startTemporaryChanges() {
-        ModificationsContext<V, E> modificationsContext = new ModificationsContext<>(this::getVerticesNotInMainComponent, defaultMainComponentVertex);
+    public void startTemporaryChanges(boolean computeComparisons) {
+        ModificationsContext<V, E> modificationsContext = new ModificationsContext<>(computeComparisons, this::getVerticesNotInMainComponent, defaultMainComponentVertex);
         modificationsContexts.add(modificationsContext);
         modificationsContext.computeVerticesNotInMainComponentBefore();
     }
@@ -202,9 +202,6 @@ public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>
         if (!modificationsContexts.isEmpty()) {
             var modificationsContext = modificationsContexts.peekLast();
             modificationsContext.setMainComponentVertex(mainComponentVertex);
-            if (!modificationsContext.isInMainComponentBefore(mainComponentVertex)) {
-                throw new PowsyblException("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes");
-            }
         }
         defaultMainComponentVertex = mainComponentVertex;
     }
