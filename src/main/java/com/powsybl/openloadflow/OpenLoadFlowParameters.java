@@ -72,6 +72,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE = true;
 
+    public static final String NETWORK_CACHE_SCOPE_DEFAULT_VALUE = null;
+
     public static final boolean VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_DEFAULT_VALUE = true;
 
     public static final boolean GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE = false;
@@ -217,6 +219,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final String LOW_IMPEDANCE_THRESHOLD_PARAM_NAME = "lowImpedanceThreshold";
 
     public static final String NETWORK_CACHE_ENABLED_PARAM_NAME = "networkCacheEnabled";
+
+    public static final String NETWORK_CACHE_SCOPE_PARAM_NAME = "networkCacheScope";
 
     public static final String SVC_VOLTAGE_MONITORING_PARAM_NAME = "svcVoltageMonitoring";
 
@@ -464,6 +468,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(NETWORK_CACHE_ENABLED_PARAM_NAME, ParameterType.BOOLEAN,
             "Network cache enabled",
             LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, FAST_RESTART_CATEGORY_KEY),
+        new Parameter(NETWORK_CACHE_SCOPE_PARAM_NAME, ParameterType.STRING,
+            "Network cache scope, to get several independent cache entries for a same network and variant (null means a single entry per network and variant)",
+            NETWORK_CACHE_SCOPE_DEFAULT_VALUE, null, ParameterScope.TECHNICAL, FAST_RESTART_CATEGORY_KEY),
         new Parameter(SVC_VOLTAGE_MONITORING_PARAM_NAME, ParameterType.BOOLEAN,
             "SVC voltage monitoring",
             SVC_VOLTAGE_MONITORING_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
@@ -748,6 +755,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private ReactiveRangeCheckMode reactiveRangeCheckMode = LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
 
     private boolean networkCacheEnabled = LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE;
+
+    private String networkCacheScope = NETWORK_CACHE_SCOPE_DEFAULT_VALUE;
 
     private boolean svcVoltageMonitoring = SVC_VOLTAGE_MONITORING_DEFAULT_VALUE;
 
@@ -1209,6 +1218,22 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setNetworkCacheEnabled(boolean networkCacheEnabled) {
         this.networkCacheEnabled = networkCacheEnabled;
+        return this;
+    }
+
+    public String getNetworkCacheScope() {
+        return networkCacheScope;
+    }
+
+    /**
+     * Partitions the network cache: entries are looked up by network, working variant and scope. A null scope
+     * (the default) keeps the historical behaviour of a single entry per network and variant.
+     * <p>
+     * Callers running concurrent computations on a same network and variant must give each thread its own scope,
+     * otherwise they would share a single entry, hence a single mutable {@link com.powsybl.openloadflow.network.LfNetwork}.
+     */
+    public OpenLoadFlowParameters setNetworkCacheScope(String networkCacheScope) {
+        this.networkCacheScope = networkCacheScope;
         return this;
     }
 
@@ -1760,6 +1785,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             .ifPresent(this::setReactiveRangeCheckMode);
         config.getOptionalDoubleProperty(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME).ifPresent(this::setLowImpedanceThreshold);
         config.getOptionalBooleanProperty(NETWORK_CACHE_ENABLED_PARAM_NAME).ifPresent(this::setNetworkCacheEnabled);
+        config.getOptionalStringProperty(NETWORK_CACHE_SCOPE_PARAM_NAME).ifPresent(this::setNetworkCacheScope);
         config.getOptionalBooleanProperty(SVC_VOLTAGE_MONITORING_PARAM_NAME).ifPresent(this::setSvcVoltageMonitoring);
         config.getOptionalEnumProperty(STATE_VECTOR_SCALING_MODE_PARAM_NAME, StateVectorScalingMode.class)
             .ifPresent(this::setStateVectorScalingMode);
@@ -1895,6 +1921,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setLowImpedanceThreshold(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(NETWORK_CACHE_ENABLED_PARAM_NAME))
                 .ifPresent(prop -> this.setNetworkCacheEnabled(Boolean.parseBoolean(prop)));
+        // network cache scope is nullable
+        if (properties.containsKey(NETWORK_CACHE_SCOPE_PARAM_NAME)) {
+            setNetworkCacheScope(properties.get(NETWORK_CACHE_SCOPE_PARAM_NAME));
+        }
         Optional.ofNullable(properties.get(SVC_VOLTAGE_MONITORING_PARAM_NAME))
                 .ifPresent(prop -> this.setSvcVoltageMonitoring(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(STATE_VECTOR_SCALING_MODE_PARAM_NAME))
@@ -2043,6 +2073,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, reactiveRangeCheckMode);
         map.put(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME, lowImpedanceThreshold);
         map.put(NETWORK_CACHE_ENABLED_PARAM_NAME, networkCacheEnabled);
+        map.put(NETWORK_CACHE_SCOPE_PARAM_NAME, networkCacheScope);
         map.put(SVC_VOLTAGE_MONITORING_PARAM_NAME, svcVoltageMonitoring);
         map.put(STATE_VECTOR_SCALING_MODE_PARAM_NAME, stateVectorScalingMode);
         map.put(MAX_SLACK_BUS_COUNT_PARAM_NAME, maxSlackBusCount);
@@ -2471,6 +2502,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getReactiveRangeCheckMode() == extension2.getReactiveRangeCheckMode() &&
                 extension1.getLowImpedanceThreshold() == extension2.getLowImpedanceThreshold() &&
                 extension1.isNetworkCacheEnabled() == extension2.isNetworkCacheEnabled() &&
+                Objects.equals(extension1.getNetworkCacheScope(), extension2.getNetworkCacheScope()) &&
                 extension1.isSvcVoltageMonitoring() == extension2.isSvcVoltageMonitoring() &&
                 extension1.getStateVectorScalingMode() == extension2.getStateVectorScalingMode() &&
                 extension1.getMaxSlackBusCount() == extension2.getMaxSlackBusCount() &&
@@ -2560,6 +2592,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReactiveRangeCheckMode(extension.getReactiveRangeCheckMode())
                 .setLowImpedanceThreshold(extension.getLowImpedanceThreshold())
                 .setNetworkCacheEnabled(extension.isNetworkCacheEnabled())
+                .setNetworkCacheScope(extension.getNetworkCacheScope())
                 .setSvcVoltageMonitoring(extension.isSvcVoltageMonitoring())
                 .setStateVectorScalingMode(extension.getStateVectorScalingMode())
                 .setMaxSlackBusCount(extension.getMaxSlackBusCount())
