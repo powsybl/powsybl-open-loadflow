@@ -63,7 +63,7 @@ public class ModificationsContext<V, E> {
 
     public Set<E> getEdgesRemovedFromMainComponent(GraphModel<V, E> graph) {
         if (!computeComparisons) {
-            throw new PowsyblException("Cannot compute getEdgesRemovedFromMainComponent as requested by the last startTemporaryChanges!");
+            throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
         }
 
         if (edgesRemovedFromMainComponent == null) {
@@ -74,7 +74,7 @@ public class ModificationsContext<V, E> {
 
     public Set<V> getVerticesRemovedFromMainComponent() {
         if (!computeComparisons) {
-            throw new PowsyblException("Cannot compute getVerticesRemovedFromMainComponent as requested by the last startTemporaryChanges!");
+            throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
         }
 
         if (verticesRemovedFromMainComponent == null) {
@@ -99,7 +99,7 @@ public class ModificationsContext<V, E> {
 
     public Set<E> getEdgesAddedToMainComponent(GraphModel<V, E> graph) {
         if (!computeComparisons) {
-            throw new PowsyblException("Cannot compute getEdgesAddedToMainComponent as requested by the last startTemporaryChanges!");
+            throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
         }
 
         if (edgesAddedToMainComponent == null) {
@@ -110,7 +110,7 @@ public class ModificationsContext<V, E> {
 
     public Set<V> getVerticesAddedToMainComponent() {
         if (!computeComparisons) {
-            throw new PowsyblException("Cannot compute getVerticesAddedToMainComponent as requested by the last startTemporaryChanges!");
+            throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
         }
 
         if (verticesAddedToMainComponent == null) {
