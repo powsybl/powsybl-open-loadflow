@@ -43,13 +43,12 @@ class AcDcLoadFlowWithDisconnectionTest {
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
-    private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
     void setUp() {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters();
-        parametersExt = OpenLoadFlowParameters.create(parameters).setAcDcNetwork(true);
+        OpenLoadFlowParameters.create(parameters).setAcDcNetwork(true);
     }
 
     /**
@@ -61,31 +60,6 @@ class AcDcLoadFlowWithDisconnectionTest {
         // Tolerance is the nominal voltage itself. So this includes real voltage equal to zero or to half of the
         // nominal voltage which are quite common values. But unrealistic values will fail.
         assertEquals(dcNode.getNominalV(), abs(dcNode.getV()), dcNode.getNominalV());
-    }
-
-    /*
-     * DC ground disconnection
-     */
-
-    @Test
-    void disconnectedDcGroundDoesNotImposeVoltage() {
-        Network network = AcDcNetworkFactory.createAcDcNetwork1();
-        network.getDcGround("dg3").getDcTerminal().disconnect();
-
-        LoadFlowResult result1 = loadFlowRunner.run(network, parameters);
-        assertTrue(result1.isFullyConverged());
-
-        assertNotEquals(0., network.getDcNode("dnDummy3").getV());
-        network.getDcNodes().forEach(this::assertVoltageRealistic);
-
-        network.getDcGround("dg3").getDcTerminal().setConnected(true);
-        network.getDcGround("dg4").getDcTerminal().disconnect();
-
-        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
-        assertTrue(result2.isFullyConverged());
-
-        assertNotEquals(0., network.getDcNode("dnDummy4").getV());
-        network.getDcNodes().forEach(this::assertVoltageRealistic);
     }
 
     /*
@@ -140,10 +114,9 @@ class AcDcLoadFlowWithDisconnectionTest {
     @ParameterizedTest
     @MethodSource("sidesToDisconnectAndExpectedCurrent")
     void testDcLineDisconnectionAsymmetricalMonopole(List<TwoSides> sidesToDisconnect, double expectedCurrent) {
-        // Removing the DC line creates two separated DC components.
-        // It is expected that :
-        // - The DC current in the line is zero
-        // - The only power that goes into VSC is to compensate their idle losses
+        /// Removing the DC line creates two separated DC components. It is expected that :
+        /// - The DC current in the line is zero
+        /// - The only power that goes into VSC is to compensate their idle losses
         Network network = AcDcNetworkFactory.createAcDcNetwork1();
         network.getDcLine("dl34").getDcTerminals().stream()
             .filter(dcTerminal -> sidesToDisconnect.contains(dcTerminal.getSide()))
@@ -162,13 +135,15 @@ class AcDcLoadFlowWithDisconnectionTest {
     @ParameterizedTest
     @MethodSource("sidesToDisconnectAndExpectedCurrent")
     void testDcLineDisconnectionRigidBipole(List<TwoSides> sidesToDisconnect, double expectedCurrent) {
-        // Removing the DC line keeps one DC component
-        // It is expected that no current flows into the disconnected line
+        /// Removing the DC line keeps one DC component because there is another DC line in parallel.
+        /// It is expected that no current flows into the disconnected line and in the two converters connected to this
+        /// line
         Network network = AcDcNetworkFactory.createBipolarModelWithoutMetallicReturn();
         network.getDcLine("dl34p").getDcTerminals().stream()
             .filter(dcTerminal -> sidesToDisconnect.contains(dcTerminal.getSide()))
             .forEach(DcTerminal::disconnect);
-        // FIXME why do we need to change control mode?
+
+        // We also need to change conv23p control mode, otherwise the DC voltage of dn3p would not be imposed.
         network.getVoltageSourceConverter("conv23p").setTargetVdc(200).setControlMode(AcDcConverter.ControlMode.V_DC);
 
         // Run load flow
@@ -177,7 +152,7 @@ class AcDcLoadFlowWithDisconnectionTest {
 
         checkResult(network, "dl34p", expectedCurrent, List.of(), List.of("conv23p", "conv45p"));
 
-        // Check current in the connected DC line
+        // Check current flows in the connected DC line
         assertNotEquals(0., network.getDcLine("dl34n").getDcTerminal1().getI(), 1e-3);
         assertNotEquals(0., network.getDcLine("dl34n").getDcTerminal2().getI(), 1e-3);
     }
@@ -185,13 +160,15 @@ class AcDcLoadFlowWithDisconnectionTest {
     @ParameterizedTest
     @MethodSource("sidesToDisconnectAndExpectedCurrent")
     void testDcLineDisconnectionBipoleWithMetallicReturn(List<TwoSides> sidesToDisconnect, double expectedCurrent) {
-        // Removing the DC line keeps one DC component
-        // It is expected that no current flows into the disconnected line
+        /// Removing the DC line keeps one DC component because there are other DC lines in parallel.
+        /// It is expected that no current flows into the disconnected line and in the two converters connected to this
+        /// line
         Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModel();
         network.getDcLine("dl34p").getDcTerminals().stream()
             .filter(dcTerminal -> sidesToDisconnect.contains(dcTerminal.getSide()))
             .forEach(DcTerminal::disconnect);
-        // FIXME why do we need to change control mode?
+
+        // We also need to change conv23p control mode, otherwise the DC voltage of dn3p would not be imposed.
         network.getVoltageSourceConverter("conv23p").setTargetVdc(200).setControlMode(AcDcConverter.ControlMode.V_DC);
 
         // Run load flow
@@ -200,7 +177,7 @@ class AcDcLoadFlowWithDisconnectionTest {
 
         checkResult(network, "dl34p", expectedCurrent, List.of(), List.of("conv23p", "conv45p"));
 
-        // Check current in the connected DC line
+        // Check current flows in the other DC lines
         assertNotEquals(0., network.getDcLine("dl3Gr").getDcTerminal1().getI(), 1e-3);
         assertNotEquals(0., network.getDcLine("dl3Gr").getDcTerminal2().getI(), 1e-3);
         assertNotEquals(0., network.getDcLine("dlG4r").getDcTerminal1().getI(), 1e-3);
@@ -212,44 +189,53 @@ class AcDcLoadFlowWithDisconnectionTest {
     @ParameterizedTest
     @MethodSource("sidesToDisconnectAndExpectedCurrent")
     void testDcLineDisconnectionBipoleWithMetallicReturnDoubleConverter(List<TwoSides> sidesToDisconnect, double expectedCurrent) {
-        // Removing the DC line keeps one DC component
-        // It is expected that no current flows into the disconnected line
+        /// Removing the DC line keeps one DC component because there are other DC lines in parallel.
+        /// It is expected that no current flows into the disconnected line.
         Network network = AcDcNetworkFactory.createFourConvertersBipole("test", false, false, false, false);
         network.getDcLine("dl14").getDcTerminals().stream()
             .filter(dcTerminal -> sidesToDisconnect.contains(dcTerminal.getSide()))
             .forEach(DcTerminal::disconnect);
-        // FIXME Changing control mode is not possible here, leads to singular matrix anyway
+
+        // We also need to change conv5 control mode, otherwise the DC voltage of DC7 would not be imposed.
         network.getVoltageSourceConverter("conv5").setTargetVdc(500).setControlMode(AcDcConverter.ControlMode.V_DC);
-        network.getVoltageSourceConverter("conv7").setTargetVdc(500).setControlMode(AcDcConverter.ControlMode.V_DC);
 
         // Run load flow
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
-        checkResult(network, "dl14", expectedCurrent, List.of("dl47"), List.of("conv1", "conv3", "conv5", "conv7"));
+        // conv1 and conv3 both connect DC1 and DC2. Thus, current can flow inside them. Same thing goes for conv5 and conv7
+        // In a realistic use case, however, the target power of these converters would typically be set to zero so that
+        // no current flows between the DC buses.
+        checkResult(network, "dl14", expectedCurrent, List.of("dl47"), List.of());
 
-        // Check current in the connected DC line
+        // Check current in the other DC lines
+        assertNotEquals(0., network.getDcLine("dl25").getDcTerminal1().getI(), 1e-3);
+        assertNotEquals(0., network.getDcLine("dl25").getDcTerminal2().getI(), 1e-3);
         assertNotEquals(0., network.getDcLine("dl36").getDcTerminal1().getI(), 1e-3);
-        assertNotEquals(0., network.getDcLine("dl36").getDcTerminal2().getI(), 1e-3); // FIXME others
+        assertNotEquals(0., network.getDcLine("dl36").getDcTerminal2().getI(), 1e-3);
+        assertNotEquals(0., network.getDcLine("dl58").getDcTerminal1().getI(), 1e-3);
+        assertNotEquals(0., network.getDcLine("dl58").getDcTerminal2().getI(), 1e-3);
+        assertNotEquals(0., network.getDcLine("dl69").getDcTerminal1().getI(), 1e-3);
+        assertNotEquals(0., network.getDcLine("dl69").getDcTerminal2().getI(), 1e-3);
     }
 
     @Test
     void testDoubleDcLineDisconnectionRigidBipole() {
-        // Removing the two DC line creates two DC components
-        // Similarly to testDcLineDisconnectionAsymmetricalMonopole(), it is expected that
-        // - The DC current in the line is zero (it is not even in the LfNetwork, unless loadWithReconnectableElements is updated --> See LfLoadertest)
-        // - The only power that goes into VSC is to compensate their idle losses
+        /// Removing the two DC lines creates two DC components. Similarly to testDcLineDisconnectionAsymmetricalMonopole(), it is expected that:
+        /// - The DC current in the DC lines is zero
+        /// - The only power that goes into VSC is to compensate their idle losses
         Network network = AcDcNetworkFactory.createBipolarModelWithoutMetallicReturn();
         network.getDcLine("dl34p").getDcTerminal1().disconnect();
         network.getDcLine("dl34n").getDcTerminal1().disconnect();
-        // Add idle losses to converters and change control mode
+
+        // Add idle losses to converters and change their control mode to ensure DC buses voltage is imposed
         network.getVoltageSourceConverters().forEach(vsc -> vsc.setIdleLoss(0.5).setTargetVdc(400).setControlMode(AcDcConverter.ControlMode.V_DC));
 
         // Run load flow
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
-        // Check current in the disconnected DC lines
+        // Check the current in the disconnected DC lines
         assertEquals(0., network.getDcLine("dl34p").getDcTerminal1().getI(), 1e-3);
         assertEquals(0., network.getDcLine("dl34p").getDcTerminal2().getI(), 1e-3);
         assertEquals(0., network.getDcLine("dl34n").getDcTerminal1().getI(), 1e-3);

@@ -995,6 +995,28 @@ class AcDcLoadFlowTest {
     }
 
     @Test
+    void testConverterNotIndirectlyConnectedToDcGround() {
+        /// conv23's DC ground (dg3) is disconnected. Neither of its DC terminals is indirectly connected to a DC ground
+        /// anymore. This should trigger an Exception
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+        network.getDcGround("dg3").disconnectDc();
+
+        CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("Converter conv23 is not indirectly connected to a DC ground", e.getCause().getMessage());
+    }
+
+    @Test
+    void testPccConverterNotIndirectlyConnectedToElementImposingVoltage() {
+        /// conv23p (P_PCC) DC terminal 1 (dn3p) is no longer connected to conv45p (V_DC) through the DC line dl34p.
+        /// This should trigger an Exception on conv23p's first DC terminal specifically.
+        Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModel();
+        network.getDcLine("dl34p").disconnectDc();
+
+        CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("Converter conv23p is in P_PCC control mode but its first DC bus is not connected to an element imposing voltage", e.getCause().getMessage());
+    }
+
+    @Test
     void testNoDcGround() {
         // The DC network should contain a DC ground. This should trigger an Exception
         Network network = DcDetailedNetworkFactory.createVscSymmetricalMonopole();
