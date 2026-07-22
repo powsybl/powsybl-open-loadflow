@@ -533,6 +533,7 @@ class ConnectivityTest {
         assertEquals(Set.of(1, 2, 3), c.getConnectedComponent(1));
         assertEquals(Set.of(6), c.getConnectedComponent(6));
         assertEquals(Set.of(4, 5), c.getConnectedComponent(4));
+        c.setMainComponentVertex(6); // must be still possible even if computeComparisons is false
 
         c.startTemporaryChanges(true);
         c.removeEdge(e23);
