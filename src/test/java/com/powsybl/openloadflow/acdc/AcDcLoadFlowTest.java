@@ -656,7 +656,7 @@ class AcDcLoadFlowTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFailed());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().getFirst().getStatus());
-        assertEquals("Outer loop failed: Failed to distribute slack bus active power mismatch, 30.00 MW remains",
+        assertEquals("Outer loop 'DistributedSlack' failed: Failed to distribute slack bus active power mismatch, 30.00 MW remains",
                 result.getComponentResults().getFirst().getStatusText());
     }
 
