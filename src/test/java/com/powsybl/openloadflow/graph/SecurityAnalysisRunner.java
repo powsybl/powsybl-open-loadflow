@@ -234,7 +234,6 @@ public class SecurityAnalysisRunner {
         securityAnalysisParameters.setLoadFlowParameters(new LoadFlowParameters()
                 .setDc(mode != Mode.AC)
                 .setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS));
-        // TODO: OpenLoadFlowParameters setNetworkCacheEnabled(true)
 
         OpenSecurityAnalysisParameters osap = new OpenSecurityAnalysisParameters();
         if (threadCount > 1) {
