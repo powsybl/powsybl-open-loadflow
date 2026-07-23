@@ -417,8 +417,7 @@ public class PropagatedContingency {
                         contingencyId);
                 // if a contingency leads to an isolated slack bus, we need to relocate the slack bus
                 // we select a new slack bus excluding buses from isolated component
-                // FIXME: set copy may be useless (Naive / Even Shiloach), but mandatory for DTree
-                Set<LfBus> excludedBuses = new HashSet<>(Sets.difference(Set.copyOf(network.getBuses()), connectivity.getLargestConnectedComponent()));
+                Set<LfBus> excludedBuses = Sets.difference(Set.copyOf(network.getBuses()), connectivity.getLargestConnectedComponent());
                 network.getSynchronousNetworks().forEach(lfScNetwork -> lfScNetwork.setExcludedSlackBuses(excludedBuses));
                 // reverse main component to the one containing the relocated slack bus
                 connectivity.setMainComponentVertex(network.getSynchronousNetworks().getFirst().getSlackBuses().getFirst());
