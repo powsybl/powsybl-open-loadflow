@@ -1,11 +1,13 @@
 /**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+ * Copyright (c) 2022-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
 package com.powsybl.openloadflow.graph;
+
+import gnu.trove.set.hash.THashSet;
 
 import java.util.*;
 import java.util.function.Function;
@@ -34,6 +36,10 @@ public class ModificationsContext<V, E> {
 
     public void computeVerticesNotInMainComponentBefore() {
         this.verticesNotInMainComponentBefore = verticesNotInMainComponentGetter.apply(mainComponentVertex);
+
+        if (this.verticesNotInMainComponentBefore instanceof AbstractSetView<V>) {
+            this.verticesNotInMainComponentBefore = new THashSet<>(this.verticesNotInMainComponentBefore);
+        }
     }
 
     public void add(GraphModification<V, E> graphModification) {
@@ -64,6 +70,7 @@ public class ModificationsContext<V, E> {
         if (verticesRemovedFromMainComponent == null) {
             Set<V> result = new HashSet<>(getVerticesNotInMainComponentAfter());
             result.removeAll(verticesNotInMainComponentBefore);
+
             if (!result.isEmpty()) {
                 // remove vertices added in between
                 // note that there is no VertexRemove modification, thus we do not need to check if vertex is in the graph in the end
@@ -86,6 +93,7 @@ public class ModificationsContext<V, E> {
             Set<V> result = new HashSet<>(verticesNotInMainComponentBefore);
             Set<V> verticesNotInMainComponentAfter = getVerticesNotInMainComponentAfter();
             result.removeAll(verticesNotInMainComponentAfter);
+
             // add vertices added to main component in between
             // note that there is no VertexRemove modification, thus we do not need to check if vertex is in the graph before / in the end
             getAddedVertexStream().filter(addedVertex -> !verticesNotInMainComponentAfter.contains(addedVertex)).forEach(result::add);
