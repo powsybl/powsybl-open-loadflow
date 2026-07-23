@@ -547,19 +547,19 @@ The default value is `WITH_GENERATOR_VOLTAGE_CONTROL`.
 
 (param-lf-area-interchange-control)=
 #### areaInterchangeControl
-The `areaInterchangeControl` parameter defines if the [area interchange control](loadflow.md#area-interchange-control) outer loop is enabled.
+The `areaInterchangeControl` parameter defines if the [area interchange control](../detailed_models_description/outerloops.md#area-interchange-control) outer loop is enabled.
 If set to `true`, the area interchange control outer loop will be used instead of the slack distribution outer loop.<br>
 The default value is `false`.
 
 (param-lf-area-interchange-control-area-type)=
 #### areaInterchangeControlAreaType
-Defines the `areaType` of the areas on which the [area interchange control](loadflow.md#area-interchange-control) is applied.
+Defines the `areaType` of the areas on which the [area interchange control](../detailed_models_description/outerloops.md#area-interchange-control) is applied.
 Only the areas of the input network that have this type will be considered.<br>
 The default value is `ControlArea`.
 
 (param-lf-area-interchange-p-max-mismatch)=
 #### areaInterchangePMaxMismatch
-Defines the maximum interchange mismatch tolerance for [area interchange control](loadflow.md#area-interchange-control).
+Defines the maximum interchange mismatch tolerance for [area interchange control](../detailed_models_description/outerloops.md#area-interchange-control).
 The default value is `2 MW` and it must be greater than `0 MW`.
 
 (param-lf-load-power-factor-constant)=
@@ -683,7 +683,7 @@ The default value is `true`.
 AC load flow solver engine. Currently, it can be one of:
 - `NEWTON_RAPHSON` is the standard Newton-Raphson algorithm for load flow. Solves linear systems via Sparse LU decomposition (by [SuiteSparse](https://people.engr.tamu.edu/davis/suitesparse.html));
 - `NEWTON_KRYLOV` is also the standard Newton-Raphson algorithm for load flow. Solves linear systems via Krylov subspace methods for indefinite non-symmetric matrices (by [Kinsol](https://computing.llnl.gov/projects/sundials/kinsol));
-- `FAST_DECOUPLED` solves the load flow equation system decoupling angles from magnitudes and active from reactive power. For more information see [`Fast-Decoupled Algorithm`](loadflow.md/#fast-decoupled-algorithm).
+- `FAST_DECOUPLED` solves the load flow equation system decoupling angles from magnitudes and active from reactive power. For more information see [`Fast-Decoupled Algorithm`](../detailed_models_description/equations.md#fast-decoupled-algorithm).
 
 The default value is `NEWTON_RAPHSON`.
 
