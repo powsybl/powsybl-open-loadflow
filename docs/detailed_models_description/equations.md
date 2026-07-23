@@ -24,11 +24,7 @@ Open Load Flow also supports networks with HVDC lines (High Voltage Direct Curre
 ### DC detailed model
 
 Additionally, Open Load Flow supports AC-DC load flow formulation with detailed model of DC elements.  
-However, it is currently restricted to embedded DC components, meaning that all converters of a given DC component must be connected to the same synchronous component.
-In other words, a DC component cannot be used to connect two different synchronous components. Consequently, a single connected component should only contain one synchronous component.
-However, the number of DC components within a connected component is not restricted.  
-Yet, it is possible to run a load flow on a network with several synchronous components (with their own embedded DC components) as long
-as they do not belong to the same connected component.
+There is no limitation on the number of synchronous components and DC components in a single connected component, except if specific load flow parameters are used (see [acDcNetwork parameter documentation](../loadflow/parameters.md#acdcnetwork))
 
 (ac-flow-computing)=
 ## AC flows computing
@@ -215,7 +211,7 @@ Hence, by solving the system using LU decomposition, you can compute the voltage
 
 ## Fast-Decoupled Algorithm
 Fast-Decoupled is an algorithm to solve the inner-loop of the load flow problem, like the Newton-Raphson one.
-It is activated giving the `FAST_DECOUPLED` value to the [`acSolverType`](parameters.md#acsolvertype) parameter.
+It is activated giving the `FAST_DECOUPLED` value to the [`acSolverType`](../loadflow/parameters.md#acsolvertype) parameter.
 The solved equation system is the same as the one solved by Newton-Raphson method.
 However, the Jacobian matrix used is decomposed into two smaller matrices, decoupling the active power balance equations from voltage magnitudes variations and reactive power balance equations from voltage phases variations.
 
@@ -233,20 +229,20 @@ Thus, the LU decomposition of the two Jacobian matrices is done only once, at th
 
 Regarding state vector scaling, the Fast-Decoupled uses both personalized max voltage change and line-search routines.
 Without these routines, the algorithm struggles to converge on realistic large networks, as it has a simplified vision of the impact of the system variables.
-Note that [`stateVectorScalingMode`](parameters.md#statevectorscalingmode) is not taken into account.
+Note that [`stateVectorScalingMode`](../loadflow/parameters.md#statevectorscalingmode) is not taken into account.
 
 ### Limitations
 The current implemented version cannot compute when one of the following parameter is activated:
-- [`asymmetrical`](parameters.md#asymmetrical),
+- [`asymmetrical`](../loadflow/parameters.md#asymmetrical),
 - [`hvdcAcEmulation`](inv:powsyblcore:*:*:#param-lf-hvdc-ac-emulation)
 
 In case where the user has selected both the Fast-Decoupled algorithm and one of this parameter, an exception is triggered.
 
 Users should notice that default parameters are optimized for the Newton-Raphson algorithm, as it is the default one.
 When the Fast-Decoupled algorithm is used, we recommend these values for some convergence parameters:
-- [`maxNewtonRaphsonIterations`](parameters.md#maxnewtonraphsoniterations): 75,
-- [`lineSearchStateVectorScalingMaxIteration`](parameters.md#linesearchstatevectorscalingmaxiteration): 4,
-- [`lineSearchStateVectorScalingStepFold`](parameters.md#linesearchstatevectorscalingstepfold): `3/2 = 1.5`.
+- [`maxNewtonRaphsonIterations`](../loadflow/parameters.md#maxnewtonraphsoniterations): 75,
+- [`lineSearchStateVectorScalingMaxIteration`](../loadflow/parameters.md#linesearchstatevectorscalingmaxiteration): 4,
+- [`lineSearchStateVectorScalingStepFold`](../loadflow/parameters.md#linesearchstatevectorscalingstepfold): `3/2 = 1.5`.
 
 ## AC DC flows computing
 
