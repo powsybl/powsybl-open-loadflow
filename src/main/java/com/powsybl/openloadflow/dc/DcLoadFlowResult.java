@@ -14,6 +14,8 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 
+import java.util.Collections;
+
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -26,7 +28,13 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
     }
 
     public DcLoadFlowResult(LfNetwork network, int outerLoopIterations, boolean solverSuccess, OuterLoopResult outerLoopResult, double slackBusActivePowerMismatch, double distributedActivePower) {
-        super(network, slackBusActivePowerMismatch, outerLoopIterations, outerLoopResult, distributedActivePower);
+        super(network,
+                // DC load flow does not support AC-DC network. Thus, there is only one synchronous network in the LfNetwork
+                Collections.singletonMap(network.getSynchronousNetworks().getFirst().getNumSC(), slackBusActivePowerMismatch),
+                outerLoopIterations,
+                outerLoopResult,
+                Collections.singletonMap(network.getSynchronousNetworks().getFirst().getNumSC(), distributedActivePower)
+        );
         this.solverSuccess = solverSuccess;
     }
 
@@ -43,7 +51,7 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
         if (getOuterLoopResult().status() == OuterLoopStatus.UNSTABLE) {
             return new Status(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, "Reached outer loop max iterations limit. Last outer loop name: " + getOuterLoopResult().outerLoopName());
         } else if (getOuterLoopResult().status() == OuterLoopStatus.FAILED) {
-            return new Status(LoadFlowResult.ComponentResult.Status.FAILED, "Outer loop failed: " + getOuterLoopResult().statusText());
+            return new Status(LoadFlowResult.ComponentResult.Status.FAILED, "Outer loop '" + getOuterLoopResult().outerLoopName() + "' failed: " + getOuterLoopResult().statusText());
         }
         if (solverSuccess) {
             return new Status(LoadFlowResult.ComponentResult.Status.CONVERGED, "Converged");
@@ -56,8 +64,9 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
         return "DcLoadFlowResult(outerLoopIterations=" + outerLoopIterations
                 + ", solverSuccess=" + solverSuccess
                 + ", outerLoopStatus=" + outerLoopResult.status()
-                + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch * PerUnit.SB
-                + ", distributedActivePower=" + distributedActivePower * PerUnit.SB
+                // DC load flow does not support AC-DC network. Thus, there is only one synchronous network in the LfNetwork
+                + ", slackBusActivePowerMismatch=" + slackBusActivePowerMismatch.get(network.getSynchronousNetworks().getFirst().getNumSC()) * PerUnit.SB
+                + ", distributedActivePower=" + distributedActivePower.get(network.getSynchronousNetworks().getFirst().getNumSC()) * PerUnit.SB
                 + ")";
     }
 }

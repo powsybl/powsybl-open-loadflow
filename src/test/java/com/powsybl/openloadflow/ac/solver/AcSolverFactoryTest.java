@@ -36,6 +36,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -68,7 +69,7 @@ class AcSolverFactoryTest {
         private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
         private final AcSolverMockParameters parameters;
 
-        public AcSolverMock(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, AcSolverMockParameters parameters) {
+        AcSolverMock(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, AcSolverMockParameters parameters) {
             this.network = network;
             this.equationSystem = equationSystem;
             this.parameters = parameters;
@@ -83,7 +84,7 @@ class AcSolverFactoryTest {
         public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
             AcSolverUtil.initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
             LOGGER.info("I am a not so advanced solver only able to return flat 1 p.u. /_ 0.0, in max iterations, leaving 34 MW slack mismatch.");
-            return new AcSolverResult(AcSolverStatus.CONVERGED, parameters.maxIterations(), 0.34);
+            return new AcSolverResult(AcSolverStatus.CONVERGED, parameters.maxIterations(), Collections.singletonMap(0, 0.34));
         }
     }
 
@@ -108,7 +109,9 @@ class AcSolverFactoryTest {
         }
 
         @Override
-        public AcSolver create(LfNetwork network, AcLoadFlowParameters parameters, EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector, EquationVector<AcVariableType, AcEquationType> equationVector) {
+        public AcSolver create(LfNetwork network, AcLoadFlowParameters parameters, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                               JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
+                               EquationVector<AcVariableType, AcEquationType> equationVector) {
             return new AcSolverMock(network, equationSystem, (AcSolverMockParameters) parameters.getAcSolverParameters());
         }
     }
