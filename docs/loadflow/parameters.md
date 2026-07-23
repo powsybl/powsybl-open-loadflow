@@ -51,7 +51,9 @@ This parameter list is used if [`networkCachedEnabled`](#networkcacheenabled) is
 
 (param-lf-actionable-transformers-ids)=
 #### actionableTransformersIds
-<span style="color: red">TODO</span>
+This parameter is used to define the list of actionable transformer ids for a fast restart with tap position changes.
+
+The default value is an empty list.
 
 (param-lf-network-cache-enabled)=
 #### networkCacheEnabled
