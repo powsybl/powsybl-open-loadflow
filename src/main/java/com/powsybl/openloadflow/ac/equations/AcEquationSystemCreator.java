@@ -150,8 +150,7 @@ public class AcEquationSystemCreator {
                 && !bus.isFictitious()
                 && bus.getControllerShunt().isEmpty()
                 && !bus.isShuntVoltageControlled()
-                && !bus.isTransformerVoltageControlled()
-                && bus.getBranches().stream().noneMatch(branch -> branch.isZeroImpedance(LoadFlowModel.AC));
+                && !bus.isTransformerVoltageControlled();
     }
 
     private static void addBusDisabledAlternative(EquationArray<AcVariableType, AcEquationType> equationArray, LfBus bus,
@@ -192,8 +191,7 @@ public class AcEquationSystemCreator {
                 && bus.getTransformerVoltageControl().isEmpty()
                 && bus.getShuntVoltageControl().isEmpty()
                 && !bus.hasGeneratorReactivePowerControl()
-                && bus.getConverters().isEmpty()
-                && bus.getBranches().stream().noneMatch(branch -> branch.isZeroImpedance(LoadFlowModel.AC));
+                && bus.getConverters().isEmpty();
     }
 
     protected void createDcBusEquation(LfDcBus dcBus,
