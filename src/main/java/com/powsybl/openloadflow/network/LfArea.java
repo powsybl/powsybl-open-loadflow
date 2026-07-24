@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.TwoSides;
+
 import java.util.Set;
 
 /**
@@ -29,6 +31,8 @@ public interface LfArea extends LfElement {
 
     interface Boundary {
         LfBranch getBranch();
+
+        TwoSides getSide();
 
         double getP();
 

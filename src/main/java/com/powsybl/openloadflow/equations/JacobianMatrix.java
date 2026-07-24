@@ -14,11 +14,18 @@ import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.math.matrix.SparseMatrix;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
@@ -48,11 +55,95 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private Status status = Status.STRUCTURE_INVALID;
 
+    private boolean allowIncrementalUpdateOnZeroChanges = false;
+
+    // ---- partial value update ----
+    // Post-contingency solves restart from a restored state: their first Jacobian equals the last one computed at
+    // that very state, except in the columns touched by the topology events (contingency apply/restore, alternative
+    // switches). A snapshot of the matrix values pinned at that state allows a restore-and-patch update of only the
+    // touched columns instead of a full derivation walk. Exactness is guaranteed by a strict state vector equality
+    // test; any untrackable event falls back to the full walk.
+    // disabled by default: the restore-and-patch update only pays off when topology events preserve the matrix
+    // structure (alternative equation switches), so it is enabled only on that path (see AcLoadFlowContext).
+    // Kept off elsewhere to avoid the per-update state-vector equality check on the plain load flow hot path.
+    private boolean partialValueUpdateEnabled = false;
+
+    private double[] valuesSnapshot;
+
+    private double[] stateSnapshot;
+
+    private boolean touchedTrackable = true;
+
+    private boolean eventsSinceLastDer = false;
+
+    private final Set<SingleEquation<V, E>> touchedEquations = new LinkedHashSet<>();
+
+    private final Map<EquationArray<V, E>, BitSet> touchedArrayElements = new LinkedHashMap<>();
+
+    private int partialValueUpdateCount = 0;
+
+    public JacobianMatrix<V, E> setPartialValueUpdateEnabled(boolean partialValueUpdateEnabled) {
+        this.partialValueUpdateEnabled = partialValueUpdateEnabled;
+        return this;
+    }
+
+    public int getPartialValueUpdateCount() {
+        return partialValueUpdateCount;
+    }
+
+    protected boolean supportsPartialValueUpdate() {
+        return true;
+    }
+
+    private void clearSnapshot() {
+        valuesSnapshot = null;
+        stateSnapshot = null;
+        touchedEquations.clear();
+        touchedArrayElements.clear();
+        touchedTrackable = true;
+    }
+
+    private void recordTouchedEquation(Equation<V, E> equation) {
+        eventsSinceLastDer = true;
+        if (!touchedTrackable) {
+            return;
+        }
+        if (equation instanceof SingleEquation<V, E> singleEquation) {
+            touchedEquations.add(singleEquation);
+        } else if (equation != null) {
+            // an equation array element facade: resolve to the array and element
+            var equationArray = equationSystem.getEquationArray(equation.getType()).orElse(null);
+            if (equationArray != null) {
+                touchedArrayElements.computeIfAbsent(equationArray, k -> new BitSet()).set(equation.getElementNum());
+            } else {
+                touchedTrackable = false;
+            }
+        } else {
+            touchedTrackable = false;
+        }
+    }
+
+    private void recordTouchedArrayElement(EquationArray<V, E> equationArray, int elementNum) {
+        eventsSinceLastDer = true;
+        touchedArrayElements.computeIfAbsent(equationArray, k -> new BitSet()).set(elementNum);
+    }
+
     public JacobianMatrix(EquationSystem<V, E> equationSystem, MatrixFactory matrixFactory) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         equationSystem.getIndex().addListener(this);
         equationSystem.getStateVector().addListener(this);
+    }
+
+    /**
+     * Allow trying an incremental LU update (reusing the previous pivoting) even when non zero values may have
+     * changed, typically after a alternative equation alternative switch where the sparsity pattern is preserved
+     * but matrix entries flip between zero and non zero. A full numerical refactorization is automatically retried
+     * when the incremental update fails (e.g. on a pivot becoming zero).
+     */
+    public JacobianMatrix<V, E> setAllowIncrementalUpdateOnZeroChanges(boolean allowIncrementalUpdateOnZeroChanges) {
+        this.allowIncrementalUpdateOnZeroChanges = allowIncrementalUpdateOnZeroChanges;
+        return this;
     }
 
     public MatrixFactory getMatrixFactory() {
@@ -78,6 +169,21 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     @Override
     public void onEquationTermChange(SingleEquationTerm<V, E> term) {
         updateStatus(Status.VALUES_AND_ZEROS_INVALID);
+        recordTouchedEquation(term.getEquation());
+    }
+
+    @Override
+    public void onEquationAlternativeChange(SingleEquation<V, E> equation) {
+        // the structure (and so the symbolic factorization) is preserved, only values have to be updated
+        updateStatus(Status.VALUES_AND_ZEROS_INVALID);
+        recordTouchedEquation(equation);
+    }
+
+    @Override
+    public void onEquationArrayAlternativeChange(EquationArray<V, E> equationArray, int elementNum) {
+        // the structure (and so the symbolic factorization) is preserved, only values have to be updated
+        updateStatus(Status.VALUES_AND_ZEROS_INVALID);
+        recordTouchedArrayElement(equationArray, elementNum);
     }
 
     @Override
@@ -88,6 +194,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     @Override
     public void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int termNum, ChangeType changeType) {
         updateStatus(Status.VALUES_AND_ZEROS_INVALID);
+        recordTouchedArrayElement(equationTermArray.getEquationArray(), equationTermArray.getEquationElementNum(termNum));
     }
 
     @Override
@@ -100,13 +207,34 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         updateStatus(Status.VALUES_INVALID);
     }
 
+    /**
+     * When the equation system is not square (a bug leaves a variable without its determining equation, typically a
+     * single control variable orphaned by a contingency), report the count of variables and of active equations
+     * grouped by type, so the offending control type stands out even on a large network (e.g. more BRANCH_RHO1
+     * variables than BRANCH_TARGET_RHO1 + DISTR_RHO equations points at a transformer voltage control).
+     */
+    private String describeEquationVariableImbalance() {
+        Map<String, Integer> variablesByType = new java.util.TreeMap<>();
+        for (Variable<V> variable : equationSystem.getIndex().getSortedVariablesToFind()) {
+            variablesByType.merge(variable.getType().toString(), 1, Integer::sum);
+        }
+        Map<String, Integer> equationsByType = new java.util.TreeMap<>();
+        for (var equation : equationSystem.getIndex().getSortedSingleEquationsToSolve()) {
+            equationsByType.merge(equation.getType().toString(), 1, Integer::sum);
+        }
+        for (var equationArray : equationSystem.getIndex().getSortedEquationArraysToSolve()) {
+            equationsByType.merge(equationArray.getType().toString(), equationArray.getLength(), Integer::sum);
+        }
+        return "variables by type=" + variablesByType + ", active equations by type=" + equationsByType;
+    }
+
     protected void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
         int rowCount = equationSystem.getIndex().getRowCount();
         int columnCount = equationSystem.getIndex().getColumnCount();
         if (rowCount != columnCount) {
             throw new PowsyblException("Expected to have same number of equations (" + columnCount
-                    + ") and variables (" + rowCount + ")");
+                    + ") and variables (" + rowCount + "). " + describeEquationVariableImbalance());
         }
 
         int estimatedNonZeroValueCount = rowCount * 3;
@@ -192,6 +320,11 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private void updateValues(boolean allowIncrementalUpdate) {
         updateDer();
+        afterFullDer();
+        updateLuWithFallback(allowIncrementalUpdate);
+    }
+
+    private void updateLuWithFallback(boolean allowIncrementalUpdate) {
         try {
             updateLu(allowIncrementalUpdate);
         } catch (MatrixException ex) {
@@ -206,6 +339,96 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
+    /**
+     * Snapshot policy: take (or move) the values snapshot after a full derivation walk that followed topology
+     * events — that walk runs at a restart state (e.g. the post-contingency first solve), the state the snapshot
+     * must be pinned at. Full walks between solver iterations (pure state moves, no events) keep the pin.
+     */
+    private void afterFullDer() {
+        boolean events = eventsSinceLastDer;
+        eventsSinceLastDer = false;
+        if (!partialValueUpdateEnabled || !supportsPartialValueUpdate() || !(matrix instanceof SparseMatrix)) {
+            return;
+        }
+        if (events || valuesSnapshot == null) {
+            takeSnapshot();
+        }
+    }
+
+    private void takeSnapshot() {
+        SparseMatrix sparseMatrix = (SparseMatrix) matrix;
+        int nonZeroCount = sparseMatrix.getColumnStart()[sparseMatrix.getColumnCount()];
+        valuesSnapshot = Arrays.copyOf(sparseMatrix.getValues(), nonZeroCount);
+        double[] state = equationSystem.getStateVector().get();
+        stateSnapshot = Arrays.copyOf(state, state.length);
+        touchedEquations.clear();
+        touchedArrayElements.clear();
+        touchedTrackable = true;
+    }
+
+    private boolean tryPartialUpdateValues(boolean allowIncrementalUpdate) {
+        if (!partialValueUpdateEnabled || !supportsPartialValueUpdate()
+                || valuesSnapshot == null || !touchedTrackable
+                || !(matrix instanceof SparseMatrix sparseMatrix)) {
+            return false;
+        }
+        double[] state = equationSystem.getStateVector().get();
+        if (stateSnapshot.length != state.length || !Arrays.equals(stateSnapshot, state)) {
+            return false;
+        }
+        for (EquationArray<V, E> equationArray : touchedArrayElements.keySet()) {
+            if (!equationArray.isPartialDerReady()) {
+                return false;
+            }
+        }
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
+        double[] values = sparseMatrix.getValues();
+        System.arraycopy(valuesSnapshot, 0, values, 0, valuesSnapshot.length);
+        int[] columnStart = sparseMatrix.getColumnStart();
+        int patchedColumns = 0;
+        for (SingleEquation<V, E> equation : touchedEquations) {
+            int column = equation.isActive() ? equation.getColumn() : -1;
+            if (column < 0) {
+                continue;
+            }
+            Arrays.fill(values, columnStart[column], columnStart[column + 1], 0);
+            equation.der((variable, value, matrixElementIndex) -> {
+                matrix.addAtIndex(matrixElementIndex, value);
+                return matrixElementIndex;
+            });
+            patchedColumns++;
+        }
+        for (Map.Entry<EquationArray<V, E>, BitSet> entry : touchedArrayElements.entrySet()) {
+            EquationArray<V, E> equationArray = entry.getKey();
+            BitSet elements = entry.getValue();
+            for (int elementNum = elements.nextSetBit(0); elementNum >= 0; elementNum = elements.nextSetBit(elementNum + 1)) {
+                int column = equationArray.isElementActive(elementNum) ? equationArray.getElementNumToColumn(elementNum) : -1;
+                if (column < 0) {
+                    continue;
+                }
+                Arrays.fill(values, columnStart[column], columnStart[column + 1], 0);
+                equationArray.derElementPartial((c, row, value, matrixElementIndex) -> {
+                    matrix.addAtIndex(matrixElementIndex, value);
+                    return matrixElementIndex;
+                }, elementNum);
+                patchedColumns++;
+            }
+        }
+        // move the pin to the patched topology so the touched set stays bounded per contingency
+        System.arraycopy(values, 0, valuesSnapshot, 0, valuesSnapshot.length);
+        touchedEquations.clear();
+        touchedArrayElements.clear();
+        eventsSinceLastDer = false;
+        partialValueUpdateCount++;
+
+        LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values partially updated ({} columns) in {} us",
+                patchedColumns, stopwatch.elapsed(TimeUnit.MICROSECONDS));
+
+        updateLuWithFallback(allowIncrementalUpdate);
+        return true;
+    }
+
     public void forceUpdate() {
         update();
     }
@@ -214,15 +437,21 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         if (status != Status.VALID) {
             switch (status) {
                 case STRUCTURE_INVALID:
+                    clearSnapshot();
                     initMatrix();
+                    eventsSinceLastDer = false;
                     break;
 
                 case VALUES_INVALID:
-                    updateValues(true);
+                    if (!tryPartialUpdateValues(true)) {
+                        updateValues(true);
+                    }
                     break;
 
                 case VALUES_AND_ZEROS_INVALID:
-                    updateValues(false);
+                    if (!tryPartialUpdateValues(allowIncrementalUpdateOnZeroChanges)) {
+                        updateValues(allowIncrementalUpdateOnZeroChanges);
+                    }
                     break;
 
                 default:

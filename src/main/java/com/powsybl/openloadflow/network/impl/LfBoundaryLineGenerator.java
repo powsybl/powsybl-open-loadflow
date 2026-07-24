@@ -42,6 +42,11 @@ public final class LfBoundaryLineGenerator extends AbstractLfGenerator {
         }
     }
 
+    protected LfBoundaryLineGenerator(LfBoundaryLineGenerator other, LfNetwork network) {
+        super(other, network);
+        this.boundaryLineRef = other.boundaryLineRef;
+    }
+
     public static LfBoundaryLineGenerator create(BoundaryLine boundaryLine, LfNetwork network, String controlledLfBusId, LfNetworkParameters parameters,
                                                  LfNetworkLoadingReport report) {
         Objects.requireNonNull(boundaryLine);

@@ -39,7 +39,8 @@ public enum AcEquationType implements Quantity {
     DC_BUS_GROUND("dc_bus_ground", ElementType.DC_BUS), // magnitude control for grounded DC buses
     AC_CONV_TARGET_P_REF("bus_target_p_ref", ElementType.CONVERTER), // AC active power control
     AC_CONV_TARGET_Q_REF("bus_target_q_ref", ElementType.CONVERTER), // AC reactive power control
-    DC_BUS_TARGET_V_REF("dc_bus_target_v_ref", ElementType.CONVERTER); // DC magnitude control
+    DC_BUS_TARGET_V_REF("dc_bus_target_v_ref", ElementType.CONVERTER), // DC magnitude control
+    BUS_TARGET_V_DISABLED("bus_target_v_disabled", ElementType.BUS); // trivial voltage magnitude target keeping disabled (islanded) bus variables in the matrix structure
 
     private final String symbol;
 

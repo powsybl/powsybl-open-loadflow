@@ -196,11 +196,23 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         }
     }
 
+    /**
+     * Register a variable referenced by a vectorized equation array alternative (see
+     * {@link EquationArray#addElementVariableAlternative}). The union matrix structure is permanent by design
+     * (alternatives exist for the lifetime of the system and their elements stay active), so the variable is
+     * registered once and never removed.
+     */
+    void addAlternativeVariable(Variable<V> variable) {
+        addVariables(List.of(variable));
+    }
+
     private void addEquation(SingleEquation<V, E> equation) {
         sortedSetEquationsToSolve.add(equation);
         equationsIndexValid = false;
         for (SingleEquationTerm<V, E> term : equation.getTerms()) {
-            if (term.isActive()) {
+            // for equations keeping inactive term variables (alternative equations), variables of all terms are
+            // registered whatever their activity, so that the matrix structure covers all alternatives
+            if (term.isActive() || equation.keepsInactiveTermVariables()) {
                 addTerm(term);
             }
         }
@@ -232,7 +244,7 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         sortedSetEquationsToSolve.remove(equation);
         equationsIndexValid = false;
         for (SingleEquationTerm<V, E> term : equation.getTerms()) {
-            if (term.isActive()) {
+            if (term.isActive() || equation.keepsInactiveTermVariables()) {
                 removeTerm(term);
             }
         }
@@ -262,6 +274,14 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                 addEquation(equation);
                 break;
 
+            case EQUATION_ALTERNATIVE_CHANGED:
+                // no structural change: column, variables and sparsity pattern are preserved, but values and targets
+                // have to be updated
+                if (equation.isActive()) {
+                    listeners.forEach(listener -> listener.onEquationAlternativeChange(equation));
+                }
+                break;
+
             default:
                 throw new IllegalStateException("Event type not supported: " + eventType);
         }
@@ -269,20 +289,33 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     @Override
     public void onEquationTermChange(SingleEquationTerm<V, E> term, EquationTermEventType eventType) {
-        if (term.getEquation().isActive()) {
+        Equation<V, E> equation = term.getEquation();
+        if (equation.isActive()) {
+            boolean keepsInactiveTermVariables = equation.keepsInactiveTermVariables();
             switch (eventType) {
                 case EQUATION_TERM_ADDED:
-                    if (term.isActive()) {
+                    if (term.isActive() || keepsInactiveTermVariables) {
                         addTerm(term);
                     }
                     break;
 
                 case EQUATION_TERM_ACTIVATED:
-                    addTerm(term);
+                    if (keepsInactiveTermVariables) {
+                        // variables already registered at term addition, only values have to be updated
+                        notifyEquationTermChange(term);
+                    } else {
+                        addTerm(term);
+                    }
                     break;
 
                 case EQUATION_TERM_DEACTIVATED:
-                    removeTerm(term);
+                    if (keepsInactiveTermVariables) {
+                        // keep variables registered so that the matrix structure is preserved, only values have to
+                        // be updated
+                        notifyEquationTermChange(term);
+                    } else {
+                        removeTerm(term);
+                    }
                     break;
 
                 default:
@@ -293,6 +326,14 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     @Override
     public void onEquationArrayChange(EquationArray<V, E> equationArray, int elementNum, EquationEventType eventType) {
+        if (eventType == EquationEventType.EQUATION_ALTERNATIVE_CHANGED) {
+            // no structural change: column, variables and sparsity pattern are preserved, but values and targets
+            // have to be updated
+            if (equationArray.isElementActive(elementNum)) {
+                listeners.forEach(listener -> listener.onEquationArrayAlternativeChange(equationArray, elementNum));
+            }
+            return;
+        }
         switch (eventType) {
             case EQUATION_DEACTIVATED:
                 for (var equationTermArray : equationArray.getTermArrays()) {

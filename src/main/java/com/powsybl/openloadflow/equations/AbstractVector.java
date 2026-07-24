@@ -44,6 +44,18 @@ public abstract class AbstractVector<V extends Enum<V> & Quantity, E extends Enu
         }
 
         @Override
+        public void onEquationAlternativeChange(SingleEquation<V, E> equation) {
+            // same structure but values (typically the target of the new active alternative) have to be updated
+            invalidateValues();
+        }
+
+        @Override
+        public void onEquationArrayAlternativeChange(EquationArray<V, E> equationArray, int elementNum) {
+            // same structure but values (typically the target of the new active alternative) have to be updated
+            invalidateValues();
+        }
+
+        @Override
         public void onEquationArrayChange(EquationArray<V, E> equationArray, ChangeType changeType) {
             invalidateVector();
         }

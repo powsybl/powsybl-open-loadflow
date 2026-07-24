@@ -104,6 +104,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE = false;
 
+    public static final boolean COMPLEMENTARY_EQUATIONS_DEFAULT_VALUE = true;
+
     public static final boolean SVC_VOLTAGE_MONITORING_DEFAULT_VALUE = true;
 
     public static final VoltageInitModeOverride VOLTAGE_INIT_MODE_OVERRIDE_DEFAULT_VALUE = VoltageInitModeOverride.NONE;
@@ -185,6 +187,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final String SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME = "slackBusPMaxMismatch";
 
     public static final String VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME = "voltagePerReactivePowerControl";
+
+    public static final String COMPLEMENTARY_EQUATIONS_PARAM_NAME = "alternativeEquations";
 
     public static final String MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME = "maxNewtonRaphsonIterations";
 
@@ -410,6 +414,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME, ParameterType.BOOLEAN,
             "Voltage per reactive power slope",
             VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(COMPLEMENTARY_EQUATIONS_PARAM_NAME, ParameterType.BOOLEAN,
+            "Use alternative equations for generator voltage control, preserving the matrix structure on PV/PQ switching (experimental)",
+            COMPLEMENTARY_EQUATIONS_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN,
             "Generator remote reactive power control",
             GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, REACTIVE_POWER_CONTROL_CATEGORY_KEY),
@@ -702,6 +709,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean voltagePerReactivePowerControl = VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE;
 
+    private boolean alternativeEquations = COMPLEMENTARY_EQUATIONS_DEFAULT_VALUE;
+
     private boolean generatorReactivePowerRemoteControl = GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE;
 
     private boolean transformerReactivePowerControl = TRANSFORMER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE;
@@ -954,6 +963,20 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setVoltagePerReactivePowerControl(boolean voltagePerReactivePowerControl) {
         this.voltagePerReactivePowerControl = voltagePerReactivePowerControl;
+        return this;
+    }
+
+    /**
+     * Use alternative equations for generator voltage control (local or remote), so that PV/PQ switching preserves
+     * the Jacobian matrix structure and its symbolic factorization (experimental). Only applies to the default
+     * Newton-Raphson solver, ignored when secondary voltage control or asymmetrical calculation is enabled.
+     */
+    public boolean isAlternativeEquations() {
+        return alternativeEquations;
+    }
+
+    public OpenLoadFlowParameters setAlternativeEquations(boolean alternativeEquations) {
+        this.alternativeEquations = alternativeEquations;
         return this;
     }
 
@@ -1719,6 +1742,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         config.getOptionalDoubleProperty(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME).ifPresent(this::setMaxSusceptanceMismatch);
         config.getOptionalDoubleProperty(SLACK_BUS_P_MAX_MISMATCH_PARAM_NAME).ifPresent(this::setSlackBusPMaxMismatch);
         config.getOptionalBooleanProperty(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME).ifPresent(this::setVoltagePerReactivePowerControl);
+        config.getOptionalBooleanProperty(COMPLEMENTARY_EQUATIONS_PARAM_NAME).ifPresent(this::setAlternativeEquations);
         config.getOptionalBooleanProperty(GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME).ifPresent(this::setGeneratorReactivePowerRemoteControl);
         config.getOptionalBooleanProperty(TRANSFORMER_REACTIVE_POWER_CONTROL_PARAM_NAME).ifPresent(this::setTransformerReactivePowerControl);
         config.getOptionalIntProperty(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME).ifPresent(this::setMaxNewtonRaphsonIterations);
@@ -1841,6 +1865,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setSlackBusPMaxMismatch(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME))
                 .ifPresent(prop -> this.setVoltagePerReactivePowerControl(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(COMPLEMENTARY_EQUATIONS_PARAM_NAME))
+                .ifPresent(prop -> this.setAlternativeEquations(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME))
                 .ifPresent(prop -> this.setGeneratorReactivePowerRemoteControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(TRANSFORMER_REACTIVE_POWER_CONTROL_PARAM_NAME))
@@ -2003,6 +2029,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(MAX_RATIO_MISMATCH_PARAM_NAME, maxRatioMismatch);
         map.put(MAX_SUSCEPTANCE_MISMATCH_PARAM_NAME, maxSusceptanceMismatch);
         map.put(VOLTAGE_PER_REACTIVE_POWER_CONTROL_PARAM_NAME, voltagePerReactivePowerControl);
+        map.put(COMPLEMENTARY_EQUATIONS_PARAM_NAME, alternativeEquations);
         map.put(GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_PARAM_NAME, generatorReactivePowerRemoteControl);
         map.put(TRANSFORMER_REACTIVE_POWER_CONTROL_PARAM_NAME, transformerReactivePowerControl);
         map.put(MAX_NEWTON_RAPHSON_ITERATIONS_PARAM_NAME, maxNewtonRaphsonIterations);
@@ -2275,7 +2302,20 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         var networkParameters = getNetworkParameters(parameters, parametersExt, slackBusSelector, connectivityFactory, breakers);
 
-        var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var);
+        // alternative voltage equations are only supported with the default Newton-Raphson solver and the standard
+        // symmetrical modeling, and would be silently inconsistent with secondary voltage control (which directly
+        // accesses BUS_TARGET_V equations). Transformer and shunt voltage control switch their control equations
+        // (ratio / susceptance target and distribution) on and off dynamically on contingencies and remedial
+        // actions through the legacy per-equation machinery, which the alternative structure-preserving modeling
+        // does not track, so a network using them falls back to the legacy modeling.
+        boolean alternativeEquations = parametersExt.isAlternativeEquations()
+                && NewtonRaphsonFactory.NAME.equals(parametersExt.getAcSolverType())
+                && !parametersExt.isAsymmetrical()
+                && !parametersExt.isSecondaryVoltageControl()
+                && !parameters.isTransformerVoltageControlOn()
+                && !parameters.isShuntCompensatorVoltageControlOn();
+
+        var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var, alternativeEquations);
 
         VoltageInitializer voltageInitializer = getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, matrixFactory);
 
@@ -2431,6 +2471,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getPlausibleActivePowerLimit() == extension2.getPlausibleActivePowerLimit() &&
                 extension1.getSlackBusPMaxMismatch() == extension2.getSlackBusPMaxMismatch() &&
                 extension1.isVoltagePerReactivePowerControl() == extension2.isVoltagePerReactivePowerControl() &&
+                extension1.isAlternativeEquations() == extension2.isAlternativeEquations() &&
                 extension1.isGeneratorReactivePowerRemoteControl() == extension2.isGeneratorReactivePowerRemoteControl() &&
                 extension1.isTransformerReactivePowerControl() == extension2.isTransformerReactivePowerControl() &&
                 extension1.getMaxNewtonRaphsonIterations() == extension2.getMaxNewtonRaphsonIterations() &&
@@ -2517,6 +2558,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setPlausibleActivePowerLimit(extension.getPlausibleActivePowerLimit())
                 .setSlackBusPMaxMismatch(extension.getSlackBusPMaxMismatch())
                 .setVoltagePerReactivePowerControl(extension.isVoltagePerReactivePowerControl())
+                .setAlternativeEquations(extension.isAlternativeEquations())
                 .setGeneratorReactivePowerRemoteControl(extension.isGeneratorReactivePowerRemoteControl())
                 .setTransformerReactivePowerControl(extension.isTransformerReactivePowerControl())
                 .setMaxNewtonRaphsonIterations(extension.getMaxNewtonRaphsonIterations())

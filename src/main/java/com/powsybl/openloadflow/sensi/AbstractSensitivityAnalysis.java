@@ -225,7 +225,18 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 }
                 case BUS_REACTIVE_POWER -> {
                     Evaluable q = ((LfBus) functionElement).getQ();
-                    yield q instanceof Equation ? new InjectionDerivable<>((Equation<V, ?>) q) : q;
+                    if (q instanceof Equation) {
+                        yield new InjectionDerivable<>((Equation<V, ?>) q);
+                    } else if (q instanceof AlternativeEquation.Alternative alternative) {
+                        // alternative modeling: the reactive power balance alternative
+                        yield new InjectionDerivable<>(alternative);
+                    } else if (q instanceof EquationArray.ElementBalance elementBalance) {
+                        // alternative modeling on the vectorized system: derive the injection from the element
+                        // equation terms (the alternative terms are not of BRANCH type and thus not taken)
+                        yield new InjectionDerivable<>((Equation<V, ?>) elementBalance.getEquationArray().getElement(elementBalance.getElementNum()));
+                    } else {
+                        yield q;
+                    }
                 }
                 case BUS_VOLTAGE -> ((LfBus) functionElement).getCalculatedV();
                 default -> throw new UnsupportedOperationException("Function type not supported: " + functionType);
@@ -324,6 +335,32 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                 default:
                     return null;
             }
+        }
+
+        /**
+         * With alternative equations, the voltage target of a controlled bus is not realized by its (inactive)
+         * voltage target equation but carried by the alternative equation of one of its controller buses, possibly
+         * moving from one controller to another with PV/PQ switching. Return these candidate equations so that the
+         * voltage target column can be resolved at right hand side filling time (see
+         * {@link SingleVariableFactorGroup#fillRhs}).
+         */
+        @SuppressWarnings("unchecked")
+        protected List<Equation<V, E>> getAlternativeVariableEquations() {
+            if (variableType == SensitivityVariableType.BUS_TARGET_VOLTAGE) {
+                LfBus lfBus = (LfBus) variableElement;
+                List<Equation<V, E>> equations = new ArrayList<>();
+                lfBus.getGeneratorVoltageControl().ifPresent(voltageControl -> {
+                    for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
+                        if (controllerBus.getQ() instanceof AlternativeEquation.Alternative alternative) {
+                            equations.add((AlternativeEquation<V, E>) alternative.getEquation());
+                        } else if (controllerBus.getQ() instanceof EquationArray.ElementBalance elementBalance) {
+                            equations.add((Equation<V, E>) elementBalance.getEquationArray().getElement(elementBalance.getElementNum()));
+                        }
+                    }
+                });
+                return equations;
+            }
+            return List.of();
         }
 
         @Override
@@ -462,21 +499,41 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         protected void addBusInjection(Matrix rhs, LfBus lfBus, double injection) {
-            Equation<V, E> p = (Equation<V, E>) lfBus.getP();
-            if (lfBus.isSlack() || !p.isActive()) {
+            if (lfBus.isSlack()) {
                 return;
             }
-            int column = p.getColumn();
-            rhs.add(column, getIndex(), injection);
+            int column = getBalanceEquationColumn(lfBus.getP());
+            if (column != -1) {
+                rhs.add(column, getIndex(), injection);
+            }
         }
 
         protected void addBusReactiveInjection(Matrix rhs, LfBus lfBus, double injection) {
-            Equation<V, E> q = (Equation<V, E>) lfBus.getQ();
-            if (!q.isActive()) {
-                return;
+            int column = getBalanceEquationColumn(lfBus.getQ());
+            if (column != -1) {
+                rhs.add(column, getIndex(), injection);
             }
-            int column = q.getColumn();
-            rhs.add(column, getIndex(), injection);
+        }
+
+        /**
+         * Column of the active power balance equation an injection variation applies to, or -1 when the balance is
+         * not solved: inactive equation, or with the alternative modeling a bus whose active alternative is not
+         * the power balance (PV mode reactive equation, disabled bus trivial equation).
+         */
+        private static int getBalanceEquationColumn(Evaluable balance) {
+            if (balance instanceof Equation<?, ?> equation) {
+                return equation.isActive() ? equation.getColumn() : -1;
+            } else if (balance instanceof AlternativeEquation.Alternative alternative) {
+                AlternativeEquation<?, ?> equation = alternative.getEquation();
+                return equation.isActive() && equation.getActiveType() == alternative.getType()
+                        ? equation.getColumn() : -1;
+            } else if (balance instanceof EquationArray.ElementBalance elementBalance) {
+                Equation<?, ?> element = elementBalance.getEquationArray().getElement(elementBalance.getElementNum());
+                return element.isActive() && element.getActiveType() == elementBalance.getType()
+                        ? element.getColumn() : -1;
+            } else {
+                throw new PowsyblException("Unsupported balance evaluable: " + balance.getClass());
+            }
         }
     }
 
@@ -490,10 +547,14 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
 
         private final Equation<V, E> variableEquation;
 
-        protected SingleVariableFactorGroup(LfElement variableElement, Equation<V, E> variableEquation, SensitivityVariableType variableType) {
+        private final List<Equation<V, E>> alternativeVariableEquations;
+
+        protected SingleVariableFactorGroup(LfElement variableElement, Equation<V, E> variableEquation,
+                                            List<Equation<V, E>> alternativeVariableEquations, SensitivityVariableType variableType) {
             super(variableType);
             this.variableElement = Objects.requireNonNull(variableElement);
             this.variableEquation = variableEquation;
+            this.alternativeVariableEquations = Objects.requireNonNull(alternativeVariableEquations);
         }
 
         @Override
@@ -522,7 +583,19 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     break;
                 case BUS_TARGET_VOLTAGE:
                     if (variableEquation.isActive()) {
+                        // legacy modeling: the active voltage target equation of the controlled bus
                         rhs.set(variableEquation.getColumn(), getIndex(), 1d);
+                    } else {
+                        // alternative modeling: the voltage target is carried by the alternative equation of one
+                        // of the controller buses, resolved now as it can move with PV/PQ switching (no carrier
+                        // means the voltage control is fully disabled, like an inactive voltage target equation)
+                        for (Equation<V, E> equation : alternativeVariableEquations) {
+                            if (equation.isActive() && equation.getActiveType() == variableEquation.getType()
+                                    && equation.getActiveElementNum() == variableElement.getNum()) {
+                                rhs.set(equation.getColumn(), getIndex(), 1d);
+                                break;
+                            }
+                        }
                     }
                     break;
                 case SHUNT_COMPENSATOR_SUSCEPTANCE:
@@ -737,7 +810,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             if (factor instanceof SingleVariableLfSensitivityFactor) {
                 SingleVariableLfSensitivityFactor<V, E> singleVarFactor = (SingleVariableLfSensitivityFactor<V, E>) factor;
                 SensitivityFactorGroup<V, E> factorGroup = groupIndexedById.computeIfAbsent(id,
-                    k -> new SingleVariableFactorGroup<>(singleVarFactor.getVariableElement(), singleVarFactor.getVariableEquation(), factor.getVariableType()));
+                    k -> new SingleVariableFactorGroup<>(singleVarFactor.getVariableElement(), singleVarFactor.getVariableEquation(),
+                            singleVarFactor.getAlternativeVariableEquations(), factor.getVariableType()));
                 factorGroup.addFactor(factor);
                 factor.setGroup(factorGroup);
             } else if (factor instanceof MultiVariablesLfSensitivityFactor) {

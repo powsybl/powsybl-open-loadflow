@@ -30,6 +30,12 @@ public class LfStarBus extends AbstractLfBus {
         nominalV = t3wt.getRatedU0();
     }
 
+    protected LfStarBus(LfStarBus other, LfNetwork network) {
+        super(other, network);
+        this.t3wtRef = other.t3wtRef;
+        this.nominalV = other.nominalV;
+    }
+
     private ThreeWindingsTransformer getT3wt() {
         return t3wtRef.get();
     }

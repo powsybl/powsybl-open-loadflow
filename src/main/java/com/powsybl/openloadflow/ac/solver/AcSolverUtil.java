@@ -92,11 +92,17 @@ public final class AcSolverUtil {
         for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
             switch (v.getType()) {
                 case BUS_V:
-                    network.getBus(v.getElementNum()).setV(stateVector.get(v.getRow()));
+                    // with alternative equations, disabled (islanded) buses keep their variables in the system,
+                    // solved against a trivial target: do not write this meaningless solution back to the network
+                    if (!network.getBus(v.getElementNum()).isDisabled()) {
+                        network.getBus(v.getElementNum()).setV(stateVector.get(v.getRow()));
+                    }
                     break;
 
                 case BUS_PHI:
-                    network.getBus(v.getElementNum()).setAngle(stateVector.get(v.getRow()));
+                    if (!network.getBus(v.getElementNum()).isDisabled()) {
+                        network.getBus(v.getElementNum()).setAngle(stateVector.get(v.getRow()));
+                    }
                     break;
 
                 case BUS_V_ZERO:

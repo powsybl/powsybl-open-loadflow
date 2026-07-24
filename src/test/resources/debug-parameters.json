@@ -37,6 +37,7 @@
         "maxSusceptanceMismatch" : 1.0E-4,
         "slackBusPMaxMismatch" : 1.0,
         "voltagePerReactivePowerControl" : false,
+        "alternativeEquations" : false,
         "generatorReactivePowerRemoteControl" : false,
         "transformerReactivePowerControl" : false,
         "maxNewtonRaphsonIterations" : 15,
@@ -114,7 +115,8 @@
     "open-sensitivity-parameters" : {
       "debugDir" : "/work",
       "startWithFrozenACEmulation" : true,
-      "threadCount" : 1
+      "threadCount" : 1,
+      "networkPerThreadMode" : "COPY"
     }
   }
 }

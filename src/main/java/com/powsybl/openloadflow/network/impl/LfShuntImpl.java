@@ -104,6 +104,24 @@ public class LfShuntImpl extends AbstractLfShunt {
         }
     }
 
+    protected LfShuntImpl(LfShuntImpl other, LfNetwork network, LfBus bus) {
+        super(network);
+        this.shuntCompensatorsRefs = new ArrayList<>(other.shuntCompensatorsRefs);
+        this.bus = Objects.requireNonNull(bus);
+        this.voltageControlCapability = other.voltageControlCapability;
+        this.voltageControlEnabled = other.voltageControlEnabled;
+        this.zb = other.zb;
+        this.b = other.b;
+        this.g = other.g;
+        for (Controller controller : other.controllers) {
+            ControllerImpl otherController = (ControllerImpl) controller;
+            controllers.add(new ControllerImpl(otherController.getShuntCompensatorRef(),
+                    otherController.getSectionsB(), otherController.getSectionsG(), otherController.getPosition(), otherController.getMinPosition()));
+        }
+        this.disabled = other.disabled;
+        // voltageControl object is wired at network level, p and q stay solver injected defaults
+    }
+
     private void initShuntCompensator(LfNetworkParameters parameters, Ref<ShuntCompensator> shuntCompensatorRef) {
         var shuntCompensator = shuntCompensatorRef.get();
         List<Double> sectionsB = new ArrayList<>(1);

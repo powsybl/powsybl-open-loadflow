@@ -67,7 +67,9 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
     }
 
     public static void init(SingleEquation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
-        init(equation.getType(), equation.getColumn(), equation.getElementNum(), network, targets);
+        // dispatch on the active type and element so that alternative equations get the target of their active
+        // alternative (same as the equation type and element for plain equations)
+        init(equation.getActiveType(), equation.getColumn(), equation.getActiveElementNum(), network, targets);
         targets[equation.getColumn()] -= equation.rhs();
     }
 
@@ -93,6 +95,12 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
 
             case BUS_TARGET_PHI:
                 targets[column] = 0;
+                break;
+
+            case BUS_TARGET_V_DISABLED:
+                // trivial well conditioned voltage target for disabled (islanded) buses modeled with alternative
+                // equations
+                targets[column] = 1;
                 break;
 
             case SHUNT_TARGET_B:
@@ -161,7 +169,9 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
         for (int elementNum = 0; elementNum < equationArray.getElementCount(); elementNum++) {
             if (equationArray.isElementActive(elementNum)) {
                 int column = equationArray.getElementNumToColumn(elementNum);
-                init(equationArray.getType(), column, elementNum, network, targets);
+                // dispatch on the active type and element so that elements with alternatives get the
+                // target of their active alternative (same as the array type and element otherwise)
+                init(equationArray.getElementActiveType(elementNum), column, equationArray.getElementActiveElementNum(elementNum), network, targets);
             }
         }
     }

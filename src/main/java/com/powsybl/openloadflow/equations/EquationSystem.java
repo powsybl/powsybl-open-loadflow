@@ -95,6 +95,13 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                     indexTerm(term);
                 }
             }
+            // additional single terms attached to equation array elements (e.g. alternative alternative bodies)
+            // must be indexed too, so that element disabling toggles them like any other term
+            for (var equationArray : equationArrays.values()) {
+                for (var term : equationArray.getAllSingleEquationTerms()) {
+                    indexTerm(term);
+                }
+            }
         }
     }
 
@@ -200,11 +207,38 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private SingleEquation<V, E> addEquation(Pair<Integer, E> p) {
         SingleEquation<V, E> equation = new SingleEquation<>(p.getLeft(), p.getRight(), EquationSystem.this);
+        registerEquation(p, equation);
+        return equation;
+    }
+
+    private void registerEquation(Pair<Integer, E> p, SingleEquation<V, E> equation) {
         equations.put(p, equation);
         Pair<ElementType, Integer> element = Pair.of(p.getRight().getElementType(), p.getLeft());
         equationsByElement.computeIfAbsent(element, k -> new ArrayList<>())
                 .add(equation);
         notifyEquationChange(equation, EquationEventType.EQUATION_CREATED);
+    }
+
+    /**
+     * Create a {@link AlternativeEquation}, registered under the given primary type. Alternatives have to be added
+     * afterwards with {@link AlternativeEquation#addAlternative(Enum, int, List)}.
+     */
+    public AlternativeEquation<V, E> createAlternativeEquation(LfElement element, E type) {
+        Objects.requireNonNull(element);
+        Objects.requireNonNull(type);
+        if (element.getType() != type.getElementType()) {
+            throw new PowsyblException("Incorrect equation type: " + type);
+        }
+        if (equationArrays.containsKey(type)) {
+            throw new PowsyblException("An equation array already exists for type: " + type);
+        }
+        Pair<Integer, E> p = Pair.of(element.getNum(), type);
+        if (equations.containsKey(p)) {
+            throw new PowsyblException("An equation already exists for element " + element.getNum() + " and type " + type);
+        }
+        AlternativeEquation<V, E> equation = new AlternativeEquation<>(element.getNum(), type, EquationSystem.this);
+        registerEquation(p, equation);
+        equation.setActive(!element.isDisabled());
         return equation;
     }
 

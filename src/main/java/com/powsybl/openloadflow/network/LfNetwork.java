@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.network;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
@@ -20,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.Reader;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -27,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -39,6 +43,30 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfElementContainer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
+
+    // JSON state field names (see writeJson / readJson)
+    private static final String JSON_DISABLED = "disabled";
+    private static final String JSON_GENERATOR_VOLTAGE_CONTROL_ENABLED = "generatorVoltageControlEnabled";
+    private static final String JSON_GENERATOR_REACTIVE_POWER_CONTROL_ENABLED = "generatorReactivePowerControlEnabled";
+    private static final String JSON_Q_LIMIT_TYPE = "qLimitType";
+    private static final String JSON_ANGLE = "angle";
+    private static final String JSON_TAP_POSITION = "tapPosition";
+    private static final String JSON_PHASE_CONTROL_ENABLED = "phaseControlEnabled";
+    private static final String JSON_VOLTAGE_CONTROL_ENABLED = "voltageControlEnabled";
+    private static final String JSON_CONNECTED_SIDE_1 = "connectedSide1";
+    private static final String JSON_CONNECTED_SIDE_2 = "connectedSide2";
+    private static final String JSON_TARGET_P = "targetP";
+    private static final String JSON_INITIAL_TARGET_P = "initialTargetP";
+    private static final String JSON_TARGET_Q = "targetQ";
+    private static final String JSON_CONTROL_TYPE = "controlType";
+    private static final String JSON_PARTICIPATING = "participating";
+    private static final String JSON_ABS_VARIABLE_TARGET_P = "absVariableTargetP";
+    private static final String JSON_GENERATORS = "generators";
+    private static final String JSON_AC_EMULATION = "acEmulation";
+    private static final String JSON_AC_EMULATION_STATUS = "acEmulationStatus";
+    private static final String JSON_CONVERTER_STATION_1_TARGET_P = "converterStation1TargetP";
+    private static final String JSON_CONVERTER_STATION_2_TARGET_P = "converterStation2TargetP";
+    private static final String JSON_INTERCHANGE_TARGET = "interchangeTarget";
 
     private final int numCC;
 
@@ -99,6 +127,15 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     private ReportNode reportNode;
 
     private final List<LfSecondaryVoltageControl> secondaryVoltageControls = new ArrayList<>();
+
+    /**
+     * Branches whose connectivity edge was removed when the initial topology was restored after the
+     * load (see {@code Networks.restoreInitialTopology}: branches built closed so that a contingency
+     * or an action can close them, then reopened). A lazily rebuilt connectivity (e.g. on a deep
+     * copy) must exclude them to be equivalent to the connectivity those removals were applied to.
+     * Insertion-ordered so that copies iterate it deterministically.
+     */
+    private final Set<LfBranch> connectivityRemovedBranches = new LinkedHashSet<>();
 
     private final List<LfVoltageAngleLimit> voltageAngleLimits = new ArrayList<>();
 
@@ -172,6 +209,15 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     public LfNetwork(int numCC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
                      GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, ReferenceBusSelector referenceBusSelector) {
         this(numCC, slackBusSelector, maxSlackBusCount, connectivityFactory, referenceBusSelector, ReportNode.NO_OP);
+    }
+
+    public LfNetwork(LfNetwork network) {
+        this(network, ReportNode.NO_OP);
+    }
+
+    public LfNetwork(LfNetwork network, ReportNode reportNode) {
+        this(network.numCC, network.slackBusSelector, network.maxSlackBusCount,
+                network.connectivityFactory, network.referenceBusSelector, reportNode);
     }
 
     public int getNumCC() {
@@ -265,6 +311,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         }
         branches.remove(branch);
         branch.getOriginalIds().forEach(branchesByOriginalId::remove);
+        connectivityRemovedBranches.remove(branch);
         LfBus bus = branch.getBus1() != null ? branch.getBus1() : branch.getBus2();
         // If the branch is disconnected at both side then 'bus' is null. This does not correspond to the use case of
         // this method, so we can assume 'bus' is not null.
@@ -464,8 +511,19 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     private void writeJson(LfBus bus, JsonGenerator jsonGenerator) throws IOException {
         jsonGenerator.writeStringField("id", bus.getId());
         jsonGenerator.writeNumberField("num", bus.getNum());
-        if (bus.getGenerationTargetQ() != 0) {
+        if (bus.isDisabled()) {
+            jsonGenerator.writeBooleanField(JSON_DISABLED, true);
+        }
+        if (bus.getGenerationTargetQ() != 0 || bus.isGenerationTargetQFrozen()) {
             jsonGenerator.writeNumberField("generationTargetQ", bus.getGenerationTargetQ());
+        }
+        if (bus.isGenerationTargetQFrozen()) {
+            jsonGenerator.writeBooleanField("generationTargetQFrozen", true);
+        }
+        jsonGenerator.writeBooleanField(JSON_GENERATOR_VOLTAGE_CONTROL_ENABLED, bus.isGeneratorVoltageControlEnabled());
+        jsonGenerator.writeBooleanField(JSON_GENERATOR_REACTIVE_POWER_CONTROL_ENABLED, bus.isGeneratorReactivePowerControlEnabled());
+        if (bus.getQLimitType().isPresent()) {
+            jsonGenerator.writeStringField(JSON_Q_LIMIT_TYPE, bus.getQLimitType().orElseThrow().name());
         }
         if (bus.getLoadTargetP() != 0) {
             jsonGenerator.writeNumberField("loadTargetP", bus.getLoadTargetP());
@@ -473,24 +531,25 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         if (bus.getLoadTargetQ() != 0) {
             jsonGenerator.writeNumberField("loadTargetQ", bus.getLoadTargetQ());
         }
-        bus.getGeneratorVoltageControl().ifPresent(vc -> {
-            if (bus.isGeneratorVoltageControlEnabled()) {
-                try {
-                    if (vc.getControlledBus() != bus) {
-                        jsonGenerator.writeNumberField("remoteControlTargetBus", vc.getControlledBus().getNum());
-                    }
-                    jsonGenerator.writeNumberField("targetV", vc.getTargetValue());
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
-                }
-            }
-        });
+        writeGeneratorVoltageControlJson(bus, jsonGenerator);
         if (!Double.isNaN(bus.getV())) {
             jsonGenerator.writeNumberField("v", bus.getV());
         }
         if (!Double.isNaN(bus.getAngle())) {
-            jsonGenerator.writeNumberField("angle", bus.getAngle());
+            jsonGenerator.writeNumberField(JSON_ANGLE, bus.getAngle());
         }
+    }
+
+    private void writeGeneratorVoltageControlJson(LfBus bus, JsonGenerator jsonGenerator) throws IOException {
+        Optional<GeneratorVoltageControl> vcOpt = bus.getGeneratorVoltageControl();
+        if (vcOpt.isEmpty() || !bus.isGeneratorVoltageControlEnabled()) {
+            return;
+        }
+        GeneratorVoltageControl vc = vcOpt.orElseThrow();
+        if (vc.getControlledBus() != bus) {
+            jsonGenerator.writeNumberField("remoteControlTargetBus", vc.getControlledBus().getNum());
+        }
+        jsonGenerator.writeNumberField("targetV", vc.getTargetValue());
     }
 
     private void writeJson(LfBranch branch, JsonGenerator jsonGenerator) throws IOException {
@@ -504,7 +563,26 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         if (bus2 != null) {
             jsonGenerator.writeNumberField("num2", bus2.getNum());
         }
-        PiModel piModel = branch.getPiModel();
+        writePiModelJson(branch.getPiModel(), jsonGenerator);
+        if (branch.isPhaseController()) {
+            jsonGenerator.writeBooleanField(JSON_PHASE_CONTROL_ENABLED, branch.isPhaseControlEnabled());
+        }
+        if (branch.isVoltageController()) {
+            jsonGenerator.writeBooleanField(JSON_VOLTAGE_CONTROL_ENABLED, branch.isVoltageControlEnabled());
+        }
+        if (branch.isDisconnectionAllowedSide1()) {
+            jsonGenerator.writeBooleanField(JSON_CONNECTED_SIDE_1, branch.isConnectedSide1());
+        }
+        if (branch.isDisconnectionAllowedSide2()) {
+            jsonGenerator.writeBooleanField(JSON_CONNECTED_SIDE_2, branch.isConnectedSide2());
+        }
+        if (branch.isDisabled()) {
+            jsonGenerator.writeBooleanField(JSON_DISABLED, true);
+        }
+        writeDiscretePhaseControlJson(branch, jsonGenerator);
+    }
+
+    private void writePiModelJson(PiModel piModel, JsonGenerator jsonGenerator) throws IOException {
         jsonGenerator.writeNumberField("r", piModel.getR());
         jsonGenerator.writeNumberField("x", piModel.getX());
         if (piModel.getG1() != 0) {
@@ -525,40 +603,95 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         if (piModel.getA1() != 0) {
             jsonGenerator.writeNumberField("a1", piModel.getA1());
         }
-        branch.getPhaseControl().filter(dpc -> branch.isPhaseController()).ifPresent(dpc -> {
-            try {
-                jsonGenerator.writeFieldName("discretePhaseControl");
-                jsonGenerator.writeStartObject();
-                jsonGenerator.writeStringField("controller", dpc.getControllerBranch().getId());
-                jsonGenerator.writeStringField("controlled", dpc.getControlledBranch().getId());
-                jsonGenerator.writeStringField("mode", dpc.getMode().name());
-                jsonGenerator.writeStringField("unit", dpc.getUnit().name());
-                jsonGenerator.writeStringField("controlledSide", dpc.getControlledSide().name());
-                jsonGenerator.writeNumberField("targetValue", dpc.getTargetValue());
-                jsonGenerator.writeEndObject();
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
+        if (piModel instanceof PiModelArray piModelArray) {
+            jsonGenerator.writeNumberField(JSON_TAP_POSITION, piModelArray.getTapPosition());
+            if (!Double.isNaN(piModelArray.getModifiedA1())) {
+                jsonGenerator.writeNumberField("modifiedA1", piModelArray.getModifiedA1());
             }
-        });
+            if (!Double.isNaN(piModelArray.getModifiedR1())) {
+                jsonGenerator.writeNumberField("modifiedR1", piModelArray.getModifiedR1());
+            }
+        }
+    }
+
+    private void writeDiscretePhaseControlJson(LfBranch branch, JsonGenerator jsonGenerator) throws IOException {
+        Optional<TransformerPhaseControl> dpcOpt = branch.getPhaseControl().filter(dpc -> branch.isPhaseController());
+        if (dpcOpt.isEmpty()) {
+            return;
+        }
+        TransformerPhaseControl dpc = dpcOpt.orElseThrow();
+        jsonGenerator.writeFieldName("discretePhaseControl");
+        jsonGenerator.writeStartObject();
+        jsonGenerator.writeStringField("controller", dpc.getControllerBranch().getId());
+        jsonGenerator.writeStringField("controlled", dpc.getControlledBranch().getId());
+        jsonGenerator.writeStringField("mode", dpc.getMode().name());
+        jsonGenerator.writeStringField("unit", dpc.getUnit().name());
+        jsonGenerator.writeStringField("controlledSide", dpc.getControlledSide().name());
+        jsonGenerator.writeNumberField("targetValue", dpc.getTargetValue());
+        jsonGenerator.writeEndObject();
+    }
+
+    private void writeShuntJson(LfShunt shunt, String fieldName, JsonGenerator jsonGenerator) {
+        if (shunt == null) {
+            return;
+        }
+        try {
+            jsonGenerator.writeFieldName(fieldName);
+            jsonGenerator.writeStartObject();
+            writeJson(shunt, jsonGenerator);
+            jsonGenerator.writeEndObject();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private void writeJson(LfShunt shunt, JsonGenerator jsonGenerator) throws IOException {
         jsonGenerator.writeStringField("id", shunt.getId());
         jsonGenerator.writeNumberField("num", shunt.getNum());
         jsonGenerator.writeNumberField("b", shunt.getB());
+        if (shunt.getG() != 0) {
+            jsonGenerator.writeNumberField("g", shunt.getG());
+        }
+        if (shunt.hasVoltageControlCapability()) {
+            jsonGenerator.writeBooleanField(JSON_VOLTAGE_CONTROL_ENABLED, shunt.isVoltageControlEnabled());
+        }
     }
 
     private void writeJson(LfGenerator generator, JsonGenerator jsonGenerator) throws IOException {
         jsonGenerator.writeStringField("id", generator.getId());
-        jsonGenerator.writeNumberField("targetP", generator.getTargetP());
+        jsonGenerator.writeNumberField(JSON_TARGET_P, generator.getTargetP());
+        jsonGenerator.writeNumberField(JSON_INITIAL_TARGET_P, generator.getInitialTargetP());
         if (!Double.isNaN(generator.getTargetQ())) {
-            jsonGenerator.writeNumberField("targetQ", generator.getTargetQ());
+            jsonGenerator.writeNumberField(JSON_TARGET_Q, generator.getTargetQ());
         }
-        jsonGenerator.writeBooleanField("voltageControl", generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE);
+        jsonGenerator.writeStringField(JSON_CONTROL_TYPE, generator.getGeneratorControlType().name());
+        jsonGenerator.writeBooleanField(JSON_PARTICIPATING, generator.isParticipating());
+        if (generator.isDisabled()) {
+            jsonGenerator.writeBooleanField(JSON_DISABLED, true);
+        }
         jsonGenerator.writeNumberField("minP", generator.getMinP());
         jsonGenerator.writeNumberField("maxP", generator.getMaxP());
         jsonGenerator.writeNumberField("minTargetP", generator.getMinTargetP());
         jsonGenerator.writeNumberField("maxTargetP", generator.getMaxTargetP());
+    }
+
+    private void writeJson(LfLoad load, JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeNumberField(JSON_TARGET_P, load.getTargetP());
+        jsonGenerator.writeNumberField(JSON_TARGET_Q, load.getTargetQ());
+        jsonGenerator.writeNumberField(JSON_ABS_VARIABLE_TARGET_P, load.getAbsVariableTargetP());
+        List<String> disabledLoadIds = load.getOriginalLoadsDisablingStatus().entrySet().stream()
+                .filter(Map.Entry::getValue)
+                .map(Map.Entry::getKey)
+                .sorted()
+                .toList();
+        if (!disabledLoadIds.isEmpty()) {
+            jsonGenerator.writeFieldName("disabledLoadIds");
+            jsonGenerator.writeStartArray();
+            for (String id : disabledLoadIds) {
+                jsonGenerator.writeString(id);
+            }
+            jsonGenerator.writeEndArray();
+        }
     }
 
     public void writeJson(Writer writer) {
@@ -568,62 +701,84 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
                 .createGenerator(writer)
                 .useDefaultPrettyPrinter()) {
             jsonGenerator.writeStartObject();
-
-            jsonGenerator.writeFieldName("buses");
-            jsonGenerator.writeStartArray();
-            List<LfBus> sortedBuses = busesById.values().stream().sorted(Comparator.comparing(LfBus::getId)).toList();
-            for (LfBus bus : sortedBuses) {
-                jsonGenerator.writeStartObject();
-
-                writeJson(bus, jsonGenerator);
-
-                bus.getShunt().ifPresent(shunt -> {
-                    try {
-                        jsonGenerator.writeFieldName("shunt");
-                        jsonGenerator.writeStartObject();
-
-                        writeJson(shunt, jsonGenerator);
-
-                        jsonGenerator.writeEndObject();
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                });
-
-                List<LfGenerator> sortedGenerators = bus.getGenerators().stream().sorted(Comparator.comparing(LfGenerator::getId)).toList();
-                if (!sortedGenerators.isEmpty()) {
-                    jsonGenerator.writeFieldName("generators");
-                    jsonGenerator.writeStartArray();
-                    for (LfGenerator generator : sortedGenerators) {
-                        jsonGenerator.writeStartObject();
-
-                        writeJson(generator, jsonGenerator);
-
-                        jsonGenerator.writeEndObject();
-                    }
-                    jsonGenerator.writeEndArray();
-                }
-
-                jsonGenerator.writeEndObject();
-            }
-            jsonGenerator.writeEndArray();
-
-            jsonGenerator.writeFieldName("branches");
-            jsonGenerator.writeStartArray();
-            List<LfBranch> sortedBranches = branches.stream().sorted(Comparator.comparing(LfBranch::getId)).toList();
-            for (LfBranch branch : sortedBranches) {
-                jsonGenerator.writeStartObject();
-
-                writeJson(branch, jsonGenerator);
-
-                jsonGenerator.writeEndObject();
-            }
-            jsonGenerator.writeEndArray();
-
+            writeArrayJson(jsonGenerator, "buses", sortedById(busesById.values(), LfBus::getId), this::writeBusJson);
+            writeArrayJson(jsonGenerator, "branches", sortedById(branches, LfBranch::getId), this::writeJson);
+            writeArrayJson(jsonGenerator, "dcBuses", sortedById(dcBusByIndex, LfDcBus::getId), this::writeDcBusJson);
+            writeArrayJson(jsonGenerator, "dcLines", sortedById(dcLinesByIndex, LfDcLine::getId), this::writeDcLineJson);
+            writeArrayJson(jsonGenerator, "voltageSourceConverters",
+                    sortedById(voltageSourceConvertersByIndex, LfVoltageSourceConverter::getId), this::writeConverterJson);
+            writeArrayJson(jsonGenerator, "hvdcs", sortedById(hvdcs, LfHvdc::getId), this::writeHvdcJson);
+            writeArrayJson(jsonGenerator, "areas", sortedById(areas, LfArea::getId), this::writeAreaJson);
             jsonGenerator.writeEndObject();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    @FunctionalInterface
+    private interface JsonElementWriter<T> {
+        void write(T element, JsonGenerator jsonGenerator) throws IOException;
+    }
+
+    private static <T> List<T> sortedById(Collection<T> elements, Function<T, String> idGetter) {
+        return elements.stream().sorted(Comparator.comparing(idGetter)).toList();
+    }
+
+    private static <T> void writeArrayJson(JsonGenerator jsonGenerator, String fieldName, List<T> elements,
+                                           JsonElementWriter<T> elementWriter) throws IOException {
+        if (elements.isEmpty()) {
+            return;
+        }
+        jsonGenerator.writeFieldName(fieldName);
+        jsonGenerator.writeStartArray();
+        for (T element : elements) {
+            jsonGenerator.writeStartObject();
+            elementWriter.write(element, jsonGenerator);
+            jsonGenerator.writeEndObject();
+        }
+        jsonGenerator.writeEndArray();
+    }
+
+    private void writeBusJson(LfBus bus, JsonGenerator jsonGenerator) throws IOException {
+        writeJson(bus, jsonGenerator);
+        writeShuntJson(bus.getShunt().orElse(null), "shunt", jsonGenerator);
+        writeShuntJson(bus.getControllerShunt().orElse(null), "controllerShunt", jsonGenerator);
+        writeShuntJson(bus.getSvcShunt().orElse(null), "svcShunt", jsonGenerator);
+        writeArrayJson(jsonGenerator, JSON_GENERATORS, sortedById(bus.getGenerators(), LfGenerator::getId), this::writeJson);
+        writeArrayJson(jsonGenerator, "loads", bus.getLoads(), this::writeJson);
+    }
+
+    private void writeDcBusJson(LfDcBus dcBus, JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeStringField("id", dcBus.getId());
+        jsonGenerator.writeNumberField("v", dcBus.getV());
+        jsonGenerator.writeBooleanField(JSON_DISABLED, dcBus.isDisabled());
+    }
+
+    private void writeDcLineJson(LfDcLine dcLine, JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeStringField("id", dcLine.getId());
+        jsonGenerator.writeBooleanField(JSON_DISABLED, dcLine.isDisabled());
+    }
+
+    private void writeConverterJson(LfVoltageSourceConverter converter, JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeStringField("id", converter.getId());
+        jsonGenerator.writeNumberField("pAc", converter.getPac());
+        jsonGenerator.writeNumberField("qAc", converter.getQac());
+        jsonGenerator.writeBooleanField(JSON_DISABLED, converter.isDisabled());
+    }
+
+    private void writeHvdcJson(LfHvdc hvdc, JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeStringField("id", hvdc.getId());
+        jsonGenerator.writeBooleanField(JSON_AC_EMULATION, hvdc.isAcEmulation());
+        if (hvdc.getAcEmulationControl() != null) {
+            jsonGenerator.writeStringField(JSON_AC_EMULATION_STATUS, hvdc.getAcEmulationControl().getAcEmulationStatus().name());
+        }
+        jsonGenerator.writeNumberField(JSON_CONVERTER_STATION_1_TARGET_P, hvdc.getConverterStation1().getTargetP());
+        jsonGenerator.writeNumberField(JSON_CONVERTER_STATION_2_TARGET_P, hvdc.getConverterStation2().getTargetP());
+    }
+
+    private void writeAreaJson(LfArea area, JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeStringField("id", area.getId());
+        jsonGenerator.writeNumberField(JSON_INTERCHANGE_TARGET, area.getInterchangeTarget());
     }
 
     private void reportSize(ReportNode reportNode) {
@@ -762,6 +917,244 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         return lfNetworks;
     }
 
+    /**
+     * Restore on this network a state previously written by {@link #writeJson(Writer)}. The network
+     * must have been built from the same case with the same parameters (elements are matched by id);
+     * only the simulation state is applied (targets, solved voltages and angles, tap positions,
+     * control enable flags, disabled statuses...), mirroring the semantics of {@link NetworkState}.
+     */
+    public void readJson(Path file) {
+        Objects.requireNonNull(file);
+        try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            readJson(reader);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    public void readJson(Reader reader) {
+        Objects.requireNonNull(reader);
+        JsonNode root;
+        try {
+            root = new ObjectMapper().readTree(reader);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        root.path("buses").forEach(this::readBusJson);
+        root.path("branches").forEach(this::readBranchJson);
+        root.path("dcBuses").forEach(this::readDcBusJson);
+        root.path("dcLines").forEach(this::readDcLineJson);
+        root.path("voltageSourceConverters").forEach(this::readConverterJson);
+        root.path("hvdcs").forEach(this::readHvdcJson);
+        root.path("areas").forEach(this::readAreaJson);
+    }
+
+    private void readDcBusJson(JsonNode dcBusNode) {
+        LfDcBus dcBus = getElementFromJson(dcBusNode, this::getDcBusById, "DC bus");
+        if (dcBusNode.hasNonNull("v")) {
+            dcBus.setV(dcBusNode.get("v").asDouble());
+        }
+        if (dcBusNode.hasNonNull(JSON_DISABLED)) {
+            dcBus.setDisabled(dcBusNode.get(JSON_DISABLED).asBoolean());
+        }
+    }
+
+    private void readDcLineJson(JsonNode dcLineNode) {
+        LfDcLine dcLine = getElementFromJson(dcLineNode,
+                id -> dcLinesByIndex.stream().filter(l -> l.getId().equals(id)).findFirst().orElse(null), "DC line");
+        if (dcLineNode.hasNonNull(JSON_DISABLED)) {
+            dcLine.setDisabled(dcLineNode.get(JSON_DISABLED).asBoolean());
+        }
+    }
+
+    private void readConverterJson(JsonNode converterNode) {
+        LfVoltageSourceConverter converter = getElementFromJson(converterNode,
+                id -> voltageSourceConvertersByIndex.stream().filter(c -> c.getId().equals(id)).findFirst().orElse(null),
+                "Voltage source converter");
+        if (converterNode.hasNonNull("pAc")) {
+            converter.setPac(converterNode.get("pAc").asDouble());
+        }
+        if (converterNode.hasNonNull("qAc")) {
+            converter.setQac(converterNode.get("qAc").asDouble());
+        }
+        if (converterNode.hasNonNull(JSON_DISABLED)) {
+            converter.setDisabled(converterNode.get(JSON_DISABLED).asBoolean());
+        }
+    }
+
+    private void readHvdcJson(JsonNode hvdcNode) {
+        LfHvdc hvdc = getElementFromJson(hvdcNode, this::getHvdcById, "Hvdc");
+        if (hvdcNode.hasNonNull(JSON_AC_EMULATION)) {
+            hvdc.setAcEmulation(hvdcNode.get(JSON_AC_EMULATION).asBoolean());
+        }
+        if (hvdcNode.hasNonNull(JSON_AC_EMULATION_STATUS)) {
+            hvdc.updateAcEmulationStatus(LfHvdc.AcEmulationControl.AcEmulationStatus.valueOf(hvdcNode.get(JSON_AC_EMULATION_STATUS).asText()));
+        }
+        if (hvdcNode.hasNonNull(JSON_CONVERTER_STATION_1_TARGET_P)) {
+            hvdc.getConverterStation1().setTargetP(hvdcNode.get(JSON_CONVERTER_STATION_1_TARGET_P).asDouble());
+        }
+        if (hvdcNode.hasNonNull(JSON_CONVERTER_STATION_2_TARGET_P)) {
+            hvdc.getConverterStation2().setTargetP(hvdcNode.get(JSON_CONVERTER_STATION_2_TARGET_P).asDouble());
+        }
+    }
+
+    private void readAreaJson(JsonNode areaNode) {
+        LfArea area = getElementFromJson(areaNode, this::getAreaById, "Area");
+        if (areaNode.hasNonNull(JSON_INTERCHANGE_TARGET)) {
+            area.setInterchangeTarget(areaNode.get(JSON_INTERCHANGE_TARGET).asDouble());
+        }
+    }
+
+    private <T> T getElementFromJson(JsonNode node, Function<String, T> elementById, String what) {
+        String id = node.path("id").asText(null);
+        if (id == null) {
+            throw new PowsyblException(what + " id is missing in the json state");
+        }
+        T element = elementById.apply(id);
+        if (element == null) {
+            throw new PowsyblException(what + " '" + id + "' of the json state not found in the network");
+        }
+        return element;
+    }
+
+    private void readBusJson(JsonNode busNode) {
+        LfBus bus = getElementFromJson(busNode, this::getBusById, "Bus");
+        // same application order as ElementState/BusDcState/BusState restore
+        if (busNode.hasNonNull(JSON_DISABLED)) {
+            bus.setDisabled(busNode.get(JSON_DISABLED).asBoolean());
+        }
+        readBusGeneratorsJson(bus, busNode);
+        readBusLoadsJson(bus, busNode);
+        if (busNode.hasNonNull(JSON_ANGLE)) {
+            bus.setAngle(busNode.get(JSON_ANGLE).asDouble());
+        }
+        if (busNode.hasNonNull("v")) {
+            bus.setV(busNode.get("v").asDouble());
+        }
+        if (busNode.hasNonNull(JSON_GENERATOR_VOLTAGE_CONTROL_ENABLED)) {
+            bus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(busNode.get(JSON_GENERATOR_VOLTAGE_CONTROL_ENABLED).asBoolean());
+        }
+        if (busNode.path("generationTargetQFrozen").asBoolean(false)) {
+            bus.freezeGenerationTargetQAndDisableGeneratorVoltageControl(busNode.path("generationTargetQ").asDouble(0));
+        }
+        if (busNode.hasNonNull(JSON_GENERATOR_REACTIVE_POWER_CONTROL_ENABLED)) {
+            bus.setGeneratorReactivePowerControlEnabled(busNode.get(JSON_GENERATOR_REACTIVE_POWER_CONTROL_ENABLED).asBoolean());
+        }
+        readShuntJson(busNode.path("shunt"), bus.getShunt().orElse(null), bus, false);
+        readShuntJson(busNode.path("controllerShunt"), bus.getControllerShunt().orElse(null), bus, true);
+        readShuntJson(busNode.path("svcShunt"), bus.getSvcShunt().orElse(null), bus, false);
+        readBusGeneratorControlTypesJson(bus, busNode);
+        if (busNode.hasNonNull(JSON_Q_LIMIT_TYPE)) {
+            bus.setQLimitType(LfBus.QLimitType.valueOf(busNode.get(JSON_Q_LIMIT_TYPE).asText()));
+        }
+    }
+
+    private void readBusGeneratorsJson(LfBus bus, JsonNode busNode) {
+        for (JsonNode generatorNode : busNode.path(JSON_GENERATORS)) {
+            LfGenerator generator = getElementFromJson(generatorNode, id -> bus.getGenerators().stream()
+                    .filter(g -> g.getId().equals(id)).findFirst().orElse(null), "Generator");
+            if (generatorNode.hasNonNull(JSON_TARGET_P)) {
+                generator.setTargetP(generatorNode.get(JSON_TARGET_P).asDouble());
+            }
+            if (generatorNode.hasNonNull(JSON_INITIAL_TARGET_P)) {
+                generator.setInitialTargetP(generatorNode.get(JSON_INITIAL_TARGET_P).asDouble());
+            }
+            if (generatorNode.hasNonNull(JSON_PARTICIPATING)) {
+                generator.setParticipating(generatorNode.get(JSON_PARTICIPATING).asBoolean());
+            }
+            generator.setDisabled(generatorNode.path(JSON_DISABLED).asBoolean(false));
+        }
+    }
+
+    private static void readBusLoadsJson(LfBus bus, JsonNode busNode) {
+        List<LfLoad> loads = bus.getLoads();
+        int loadIndex = 0;
+        for (JsonNode loadNode : busNode.path("loads")) {
+            if (loadIndex >= loads.size()) {
+                throw new PowsyblException("More loads in the json state than in the network for bus '" + bus.getId() + "'");
+            }
+            LfLoad load = loads.get(loadIndex++); // loads have no unique external id: matched by position
+            if (loadNode.hasNonNull(JSON_TARGET_P)) {
+                load.setTargetP(loadNode.get(JSON_TARGET_P).asDouble());
+            }
+            if (loadNode.hasNonNull(JSON_TARGET_Q)) {
+                load.setTargetQ(loadNode.get(JSON_TARGET_Q).asDouble());
+            }
+            if (loadNode.hasNonNull(JSON_ABS_VARIABLE_TARGET_P)) {
+                load.setAbsVariableTargetP(loadNode.get(JSON_ABS_VARIABLE_TARGET_P).asDouble());
+            }
+            Map<String, Boolean> loadsDisablingStatus = new LinkedHashMap<>(load.getOriginalLoadsDisablingStatus());
+            loadsDisablingStatus.replaceAll((id, disabled) -> false);
+            for (JsonNode disabledLoadId : loadNode.path("disabledLoadIds")) {
+                loadsDisablingStatus.put(disabledLoadId.asText(), true);
+            }
+            load.setOriginalLoadsDisablingStatus(loadsDisablingStatus);
+        }
+    }
+
+    private static void readBusGeneratorControlTypesJson(LfBus bus, JsonNode busNode) {
+        for (JsonNode generatorNode : busNode.path(JSON_GENERATORS)) {
+            if (generatorNode.hasNonNull(JSON_CONTROL_TYPE)) {
+                String generatorId = generatorNode.path("id").asText();
+                bus.getGenerators().stream().filter(g -> g.getId().equals(generatorId)).findFirst().orElseThrow()
+                        .setGeneratorControlType(LfGenerator.GeneratorControlType.valueOf(generatorNode.get(JSON_CONTROL_TYPE).asText()));
+            }
+        }
+    }
+
+    private static void readShuntJson(JsonNode shuntNode, LfShunt shunt, LfBus bus, boolean controller) {
+        if (shuntNode.isMissingNode()) {
+            return;
+        }
+        if (shunt == null) {
+            throw new PowsyblException("Shunt of the json state not found on bus '" + bus.getId() + "'");
+        }
+        if (controller && shuntNode.hasNonNull(JSON_VOLTAGE_CONTROL_ENABLED)) {
+            shunt.setVoltageControlEnabled(shuntNode.get(JSON_VOLTAGE_CONTROL_ENABLED).asBoolean());
+        }
+        if (shuntNode.hasNonNull("b")) {
+            shunt.setB(shuntNode.get("b").asDouble());
+        }
+        if (shuntNode.hasNonNull("g")) {
+            shunt.setG(shuntNode.get("g").asDouble());
+        }
+    }
+
+    private void readBranchJson(JsonNode branchNode) {
+        LfBranch branch = getElementFromJson(branchNode, this::getBranchById, "Branch");
+        PiModel piModel = branch.getPiModel();
+        if (piModel instanceof PiModelArray) {
+            if (branchNode.hasNonNull(JSON_TAP_POSITION)) {
+                piModel.setTapPosition(branchNode.get(JSON_TAP_POSITION).asInt());
+            }
+            // same semantics as BranchState restore: absent modified values clear the overrides
+            piModel.setA1(branchNode.path("modifiedA1").asDouble(Double.NaN));
+            piModel.setR1(branchNode.path("modifiedR1").asDouble(Double.NaN));
+        } else {
+            if (branchNode.hasNonNull("r1")) {
+                piModel.setR1(branchNode.get("r1").asDouble());
+            }
+            if (branchNode.hasNonNull("a1")) {
+                piModel.setA1(branchNode.get("a1").asDouble());
+            }
+        }
+        if (branchNode.hasNonNull(JSON_PHASE_CONTROL_ENABLED)) {
+            branch.setPhaseControlEnabled(branchNode.get(JSON_PHASE_CONTROL_ENABLED).asBoolean());
+        }
+        if (branchNode.hasNonNull(JSON_VOLTAGE_CONTROL_ENABLED)) {
+            branch.setVoltageControlEnabled(branchNode.get(JSON_VOLTAGE_CONTROL_ENABLED).asBoolean());
+        }
+        if (branchNode.hasNonNull(JSON_CONNECTED_SIDE_1)) {
+            branch.setConnectedSide1(branchNode.get(JSON_CONNECTED_SIDE_1).asBoolean());
+        }
+        if (branchNode.hasNonNull(JSON_CONNECTED_SIDE_2)) {
+            branch.setConnectedSide2(branchNode.get(JSON_CONNECTED_SIDE_2).asBoolean());
+        }
+        if (branchNode.hasNonNull(JSON_DISABLED)) {
+            branch.setDisabled(branchNode.get(JSON_DISABLED).asBoolean());
+        }
+    }
+
     public void updateZeroImpedanceCache(LoadFlowModel loadFlowModel) {
         zeroImpedanceNetworksByModel.computeIfAbsent(loadFlowModel, m -> LfZeroImpedanceNetwork.create(this, loadFlowModel));
     }
@@ -781,6 +1174,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             getBuses().forEach(connectivity::addVertex);
             getBranches().stream()
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                    .filter(b -> !connectivityRemovedBranches.contains(b))
                     .forEach(b -> connectivity.addEdge(b.getBus1(), b.getBus2(), b));
             connectivity.setMainComponentVertex(synchronousNetworks.getFirst().getSlackBuses().getFirst());
             // this is necessary to create a first temporary changes level in order to allow
@@ -791,6 +1185,18 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             }
         }
         return connectivity;
+    }
+
+    /**
+     * Record that the connectivity edge of this branch was removed by the initial topology
+     * restoration, so that a lazily rebuilt connectivity excludes it (see {@link #getConnectivity()}).
+     */
+    public void addConnectivityRemovedBranch(LfBranch branch) {
+        connectivityRemovedBranches.add(Objects.requireNonNull(branch));
+    }
+
+    public Set<LfBranch> getConnectivityRemovedBranches() {
+        return connectivityRemovedBranches;
     }
 
     public void addListener(LfNetworkListener listener) {

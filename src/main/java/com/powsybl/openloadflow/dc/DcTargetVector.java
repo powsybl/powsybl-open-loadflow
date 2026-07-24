@@ -25,9 +25,9 @@ import com.powsybl.openloadflow.network.LfSynchronousNetwork;
 public class DcTargetVector extends TargetVector<DcVariableType, DcEquationType> {
 
     public static void init(SingleEquation<DcVariableType, DcEquationType> equation, LfNetwork network, double[] targets) {
-        switch (equation.getType()) {
+        switch (equation.getActiveType()) {
             case BUS_TARGET_P:
-                LfBus bus = network.getBus(equation.getElementNum());
+                LfBus bus = network.getBus(equation.getActiveElementNum());
                 targets[equation.getColumn()] = bus.getTargetP();
                 // Only used for multi slack (BUS_TARGET_P equation is disabled for first slack bus)
                 if (bus.isSlack()) {
@@ -42,15 +42,15 @@ public class DcTargetVector extends TargetVector<DcVariableType, DcEquationType>
                 break;
 
             case BRANCH_TARGET_ALPHA1:
-                targets[equation.getColumn()] = network.getBranch(equation.getElementNum()).getPiModel().getA1();
+                targets[equation.getColumn()] = network.getBranch(equation.getActiveElementNum()).getPiModel().getA1();
                 break;
 
             case ZERO_PHI:
-                targets[equation.getColumn()] = LfBranch.getA(network.getBranch(equation.getElementNum()));
+                targets[equation.getColumn()] = LfBranch.getA(network.getBranch(equation.getActiveElementNum()));
                 break;
 
             default:
-                throw new IllegalStateException("Unknown state variable type: " + equation.getType());
+                throw new IllegalStateException("Unknown state variable type: " + equation.getActiveType());
         }
 
         targets[equation.getColumn()] -= equation.rhs();

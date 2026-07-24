@@ -35,6 +35,15 @@ public class LfAreaImpl extends AbstractElement implements LfArea {
         this.boundaries = boundaries;
     }
 
+    protected LfAreaImpl(LfAreaImpl other, Set<LfBus> buses, Set<Boundary> boundaries, LfNetwork network) {
+        super(network);
+        this.areaRef = other.areaRef;
+        this.interchangeTarget = other.interchangeTarget;
+        this.buses = buses;
+        this.boundaries = boundaries;
+        this.disabled = other.disabled;
+    }
+
     public static LfAreaImpl create(Area area, Set<LfBus> buses, Set<Boundary> boundaries, LfNetwork network, LfNetworkParameters parameters) {
         LfAreaImpl lfArea = new LfAreaImpl(area, buses, boundaries, network, parameters);
         lfArea.getBuses().forEach(bus -> bus.setArea(lfArea));
@@ -92,6 +101,11 @@ public class LfAreaImpl extends AbstractElement implements LfArea {
         @Override
         public LfBranch getBranch() {
             return branch;
+        }
+
+        @Override
+        public TwoSides getSide() {
+            return side;
         }
 
         @Override

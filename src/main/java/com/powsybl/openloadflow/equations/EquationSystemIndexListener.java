@@ -32,6 +32,22 @@ public interface EquationSystemIndexListener<V extends Enum<V> & Quantity, E ext
      */
     void onEquationTermChange(SingleEquationTerm<V, E> term);
 
+    /**
+     * Called when the active alternative of a {@link AlternativeEquation} has changed. The matrix structure is
+     * preserved (the column and the variables of all alternatives are kept), only values and targets have to be
+     * updated.
+     */
+    default void onEquationAlternativeChange(SingleEquation<V, E> equation) {
+        // nothing by default
+    }
+
+    /**
+     * Same as {@link #onEquationAlternativeChange(SingleEquation)} for an element of an {@link EquationArray}.
+     */
+    default void onEquationArrayAlternativeChange(EquationArray<V, E> equationArray, int elementNum) {
+        // nothing by default
+    }
+
     void onEquationArrayChange(EquationArray<V, E> equationArray, ChangeType changeType);
 
     void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int termNum, ChangeType changeType);

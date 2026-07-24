@@ -46,11 +46,44 @@ public class AcEquationSystemCreator {
     }
 
     protected void createBusEquation(LfBus bus,
-                                     EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        var p = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P);
-        bus.setP(p);
-        var q = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
-        bus.setQ(q);
+                                   EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        Equation<AcVariableType, AcEquationType> p;
+        if (isAlternativeBusEquationsEligible(bus, equationSystem)) {
+            // equations owning a single matrix column each, alternating between the power balance and other
+            // equation bodies: a trivial equation when the bus is disabled or islanded by a contingency, and voltage
+            // control equations for the reactive one (see createVoltageControlAlternatives). PV/PQ
+            // switching and bus disabling then preserve the matrix structure and the symbolic factorization.
+            var pArray = equationSystem.getEquationArray(AcEquationType.BUS_TARGET_P);
+            if (pArray.isPresent()) {
+                // vectorized system: the alternatives are attached to the equation array elements
+                EquationArray<AcVariableType, AcEquationType> qArray = equationSystem.getEquationArray(AcEquationType.BUS_TARGET_Q).orElseThrow();
+                if (creationParameters.isAlternativeBusesCanBeDisabled()) {
+                    // add the trivial disabled alternative to every eligible bus so that islanding any of them by a
+                    // contingency preserves the matrix structure, whatever the connectivity analysis could detect up front
+                    addBusDisabledAlternative(pArray.get(), bus, equationSystem, AcEquationType.BUS_TARGET_PHI, AcVariableType.BUS_PHI);
+                    addBusDisabledAlternative(qArray, bus, equationSystem, AcEquationType.BUS_TARGET_V_DISABLED, AcVariableType.BUS_V);
+                }
+                // the power balances stay evaluable whatever the active alternatives are
+                bus.setP(pArray.get().getElementBalance(bus.getNum()));
+                bus.setQ(qArray.getElementBalance(bus.getNum()));
+                p = pArray.get().getElement(bus.getNum());
+            } else {
+                AlternativeEquation<AcVariableType, AcEquationType> pc = createBusAlternativeEquation(bus, equationSystem,
+                        AcEquationType.BUS_TARGET_P, AcEquationType.BUS_TARGET_PHI, AcVariableType.BUS_PHI);
+                bus.setP(pc.getAlternative(0));
+                p = pc;
+                AlternativeEquation<AcVariableType, AcEquationType> qc = createBusAlternativeEquation(bus, equationSystem,
+                        AcEquationType.BUS_TARGET_Q, AcEquationType.BUS_TARGET_V_DISABLED, AcVariableType.BUS_V);
+                // the reactive power balance alternative stays evaluable whatever the active alternative is
+                bus.setQ(qc.getAlternative(0));
+            }
+        } else {
+            var pe = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_P);
+            bus.setP(pe);
+            p = pe;
+            var q = equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_Q);
+            bus.setQ(q);
+        }
 
         if (bus.isReference()) {
             equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_PHI)
@@ -63,6 +96,8 @@ public class AcEquationSystemCreator {
 
         // maybe to fix later, but there is so part of OLF (like sensitivity) that needs a voltage target equation
         // deactivated
+        // for buses involved in a alternative voltage control this equation stays inactive forever, the voltage
+        // target is one of the alternatives of the controller buses alternative equations
         EquationTerm<AcVariableType, AcEquationType> vTerm = equationSystem.getVariable(bus.getNum(), AcVariableType.BUS_V).createTerm();
         equationSystem.createEquation(bus, AcEquationType.BUS_TARGET_V)
                 .addTerm(vTerm)
@@ -71,6 +106,94 @@ public class AcEquationSystemCreator {
 
         createShuntEquations(bus, equationSystem);
         createLoadEquations(bus, equationSystem);
+    }
+
+    /**
+     * Create a alternative equation for a bus power balance, with the balance alternative (index 0) as default
+     * alternative for terms added later (branch flows, shunts, loads, ...) and a trivial alternative used when the
+     * bus is disabled or islanded by a contingency, keeping the bus variable in the matrix structure.
+     */
+    private AlternativeEquation<AcVariableType, AcEquationType> createBusAlternativeEquation(LfBus bus,
+                                                                                                        EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                                                                        AcEquationType balanceType,
+                                                                                                        AcEquationType disabledType,
+                                                                                                        AcVariableType disabledVariableType) {
+        AlternativeEquation<AcVariableType, AcEquationType> equation = equationSystem.createAlternativeEquation(bus, balanceType);
+        int balanceAlternativeNum = equation.addAlternative(balanceType, List.of());
+        equation.setDefaultAlternative(balanceAlternativeNum);
+        if (creationParameters.isAlternativeBusesCanBeDisabled()) {
+            equation.addDisabledAlternative(disabledType,
+                    List.of(equationSystem.getVariable(bus.getNum(), disabledVariableType).createTerm()));
+            if (bus.isDisabled()) {
+                equation.setElementDisabled(true);
+                // disabling is fully represented by the trivial alternative, the equation stays active
+                equation.setActive(true);
+            }
+        }
+        return equation;
+    }
+
+    /**
+     * A bus is eligible to alternative power balance equations (preserving the matrix structure when the bus is
+     * disabled or switched between PV and PQ modes) when no other part of the equation system directly toggles its
+     * equations: voltage source converters and zero impedance branches stay on the legacy modeling, and so do buses
+     * involved in shunt or transformer voltage control (a controller shunt B, or a controlled bus of a shunt or
+     * transformer voltage control), whose control variables are structurally added and removed by contingencies and
+     * remedial actions the alternative modeling does not yet track. Fictitious buses (e.g. the star bus of a three
+     * winding transformer) also stay on legacy modeling: they carry no physical injection, so keeping them frozen
+     * with a trivial alternative when islanded rather than removing them slightly perturbs the main component.
+     */
+    protected boolean isAlternativeBusEquationsEligible(LfBus bus,
+                                                          EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        return creationParameters.isAlternativeEquations()
+                && bus.getConverters().isEmpty()
+                && !bus.isFictitious()
+                && bus.getControllerShunt().isEmpty()
+                && !bus.isShuntVoltageControlled()
+                && !bus.isTransformerVoltageControlled()
+                && bus.getBranches().stream().noneMatch(branch -> branch.isZeroImpedance(LoadFlowModel.AC));
+    }
+
+    private static void addBusDisabledAlternative(EquationArray<AcVariableType, AcEquationType> equationArray, LfBus bus,
+                                                  EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                  AcEquationType disabledType, AcVariableType disabledVariableType) {
+        equationArray.addElementVariableDisabledAlternative(bus.getNum(), disabledType,
+                equationSystem.getVariable(bus.getNum(), disabledVariableType));
+        if (bus.isDisabled()) {
+            equationArray.setElementDisabled(bus.getNum(), true);
+            // disabling is fully represented by the trivial alternative, the element equation stays active
+            equationArray.setElementActive(bus.getNum(), true);
+        }
+    }
+
+    /**
+     * A generator voltage control is eligible to the alternative equation modeling when no other part of the
+     * equation system interacts with the BUS_TARGET_V, BUS_TARGET_Q or DISTR_Q equations of the involved buses:
+     * merged or hidden controls, controls sharing a bus, generators with slope, voltage source converters and zero
+     * impedance branches stay on the legacy modeling with separate activated/deactivated equations.
+     */
+    protected boolean isAlternativeVoltageControlEligible(GeneratorVoltageControl voltageControl,
+                                                            EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        if (!creationParameters.isAlternativeEquations()) {
+            return false;
+        }
+        if (voltageControl.getMergeStatus() != VoltageControl.MergeStatus.MAIN
+                || !voltageControl.getMergedDependentVoltageControls().isEmpty()
+                || voltageControl.getMergedControllerElements().isEmpty()) {
+            return false;
+        }
+        return isAlternativeVoltageControlCompatible(voltageControl.getControlledBus())
+                && voltageControl.getMergedControllerElements().stream()
+                        .allMatch(AcEquationSystemCreator::isAlternativeVoltageControlCompatible);
+    }
+
+    private static boolean isAlternativeVoltageControlCompatible(LfBus bus) {
+        return !bus.hasGeneratorsWithSlope()
+                && bus.getTransformerVoltageControl().isEmpty()
+                && bus.getShuntVoltageControl().isEmpty()
+                && !bus.hasGeneratorReactivePowerControl()
+                && bus.getConverters().isEmpty()
+                && bus.getBranches().stream().noneMatch(branch -> branch.isZeroImpedance(LoadFlowModel.AC));
     }
 
     protected void createDcBusEquation(LfDcBus dcBus,
@@ -125,7 +248,9 @@ public class AcEquationSystemCreator {
                 .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                 .ifPresent(voltageControl -> {
                     if (bus.isGeneratorVoltageControlled()) {
-                        if (voltageControl.isLocalControl()) {
+                        if (isAlternativeVoltageControlEligible(voltageControl, equationSystem)) {
+                            createVoltageControlAlternatives(voltageControl, equationSystem);
+                        } else if (voltageControl.isLocalControl()) {
                             createGeneratorLocalVoltageControlEquation(bus, equationSystem);
                         } else {
                             // create reactive power distribution equations at voltage controller buses
@@ -134,6 +259,80 @@ public class AcEquationSystemCreator {
                         updateGeneratorVoltageControl(voltageControl, equationSystem);
                     }
                 });
+    }
+
+    /**
+     * Add the voltage control alternatives to the alternative equations of the controller buses of an eligible
+     * voltage control (see {@link #isAlternativeVoltageControlEligible}). Each controller bus alternative
+     * equation can then alternate between:
+     * <ul>
+     * <li>the reactive power balance of the controller bus (controller in PQ mode),</li>
+     * <li>the voltage target at the controlled bus, carried by the first enabled controller,</li>
+     * <li>for multiple controllers, the reactive power distribution of the controller bus, carried by the other
+     * enabled controllers.</li>
+     * </ul>
+     * The matrix structure is the union of all alternatives, so switching controllers between PV and PQ modes
+     * preserves the matrix structure whatever the combination is.
+     */
+    private void createVoltageControlAlternatives(GeneratorVoltageControl voltageControl,
+                                                               EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        LfBus controlledBus = voltageControl.getControlledBus();
+        List<LfBus> controllerBuses = voltageControl.getMergedControllerElements();
+        var qArray = equationSystem.getEquationArray(AcEquationType.BUS_TARGET_Q).orElse(null);
+        for (LfBus controllerBus : controllerBuses) {
+            // note that for a remote control the voltage target alternative refers to the controlled bus element,
+            // both for its body and for its target evaluation
+            if (qArray != null) {
+                qArray.addElementVariableAlternative(controllerBus.getNum(), AcEquationType.BUS_TARGET_V, controlledBus.getNum(),
+                        equationSystem.getVariable(controlledBus.getNum(), AcVariableType.BUS_V));
+            } else {
+                getAlternativeEquation(controllerBus, equationSystem)
+                        .addAlternative(AcEquationType.BUS_TARGET_V, controlledBus.getNum(),
+                                List.of(equationSystem.getVariable(controlledBus.getNum(), AcVariableType.BUS_V).createTerm()));
+            }
+            if (controllerBuses.size() > 1) {
+                List<EquationTerm<AcVariableType, AcEquationType>> distributionTerms =
+                        createReactivePowerDistributionTerms(controllerBus, controllerBuses, equationSystem, creationParameters);
+                if (qArray != null) {
+                    qArray.addElementAlternative(controllerBus.getNum(), AcEquationType.DISTR_Q, controllerBus.getNum(), distributionTerms);
+                } else {
+                    getAlternativeEquation(controllerBus, equationSystem)
+                            .addAlternative(AcEquationType.DISTR_Q, controllerBus.getNum(), distributionTerms);
+                }
+                updateControllerBusesBranchEquations(controllerBuses);
+            }
+        }
+    }
+
+    private static boolean hasVoltageControlAlternatives(LfBus controllerBus,
+                                                                      EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        var qArray = equationSystem.getEquationArray(AcEquationType.BUS_TARGET_Q);
+        if (qArray.isPresent()) {
+            return qArray.get().hasElementAlternative(controllerBus.getNum(), AcEquationType.BUS_TARGET_V);
+        }
+        return equationSystem.getEquation(controllerBus.getNum(), AcEquationType.BUS_TARGET_Q).orElse(null)
+                instanceof AlternativeEquation<AcVariableType, AcEquationType> q
+                && q.hasAlternative(AcEquationType.BUS_TARGET_V);
+    }
+
+    private static void setActiveVoltageControlAlternative(LfBus controllerBus,
+                                                           EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                           AcEquationType alternativeType) {
+        var qArray = equationSystem.getEquationArray(AcEquationType.BUS_TARGET_Q);
+        if (qArray.isPresent()) {
+            qArray.get().setElementActiveAlternative(controllerBus.getNum(), alternativeType);
+        } else {
+            getAlternativeEquation(controllerBus, equationSystem).setActiveAlternative(alternativeType);
+        }
+    }
+
+    private static AlternativeEquation<AcVariableType, AcEquationType> getAlternativeEquation(LfBus controllerBus,
+                                                                                                  EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        if (equationSystem.getEquation(controllerBus.getNum(), AcEquationType.BUS_TARGET_Q).orElse(null)
+                instanceof AlternativeEquation<AcVariableType, AcEquationType> q) {
+            return q;
+        }
+        throw new PowsyblException("No alternative reactive power equation at controller bus '" + controllerBus.getId() + "'");
     }
 
     private void createGeneratorLocalVoltageControlEquation(LfBus bus,
@@ -250,29 +449,42 @@ public class AcEquationSystemCreator {
         }
 
         for (LfBus controllerBus : controllerBuses) {
-            // reactive power at controller bus i (supposing this voltage control is enabled)
-            // q_i = qPercent_i * sum_j(q_j) where j are all the voltage controller buses
-            // 0 = qPercent_i * sum_j(q_j) - q_i
-            // which can be rewritten in a more simple way
-            // 0 = (qPercent_i - 1) * q_i + qPercent_i * sum_j(q_j) where j are all the voltage controller buses except i
-            Equation<AcVariableType, AcEquationType> zero = equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q)
-                    .addTerms(createReactiveTerms(controllerBus, equationSystem.getVariableSet(), creationParameters).stream()
-                            .map(term -> term.multiply(() -> controllerBus.getRemoteControlReactivePercent() - 1))
-                            .collect(Collectors.toList()));
-            // to update open/close terms activation
+            equationSystem.createEquation(controllerBus, AcEquationType.DISTR_Q)
+                    .addTerms(createReactivePowerDistributionTerms(controllerBus, controllerBuses, equationSystem, creationParameters));
+            updateControllerBusesBranchEquations(controllerBuses);
+        }
+    }
+
+    private static List<EquationTerm<AcVariableType, AcEquationType>> createReactivePowerDistributionTerms(LfBus controllerBus,
+                                                                                                           List<LfBus> controllerBuses,
+                                                                                                           EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                                                                           AcEquationSystemCreationParameters creationParameters) {
+        // reactive power at controller bus i (supposing this voltage control is enabled)
+        // q_i = qPercent_i * sum_j(q_j) where j are all the voltage controller buses
+        // 0 = qPercent_i * sum_j(q_j) - q_i
+        // which can be rewritten in a more simple way
+        // 0 = (qPercent_i - 1) * q_i + qPercent_i * sum_j(q_j) where j are all the voltage controller buses except i
+        List<EquationTerm<AcVariableType, AcEquationType>> terms = createReactiveTerms(controllerBus, equationSystem.getVariableSet(), creationParameters).stream()
+                .map(term -> term.multiply(() -> controllerBus.getRemoteControlReactivePercent() - 1))
+                .collect(Collectors.toList());
+        for (LfBus otherControllerBus : controllerBuses) {
+            if (otherControllerBus != controllerBus) {
+                createReactiveTerms(otherControllerBus, equationSystem.getVariableSet(), creationParameters).stream()
+                        .map(term -> term.multiply(controllerBus::getRemoteControlReactivePercent))
+                        .forEach(terms::add);
+            }
+        }
+        return terms;
+    }
+
+    /**
+     * Update open/close terms activation of the branches of the controller buses; must be called after the terms
+     * created by {@link #createReactivePowerDistributionTerms} have been added to an equation.
+     */
+    private static void updateControllerBusesBranchEquations(List<LfBus> controllerBuses) {
+        for (LfBus controllerBus : controllerBuses) {
             for (LfBranch branch : controllerBus.getBranches()) {
                 updateBranchEquations(branch);
-            }
-            for (LfBus otherControllerBus : controllerBuses) {
-                if (otherControllerBus != controllerBus) {
-                    zero.addTerms(createReactiveTerms(otherControllerBus, equationSystem.getVariableSet(), creationParameters).stream()
-                            .map(term -> term.multiply(controllerBus::getRemoteControlReactivePercent))
-                            .collect(Collectors.toList()));
-                }
-                // to update open/close terms activation
-                for (LfBranch branch : otherControllerBus.getBranches()) {
-                    updateBranchEquations(branch);
-                }
             }
         }
     }
@@ -437,7 +649,40 @@ public class AcEquationSystemCreator {
         // ensure reactive keys are up-to-date
         voltageControl.updateReactiveKeys();
 
-        updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_Q, AcEquationType.BUS_TARGET_Q);
+        List<LfBus> controllerBuses = voltageControl.getMergedControllerElements();
+        // only controls whose alternatives have been created are alternative-modeled: buses may have alternative
+        // power balance equations while their control stays on the legacy modeling
+        if (!controllerBuses.isEmpty()
+                && hasVoltageControlAlternatives(controllerBuses.get(0), equationSystem)) {
+            updateAlternativeGeneratorVoltageControl(voltageControl, equationSystem);
+        } else {
+            updateRemoteVoltageControlEquations(voltageControl, equationSystem, AcEquationType.DISTR_Q, AcEquationType.BUS_TARGET_Q);
+        }
+    }
+
+    /**
+     * PV/PQ mode update for voltage controls modeled with alternative equations (see
+     * {@link #createVoltageControlAlternatives}): switching the active alternatives preserves the matrix
+     * structure, no equation gets activated or deactivated.
+     */
+    private static void updateAlternativeGeneratorVoltageControl(GeneratorVoltageControl voltageControl,
+                                                                   EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        boolean hidden = voltageControl.isHidden();
+        boolean voltageTargetCarrierFound = false;
+        for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
+            boolean enabled = !hidden && !controllerBus.isDisabled() && voltageControl.isControllerEnabled(controllerBus);
+            if (!enabled) {
+                // controller in PQ mode: back to its reactive power balance
+                setActiveVoltageControlAlternative(controllerBus, equationSystem, AcEquationType.BUS_TARGET_Q);
+            } else if (!voltageTargetCarrierFound) {
+                // the first enabled controller carries the voltage target equation of the controlled bus
+                setActiveVoltageControlAlternative(controllerBus, equationSystem, AcEquationType.BUS_TARGET_V);
+                voltageTargetCarrierFound = true;
+            } else {
+                // the other enabled controllers carry their reactive power distribution equations
+                setActiveVoltageControlAlternative(controllerBus, equationSystem, AcEquationType.DISTR_Q);
+            }
+        }
     }
 
     private static <T extends LfElement> void checkNotDependentVoltageControl(VoltageControl<T> voltageControl) {

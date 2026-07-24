@@ -70,6 +70,28 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         }
     }
 
+    /**
+     * Deep copy constructor (see {@link LfNetworkCopier}). Buses and converter stations must be
+     * the copied ones; converter station back references are wired through
+     * {@link #setConverterStation1(LfVscConverterStation)} and {@link #setConverterStation2(LfVscConverterStation)}.
+     */
+    protected LfHvdcImpl(LfHvdcImpl other, LfNetwork network, LfBus bus1, LfBus bus2,
+                         LfVscConverterStation converterStation1, LfVscConverterStation converterStation2) {
+        super(network);
+        this.id = other.id;
+        this.bus1 = bus1;
+        this.bus2 = bus2;
+        this.r = other.r;
+        this.nominalV = other.nominalV;
+        this.acEmulation = other.acEmulation;
+        if (other.acEmulationControl != null) {
+            this.acEmulationControl = new AcEmulationControl(this, other.acEmulationControl);
+        }
+        setConverterStation1(converterStation1);
+        setConverterStation2(converterStation2);
+        this.disabled = other.disabled;
+    }
+
     @Override
     public ElementType getType() {
         return ElementType.HVDC;

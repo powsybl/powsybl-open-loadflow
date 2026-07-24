@@ -45,7 +45,7 @@ class OpenSensitivityAnalysisProviderTest extends AbstractSensitivityAnalysisTes
     void specificParametersTest() {
         var provider = new OpenSensitivityAnalysisProvider();
 
-        assertEquals(3, provider.getSpecificParametersNames().size());
+        assertEquals(4, provider.getSpecificParametersNames().size());
 
         SensitivityAnalysisParameters parameters = new SensitivityAnalysisParameters();
 
@@ -64,6 +64,11 @@ class OpenSensitivityAnalysisProviderTest extends AbstractSensitivityAnalysisTes
         provider.loadSpecificParameters(Map.of(OpenSensitivityAnalysisParameters.THREAD_COUNT_PARAM_NAME, "2"))
                 .ifPresent(parametersExt -> parameters.addExtension((Class) parametersExt.getClass(), parametersExt));
         assertEquals(2, parameters.getExtension(OpenSensitivityAnalysisParameters.class).getThreadCount());
+
+        provider.loadSpecificParameters(Map.of(OpenSensitivityAnalysisParameters.NETWORK_PER_THREAD_MODE_PARAM_NAME, "REBUILD"))
+                .ifPresent(parametersExt -> parameters.addExtension((Class) parametersExt.getClass(), parametersExt));
+        assertEquals(OpenSensitivityAnalysisParameters.NetworkPerThreadMode.REBUILD,
+                parameters.getExtension(OpenSensitivityAnalysisParameters.class).getNetworkPerThreadMode());
     }
 
     @Test

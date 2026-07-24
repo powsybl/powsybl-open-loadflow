@@ -1,0 +1,34 @@
+{
+  "version": "1.10",
+  "voltageInitMode" : "DC_VALUES",
+  "useReactiveLimits" : true,
+  "twtSplitShuntAdmittance" : true,
+  "componentMode" : "MAIN_SYNCHRONOUS",
+
+  "hvdcAcEmulation" : true,
+
+  "extensions": {
+    "open-load-flow-parameters": {
+      "slackDistributionFailureBehavior": "FAIL",
+      "maxOuterLoopIterations": 30,
+      "transformerVoltageControlMode" : "AFTER_GENERATOR_VOLTAGE_CONTROL",
+
+      "maxNewtonRaphsonIterations" : 30,
+
+      "stateVectorScalingMode" : "MAX_VOLTAGE_CHANGE",
+      "maxVoltageChangeStateVectorScalingMaxDv" : "0.4",
+      "maxVoltageChangeStateVectorScalingMaxDphi" : "1",
+
+      "transformerVoltageControlUseInitialTapPosition" : true,
+      "generatorVoltageControlMinNominalVoltage" : 120,
+      "fictitiousGeneratorVoltageControlCheckMode" : "FORCED",
+
+      "minRealisticVoltage" : 0.8,
+      "maxRealisticVoltage" : 1.2,
+      "minNominalVoltageRealisticVoltageCheck": 180,
+      
+      "disableInconsistentVoltageControls" : true,
+      "extrapolateReactiveLimits" : true
+    }
+  }
+}

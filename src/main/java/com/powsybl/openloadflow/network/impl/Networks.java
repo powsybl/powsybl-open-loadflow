@@ -149,6 +149,9 @@ public final class Networks {
             LfBranch branch = network.getBranchById(id);
             if (branch != null) {
                 connectivity.removeEdge(branch);
+                // record the removal so that a lazily rebuilt connectivity (e.g. on a deep copy of
+                // this network) excludes the edge and stays equivalent to this one
+                network.addConnectivityRemovedBranch(branch);
                 toRemove.add(id);
             }
         });

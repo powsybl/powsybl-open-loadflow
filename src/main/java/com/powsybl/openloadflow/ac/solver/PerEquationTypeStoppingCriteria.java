@@ -51,7 +51,9 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
 
     private boolean computeStop(double[] fx, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         for (var eq : equationSystem.getIndex().getSortedSingleEquationsToSolve()) {
-            var type = eq.getType();
+            // use the active type so that alternative equations are checked against the criteria of their active
+            // alternative (same as the equation type for plain equations)
+            var type = eq.getActiveType();
             var column = eq.getColumn();
             if (checkEquation(fx, type, column)) {
                 return false;
@@ -59,7 +61,9 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
         }
         for (var equationArray : equationSystem.getEquationArrays()) {
             for (int column = equationArray.getFirstColumn(); column < equationArray.getFirstColumn() + equationArray.getLength(); column++) {
-                if (checkEquation(fx, equationArray.getType(), column)) {
+                // use the active type so that elements with alternatives are checked against the
+                // criteria of their active alternative
+                if (checkEquation(fx, equationArray.getElementActiveType(equationArray.getColumnToElementNum(column)), column)) {
                     return false;
                 }
             }
@@ -79,7 +83,7 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
                     return true;
                 }
             }
-            case BUS_TARGET_V, ZERO_V -> {
+            case BUS_TARGET_V, ZERO_V, BUS_TARGET_V_DISABLED -> {
                 if (Math.abs(fx[column]) >= maxVoltageMismatch) {
                     return true;
                 }
