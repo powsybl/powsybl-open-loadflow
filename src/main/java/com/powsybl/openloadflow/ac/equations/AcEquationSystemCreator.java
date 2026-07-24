@@ -139,12 +139,15 @@ public class AcEquationSystemCreator {
      * equations: voltage source converters and zero impedance branches stay on the legacy modeling, and so do buses
      * involved in shunt or transformer voltage control (a controller shunt B, or a controlled bus of a shunt or
      * transformer voltage control), whose control variables are structurally added and removed by contingencies and
-     * remedial actions the alternative modeling does not yet track.
+     * remedial actions the alternative modeling does not yet track. Fictitious buses (e.g. the star bus of a three
+     * winding transformer) also stay on legacy modeling: they carry no physical injection, so keeping them frozen
+     * with a trivial alternative when islanded rather than removing them slightly perturbs the main component.
      */
     protected boolean isAlternativeBusEquationsEligible(LfBus bus,
                                                           EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         return creationParameters.isAlternativeEquations()
                 && bus.getConverters().isEmpty()
+                && !bus.isFictitious()
                 && bus.getControllerShunt().isEmpty()
                 && !bus.isShuntVoltageControlled()
                 && !bus.isTransformerVoltageControlled()
