@@ -5098,9 +5098,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(-0.331, saResult.getPreContingencyResult().getNetworkResult().getBranchResult("l23").getP1(), DELTA_POWER);
         assertEquals(-1.656, saResult.getPreContingencyResult().getNetworkResult().getBranchResult("l25").getP1(), DELTA_POWER);
         assertEquals(1159.55, saResult.getPreContingencyResult().getNetworkResult().getBranchResult("l25").getI1(), DELTA_I);
-        assertEquals(-0.667, saResult.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l23").getP1(), DELTA_POWER);
-        assertEquals(-1.333, saResult.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l25").getP1(), DELTA_POWER);
-        assertEquals(860.52, saResult.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l25").getI1(), DELTA_I);
+        // alternative equations truly island the lost bus (b4) on the contingency instead of leaving it weakly
+        // connected through the min impedance line, so the min impedance line flows differ from the legacy modeling
+        assertEquals(-0.669, saResult.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l23").getP1(), DELTA_POWER);
+        assertEquals(-1.320, saResult.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l25").getP1(), DELTA_POWER);
+        assertEquals(847.86, saResult.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l25").getI1(), DELTA_I);
 
         // Then test with REPLACE_BY_ZERO_IMPEDANCE_LINE
         lfParameters.getExtension(OpenLoadFlowParameters.class).setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
