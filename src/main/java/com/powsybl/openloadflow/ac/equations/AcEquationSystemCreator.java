@@ -136,12 +136,18 @@ public class AcEquationSystemCreator {
     /**
      * A bus is eligible to alternative power balance equations (preserving the matrix structure when the bus is
      * disabled or switched between PV and PQ modes) when no other part of the equation system directly toggles its
-     * equations: voltage source converters and zero impedance branches stay on the legacy modeling.
+     * equations: voltage source converters and zero impedance branches stay on the legacy modeling, and so do buses
+     * involved in shunt or transformer voltage control (a controller shunt B, or a controlled bus of a shunt or
+     * transformer voltage control), whose control variables are structurally added and removed by contingencies and
+     * remedial actions the alternative modeling does not yet track.
      */
     protected boolean isAlternativeBusEquationsEligible(LfBus bus,
                                                           EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         return creationParameters.isAlternativeEquations()
                 && bus.getConverters().isEmpty()
+                && bus.getControllerShunt().isEmpty()
+                && !bus.isShuntVoltageControlled()
+                && !bus.isTransformerVoltageControlled()
                 && bus.getBranches().stream().noneMatch(branch -> branch.isZeroImpedance(LoadFlowModel.AC));
     }
 
