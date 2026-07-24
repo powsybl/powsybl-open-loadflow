@@ -2304,11 +2304,16 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
         // alternative voltage equations are only supported with the default Newton-Raphson solver and the standard
         // symmetrical modeling, and would be silently inconsistent with secondary voltage control (which directly
-        // accesses BUS_TARGET_V equations)
+        // accesses BUS_TARGET_V equations). Transformer and shunt voltage control switch their control equations
+        // (ratio / susceptance target and distribution) on and off dynamically on contingencies and remedial
+        // actions through the legacy per-equation machinery, which the alternative structure-preserving modeling
+        // does not track, so a network using them falls back to the legacy modeling.
         boolean alternativeEquations = parametersExt.isAlternativeEquations()
                 && NewtonRaphsonFactory.NAME.equals(parametersExt.getAcSolverType())
                 && !parametersExt.isAsymmetrical()
-                && !parametersExt.isSecondaryVoltageControl();
+                && !parametersExt.isSecondaryVoltageControl()
+                && !parameters.isTransformerVoltageControlOn()
+                && !parameters.isShuntCompensatorVoltageControlOn();
 
         var equationSystemCreationParameters = new AcEquationSystemCreationParameters(forceA1Var, alternativeEquations);
 
