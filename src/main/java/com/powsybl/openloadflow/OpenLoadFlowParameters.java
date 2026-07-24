@@ -104,7 +104,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean VOLTAGE_PER_REACTIVE_POWER_CONTROL_DEFAULT_VALUE = false;
 
-    public static final boolean COMPLEMENTARY_EQUATIONS_DEFAULT_VALUE = false;
+    public static final boolean COMPLEMENTARY_EQUATIONS_DEFAULT_VALUE = true;
 
     public static final boolean SVC_VOLTAGE_MONITORING_DEFAULT_VALUE = true;
 
