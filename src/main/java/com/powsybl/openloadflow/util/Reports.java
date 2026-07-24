@@ -130,7 +130,8 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportBusAlreadyControlledWithDifferentTargetV(ReportNode reportNode, String controllerBusId, String controlledBusId, String busesId, Double keptTargetV, Double ignoredTargetV) {
+    public static void reportBusAlreadyControlledWithDifferentTargetV(ReportNode reportNode, String controllerBusId,
+                                                                      String controlledBusId, String busesId, Double keptTargetV, Double ignoredTargetV) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.busAlreadyControlledWithDifferentTargetV")
                 .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
@@ -442,7 +443,10 @@ public final class Reports {
                 .build();
     }
 
-    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(ReportNode firstRootReportNode, String generatorId, double targetP, double maxTargetP) {
+    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(ReportNode firstRootReportNode,
+                                                                                                                    String generatorId,
+                                                                                                                    double targetP,
+                                                                                                                    double maxTargetP) {
         return ReportNode.newRootReportNode()
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
@@ -454,7 +458,10 @@ public final class Reports {
                 .build();
     }
 
-    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP(ReportNode firstRootReportNode, String generatorId, double targetP, double minTargetP) {
+    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP(ReportNode firstRootReportNode,
+                                                                                                                  String generatorId,
+                                                                                                                  double targetP,
+                                                                                                                  double minTargetP) {
         return ReportNode.newRootReportNode()
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
@@ -592,7 +599,9 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportTransformerControlAlreadyExistsWithDifferentTargetV(ReportNode reportNode, String firstControllerId, String newControllerId, String controlledBusId, double vcTargetValue, double targetValue) {
+    public static void reportTransformerControlAlreadyExistsWithDifferentTargetV(ReportNode reportNode, String firstControllerId,
+                                                                                 String newControllerId, String controlledBusId,
+                                                                                 double vcTargetValue, double targetValue) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.transformerControlAlreadyExistsWithDifferentTargetV")
                 .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
@@ -604,7 +613,9 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportTransformerControlAlreadyExistsUpdateDeadband(ReportNode reportNode, String firstControllerId, String newControllerId, String controlledBusId, double newTargetDeadband, Double oldTargetDeadband) {
+    public static void reportTransformerControlAlreadyExistsUpdateDeadband(ReportNode reportNode, String firstControllerId,
+                                                                           String newControllerId, String controlledBusId,
+                                                                           double newTargetDeadband, Double oldTargetDeadband) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.transformerControlAlreadyExistsUpdateDeadband")
                 .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
@@ -1102,7 +1113,8 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportNewtonRaphsonBusesOutOfRealisticVoltageRange(ReportNode reportNode, Map<String, Double> busesOutOfRealisticVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
+    public static void reportNewtonRaphsonBusesOutOfRealisticVoltageRange(ReportNode reportNode, Map<String, Double> busesOutOfRealisticVoltageRange,
+                                                                          double minRealisticVoltage, double maxRealisticVoltage) {
         ReportNode voltageOutOfRangeReport = reportNode.newReportNode()
                 .withMessageTemplate("olf.newtonRaphsonBusesOutOfRealisticVoltageRange")
                 .withUntypedValue("busCountOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.size())

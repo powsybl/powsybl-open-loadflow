@@ -127,7 +127,7 @@ public final class LoadFlowAssert {
             } else {
                 typedValueStr = typedValue.toString();
             }
-            if (typedValueStr.equals("-0")) {
+            if ("-0".equals(typedValueStr)) {
                 return "0";
             }
             return typedValueStr;

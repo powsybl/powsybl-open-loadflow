@@ -59,15 +59,15 @@ public final class VoltageTargetCheck {
 
     /**
      * @param controlledBusToFixId  id of the busview bus that has an incompatible control
-     * @param elementsToDisableIds  ids of elements controlling controlledBusToFixId. To fix the problem, their target should be adjusted. Elements can be generators, shunts or two winding transformers
+     * @param elementsToDisableIds  ids of elements controlling controlledBusToFixId. To fix the problem, their target should be adjusted.
+     *                              Elements can be generators, shunts or two winding transformers
      * @param largestIncompatibleTarget the strongest incompatible target in wich the controlledBusToFixId is involved
      */
     public record IncompatibleTargetResolution(String controlledBusToFixId, Set<String> elementsToDisableIds, IncompatibleTarget largestIncompatibleTarget) {
     }
 
-
     record LfResult(List<LfIncompatibleTarget> lfIncompatibleTarget) {
-        public LfResult() {
+        LfResult() {
             this(new ArrayList<>());
         }
     }
