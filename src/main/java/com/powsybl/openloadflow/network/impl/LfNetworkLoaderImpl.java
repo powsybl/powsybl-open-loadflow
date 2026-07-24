@@ -630,6 +630,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
+    private static void createAcDcConverters(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkParameters parameters) {
+        for (AcDcConverter<?> acDcConverter : loadingContext.acDcConverterSet) {
+            createAcDcConverter(acDcConverter, lfNetwork, parameters);
+        }
+    }
+
     private static void createAcDcConverter(AcDcConverter<?> acDcConverter, LfNetwork lfNetwork, LfNetworkParameters parameters) {
 
         if (acDcConverter.getTerminal2().isPresent()) {
@@ -637,9 +643,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         LfBus lfBus1 = getLfBus(acDcConverter.getTerminal1(), lfNetwork, parameters.isBreakers());
-        if (lfBus1 != null) {
-            LfDcBus lfDcBus1 = getLfDcBus(acDcConverter.getDcTerminal1(), lfNetwork);
-            LfDcBus lfDcBus2 = getLfDcBus(acDcConverter.getDcTerminal2(), lfNetwork);
+        LfDcBus lfDcBus1 = getLfDcBus(acDcConverter.getDcTerminal1(), lfNetwork);
+        LfDcBus lfDcBus2 = getLfDcBus(acDcConverter.getDcTerminal2(), lfNetwork);
+        if (lfBus1 != null && lfDcBus1 != null && lfDcBus2 != null) { // The converter is fully connected
             if (acDcConverter instanceof VoltageSourceConverter voltageSourceConverter) {
                 LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, lfDcBus1, lfDcBus2, lfBus1, parameters);
 
@@ -653,6 +659,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 addVoltageSourceConverter(lfNetwork, voltageSourceConverterImpl);
             }
             // lcc converter not implemented yet
+        } else {
+            // Remove previous load flow results (we don't want the user to believe this are results from the new load flow)
+            acDcConverter.unsetSolvedValues();
         }
     }
 
@@ -1365,17 +1374,20 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     throw new PowsyblException("DcSwitch " + s.getId() + " has non zero resistance: not handled yet in AC DC load flow (R = " + s.getR() + ")");
                 });
 
-        // Ensure at least one converter controls V_DC
-        boolean isVdcControlled = false;
-        for (AcDcConverter<?> converter : loadingContext.acDcConverterSet) {
-            if (converter.getControlMode() == AcDcConverter.ControlMode.V_DC) {
-                isVdcControlled = true;
-                break;
-            }
-        }
-        if (!isVdcControlled) {
-            throw new PowsyblException("At least one AC/DC converter control mode must be V_DC in each DC component, but DC component " + numDcc + " does not have any");
-        }
+        // -- Sanity checks : detecting invalid DC configuration
+        // Filter out disconnected converters
+        List<AcDcConverter<?>> connectedAcDcConverter = loadingContext.acDcConverterSet.stream().filter(acDcConverter ->
+            acDcConverter.getTerminal1().isConnected()
+                && acDcConverter.getDcTerminal1().isConnected()
+                && acDcConverter.getDcTerminal2().isConnected()
+        ).toList();
+
+        DcNetworkValidationHelpers.checkAllConvertersAreIndirectlyConnectedToADcGround(connectedAcDcConverter);
+        DcNetworkValidationHelpers.checkAtLeastOneConverterControlsVdc(connectedAcDcConverter, numDcc);
+        DcNetworkValidationHelpers.checkPccConverterAreIndirectlyConnectedToElementImposingVoltage(connectedAcDcConverter);
+
+        // Add AC-DC converters to the LfNetwork
+        createAcDcConverters(lfNetwork, loadingContext, parameters);
 
         postProcessors.forEach(pp -> pp.onLfNetworkLoaded(network, lfNetwork));
     }
@@ -1675,7 +1687,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     )
             );
 
-            // Create DC networks
+            // Create DC networks and add AC-DC converters
             filteredDcBusesByComponentStream.forEach(e ->
                     addDcComponentElements(
                             e.getKey().getLeft(),
@@ -1687,20 +1699,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     )
             );
 
-            // Add AC-DC converters
-            for (AcDcConverter<?> converter : network.getVoltageSourceConverters()) {
-                DcBus dcBus = converter.getDcTerminal1().getDcBus();
-                if (dcBus != null && dcBus.getConnectedComponent() != null) {
-                    int numCc = dcBus.getConnectedComponent().getNum();
-
-                    if (lfNetworkByCc.containsKey(numCc)) {
-                        createAcDcConverter(converter, lfNetworkByCc.get(numCc), parameters);
-                    } else {
-                        // Should not happen
-                        throw new PowsyblException("Found AC-DC converter in a connected component without AC buses");
-                    }
-                }
-            }
             if (network.getLineCommutatedConverterCount() > 0) {
                 throw new PowsyblException("Open Load Flow does not currently support LCC converters");
             }

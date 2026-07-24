@@ -991,7 +991,36 @@ class AcDcLoadFlowTest {
 
         // Run load flow
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("At least one AC/DC converter control mode must be V_DC in each DC component, but DC component 1 does not have any", e5.getCause().getMessage());
+        assertEquals("At least one AC/DC converter control mode must be V_DC or P_PCC_DROOP in each DC component, but DC component 1 does not have any", e5.getCause().getMessage());
+    }
+
+    @Test
+    void testConverterNotIndirectlyConnectedToDcGround() {
+        /// conv23's DC ground (dg3) is disconnected. Neither of its DC terminals is indirectly connected to a DC ground
+        /// anymore. This should trigger an Exception
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+        network.getDcGround("dg3").disconnectDc();
+
+        CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("Converter conv23 is not indirectly connected to a DC ground", e.getCause().getMessage());
+    }
+
+    @Test
+    void testPccConverterNotIndirectlyConnectedToElementImposingVoltage() {
+        /// conv23p (P_PCC) DC terminal 1 (dn3p) is no longer connected to conv45p (V_DC) through the DC line dl34p.
+        /// This should trigger an Exception on conv23p's first DC terminal specifically.
+        Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModel();
+        network.getDcLine("dl34p").disconnectDc();
+
+        CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("Converter conv23p is in P_PCC control mode but its first DC bus is not connected to an element imposing voltage", e.getCause().getMessage());
+
+        // Same test with conv23n second DC bus if dl34n is disconnected
+        network.getDcLine("dl34p").connectDc();
+        network.getDcLine("dl34n").disconnectDc();
+
+        CompletionException e2 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("Converter conv23n is in P_PCC control mode but its second DC bus is not connected to an element imposing voltage", e2.getCause().getMessage());
     }
 
     @Test

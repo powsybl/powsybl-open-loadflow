@@ -893,8 +893,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setTargetP(25)
                 .setId("conv23n")
                 .setBus1("b2")
-                .setDcNode1("dn3n")
-                .setDcNode2("dn3r")
+                .setDcNode1("dn3r")
+                .setDcNode2("dn3n")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
                 .setVoltageRegulatorOn(false)
@@ -2366,7 +2366,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *  |                                                    |
      *  |--------------l12-----------------------------------|
      * </pre>
-     * @param id: Name of the network test case
+     *
+     * @param id:        Name of the network test case
      * @param swapOrder1 : Whether converter conv1 DC nodes should be DC1 and DC2 or DC2 and DC1
      * @param swapOrder2 : Whether converter conv2 DC nodes should be DC2 and DC3 or DC3 and DC2
      * @param swapOrder3 : Whether converter conv3 DC nodes should be DC1 and DC2 or DC2 and DC1
