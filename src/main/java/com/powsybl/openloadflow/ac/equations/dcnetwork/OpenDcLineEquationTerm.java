@@ -35,7 +35,7 @@ public class OpenDcLineEquationTerm extends AbstractElementEquationTerm<LfDcLine
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
-        return 0.0;
+        throw new IllegalStateException("Unknown variable: " + variable);
     }
 
     @Override

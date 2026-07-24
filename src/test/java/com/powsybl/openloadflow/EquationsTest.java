@@ -341,6 +341,10 @@ class EquationsTest {
                 eval(new ClosedDcLineSide1PowerEquationTerm(dcLine, dcBus1, dcBus2, variableSet), variables, sv));
         assertArrayEquals(new double[]{0.7541394608155072, -1715.0070734980009, 1715.7106409385967, Double.NaN, Double.NaN},
                 eval(new ClosedDcLineSide2PowerEquationTerm(dcLine, dcBus1, dcBus2, variableSet), variables, sv));
+
+        // open dcLine equation
+        assertEquals("dc_open", new OpenDcLineEquationTerm(dcLine).getName());
+        assertArrayEquals(new double[] {0, Double.NaN, Double.NaN, Double.NaN, Double.NaN}, eval(new OpenDcLineEquationTerm(dcLine), variables, sv));
     }
 
     @Test

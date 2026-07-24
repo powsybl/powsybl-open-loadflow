@@ -152,7 +152,7 @@ final class DcNetworkValidationHelpers {
                     DcTerminal otherTerminal = dcLine.getDcTerminal(otherSide);
                     if (otherTerminal.isConnected()) {
                         DcBus otherBus = otherTerminal.getDcBus();
-                        if (otherBus != null && visitedBusIds.add(otherBus.getId())) {
+                        if (visitedBusIds.add(otherBus.getId())) {
                             queue.add(otherBus);
                         }
                     }

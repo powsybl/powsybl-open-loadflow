@@ -1014,6 +1014,13 @@ class AcDcLoadFlowTest {
 
         CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
         assertEquals("Converter conv23p is in P_PCC control mode but its first DC bus is not connected to an element imposing voltage", e.getCause().getMessage());
+
+        // Same test with conv23n second DC bus if dl34n is disconnected
+        network.getDcLine("dl34p").connectDc();
+        network.getDcLine("dl34n").disconnectDc();
+
+        CompletionException e2 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("Converter conv23n is in P_PCC control mode but its second DC bus is not connected to an element imposing voltage", e2.getCause().getMessage());
     }
 
     @Test
