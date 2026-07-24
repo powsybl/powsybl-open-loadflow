@@ -57,7 +57,9 @@ public class AcEquationSystemCreator {
             if (pArray.isPresent()) {
                 // vectorized system: the alternatives are attached to the equation array elements
                 EquationArray<AcVariableType, AcEquationType> qArray = equationSystem.getEquationArray(AcEquationType.BUS_TARGET_Q).orElseThrow();
-                if (isIslandable(bus)) {
+                if (creationParameters.isAlternativeBusesCanBeDisabled()) {
+                    // add the trivial disabled alternative to every eligible bus so that islanding any of them by a
+                    // contingency preserves the matrix structure, whatever the connectivity analysis could detect up front
                     addBusDisabledAlternative(pArray.get(), bus, equationSystem, AcEquationType.BUS_TARGET_PHI, AcVariableType.BUS_PHI);
                     addBusDisabledAlternative(qArray, bus, equationSystem, AcEquationType.BUS_TARGET_V_DISABLED, AcVariableType.BUS_V);
                 }
@@ -119,7 +121,7 @@ public class AcEquationSystemCreator {
         AlternativeEquation<AcVariableType, AcEquationType> equation = equationSystem.createAlternativeEquation(bus, balanceType);
         int balanceAlternativeNum = equation.addAlternative(balanceType, List.of());
         equation.setDefaultAlternative(balanceAlternativeNum);
-        if (isIslandable(bus)) {
+        if (creationParameters.isAlternativeBusesCanBeDisabled()) {
             equation.addDisabledAlternative(disabledType,
                     List.of(equationSystem.getVariable(bus.getNum(), disabledVariableType).createTerm()));
             if (bus.isDisabled()) {
@@ -141,10 +143,6 @@ public class AcEquationSystemCreator {
         return creationParameters.isAlternativeEquations()
                 && bus.getConverters().isEmpty()
                 && bus.getBranches().stream().noneMatch(branch -> branch.isZeroImpedance(LoadFlowModel.AC));
-    }
-
-    private boolean isIslandable(LfBus bus) {
-        return creationParameters.getAlternativeIslandableBusIds().contains(bus.getId());
     }
 
     private static void addBusDisabledAlternative(EquationArray<AcVariableType, AcEquationType> equationArray, LfBus bus,

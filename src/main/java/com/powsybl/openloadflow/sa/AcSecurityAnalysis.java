@@ -124,11 +124,11 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     protected void adaptParameters(AcLoadFlowParameters parameters, LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies) {
         AcEquationSystemCreationParameters creationParameters = parameters.getEquationSystemCreationParameters();
         if (creationParameters.isAlternativeEquations()) {
-            // keep the matrix structure stable when contingencies island buses, with trivial disabled
-            // alternatives on the buses the contingency list can actually island
+            // in a contingency analysis any eligible bus can be islanded, so create the trivial disabled
+            // alternative on all of them to keep the matrix structure and its symbolic factorization stable
             parameters.setEquationSystemCreationParameters(
                     new AcEquationSystemCreationParameters(creationParameters.isForceA1Var(), true)
-                            .setAlternativeIslandableBusIds(PropagatedContingency.islandableBusIds(lfNetwork, propagatedContingencies)));
+                            .setAlternativeBusesCanBeDisabled(true));
         }
     }
 

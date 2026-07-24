@@ -46,7 +46,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
@@ -409,7 +408,7 @@ class AlternativeEquationsTest {
         // be bit-identical to a full computation
         LfNetwork lfNetwork = Networks.load(network, new FirstSlackBusSelector()).get(0);
         var creationParameters = new AcEquationSystemCreationParameters(false, true)
-                .setAlternativeIslandableBusIds(Set.of("VLGEN2_0"));
+                .setAlternativeBusesCanBeDisabled(true);
         var equationSystem = new com.powsybl.openloadflow.ac.equations.vector.AcVectorizedEquationSystemCreator(lfNetwork, creationParameters).create();
         lfNetwork.addListener(new AcEquationSystemUpdater(equationSystem, creationParameters));
         AcSolverUtil.initStateVector(lfNetwork, equationSystem, new UniformValueVoltageInitializer());
@@ -453,7 +452,7 @@ class AlternativeEquationsTest {
         // and symbolic factorization unchanged
         LfNetwork lfNetwork = Networks.load(network, new FirstSlackBusSelector()).get(0);
         var creationParameters = new AcEquationSystemCreationParameters(false, true)
-                .setAlternativeIslandableBusIds(Set.of("VLGEN2_0"));
+                .setAlternativeBusesCanBeDisabled(true);
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcEquationSystemCreator(lfNetwork, creationParameters).create();
         LfBus gen2Bus = lfNetwork.getBusById("VLGEN2_0");
         var p = equationSystem.getEquation(gen2Bus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow();

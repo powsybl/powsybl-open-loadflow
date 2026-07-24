@@ -7,10 +7,6 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import java.util.Collections;
-import java.util.Objects;
-import java.util.Set;
-
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -50,22 +46,22 @@ public class AcEquationSystemCreationParameters {
         return this;
     }
 
-    private Set<String> alternativeIslandableBusIds = Collections.emptySet();
+    private boolean alternativeBusesCanBeDisabled;
 
     /**
-     * Buses for which a trivial disabled alternative is created on the power balance equations, so that disabling
-     * them (contingency islanding and restore) preserves the matrix structure. Security and sensitivity analysis
-     * set the union of the buses their contingencies actually island, computed with the network connectivity
-     * ({@link com.powsybl.openloadflow.network.impl.PropagatedContingency#islandableBusIds}); a plain load flow
-     * never disables buses and leaves it empty. Disabling a bus outside this set falls back to the legacy
-     * structural path, which stays correct.
+     * When true, a trivial disabled alternative is created on the power balance equations of every bus eligible to
+     * alternative equations, so that disabling any of them (contingency islanding and restore) preserves the matrix
+     * structure and its symbolic factorization. Security and sensitivity analysis set it (their contingencies can
+     * island any bus); a plain load flow never disables buses and leaves it false. It is set for the whole eligible
+     * bus set rather than a precomputed islandable subset, so correctness does not depend on the connectivity
+     * analysis anticipating every islanding.
      */
-    public Set<String> getAlternativeIslandableBusIds() {
-        return alternativeIslandableBusIds;
+    public boolean isAlternativeBusesCanBeDisabled() {
+        return alternativeBusesCanBeDisabled;
     }
 
-    public AcEquationSystemCreationParameters setAlternativeIslandableBusIds(Set<String> alternativeIslandableBusIds) {
-        this.alternativeIslandableBusIds = Objects.requireNonNull(alternativeIslandableBusIds);
+    public AcEquationSystemCreationParameters setAlternativeBusesCanBeDisabled(boolean alternativeBusesCanBeDisabled) {
+        this.alternativeBusesCanBeDisabled = alternativeBusesCanBeDisabled;
         return this;
     }
 
