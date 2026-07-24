@@ -131,6 +131,18 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
         }
     }
 
+    protected LfStaticVarCompensatorImpl(LfStaticVarCompensatorImpl other, LfNetwork network) {
+        super(other, network);
+        this.svcRef = other.svcRef;
+        this.nominalV = other.nominalV;
+        this.reactiveLimits = new SvcReactiveLimits();
+        this.slope = other.slope;
+        this.targetQ = other.targetQ;
+        this.standByAutomaton = other.standByAutomaton; // immutable value object
+        this.b0 = other.b0;
+        // standByAutomatonShunt is wired by the copied bus
+    }
+
     private void setupVoltageControl(StaticVarCompensator svc, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         setVoltageControl(svc.getVoltageSetpoint(), svc.getTerminal(), svc.getRegulatingTerminal(), parameters, report);
 
@@ -166,18 +178,6 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
                 generatorControlType = GeneratorControlType.MONITORING_VOLTAGE;
             }
         }
-    }
-
-    protected LfStaticVarCompensatorImpl(LfStaticVarCompensatorImpl other, LfNetwork network) {
-        super(other, network);
-        this.svcRef = other.svcRef;
-        this.nominalV = other.nominalV;
-        this.reactiveLimits = new SvcReactiveLimits();
-        this.slope = other.slope;
-        this.targetQ = other.targetQ;
-        this.standByAutomaton = other.standByAutomaton; // immutable value object
-        this.b0 = other.b0;
-        // standByAutomatonShunt is wired by the copied bus
     }
 
     public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, LfNetworkParameters parameters,
