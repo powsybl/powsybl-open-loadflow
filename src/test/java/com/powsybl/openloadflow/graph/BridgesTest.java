@@ -89,7 +89,7 @@ class BridgesTest {
 
     @Test
     void testHolm2() {
-        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new Holm2<>(), "Holm-et-al-2");
+        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new NewHolmGraphConnectivity<>(), "Holm-et-al-2");
         assertEquals(bridgesSetReference, bridges);
     }
 

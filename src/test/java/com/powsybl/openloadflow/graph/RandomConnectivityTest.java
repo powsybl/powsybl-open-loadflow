@@ -48,7 +48,7 @@ public class RandomConnectivityTest {
                 List<GraphConnectivity<Integer, DefaultEdge>> toTest = List.of(
                         //new HolmEtAlWithoutLevelGraphConnectivity<>(),
                         //new HolmEtAlGraphConnectivity<>(),
-                        new Holm2<>()
+                        new NewHolmGraphConnectivity<>()
                         //new DTreeGraphConnectivity<>(),
                         //new DTreeStandalone<>()
                 );

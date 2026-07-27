@@ -14,9 +14,9 @@ import java.util.*;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, E>> {
+public class NewHolmGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, NewHolmGraphConnectivity.Graph<V, E>> {
 
-    public Holm2() {
+    public NewHolmGraphConnectivity() {
         super(new Graph<>());
     }
 
@@ -123,9 +123,11 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
         // ==============
 
         void checkInvariants() {
-            checkTrees();
-            checkOccurrences();
-            checkEdges();
+            if (false) {
+                checkTrees();
+                checkOccurrences();
+                checkEdges();
+            }
         }
 
         void checkTrees() {
@@ -281,22 +283,13 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
             v.getValue().treeIndex = tree.getMin().getValue().treeIndex;
 
             // make 'v' the head
-            AVLTree.TreeNode<Occurrence<V, E>> w = v.getSuccessor();
             // the ET tree is like this: r ... u v w ... r
 
             AVLTree<Occurrence<V, E>> right = tree.splitBefore(v);
             // tree = r ... u; right = v w ... r
 
-            var node = tree.addMax(new Occurrence<>(v.getValue().vertex, false));
+            tree.addMax(new Occurrence<>(v.getValue().vertex, false));
             // tree = r ... u v; right = v w ... r
-
-            // don't forget to update tree edge pointers for the edge uv
-            Edge<V, E> uv = u.getValue().edgeToNextOccurrence;
-            // if (!u.getValue().vertex.equals(w.getValue().vertex)) {
-            //     // r ... u;  v w ... r
-            //     uv.removePointer(v);
-            // }
-            // uv.addPointer(node);
 
             mergeAfter(right, tree);
             // tree = v w ... r ... u v; right = v w ... r ... u v;

@@ -627,7 +627,7 @@ class ConnectivityTest {
                 Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()),
                 Arguments.of(new HolmEtAlGraphConnectivity<>()),
                 Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>()),
-                Arguments.of(new Holm2<>()),
+                Arguments.of(new NewHolmGraphConnectivity<>()),
                 Arguments.of(new DTreeGraphConnectivity<>()),
                 Arguments.of(new DTreeStandalone<>()),
                 Arguments.of(new NewDTreeGraphConnectivity<Integer, String>(v -> v, new ToIntFunction<String>() {
@@ -647,7 +647,7 @@ class ConnectivityTest {
                 Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()),
                 Arguments.of(new HolmEtAlGraphConnectivity<>()),
                 Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>()),
-                Arguments.of(new Holm2<>()),
+                Arguments.of(new NewHolmGraphConnectivity<>()),
                 Arguments.of(new DTreeGraphConnectivity<>()),
                 Arguments.of(new DTreeStandalone<>()),
                 Arguments.of(new NewDTreeGraphConnectivity<Integer, String>(v -> v, new ToIntFunction<String>() {
