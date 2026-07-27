@@ -318,10 +318,21 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
             AVLTree.TreeNode<Occurrence<V, E>> rightHead = right.getMin();
             AVLTree.TreeNode<Occurrence<V, E>> rightHeadSucc = rightHead.getSuccessor();
 
+            // update active occurrence and non-tree edges
+            if (rightHead.getValue().active) {
+                leftTail.getValue().active = true;
+                leftTail.getValue().nte = rightHead.getValue().nte;
+                activeOccurrences.put(leftTail.getValue().vertex, leftTail);
+            }
+
+            // right contains only one element.
+            // 1. rightHead.getValue().edgeToNextOccurrence is null
+            // 2. there is nothing to append at the end of 'left'
             if (rightHeadSucc == null) {
                 return;
             }
 
+            // update edge pointers
             Edge<V, E> edge = rightHead.getValue().edgeToNextOccurrence;
             if (edge.uOccPointer == rightHead) {
                 edge.uOccPointer = leftTail;
@@ -330,13 +341,10 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
             }
             leftTail.getValue().edgeToNextOccurrence = edge;
 
-            if (rightHead.getValue().active) {
-                leftTail.getValue().active = true;
-                activeOccurrences.put(leftTail.getValue().vertex, leftTail);
-            }
-
             right.removeMin();
+            // left = ... t; right = ...
             left.mergeAfter(right);
+            // left = ... t ...
         }
 
         @Override
@@ -415,7 +423,7 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
                 AVLTree.TreeNode<Occurrence<V, E>> node = it.next();
                 Occurrence<V, E> occ = node.getValue();
 
-                if (!occ.nte.isEmpty()) {
+                if (occ.nte != null && !occ.nte.isEmpty()) {
                     for (E nonTreeEdge : occ.nte) {
                         Edge<V, E> edge = edges.get(nonTreeEdge);
 
@@ -666,7 +674,7 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
     private static final class Occurrence<V, E> {
 
         private final V vertex;
-        private final Set<E> nte = new HashSet<>();
+        private Set<E> nte;
         private Edge<V, E> edgeToNextOccurrence;
 
         private boolean active;
@@ -677,6 +685,10 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
         Occurrence(V vertex, boolean active) {
             this.vertex = vertex;
             this.active = active;
+
+            if (active) {
+                nte = new HashSet<>();
+            }
         }
     }
 
@@ -684,8 +696,8 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
         private final V u;
         private final V v;
         private final E edge;
+        private final boolean treeEdge;
 
-        private boolean treeEdge;
         private AVLTree.TreeNode<Occurrence<V, E>> uOccPointer;
         private AVLTree.TreeNode<Occurrence<V, E>> vOccPointer;
 
@@ -695,21 +707,6 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
             this.edge = edge;
             this.treeEdge = treeEdge;
         }
-
-        /*public void sortPointers(AVLTree<Occurrence<V, E>> tree) {
-            List<AVLTree.TreeNode<Occurrence<V, E>>> tmp = pointers;
-
-            pointers = new ArrayList<>();
-            for (Iterator<AVLTree.TreeNode<Occurrence<V, E>>> it = tree.nodeIterator(); it.hasNext();) {
-                AVLTree.TreeNode<Occurrence<V, E>> node = it.next();
-
-                if (tmp.contains(node)) {
-                    pointers.add(node);
-                }
-            }
-
-            assert new HashSet<>(pointers).equals(new HashSet<>(tmp));
-        }*/
 
         public boolean isTreeEdge() {
             return treeEdge;

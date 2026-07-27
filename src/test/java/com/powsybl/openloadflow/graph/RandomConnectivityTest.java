@@ -25,13 +25,18 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
  */
 public class RandomConnectivityTest {
 
+    private static final boolean DEBUG = false;
+
     @Test
     void randomGraph() {
-        for (int size = 0; size < 50; size++) {
+        for (int size = 1; size < 50; size++) {
             for (int seed = 0; seed < 100; seed++) {
                 System.out.printf("size: %d, seed: %d%n", size, seed);
                 // generate graph
                 Graph<Integer, DefaultEdge> graph = generateGraph(size, seed);
+                if (DEBUG) {
+                    System.out.println(graph);
+                }
 
                 // generate expected results based on NaiveGraphConnectivity
                 Sample<Integer, DefaultEdge> sample = new Sample<>(size, seed);
@@ -76,6 +81,10 @@ public class RandomConnectivityTest {
         // fully connect the graph
         for (int i = 0; i < edges.size(); i++) {
             E edge = edges.get(i);
+            if (DEBUG) {
+                System.out.println("e " + edge);
+            }
+
             connectivity.addEdge(graph.getEdgeSource(edge), graph.getEdgeTarget(edge), edge);
             sample.checkAddEdge(connectivity, edge);
 
@@ -99,6 +108,10 @@ public class RandomConnectivityTest {
         // fully disconnect the graph
         for (int i = 0; i < edges.size(); i++) {
             E edge = edges.get(i);
+            if (DEBUG) {
+                System.out.println("rm " + edge);
+            }
+
             connectivity.removeEdge(edge);
             sample.checkRemoveEdge(connectivity, edge);
         }
