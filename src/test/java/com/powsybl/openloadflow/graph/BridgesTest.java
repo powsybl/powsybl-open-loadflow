@@ -82,6 +82,18 @@ class BridgesTest {
     }
 
     @Test
+    void testHolmEtAlWithoutLevel() {
+        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new HolmEtAlWithoutLevelGraphConnectivity<>(), "Holm-et-al (without level)");
+        assertEquals(bridgesSetReference, bridges);
+    }
+
+    @Test
+    void testHolm2() {
+        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new Holm2<>(), "Holm-et-al-2");
+        assertEquals(bridgesSetReference, bridges);
+    }
+
+    @Test
     void testDTree() {
         Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new DTreeGraphConnectivity<>(), "DTree");
         assertEquals(bridgesSetReference, bridges);

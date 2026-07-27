@@ -52,10 +52,16 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
         // sorting roots will sort components as components is a wrapper around roots
         roots.sort((s1, s2) -> s2.getSize() - s1.getSize());
         for (int i = 0; i < graph.trees.size(); i++) {
-            roots.get(i).getRoot().getValue().treeIndex = i;
+            roots.get(i).getMin().getValue().treeIndex = i;
         }
 
         componentSets = graph.components;
+    }
+
+    @Override
+    public void startTemporaryChanges(boolean computeComparisons) {
+        super.startTemporaryChanges(computeComparisons);
+        getGraph().checkInvariants();
     }
 
     @Override
@@ -74,14 +80,26 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
         checkSavedContext();
         checkVertex(vertex);
         Graph<V, E> graph = getGraph();
-        AVLTree.TreeNode<Occurrence<V, E>> root = graph.activeOccurrences.get(vertex).getRoot();
-        return graph.components.get(root.getValue().treeIndex);
+        AVLTree.TreeNode<Occurrence<V, E>> head = graph.activeOccurrences.get(vertex).getTreeMin();
+        return graph.components.get(head.getValue().treeIndex);
     }
 
     @Override
     protected Set<V> getNonConnectedVertices(V vertex) {
-        updateComponents();
-        return super.getNonConnectedVertices(vertex);
+        checkSavedContext();
+        checkVertex(vertex);
+
+        Graph<V, E> graph = getGraph();
+        AVLTree<Occurrence<V, E>> excludedTree = graph.treeOf(vertex);
+
+        Set<V> components = new HashSet<>();
+        for (AVLTree<Occurrence<V, E>> tree : graph.trees) {
+            if (tree != excludedTree) {
+                components.addAll(graph.componentView(tree));
+            }
+        }
+
+        return components;
     }
 
     @Override
@@ -161,27 +179,32 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
                 assert adjacencyList.get(edge.v).contains(e);
 
                 if (edge.treeEdge) {
-                    assert edge.pointers != null && (edge.pointers.size() == 3 || edge.pointers.size() == 4);
+                    assert edge.uOccPointer != null && edge.vOccPointer != null;
+                    assert edge.uOccPointer.getValue().vertex.equals(edge.u);
+                    assert edge.uOccPointer.getSuccessor().getValue().vertex.equals(edge.v);
+                    assert edge.vOccPointer.getValue().vertex.equals(edge.v);
+                    assert edge.vOccPointer.getSuccessor().getValue().vertex.equals(edge.u);
                 } else {
-                    assert edge.pointers == null;
+                    assert edge.uOccPointer == null;
+                    assert edge.vOccPointer == null;
                 }
             }
         }
 
-        AVLTree.TreeNode<Occurrence<V, E>> roofOf(V vertex) {
+        AVLTree.TreeNode<Occurrence<V, E>> headOf(V vertex) {
             var node = activeOccurrences.get(vertex);
             if (node == null) {
                 return null;
             }
-            return node.getRoot();
+            return node.getTreeMin();
         }
 
         AVLTree<Occurrence<V, E>> treeOf(V vertex) {
-            var root = roofOf(vertex);
-            if (root == null) {
+            var head = headOf(vertex);
+            if (head == null) {
                 return null;
             }
-            return trees.get(root.getValue().treeIndex);
+            return trees.get(head.getValue().treeIndex);
         }
 
         @Override
@@ -240,12 +263,8 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
             var backwardU = treeU.addMax(new Occurrence<>(occurrenceU.getValue().vertex, false));
 
             Edge<V, E> edge = new Edge<>(occurrenceU.getValue().vertex, occurrenceV.getValue().vertex, e, true);
-            edge.addPointer(forwardU);
-            edge.addPointer(forwardV);
-            if (forwardV != backwardV) {
-                edge.addPointer(backwardV);
-            }
-            edge.addPointer(backwardU);
+            edge.uOccPointer = forwardU;
+            edge.vOccPointer = backwardV;
             forwardU.getValue().edgeToNextOccurrence = edge;
             backwardV.getValue().edgeToNextOccurrence = edge;
 
@@ -271,22 +290,30 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
             var node = tree.addMax(new Occurrence<>(v.getValue().vertex, false));
             // tree = r ... u v; right = v w ... r
 
-            // don't forget to update tree edge pointers
+            // don't forget to update tree edge pointers for the edge uv
             Edge<V, E> uv = u.getValue().edgeToNextOccurrence;
-            if (!u.getValue().vertex.equals(w.getValue().vertex)) {
-                // r ... u;  v w ... r
-                uv.removePointer(v);
-            }
-            uv.addPointer(node);
+            // if (!u.getValue().vertex.equals(w.getValue().vertex)) {
+            //     // r ... u;  v w ... r
+            //     uv.removePointer(v);
+            // }
+            // uv.addPointer(node);
 
             mergeAfter(right, tree);
+            // tree = v w ... r ... u v; right = v w ... r ... u v;
             tree.mergeAfter(right);
-            // right = v w ... r ... u v; tree = empty
+            // tree = v w ... r ... u v; right = empty
         }
 
+        // merge the two list, assuming that left ends and right begins with the same value
+        // and store the result in 'left'.
+        // That is, it requires that
+        // left.getMax().getValue().vertex.equals(right.getMin().getValue().vertex)
+        // and it ensures that
+        // left = \old(left) + right[1..]
+        // and left is a valid euler tour
         private void mergeAfter(AVLTree<Occurrence<V, E>> left, AVLTree<Occurrence<V, E>> right) {
             // left = ... t; right = t ...
-            // that is, the two 't' are different occurrence of the same vertex
+            // that is, the two 't' are different occurrences of the same vertex
             AVLTree.TreeNode<Occurrence<V, E>> leftTail = left.getMax();
             AVLTree.TreeNode<Occurrence<V, E>> rightHead = right.getMin();
             AVLTree.TreeNode<Occurrence<V, E>> rightHeadSucc = rightHead.getSuccessor();
@@ -296,8 +323,11 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
             }
 
             Edge<V, E> edge = rightHead.getValue().edgeToNextOccurrence;
-            edge.removePointer(rightHead);
-            edge.addPointer(leftTail);
+            if (edge.uOccPointer == rightHead) {
+                edge.uOccPointer = leftTail;
+            } else {
+                edge.vOccPointer = leftTail;
+            }
             leftTail.getValue().edgeToNextOccurrence = edge;
 
             if (rightHead.getValue().active) {
@@ -333,22 +363,50 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
         }
 
         private void removeTreeEdge(Edge<V, E> edge) {
-            AVLTree<Occurrence<V, E>> tree = trees.get(edge.pointers.getFirst().getValue().treeIndex);
-            edge.sortPointers(tree);
+            AVLTree<Occurrence<V, E>> tree = trees.get(edge.uOccPointer.getTreeMin().getValue().treeIndex);
 
-            AVLTree.TreeNode<Occurrence<V, E>> first = edge.pointers.getFirst();
-            AVLTree.TreeNode<Occurrence<V, E>> last = edge.pointers.getLast();
+            // Two cases:
+            // 1.
+            //     +-> (u,v)
+            //     |       |
+            //     v       v
+            // ... u v ... v u ...
+            // 2.
+            //     (u,v) <-+
+            //     |       |
+            //     v       v
+            // ... v u ... u v ...
 
-            AVLTree<Occurrence<V, E>> middle = tree.splitAfter(first);
-            AVLTree<Occurrence<V, E>> right = middle.splitBefore(last);
-            mergeAfter(tree, right);
+            AVLTree<Occurrence<V, E>> afterU = tree.splitAfter(edge.uOccPointer);
+            // 1. tree = ... u; afterU = v ... v u ...
+            // or
+            // 2. tree = ... v u ... u; afterU = v ...
 
-            addTree(middle);
+            boolean isUVBeforeVU = afterU.getRoot() == edge.vOccPointer.getRoot();
 
-            if (tree.getSize() > middle.getSize()) {
-                replace(middle, tree);
+            AVLTree<Occurrence<V, E>> newTree;
+            if (isUVBeforeVU) {
+                // tree = ... u; afterU = v ... v u ...
+                AVLTree<Occurrence<V, E>> afterV = afterU.splitAfter(edge.vOccPointer);
+                // tree = ... u; afterU = v ... v; afterV = u ...
+                mergeAfter(tree, afterV);
+                // tree = ... u ...; afterU = v ... v
+                newTree = afterU;
             } else {
-                replace(tree, middle);
+                // 2. tree = ... v u ... u; afterU = v ...
+                AVLTree<Occurrence<V, E>> afterV = tree.splitAfter(edge.vOccPointer);
+                // tree = ... u; afterV = u ... u; afterU = v ...
+                mergeAfter(tree, afterU);
+                // tree = ... u ...; afterV = v ... v
+                newTree = afterV;
+            }
+
+            addTree(newTree);
+
+            if (tree.getSize() > newTree.getSize()) {
+                replace(newTree, tree);
+            } else {
+                replace(tree, newTree);
             }
         }
 
@@ -526,6 +584,10 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
             return sb.toString();
         }
 
+        ComponentView componentView(AVLTree<Occurrence<V, E>> tree) {
+            return new ComponentView(tree);
+        }
+
         private final class AllComponentsView extends AbstractList<Set<V>> {
 
             @Override
@@ -609,6 +671,7 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
 
         private boolean active;
 
+        // valid only for head (or tree min)
         private int treeIndex;
 
         Occurrence(V vertex, boolean active) {
@@ -623,28 +686,17 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
         private final E edge;
 
         private boolean treeEdge;
-        private List<AVLTree.TreeNode<Occurrence<V, E>>> pointers;
+        private AVLTree.TreeNode<Occurrence<V, E>> uOccPointer;
+        private AVLTree.TreeNode<Occurrence<V, E>> vOccPointer;
 
         Edge(V u, V v, E edge, boolean treeEdge) {
             this.u = u;
             this.v = v;
             this.edge = edge;
             this.treeEdge = treeEdge;
-
-            if (treeEdge) {
-                pointers = new ArrayList<>(4);
-            }
         }
 
-        public void addPointer(AVLTree.TreeNode<Occurrence<V, E>> pointer) {
-            pointers.add(pointer);
-        }
-
-        public void removePointer(AVLTree.TreeNode<Occurrence<V, E>> pointer) {
-            pointers.remove(pointer);
-        }
-
-        public void sortPointers(AVLTree<Occurrence<V, E>> tree) {
+        /*public void sortPointers(AVLTree<Occurrence<V, E>> tree) {
             List<AVLTree.TreeNode<Occurrence<V, E>>> tmp = pointers;
 
             pointers = new ArrayList<>();
@@ -657,7 +709,7 @@ public class Holm2<V, E> extends AbstractGraphConnectivity<V, E, Holm2.Graph<V, 
             }
 
             assert new HashSet<>(pointers).equals(new HashSet<>(tmp));
-        }
+        }*/
 
         public boolean isTreeEdge() {
             return treeEdge;

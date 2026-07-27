@@ -43,6 +43,7 @@ class NetworkConnectivityTest {
         testConnectivity(new EvenShiloachGraphDecrementalConnectivity<>());
         testConnectivity(new HolmEtAlGraphConnectivity<>());
         testConnectivity(new HolmEtAlWithoutLevelGraphConnectivity<>());
+        testConnectivity(new Holm2<>());
         testConnectivity(new DTreeGraphConnectivity<>());
         testConnectivity(new DTreeStandalone<>());
     }
@@ -55,6 +56,7 @@ class NetworkConnectivityTest {
         testReducedMainComponent(new EvenShiloachGraphDecrementalConnectivity<>());
         testReducedMainComponent(new HolmEtAlGraphConnectivity<>());
         testReducedMainComponent(new HolmEtAlWithoutLevelGraphConnectivity<>());
+        testReducedMainComponent(new Holm2<>());
         testReducedMainComponent(new DTreeGraphConnectivity<>());
         testReducedMainComponent(new DTreeStandalone<>());
     }
@@ -67,6 +69,7 @@ class NetworkConnectivityTest {
         testReaddEdge(new MinimumSpanningTreeGraphConnectivity<>(), true);
         testReaddEdge(new HolmEtAlGraphConnectivity<>(), true);
         testReaddEdge(new HolmEtAlWithoutLevelGraphConnectivity<>(), true);
+        testReaddEdge(new Holm2<>(), true);
         testReaddEdge(new DTreeGraphConnectivity<>(), true);
         testReaddEdge(new DTreeStandalone<>(), true);
     }
@@ -94,6 +97,7 @@ class NetworkConnectivityTest {
         testNonConnectedComponents(new MinimumSpanningTreeGraphConnectivity<>());
         testNonConnectedComponents(new HolmEtAlGraphConnectivity<>());
         testNonConnectedComponents(new HolmEtAlWithoutLevelGraphConnectivity<>());
+        testNonConnectedComponents(new Holm2<>());
         testNonConnectedComponents(new DTreeGraphConnectivity<>());
     }
 
@@ -104,6 +108,7 @@ class NetworkConnectivityTest {
         testConnectedComponents(new MinimumSpanningTreeGraphConnectivity<>());
         testConnectedComponents(new HolmEtAlGraphConnectivity<>());
         testConnectedComponents(new HolmEtAlWithoutLevelGraphConnectivity<>());
+        testConnectedComponents(new Holm2<>());
         testConnectedComponents(new DTreeGraphConnectivity<>());
         testConnectedComponents(new DTreeStandalone<>());
     }
