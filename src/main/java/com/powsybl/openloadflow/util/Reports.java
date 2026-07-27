@@ -873,18 +873,15 @@ public final class Reports {
     }
 
     /**
-     * Create a Root report node for a synchronous network. It is identified only by its synchronous component number.
-     * @param firstRootReportNode original root report node. Used to get locale parameter.
+     * Create a report node for a synchronous network. It is identified only by its synchronous component number.
      * @param networkNumSc number of the synchronous component represented by the LfSynchronousNetwork associated to this report node.
      * @return a new report node to be used by a LfSynchronousNetwork.
      */
-    public static ReportNode createLfSynchronousNetworkReportNode(ReportNode firstRootReportNode, int networkNumSc) {
-        return ReportNode.newRootReportNode()
-            .withLocale(firstRootReportNode.getTreeContext().getLocale())
-            .withAllResourceBundlesFromClasspath()
+    public static ReportNode createLfSynchronousNetworkReportNode(ReportNode reportNode, int networkNumSc) {
+        return reportNode.newReportNode()
             .withMessageTemplate("olf.lfScNetwork")
             .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
-            .build();
+            .add();
     }
 
     public static ReportNode includeLfNetworkReportNode(ReportNode reportNode, ReportNode lfNetworkReportNode) {
@@ -910,6 +907,15 @@ public final class Reports {
                 .withMessageTemplate("olf.OuterLoopIteration")
                 .withUntypedValue("outerLoopIteration", outerLoopIteration)
                 .add();
+    }
+
+    public static ReportNode createRootOuterLoopIterationReporter(ReportNode firstRootReportNode, int outerLoopIteration) {
+        return ReportNode.newRootReportNode()
+            .withLocale(firstRootReportNode.getTreeContext().getLocale())
+            .withAllResourceBundlesFromClasspath()
+            .withMessageTemplate("olf.OuterLoopIteration")
+            .withUntypedValue("outerLoopIteration", outerLoopIteration)
+            .build();
     }
 
     public static ReportNode createSensitivityAnalysis(ReportNode reportNode, String networkId) {
