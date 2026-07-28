@@ -575,22 +575,42 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
     @Override
     public Set<V> getVerticesRemovedFromMainComponent() {
-        return checkSavedContext().verticesState.getRemoved();
+        Modifications modifications = checkSavedContext();
+        if (modifications.verticesState == null) {
+            throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
+        }
+
+        return modifications.verticesState.getRemoved();
     }
 
     @Override
     public Set<E> getEdgesRemovedFromMainComponent() {
-        return checkSavedContext().edgesState.getRemoved();
+        Modifications modifications = checkSavedContext();
+        if (modifications.edgesState == null) {
+            throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
+        }
+
+        return modifications.edgesState.getRemoved();
     }
 
     @Override
     public Set<V> getVerticesAddedToMainComponent() {
-        return checkSavedContext().verticesState.getAdded();
+        Modifications modifications = checkSavedContext();
+        if (modifications.verticesState == null) {
+            throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
+        }
+
+        return modifications.verticesState.getAdded();
     }
 
     @Override
     public Set<E> getEdgesAddedToMainComponent() {
-        return checkSavedContext().edgesState.getAdded();
+        Modifications modifications = checkSavedContext();
+        if (modifications.edgesState == null) {
+            throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
+        }
+
+        return modifications.edgesState.getAdded();
     }
 
     // ==============

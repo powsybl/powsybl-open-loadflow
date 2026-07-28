@@ -44,6 +44,7 @@ class NetworkConnectivityTest {
         testConnectivity(new HolmEtAlGraphConnectivity<>());
         testConnectivity(new HolmEtAlWithoutLevelGraphConnectivity<>());
         testConnectivity(new NewHolmGraphConnectivity<>());
+        testConnectivity(new HolmStandalone<>());
         testConnectivity(new DTreeGraphConnectivity<>());
         testConnectivity(new DTreeStandalone<>());
     }
@@ -57,6 +58,7 @@ class NetworkConnectivityTest {
         testReducedMainComponent(new HolmEtAlGraphConnectivity<>());
         testReducedMainComponent(new HolmEtAlWithoutLevelGraphConnectivity<>());
         testReducedMainComponent(new NewHolmGraphConnectivity<>());
+        testReducedMainComponent(new HolmStandalone<>());
         testReducedMainComponent(new DTreeGraphConnectivity<>());
         testReducedMainComponent(new DTreeStandalone<>());
     }
@@ -70,6 +72,7 @@ class NetworkConnectivityTest {
         testReaddEdge(new HolmEtAlGraphConnectivity<>(), true);
         testReaddEdge(new HolmEtAlWithoutLevelGraphConnectivity<>(), true);
         testReaddEdge(new NewHolmGraphConnectivity<>(), true);
+        testReaddEdge(new HolmStandalone<>(), true);
         testReaddEdge(new DTreeGraphConnectivity<>(), true);
         testReaddEdge(new DTreeStandalone<>(), true);
     }
@@ -109,6 +112,7 @@ class NetworkConnectivityTest {
         testConnectedComponents(new HolmEtAlGraphConnectivity<>());
         testConnectedComponents(new HolmEtAlWithoutLevelGraphConnectivity<>());
         testConnectedComponents(new NewHolmGraphConnectivity<>());
+        testConnectedComponents(new HolmStandalone<>());
         testConnectedComponents(new DTreeGraphConnectivity<>());
         testConnectedComponents(new DTreeStandalone<>());
     }

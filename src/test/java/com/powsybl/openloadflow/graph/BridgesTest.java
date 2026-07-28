@@ -88,8 +88,14 @@ class BridgesTest {
     }
 
     @Test
-    void testHolm2() {
+    void testNewHolm() {
         Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new NewHolmGraphConnectivity<>(), "Holm-et-al-2");
+        assertEquals(bridgesSetReference, bridges);
+    }
+
+    @Test
+    void testHolmStandalone() {
+        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new HolmStandalone<>(), "Holm-et-al-standalone");
         assertEquals(bridgesSetReference, bridges);
     }
 
