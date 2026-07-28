@@ -13,7 +13,10 @@ import com.powsybl.iidm.network.VoltageSourceConverter;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.*;
+import com.powsybl.openloadflow.CommonTestConfig;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.AcDcNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -132,7 +135,6 @@ class AcDcLoadFlowWithDisconnectionTest {
         // Run load flow
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        PlaygroundTest.log(network);
 
         // Check DC current is NaN in dl34p and zero in conv23p and conv45p. Check converter AC power is equal to their idle loss
         VoltageSourceConverter conv23p = network.getVoltageSourceConverter("conv23p");
