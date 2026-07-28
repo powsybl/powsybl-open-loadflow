@@ -1375,16 +1375,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 });
 
         // -- Sanity checks : detecting invalid DC configuration
-        // Filter out disconnected converters
-        List<AcDcConverter<?>> connectedAcDcConverter = loadingContext.acDcConverterSet.stream().filter(acDcConverter ->
-            acDcConverter.getTerminal1().isConnected()
-                && acDcConverter.getDcTerminal1().isConnected()
-                && acDcConverter.getDcTerminal2().isConnected()
-        ).toList();
-
-        DcNetworkValidationHelpers.checkAllConvertersAreIndirectlyConnectedToADcGround(connectedAcDcConverter);
-        DcNetworkValidationHelpers.checkAtLeastOneConverterControlsVdc(connectedAcDcConverter, numDcc);
-        DcNetworkValidationHelpers.checkPccConverterAreIndirectlyConnectedToElementImposingVoltage(connectedAcDcConverter);
+        DcComponentValidator.checkDcComponentIsValid(loadingContext.acDcConverterSet, numDcc);
 
         // Add AC-DC converters to the LfNetwork
         createAcDcConverters(lfNetwork, loadingContext, parameters);
