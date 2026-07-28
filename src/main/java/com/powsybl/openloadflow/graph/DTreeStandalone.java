@@ -65,7 +65,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         return vertexToTreeNode.get(vertex).findRoot();
     }
 
-    private void sortComponents() {
+    private void sortTrees() {
         if (!isSorted) {
             roots.sort((s1, s2) -> s2.size - s1.size);
             for (int i = 0; i < roots.size(); i++) {
@@ -484,7 +484,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
     public int getComponentNumber(V vertex) {
         checkSavedContext();
         DTNode node = getNodeOrThrow(vertex);
-        sortComponents();
+        sortTrees();
 
         return node.findRootOptReroot().rootIndex;
     }
@@ -546,7 +546,7 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
     @Override
     public Set<V> getLargestConnectedComponent() {
         checkSavedContext();
-        sortComponents();
+        sortTrees();
 
         return roots.getFirst().componentView();
     }

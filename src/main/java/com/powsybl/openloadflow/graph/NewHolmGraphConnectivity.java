@@ -66,7 +66,7 @@ public class NewHolmGraphConnectivity<V, E> extends AbstractGraphConnectivity<V,
 
     @Override
     protected int getQuickComponentNumber(V vertex) {
-        return getGraph().activeOccurrences.get(vertex).getRoot().getValue().treeIndex;
+        return getGraph().activeOccurrences.get(vertex).getTreeMin().getValue().treeIndex;
     }
 
     @Override
@@ -123,7 +123,7 @@ public class NewHolmGraphConnectivity<V, E> extends AbstractGraphConnectivity<V,
         // ==============
 
         void checkInvariants() {
-            if (false) {
+            if (true) {
                 checkTrees();
                 checkOccurrences();
                 checkEdges();
@@ -164,10 +164,16 @@ public class NewHolmGraphConnectivity<V, E> extends AbstractGraphConnectivity<V,
 
                 assert vertex.equals(occ.vertex);
                 assert occ.active;
+                assert occ.nte != null;
                 if (node.getSuccessor() != null) {
                     assert occ.edgeToNextOccurrence != null;
                     assert occ.edgeToNextOccurrence.treeEdge;
                     assert occ.edgeToNextOccurrence.u.equals(vertex) || occ.edgeToNextOccurrence.v.equals(vertex);
+                    assert occ.edgeToNextOccurrence.edge != null;
+
+                    Edge<V, E> edge = edges.get(occ.edgeToNextOccurrence.edge);
+                    assert edge != null;
+                    assert edge == occ.edgeToNextOccurrence;
                 }
             }
         }
@@ -189,6 +195,8 @@ public class NewHolmGraphConnectivity<V, E> extends AbstractGraphConnectivity<V,
                 } else {
                     assert edge.uOccPointer == null;
                     assert edge.vOccPointer == null;
+                    assert activeOccurrences.get(edge.u).getValue().nte.contains(e);
+                    assert activeOccurrences.get(edge.v).getValue().nte.contains(e);
                 }
             }
         }
