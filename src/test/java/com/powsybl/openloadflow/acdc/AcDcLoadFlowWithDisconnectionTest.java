@@ -154,12 +154,12 @@ class AcDcLoadFlowWithDisconnectionTest {
 
         // Check DC node voltage, taking into account voltage drop due to DC line resistance
         assertEquals(0, network.getDcNode("dnGr").getV(), 0);
-        assertEquals(-expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn4r").getV(),1e-3);
-        assertEquals(-expectedDcCurrent / 1000 * dcLineR + 200, network.getDcNode("dn4p").getV(),1e-3);
-        assertEquals(-expectedDcCurrent / 1000 * dcLineR - 200, network.getDcNode("dn4n").getV(),1e-3);
-        assertEquals(-expectedDcCurrent / 1000 * dcLineR * 2 - 200, network.getDcNode("dn3n").getV(),1e-3);
-        assertEquals(expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn3r").getV(),1e-3);
-        assertEquals(expectedDcCurrent / 1000 * dcLineR + 200, network.getDcNode("dn3p").getV(),1e-3);
+        assertEquals(-expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn4r").getV(), 1e-3);
+        assertEquals(-expectedDcCurrent / 1000 * dcLineR + 200, network.getDcNode("dn4p").getV(), 1e-3);
+        assertEquals(-expectedDcCurrent / 1000 * dcLineR - 200, network.getDcNode("dn4n").getV(), 1e-3);
+        assertEquals(-expectedDcCurrent / 1000 * dcLineR * 2 - 200, network.getDcNode("dn3n").getV(), 1e-3);
+        assertEquals(expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn3r").getV(), 1e-3);
+        assertEquals(expectedDcCurrent / 1000 * dcLineR + 200, network.getDcNode("dn3p").getV(), 1e-3);
     }
 
     /*
