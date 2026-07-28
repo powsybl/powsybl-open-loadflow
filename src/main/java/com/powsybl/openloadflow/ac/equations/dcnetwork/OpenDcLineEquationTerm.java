@@ -40,7 +40,7 @@ public class OpenDcLineEquationTerm extends AbstractElementEquationTerm<LfDcLine
 
     @Override
     public String getName() {
-        return "dc_open";
+        return "dc_open_line";
     }
 
     @Override

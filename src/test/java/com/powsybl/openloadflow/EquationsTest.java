@@ -343,7 +343,7 @@ class EquationsTest {
                 eval(new ClosedDcLineSide2PowerEquationTerm(dcLine, dcBus1, dcBus2, variableSet), variables, sv));
 
         // open dcLine equation
-        assertEquals("dc_open", new OpenDcLineEquationTerm(dcLine).getName());
+        assertEquals("dc_open_line", new OpenDcLineEquationTerm(dcLine).getName());
         assertArrayEquals(new double[] {0, Double.NaN, Double.NaN, Double.NaN, Double.NaN}, eval(new OpenDcLineEquationTerm(dcLine), variables, sv));
     }
 

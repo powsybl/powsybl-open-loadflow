@@ -385,6 +385,44 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     }
 
     /**
+     * ACDC test case.
+     * <pre>
+     * g1       ld2                                 ld5
+     * |         |                                   |
+     * b1 -------b2conv23-dn3============dn4-conv45-b5
+     * l12       |          dl34 & dl34_bis          |
+     *           |                                   |
+     *           |                                   |
+     *           |l25--------------------------------
+     * </pre>
+     */
+    public static Network createAcDcNetworkTwoParallelDcLines() {
+        Network network = AcDcNetworkFactory.createBaseNetwork();
+        network.getVoltageSourceConverters().forEach(vsc -> vsc.setIdleLoss(0).setSwitchingLoss(0).setResistiveLoss(0));
+
+        createVoltageSourceConverterPccQac(
+            network.getBusBreakerView().getBus("b2"),
+            network.getDcNode("dn3"),
+            network.getDcNode("dnDummy3"),
+            "conv23",
+            50,
+            0
+        );
+        createVoltageSourceConverterVdcQac(
+            network.getBusBreakerView().getBus("b5"),
+            network.getDcNode("dn4"),
+            network.getDcNode("dnDummy4"),
+            "conv45",
+            400,
+            0
+        );
+
+        double r = network.getDcLine("dl34").getR();  // 0.1
+        createDcLine(network, network.getDcNode("dn3"), network.getDcNode("dn4"), "dl34_bis", r);
+        return network;
+    }
+
+    /**
      * ACDC 3 Converters Test Case
      * <pre>
      * g1       ld2                                                ld5
