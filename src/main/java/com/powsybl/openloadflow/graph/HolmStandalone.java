@@ -8,10 +8,10 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.openloadflow.graph.StateMap.State;
 import org.jgrapht.util.AVLTree;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -164,7 +164,7 @@ public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
     }
 
     private void insertNonTreeEdgeRecordModifications(AVLTree.TreeNode<Occurrence<V, E>> head, E edge) {
-        if (isInMainComponent(head)) {
+        if (isInMainComponentBefore(head)) {
             checkSavedContext().markEdgeAdded(edge);
         }
     }
@@ -181,10 +181,10 @@ public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
     }
 
     private void insertTreeEdgeRecordModifications(AVLTree.TreeNode<Occurrence<V, E>> headU, AVLTree.TreeNode<Occurrence<V, E>> headV, E edge) {
-        if (isInMainComponent(headV)) {
+        if (isInMainComponentBefore(headV)) {
             checkSavedContext().markEdgeAdded(edge);
             markAllAdded(headU);
-        } else if (isInMainComponent(headU)) {
+        } else if (isInMainComponentBefore(headU)) {
             checkSavedContext().markEdgeAdded(edge);
             markAllAdded(headV);
         }
@@ -310,7 +310,7 @@ public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
 
     private void removeNonTreeEdgeRecordModifications(Edge<V, E> edge) {
         AVLTree.TreeNode<Occurrence<V, E>> occU = activeOccurrences.get(edge.u);
-        if (isInMainComponent(occU)) {
+        if (isInMainComponentBefore(occU)) {
             checkSavedContext().markEdgeRemoved(edge.edge);
         }
     }
@@ -372,7 +372,7 @@ public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
         AVLTree.TreeNode<Occurrence<V, E>> smallHead = small.getMin();
         AVLTree.TreeNode<Occurrence<V, E>> bigHead = big.getMin();
 
-        if (isInMainComponent(smallHead) || isInMainComponent(bigHead)) {
+        if (isInMainComponentBefore(smallHead) || isInMainComponentBefore(bigHead)) {
             checkSavedContext().markEdgeRemoved(removedEdge);
         }
 
@@ -398,9 +398,9 @@ public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
             }
         }
 
-        if (isInMainComponent(bigHead)) {
+        if (isInMainComponentBefore(bigHead)) {
             markAllRemoved(smallHead);
-        } else if (isInMainComponent(smallHead)) {
+        } else if (isInMainComponentBefore(smallHead)) {
             markAllRemoved(bigHead);
         }
     }
@@ -412,7 +412,13 @@ public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
 
     @Override
     public void startTemporaryChanges(boolean computeComparisons) {
-        modificationsStack.push(new Modifications(defaultMainComponentVertex, computeComparisons));
+        V mainComponentVertex = defaultMainComponentVertex;
+        if (mainComponentVertex == null) {
+            AVLTree.TreeNode<Occurrence<V, E>> head = getMainComponentHead(null);
+            mainComponentVertex = head.getValue().vertex;
+        }
+
+        modificationsStack.push(new Modifications(mainComponentVertex, computeComparisons));
     }
 
     @Override
@@ -424,12 +430,12 @@ public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
         Modifications modifications = modificationsStack.peek();
         modifications.undoing = true;
 
-        for (var it = modifications.modifications.descendingIterator(); it.hasNext();) {
-            switch (it.next()) {
+        for (GraphModification<V, E> gm : modifications.modifications) {
+            switch (gm) {
                 case EdgeAdd<V, E> edgeAdd -> removeEdge(edgeAdd.e);
                 case EdgeRemove<V, E> edgeRemove -> addEdge(edgeRemove.v1, edgeRemove.v2, edgeRemove.e);
                 case VertexAdd<V, E> vertexAdd -> removeVertex(vertexAdd.v);
-                default -> throw new IllegalStateException("Unexpected value: " + it.next());
+                default -> throw new IllegalStateException("Unexpected value: " + gm);
             }
         }
 
@@ -460,13 +466,13 @@ public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
         defaultMainComponentVertex = mainComponentVertex;
     }
 
-    private boolean isInMainComponent(AVLTree.TreeNode<Occurrence<V, E>> node) {
+    private boolean isInMainComponentBefore(AVLTree.TreeNode<Occurrence<V, E>> node) {
         Modifications modifications = modificationsStack.peek();
 
         if (modifications == null) {
             return false;
         } else {
-            return getMainComponentHead(modifications.mainComponentVertex) == node.getTreeMin();
+            return headOf(modifications.mainComponentVertex) == node.getTreeMin();
         }
     }
 
@@ -932,117 +938,6 @@ public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
                     edgesState.mark(occ.edgeToNextOccurrence.edge, newState);
                 }
             }
-        }
-    }
-
-    /**
-     * Describes the state in which an element (vertex or edge)
-     * is relative to the main component and the last call to
-     * {@link #startTemporaryChanges(boolean)}. An element can
-     * either be added or removed.
-     */
-    private enum State {
-        ADDED,
-        REMOVED,
-    }
-
-    /**
-     * Associates to each element whether it was added to the main
-     * component or removed from a main component between the last call
-     * to {@link #startTemporaryChanges(boolean)} and the current instant.
-     * As an element cannot be added and removed at the same time, we can
-     * use one {@link Map}, mapping an element to its {@link State} (removed
-     * or added), instead of two {@link Set} (one for added element and
-     * one for removed element).
-     * <p>
-     * If an element is not found, there are two possibilities:
-     * <ol>
-     *     <li>it was in the main component before and is still in the
-     *     main component,</li>
-     *     <li>it was <strong>not</strong> in the main component before and
-     *     is still <strong>not</strong> in the main component.</li>
-     * </ol>
-     * </p>
-     *
-     * @param <T> the type of the stored element (edges or vertices)
-     */
-    private static final class StateMap<T> extends HashMap<T, State> {
-
-        private Set<T> removed;
-        private Set<T> added;
-
-        /**
-         * Mark the specified element as added. That is, mark the
-         * element as being added to the main component by the
-         * last topological changes.
-         *
-         * @param element the element to mark
-         */
-        public void markAdded(T element) {
-            mark(element, State.ADDED);
-        }
-
-        /**
-         * Mark the specified element as removed. That is, mark the
-         * element as being removed from the main component by the
-         * last topological changes.
-         *
-         * @param element the element to mark
-         */
-        public void markRemoved(T element) {
-            mark(element, State.REMOVED);
-        }
-
-        /**
-         * Update the state of the specified element, according
-         * to the following rules:
-         * <ul>
-         *     <li>An element that is in the same state as it was before the call to
-         *     {@link #startTemporaryChanges(boolean)} is inserted with the specified
-         *     value.</li>
-         *     <li>An element marked as added and removed by the last changes is removed.
-         *     Indeed, it was outside the main component before the last call to
-         *     {@link #startTemporaryChanges(boolean)}, then it was added to it,
-         *     and now it is removed from it.</li>
-         *     <li>An element marked as removed and added by the last changes is removed.</li>
-         * </ul>
-         *
-         * @param element the element to update
-         * @param newState whether the element was added to or removed from
-         *                 the main component
-         */
-        public void mark(T element, State newState) {
-            compute(element, (k, state) -> {
-                if (state == null || state == newState) {
-                    return newState;
-                } else {
-                    return null;
-                }
-            });
-
-            removed = null;
-            added = null;
-        }
-
-        private Set<T> getRemoved() {
-            if (removed == null) {
-                removed = entrySet().stream()
-                        .filter(e -> e.getValue() == State.REMOVED)
-                        .map(Entry::getKey)
-                        .collect(Collectors.toSet());
-            }
-
-            return removed;
-        }
-
-        private Set<T> getAdded() {
-            if (added == null) {
-                added = entrySet().stream()
-                        .filter(e -> e.getValue() == State.ADDED)
-                        .map(Entry::getKey)
-                        .collect(Collectors.toSet());
-            }
-            return added;
         }
     }
 }

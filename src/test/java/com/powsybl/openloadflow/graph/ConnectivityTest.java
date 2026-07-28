@@ -621,6 +621,30 @@ class ConnectivityTest {
         assertEquals(Set.of(4, 5), c.getConnectedComponent(4));
     }
 
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideNonRestrictedConnectivities")
+    void testTopologicalComparisonsWhenMainComponentChanges(GraphConnectivity<Integer, String> c) {
+        String e12 = "1-2";
+        String e34 = "3-4";
+        String e45 = "4-5";
+
+        c.addVertex(1);
+        c.addVertex(2);
+        c.addVertex(3);
+        c.addVertex(4);
+        c.addVertex(5);
+        c.addEdge(1, 2, e12);
+        c.startTemporaryChanges();
+
+        c.addEdge(3, 4, e34);
+        c.addEdge(4, 5, e45);
+
+        assertEquals(Set.of(3, 4, 5), c.getVerticesAddedToMainComponent());
+        assertEquals(Set.of(1, 2), c.getVerticesRemovedFromMainComponent());
+        assertEquals(Set.of(e34, e45), c.getEdgesAddedToMainComponent());
+        assertEquals(Set.of(e12), c.getEdgesRemovedFromMainComponent());
+    }
+
     private static Stream<Arguments> provideNonRestrictedConnectivities() {
         return Stream.of(
                 Arguments.of(new NaiveGraphConnectivity<Integer, String>(v -> v - 1)),
