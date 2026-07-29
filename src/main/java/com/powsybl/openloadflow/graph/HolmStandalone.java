@@ -24,6 +24,7 @@ public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
     private final Map<V, Set<E>> adjacencyList = new HashMap<>();
 
     private final List<AVLTree<Occurrence<V, E>>> trees = new ArrayList<>();
+    private boolean isSorted = true;
 
     private final Deque<Modifications> modificationsStack = new ArrayDeque<>();
     private V defaultMainComponentVertex;
@@ -83,13 +84,13 @@ public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
     }
 
     private void sortTrees() {
-        //if (!isSorted) {
-        trees.sort((s1, s2) -> s2.getSize() - s1.getSize());
-        for (int i = 0; i < trees.size(); i++) {
-            trees.get(i).getMin().getValue().treeIndex = i;
+        if (!isSorted) {
+            trees.sort((s1, s2) -> s2.getSize() - s1.getSize());
+            for (int i = 0; i < trees.size(); i++) {
+                trees.get(i).getMin().getValue().treeIndex = i;
+            }
+            isSorted = true;
         }
-        //  isSorted = true;
-        //}
     }
 
     @Override
@@ -163,6 +164,9 @@ public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
         if (!modificationsStack.isEmpty()) {
             modificationsStack.peek().push(new EdgeAdd<>(vertex1, vertex2, edge));
         }
+
+        // invalidate roots ordering
+        isSorted = false;
 
         checkInvariants();
     }
@@ -312,6 +316,9 @@ public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
         if (!modificationsStack.isEmpty()) {
             modificationsStack.peek().push(new EdgeRemove<>(e.u, e.v, edge));
         }
+
+        // invalidate roots ordering
+        isSorted = false;
 
         checkInvariants();
     }
