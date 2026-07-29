@@ -163,7 +163,12 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         } else {
             // insert tree edge
             insertTreeEdgeRecordModifications(rootU, rootV, edge);
-            insertTreeEdge(rootU, nodeU, rootV, nodeV, edge);
+            DTNode newRoot = insertTreeEdge(rootU, nodeU, rootV, nodeV, edge);
+
+            if (!modificationsStack.isEmpty()) {
+                modificationsStack.peek().notifyInsertTreeEdge(newRoot);
+            }
+
             treeEdge = true;
         }
 
@@ -235,19 +240,18 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         }
     }
 
-    private void insertTreeEdge(DTNode rootU, DTNode nodeU, DTNode rootV, DTNode nodeV, E edge) {
-        DTNode toRemove;
+    private DTNode insertTreeEdge(DTNode rootU, DTNode nodeU, DTNode rootV, DTNode nodeV, E edge) {
         if (rootU.size < rootV.size) {
             nodeU.makeRoot(true);
             link(rootV, nodeV, nodeU, edge);
-            toRemove = nodeU;
+            removeRoot(nodeU);
+            return nodeV;
         } else {
             nodeV.makeRoot(true);
             link(rootU, nodeU, nodeV, edge);
-            toRemove = nodeV;
+            removeRoot(nodeV);
+            return nodeU;
         }
-
-        removeRoot(toRemove);
     }
 
     // ===========
@@ -268,6 +272,10 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
         if (e.treeEdge) {
             removeTreeEdge(nodeU, nodeV, edge);
+
+            if (!modificationsStack.isEmpty()) {
+                modificationsStack.peek().notifyRemoveTreeEdge();
+            }
         } else {
             removeNonTreeEdgeRecordModifications(nodeU, edge);
             removeNonTreeEdge(nodeU, nodeV, edge);
@@ -450,12 +458,14 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
     @Override
     public void startTemporaryChanges(boolean computeComparisons) {
         V mainComponentVertex = defaultMainComponentVertex;
+        boolean fictitious = false;
         if (mainComponentVertex == null) {
-            DTNode root = getMainComponentRoot(null);
+            DTNode root = getBiggestRoot();
             mainComponentVertex = root.vertex;
+            fictitious = true;
         }
 
-        modificationsStack.push(new Modifications(mainComponentVertex, computeComparisons));
+        modificationsStack.push(new Modifications(mainComponentVertex, fictitious, computeComparisons));
     }
 
     @Override
@@ -514,26 +524,17 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         }
     }
 
-    /**
-     * @param mainComponentVertex a vertex in the main component tree, may be null
-     * @return the root of the tree containing mainComponentVertex, if not null,
-     * or the root of the biggest tree
-     */
-    private DTNode getMainComponentRoot(V mainComponentVertex) {
-        if (mainComponentVertex != null) {
-            return rootOf(mainComponentVertex);
-        } else {
-            DTNode biggestRoot = roots.getFirst();
+    private DTNode getBiggestRoot() {
+        DTNode biggestRoot = roots.getFirst();
 
-            for (int i = 1; i < roots.size(); i++) {
-                DTNode root = roots.get(i);
-                if (root.size > biggestRoot.size) {
-                    biggestRoot = root;
-                }
+        for (int i = 1; i < roots.size(); i++) {
+            DTNode root = roots.get(i);
+            if (root.size > biggestRoot.size) {
+                biggestRoot = root;
             }
-
-            return biggestRoot;
         }
+
+        return biggestRoot;
     }
 
     @Override
@@ -581,42 +582,22 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
     @Override
     public Set<V> getVerticesRemovedFromMainComponent() {
-        Modifications modifications = checkSavedContext();
-        if (modifications.verticesState == null) {
-            throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
-        }
-
-        return modifications.verticesState.getRemoved();
+        return checkSavedContext().getVerticesRemovedFromMainComponent();
     }
 
     @Override
     public Set<E> getEdgesRemovedFromMainComponent() {
-        Modifications modifications = checkSavedContext();
-        if (modifications.edgesState == null) {
-            throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
-        }
-
-        return modifications.edgesState.getRemoved();
+        return checkSavedContext().getEdgesRemovedFromMainComponent();
     }
 
     @Override
     public Set<V> getVerticesAddedToMainComponent() {
-        Modifications modifications = checkSavedContext();
-        if (modifications.verticesState == null) {
-            throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
-        }
-
-        return modifications.verticesState.getAdded();
+        return checkSavedContext().getVerticesAddedToMainComponent();
     }
 
     @Override
     public Set<E> getEdgesAddedToMainComponent() {
-        Modifications modifications = checkSavedContext();
-        if (modifications.edgesState == null) {
-            throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
-        }
-
-        return modifications.edgesState.getAdded();
+        return checkSavedContext().getEdgesAddedToMainComponent();
     }
 
     // ==============
@@ -1101,12 +1082,19 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         private final StateMap<V> verticesState;
         private final StateMap<E> edgesState;
 
+        // true when the user didn't set the main component vertex
+        // in this case, we set the main component vertex as a node
+        // in the biggest component to avoid mainComponentVertex being
+        // null and keep this class functional. However, it has an
+        // impact on how edges/vertices removed from/added to are computed
+        private boolean isMainComponentVertexFictitious;
         private V mainComponentVertex;
 
         private boolean undoing = false;
 
-        Modifications(V mainComponentVertex, boolean computeComparisons) {
+        Modifications(V mainComponentVertex, boolean fictitiousMCV, boolean computeComparisons) {
             this.mainComponentVertex = mainComponentVertex;
+            this.isMainComponentVertexFictitious = fictitiousMCV;
 
             if (computeComparisons) {
                 verticesState = new StateMap<>();
@@ -1157,6 +1145,8 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
 
                 this.mainComponentVertex = mainComponentVertex;
             }
+
+            isMainComponentVertexFictitious = false;
         }
 
         public void markEdgeAdded(E edge) {
@@ -1204,6 +1194,56 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
                 // so if we mark a parent edge as removed, we also mark
                 // the corresponding child tree edge as removed
             }
+        }
+
+        public void notifyInsertTreeEdge(DTNode newTree) {
+            if (isMainComponentVertexFictitious) {
+                maybeBiggestTreeChanged(newTree);
+            }
+        }
+
+        public void notifyRemoveTreeEdge() {
+            if (isMainComponentVertexFictitious) {
+                maybeBiggestTreeChanged(getBiggestRoot());
+            }
+        }
+
+        private void maybeBiggestTreeChanged(DTNode currentBiggestRoot) {
+            DTNode mainComponentVertexTree = rootOf(mainComponentVertex);
+            if (currentBiggestRoot.size > mainComponentVertexTree.size) {
+                // there is a new biggest main component
+                markAllRemoved(mainComponentVertexTree);
+                markAllAdded(currentBiggestRoot);
+                mainComponentVertex = currentBiggestRoot.vertex;
+            }
+        }
+
+        public Set<V> getVerticesRemovedFromMainComponent() {
+            if (verticesState == null) {
+                throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
+            }
+            return verticesState.getRemoved();
+        }
+
+        public Set<E> getEdgesRemovedFromMainComponent() {
+            if (edgesState == null) {
+                throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
+            }
+            return edgesState.getRemoved();
+        }
+
+        public Set<V> getVerticesAddedToMainComponent() {
+            if (verticesState == null) {
+                throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
+            }
+            return verticesState.getAdded();
+        }
+
+        public Set<E> getEdgesAddedToMainComponent() {
+            if (edgesState == null) {
+                throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
+            }
+            return edgesState.getAdded();
         }
     }
 }
