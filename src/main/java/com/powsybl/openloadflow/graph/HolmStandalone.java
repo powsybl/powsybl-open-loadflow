@@ -566,7 +566,7 @@ public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
     // ==============
 
     void checkInvariants() {
-        if (true) {
+        if (false) {
             checkTrees();
             checkOccurrences();
             checkEdges();

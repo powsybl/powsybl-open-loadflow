@@ -39,10 +39,10 @@ public final class WorkloadRunner {
     private static final MyProgressManager PROGRESS = new MyProgressManager();
 
     public static void main(String[] args) throws IOException {
-        // List<Workload> workloads = getAllWorkloads(Path.of("workload/"), Set.of("spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"));
-        List<Workload> workloads = List.of(
-                Workload.inMemory(Path.of("workload/spy_5541_1_1_5541_1_1_2026-07-03T11:50:06.510031405Z.txt"))
-        );
+        List<Workload> workloads = getAllWorkloads(Path.of("workload/"), Set.of()); //, Set.of("spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"));
+        /*List<Workload> workloads = List.of(
+                Workload.inMemory(Path.of("workload/temp/spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"))
+        );*/
 
         List<GraphConnectivityFactory<Integer, Integer>> factories = List.of(
                 //new OldNaiveGraphConnectivity.Factory<>((Integer i) -> i)
@@ -51,9 +51,10 @@ public final class WorkloadRunner {
                 // new EvenShiloachGraphDecrementalConnectivityFactory<>(),
                 // new HolmEtAlGraphConnectivityFactory<>(),
                 //new HolmEtAlWithoutLevelGraphConnectivityFactory<>(),
-                new NewHolmGraphConnectivityFactory<>()
+                new NewHolmGraphConnectivityFactory<>(),
+                new HolmStandaloneFactory<>(),
                 //new DTreeGraphConnectivityFactory<>(),
-                //new DTreeStandaloneFactory<>()
+                new DTreeStandaloneFactory<>()
                 //new NewDTreeGraphConnectivityFactory<>(i -> i, i -> i)
         );
 

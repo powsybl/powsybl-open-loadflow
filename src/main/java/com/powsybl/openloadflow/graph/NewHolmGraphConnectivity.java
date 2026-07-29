@@ -123,7 +123,7 @@ public class NewHolmGraphConnectivity<V, E> extends AbstractGraphConnectivity<V,
         // ==============
 
         void checkInvariants() {
-            if (true) {
+            if (false) {
                 checkTrees();
                 checkOccurrences();
                 checkEdges();
