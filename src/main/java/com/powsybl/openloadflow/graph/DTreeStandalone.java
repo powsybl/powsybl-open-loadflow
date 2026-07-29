@@ -17,7 +17,7 @@ import java.util.*;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
+public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V, E> {
 
     public static boolean debug = false;
 
@@ -83,6 +83,11 @@ public class DTreeStandalone<V, E> implements GraphConnectivity<V, E> {
         }
 
         return sum;
+    }
+
+    @Override
+    public int vertexCount() {
+        return vertexToTreeNode.size();
     }
 
     public boolean connect(V u, V v) {

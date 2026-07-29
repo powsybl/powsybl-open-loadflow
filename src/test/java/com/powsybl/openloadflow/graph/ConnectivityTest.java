@@ -635,14 +635,25 @@ class ConnectivityTest {
         c.addVertex(5);
         c.addEdge(1, 2, e12);
         c.startTemporaryChanges();
+        // 1---2   3   4   5
 
         c.addEdge(3, 4, e34);
         c.addEdge(4, 5, e45);
+        // 1---2   3---4---5
 
         assertEquals(Set.of(3, 4, 5), c.getVerticesAddedToMainComponent());
         assertEquals(Set.of(1, 2), c.getVerticesRemovedFromMainComponent());
         assertEquals(Set.of(e34, e45), c.getEdgesAddedToMainComponent());
         assertEquals(Set.of(e12), c.getEdgesRemovedFromMainComponent());
+
+        c.removeEdge(e34);
+        c.removeEdge(e45);
+        // 1---2   3   4   5
+
+        assertEquals(Set.of(), c.getVerticesAddedToMainComponent());
+        assertEquals(Set.of(), c.getVerticesRemovedFromMainComponent());
+        assertEquals(Set.of(), c.getEdgesAddedToMainComponent());
+        assertEquals(Set.of(), c.getEdgesRemovedFromMainComponent());
     }
 
     private static Stream<Arguments> provideNonRestrictedConnectivities() {
@@ -654,15 +665,7 @@ class ConnectivityTest {
                 Arguments.of(new NewHolmGraphConnectivity<>()),
                 Arguments.of(new HolmStandalone<>()),
                 Arguments.of(new DTreeGraphConnectivity<>()),
-                Arguments.of(new DTreeStandalone<>()),
-                Arguments.of(new NewDTreeGraphConnectivity<Integer, String>(v -> v, new ToIntFunction<String>() {
-                    final Map<String, Integer> map = new HashMap<>();
-
-                    @Override
-                    public int applyAsInt(String value) {
-                        return map.computeIfAbsent(value, k -> map.size());
-                    }
-                })));
+                Arguments.of(new DTreeStandalone<>()));
     }
 
     private static Stream<Arguments> provideAllConnectivities() {
@@ -675,14 +678,6 @@ class ConnectivityTest {
                 Arguments.of(new NewHolmGraphConnectivity<>()),
                 Arguments.of(new HolmStandalone<>()),
                 Arguments.of(new DTreeGraphConnectivity<>()),
-                Arguments.of(new DTreeStandalone<>()),
-                Arguments.of(new NewDTreeGraphConnectivity<Integer, String>(v -> v, new ToIntFunction<String>() {
-                    final Map<String, Integer> map = new HashMap<>();
-
-                    @Override
-                    public int applyAsInt(String value) {
-                        return map.computeIfAbsent(value, k -> map.size());
-                    }
-                })));
+                Arguments.of(new DTreeStandalone<>()));
     }
 }

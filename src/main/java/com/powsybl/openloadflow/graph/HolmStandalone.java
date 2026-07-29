@@ -205,12 +205,12 @@ public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
         makeHead(treeU, occurrenceU);
         makeHead(treeV, occurrenceV);
 
-        var forwardU = treeU.getMax();
-        var forwardV = treeV.getMin();
-        var backwardV = treeV.getMax();
+        AVLTree.TreeNode<Occurrence<V, E>> forwardU = treeU.getMax();
+        treeV.getMin();
+        AVLTree.TreeNode<Occurrence<V, E>> backwardV = treeV.getMax();
 
         treeU.mergeAfter(treeV);
-        var backwardU = treeU.addMax(new Occurrence<>(occurrenceU.getValue().vertex, false));
+        treeU.addMax(new Occurrence<>(occurrenceU.getValue().vertex, false));
 
         Edge<V, E> edge = new Edge<>(occurrenceU.getValue().vertex, occurrenceV.getValue().vertex, e, true);
         edge.uOccPointer = forwardU;

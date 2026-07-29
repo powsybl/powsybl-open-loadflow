@@ -19,8 +19,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Gaël Macherel {@literal <gael.macherel at artelys.com>}
@@ -121,9 +120,11 @@ class NetworkConnectivityTest {
         updateConnectivity(connectivity);
         cutBranches(connectivity, "l34", "l48");
 
-        assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b3_vl_0")));
         assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b4_vl_0")));
-        assertEquals(2, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
+
+        int b3 = connectivity.getComponentNumber(lfNetwork.getBusById("b3_vl_0"));
+        int b8 = connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0"));
+        assertTrue(b3 == 1 && b8 == 2 || b3 == 2 && b8 == 1); // three components of size 4, 3, 3, the last two may be in any order
         assertEquals(3, connectivity.getNbConnectedComponents());
 
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> connectivity.getComponentNumber(null));
@@ -134,9 +135,11 @@ class NetworkConnectivityTest {
         updateConnectivity(connectivity);
         cutBranches(connectivity, "l34", "l48", "l56", "l57", "l67");
 
-        assertEquals(0, connectivity.getComponentNumber(lfNetwork.getBusById("b3_vl_0")));
         assertEquals(2, connectivity.getComponentNumber(lfNetwork.getBusById("b4_vl_0")));
-        assertEquals(1, connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0")));
+
+        int b3 = connectivity.getComponentNumber(lfNetwork.getBusById("b3_vl_0"));
+        int b8 = connectivity.getComponentNumber(lfNetwork.getBusById("b8_vl_0"));
+        assertTrue(b3 == 0 && b8 == 1 || b3 == 1 && b8 == 0); // five components of size 3, 3, 2, 1, 1
         assertEquals(5, connectivity.getNbConnectedComponents());
     }
 

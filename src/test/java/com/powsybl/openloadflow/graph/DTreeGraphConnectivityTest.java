@@ -7,27 +7,30 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.Duration;
 import java.util.Set;
+import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
 public class DTreeGraphConnectivityTest {
 
-    @Test
-    void testInsertNonTreeEdge() {
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideDTreeConnectivities")
+    void testInsertNonTreeEdge(SpanningForestGraphConnectivity<Integer, String> connectivity) {
         //      0 -- 1
         //      |    |
         // 3 -- 2 -- 5
         //      |
         //      4
-
-        DTreeGraphConnectivity<Integer, String> connectivity = new DTreeGraphConnectivity<>();
         for (int i = 0; i < 6; i++) {
             connectivity.addVertex(i);
         }
@@ -65,9 +68,9 @@ public class DTreeGraphConnectivityTest {
         assertEquals(6, connectivity.computeSd());
     }
 
-    @Test
-    void testMakeRootUpdateGreatParent() {
-        DTreeGraphConnectivity<Integer, String> connectivity = new DTreeGraphConnectivity<>();
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideDTreeConnectivities")
+    void testMakeRootUpdateGreatParent(SpanningForestGraphConnectivity<Integer, String> connectivity) {
         connectivity.addVertex(0);
         connectivity.addVertex(1);
         connectivity.addVertex(2);
@@ -103,21 +106,9 @@ public class DTreeGraphConnectivityTest {
         }
     }
 
-    @Test
-    void test() {
-        DTreeStandalone<Integer, String> connectivity = new DTreeStandalone<>();
-        for (int i = 0; i < 11; i++) {
-            connectivity.addVertex(i);
-        }
-        for (int i = 0; i < 8; i++) {
-            connectivity.addEdge(i, 8, i + "-8");
-        }
-        connectivity.addEdge(8, 9, "8-9");
-        connectivity.addEdge(9, 10, "9-10");
-        connectivity.makeRoot(10);
-
-        assertTrue(connectivity.connect(0, 1));
-        assertTrue(connectivity.connect(0, 1));
-        assertTrue(connectivity.connect(0, 1));
+    private static Stream<Arguments> provideDTreeConnectivities() {
+        return Stream.of(
+                Arguments.of(new DTreeGraphConnectivity<>()),
+                Arguments.of(new DTreeStandalone<>()));
     }
 }

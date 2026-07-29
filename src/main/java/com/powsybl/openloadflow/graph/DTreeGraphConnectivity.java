@@ -7,30 +7,20 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import com.powsybl.commons.PowsyblException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * D-Tree implementation from <a href="https://arxiv.org/pdf/2207.06887"/>
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, DTreeGraphConnectivity.DTGraph<V, E>> {
+public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, DTreeGraphConnectivity.DTGraph<V, E>> implements SpanningForestGraphConnectivity<V, E> {
 
     public DTreeGraphConnectivity() {
         super(new DTGraph<>());
-        getGraph().isInMainComponent = n -> {
-            if (getModificationsContexts().isEmpty()) {
-                return false;
-            } else {
-                return getMainComponentRoot(getModificationsContexts().getLast().getMainComponentVertex()) == n.findRoot();
-            }
-        };
     }
 
     @Override
@@ -86,7 +76,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     public Set<V> getConnectedComponent(V vertex) {
         checkSavedContext();
         checkVertex(vertex);
-        return getGraph().rootOf(vertex).componentView();
+        return getGraph().vertexToTreeNode.get(vertex).componentView();
     }
 
     @Override
@@ -119,13 +109,13 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
             @Override
             public Iterator<V> iterator() {
-                return new VerticesNotInMainComponentIterator(excludedTree);
+                return new VerticesNotInMainComponentIterator(excludedTree.findRoot());
             }
 
             @Override
             public boolean contains(Object o) {
                 if (o != null) {
-                    return graph.rootOf((V) o) != excludedTree;
+                    return graph.rootOf((V) o) != excludedTree.findRoot();
                 }
 
                 return false;
@@ -135,8 +125,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             public int size() {
                 if (size < 0) {
                     size = 0;
+                    DTGraph<V, E>.DTNode excludedTreeRoot = excludedTree.findRoot();
                     for (DTGraph<V, E>.DTNode root : graph.roots) {
-                        if (root != excludedTree) {
+                        if (root != excludedTreeRoot) {
                             size += root.size;
                         }
                     }
@@ -216,142 +207,31 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         return true;
     }
 
+    @Override
     public long computeSd() {
         return getGraph().sumOfDistances();
     }
 
     @Override
-    public void startTemporaryChanges(boolean computeComparisons) {
-        super.startTemporaryChanges(true);
-        getGraph().push();
-    }
-
-    @Override
-    public void undoTemporaryChanges() {
-        super.undoTemporaryChanges();
-        getGraph().pop();
-    }
-
-    @Override
-    public Set<V> getVerticesAddedToMainComponent() {
-        // Set<V> v = super.getVerticesAddedToMainComponent();
-        // assertEquals(v, myGetVerticesAddedToMainComponent());
-        return myGetVerticesAddedToMainComponent();
-    }
-
-    private Set<V> myGetVerticesAddedToMainComponent() {
-        return getGraph().verticesState.peek()
-                .entrySet()
-                .stream()
-                .filter(e -> e.getValue() == State.ADDED)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
-    }
-
-    @Override
-    public Set<V> getVerticesRemovedFromMainComponent() {
-        // Set<V> v = super.getVerticesRemovedFromMainComponent();
-        // assertEquals(v, myGetVerticesRemovedFromMainComponent());
-        return myGetVerticesRemovedFromMainComponent();
-    }
-
-    private Set<V> myGetVerticesRemovedFromMainComponent() {
-        return getGraph().verticesState.peek()
-                .entrySet()
-                .stream()
-                .filter(e -> e.getValue() == State.REMOVED)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
-    }
-
-    @Override
-    public Set<E> getEdgesAddedToMainComponent() {
-        // Set<E> e = super.getEdgesAddedToMainComponent();
-        // assertEquals(e, myGetEdgesAddedToMainComponent());
-        return myGetEdgesAddedToMainComponent();
-    }
-
-    private Set<E> myGetEdgesAddedToMainComponent() {
-        return getGraph().edgesState.peek()
-                .entrySet()
-                .stream()
-                .filter(e -> e.getValue() == State.ADDED)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
-    }
-
-    @Override
-    public Set<E> getEdgesRemovedFromMainComponent() {
-        // Set<E> e = super.getEdgesRemovedFromMainComponent();
-        // assertEquals(e, myGetEdgesRemovedFromMainComponent());
-        return myGetEdgesRemovedFromMainComponent();
-    }
-
-    private Set<E> myGetEdgesRemovedFromMainComponent() {
-        return getGraph().edgesState.peek()
-                .entrySet()
-                .stream()
-                .filter(e -> e.getValue() == State.REMOVED)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
-    }
-
-    private static <T> void assertEquals(T expected, T current) {
-        if (!Objects.equals(expected, current)) {
-            throw new IllegalStateException("Expected " + expected + " but got " + current);
-        }
-    }
-
-    @Override
-    public void setMainComponentVertex(V mainComponentVertex) {
-        ModificationsContext<V, E> context = getModificationsContexts().peekLast();
-
-        if (context != null) {
-            V old = context.getMainComponentVertex();
-
-            if (old != mainComponentVertex) {
-                DTGraph<V, E>.DTNode root1 = getGraph().rootOf(old);
-                DTGraph<V, E>.DTNode root2 = getGraph().rootOf(mainComponentVertex);
-
-                if (root1 != root2) {
-                    if (getGraph().verticesState.peek().get(mainComponentVertex) != State.REMOVED) {
-                        throw new PowsyblException("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes");
-                    }
-
-                    getGraph().markAllRemoved(root1);
-                    getGraph().markAllAdded(root2);
-                }
-
-                context.setMainComponentVertex(mainComponentVertex);
-            }
-        }
-        defaultMainComponentVertex = mainComponentVertex;
-    }
-
-    enum State {
-        // the vertex/edge was added to the main component and was
-        // already in the graph before the last startTemporaryChanges
-        ADDED,
-        // the vertex/edge was removed from the main component and was
-        // already in the graph before the last startTemporaryChanges
-        REMOVED
+    public int vertexCount() {
+        return getGraph().vertexToTreeNode.size();
     }
 
     public static final class DTGraph<V, E> implements GraphModel<V, E> {
 
         public static boolean debug = false;
 
+        // map a vertex to a node in a spanning tree
         private final Map<V, DTNode> vertexToTreeNode = new HashMap<>();
+        // map an edge to an edge in a spanning tree
         private final Map<E, Edge> edges = new HashMap<>();
 
+        // the list of tree roots. Roots are maintained in a way such that
+        // the value of the attribute 'rootIndex' of the DTNode at index i is i.
+        // In other words: roots.get(i).rootIndex == i
         private final List<DTNode> roots = new ArrayList<>();
 
         private final AllComponentsView components = new AllComponentsView();
-
-        private final Deque<Map<V, State>> verticesState = new ArrayDeque<>();
-        private final Deque<Map<E, State>> edgesState = new ArrayDeque<>();
-
-        private Function<DTNode, Boolean> isInMainComponent;
 
         public long sumOfDistances() {
             long sum = 0;
@@ -363,51 +243,15 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             return sum;
         }
 
+        /**
+         * Return the root of the tree in which {@code vertex} is and
+         * eventually reroot the tree if a new centroid is found.
+         *
+         * @param vertex the vertex whose tree root is to be returned.
+         * @return the root of the tree in which {@code vertex} is.
+         */
         DTNode rootOf(V vertex) {
-            return vertexToTreeNode.get(vertex).findRoot(); // .findRootOptReroot();
-        }
-
-        boolean isInMainComponent(DTNode node) {
-            if (isInMainComponent == null) {
-                return false;
-            } else {
-                return isInMainComponent.apply(node);
-            }
-        }
-
-        public void push() {
-            verticesState.push(new HashMap<>());
-            edgesState.push(new HashMap<>());
-        }
-
-        public void pop() {
-            verticesState.pop();
-            edgesState.pop();
-        }
-
-        private static <T> void stateMapMarkRemoved(Map<T, State> stateMap, T element) {
-            stateMap.compute(element, (k, state) -> {
-                if (state == State.ADDED) {
-                    return null;
-                } else {
-                    return State.REMOVED;
-                }
-            });
-        }
-
-        private static <T> void stateMapMarkAdded(Map<T, State> stateMap, T element) {
-            stateMap.compute(element, (k, state) -> {
-                if (state == State.REMOVED) {
-                    return null;
-                } else {
-                    return State.ADDED;
-                }
-            });
-        }
-
-        private static <T> void stateMapMarkNew(Map<T, State> stateMap, T element) {
-            //stateMap.put(element, State.ADDED_NEW);
-            stateMapMarkAdded(stateMap, element);
+            return vertexToTreeNode.get(vertex).findRootOptReroot();
         }
 
         // ==============
@@ -485,28 +329,13 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             Pair<DTNode, Integer> rootUdist = nodeU.findRootWithDist();
             Pair<DTNode, Integer> rootVdist = nodeV.findRootWithDist();
 
-            DTNode rootU = rootUdist.getKey();
-            DTNode rootV = rootVdist.getKey();
-
             boolean treeEdge;
-            if (rootU == rootV) {
-                if (isInMainComponent(rootU)) {
-                    stateMapMarkNew(edgesState.peek(), e);
-                }
-
+            if (rootUdist.getKey() == rootVdist.getKey()) {
                 // insert non tree edge
-                treeEdge = insertNonTreeEdge(rootU, nodeU, rootUdist.getValue(), nodeV, rootVdist.getValue(), e);
+                treeEdge = insertNonTreeEdge(rootUdist.getKey(), nodeU, rootUdist.getValue(), nodeV, rootVdist.getValue(), e);
             } else {
-                if (isInMainComponent(rootV)) {
-                    stateMapMarkNew(edgesState.peek(), e);
-                    markAllAdded(rootU);
-                } else if (isInMainComponent(rootU)) {
-                    stateMapMarkNew(edgesState.peek(), e);
-                    markAllAdded(rootV);
-                }
-
                 // insert tree edge
-                insertTreeEdge(rootU, nodeU, rootV, nodeV, e);
+                insertTreeEdge(rootUdist.getKey(), nodeU, rootVdist.getKey(), nodeV, e);
                 treeEdge = true;
             }
 
@@ -524,6 +353,26 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             return node;
         }
 
+        /**
+         * Insert a non tree edge between {@code nodeU} (whose depth is {@code depthU})
+         * and {@code nodeV} (whose depth is {@code depthV}). The two node must be in the
+         * same tree rooted at {@code root}.
+         * <p>
+         * If the difference of depth, delta, is less than two, the edge is inserted
+         * as a non-tree edge. Otherwise, assuming depthU < depthV, the delta-2 ancestor of
+         * {@code nodeU} is unlinked from the tree. Then {@code nodeU} and {@code nodeV} are
+         * linked with a tree edge. In this case, the inserted edge is in fact a tree edge
+         * and the method return {@code true}
+         * </p>
+         *
+         * @param root the root of the tree in which an edge is to be added.
+         * @param nodeU one endpoint of the edge to add.
+         * @param depthU the depth of {@code nodeU}.
+         * @param nodeV the other endpoint of the edge to add.
+         * @param depthV the depth of {@code nodeU}
+         * @param edge user data for the edge
+         * @return {@code true} if the edge inserted is a tree edge. This is true if |depthU - depthV| >= 2.
+         */
         private boolean insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, E edge) {
             DTNode deep;
             DTNode shallow;
@@ -545,16 +394,18 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 nodeV.nonTreeEdges.add(edge);
                 return false;
             } else {
-                DTNode i = deep;
+                // get the delta - 2 DTNode.
+                DTNode ancestor = deep;
                 for (int j = 0; j < delta - 2; j++) {
-                    i = i.parent;
+                    ancestor = ancestor.parent;
                 }
 
-                i.parent.nonTreeEdges.add(i.parentEdge);
-                i.nonTreeEdges.add(i.parentEdge);
-                edges.get(i.parentEdge).treeEdge = false;
+                // replace the edge between ancestor and its parent by a non tree edge
+                ancestor.parent.nonTreeEdges.add(ancestor.parentEdge);
+                ancestor.nonTreeEdges.add(ancestor.parentEdge);
+                edges.get(ancestor.parentEdge).treeEdge = false;
+                unlink(ancestor);
 
-                unlink(i);
                 // updating roots is useless because 'deep' will be
                 // connected to 'shallow' juste after.
                 deep.makeRoot(false);
@@ -563,6 +414,18 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             }
         }
 
+        /**
+         * Insert a tree edge between {@code nodeU} (in tree rooted at {@code rootU})
+         * and {@code nodeV} (in tree rooted at {@code rootV}).
+         * Assuming the size of rootU is less than the size of rootV, we simply
+         * make {@code nodeU} a root and link it with {@code nodeV}.
+         *
+         * @param rootU {@code nodeU} tree root
+         * @param nodeU one endpoint of the edge to add.
+         * @param rootV {@code nodeV} tree root
+         * @param nodeV the other endpoint of the edge to add.
+         * @param edge user data for the edge
+         */
         private void insertTreeEdge(DTNode rootU, DTNode nodeU, DTNode rootV, DTNode nodeV, E edge) {
             DTNode toRemove;
             if (rootU.size < rootV.size) {
@@ -593,7 +456,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             DTNode nodeV = vertexToTreeNode.get(edge.v);
 
             if (edge.treeEdge) {
-                removeTreeEdge(nodeU, nodeV, e);
+                removeTreeEdge(nodeU, nodeV);
             } else {
                 removeNonTreeEdge(nodeU, nodeV, e);
             }
@@ -601,7 +464,22 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             check();
         }
 
-        private void removeTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
+        /**
+         * Remove the tree edge between {@code nodeU} and {@code nodeV}.
+         * Assuming nodeU is a child of nodeV, this is a two steps process :
+         * <ol>
+         *     <li>Unlink nodeU from nodeV. This creates two trees with a smaller one called {@code small},</li>
+         *     <li>Search for a replacement edge and a potential new centroid by iterating over {@code small}.</li>
+         *     <ul>
+         *         <li>if one is found, it is a non-tree edge so it removed and then added as a tree edge</li>
+         *         <li>if none is found, fix the centroid property</li>
+         *     </ul>
+         * </ol>
+         *
+         * @param nodeU one endpoint of the edge to remove.
+         * @param nodeV the other endpoint of the edge to remove.
+         */
+        private void removeTreeEdge(DTNode nodeU, DTNode nodeV) {
             DTNode child;
 
             if (nodeU == nodeV.parent) {
@@ -610,40 +488,37 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 child = nodeU;
             }
 
+            // unlink child from its parent
             DTNode otherTree = unlink(child);
             addRoot(child);
 
             DTNode small;
-            DTNode large;
             if (child.size < otherTree.size) {
                 small = child;
-                large = otherTree;
             } else {
                 small = otherTree;
-                large = child;
             }
 
-            replace(small, large, edge);
+            // try to reconnect them
+            replace(small);
         }
 
-        private void replace(DTNode rootSmall, DTNode rootLarge, E removedEdge) {
-            DTNode nodeSmall = null; // a node in the small tree that will be linked with a node in the large tree
-            DTNode nodeLarge = null; // opposite
-            E nte = null; // the actual edge
-
+        private void replace(DTNode rootSmall) {
             DTNode newRoot = null; // a potential new root in case no replacement edge is found
 
+            // iterate over the nodes of rootSmall using a BFS.
             ArrayDeque<DTNode> queue = new ArrayDeque<>();
             queue.offer(rootSmall);
 
-            loop:
             while (!queue.isEmpty()) {
                 DTNode n = queue.poll();
 
+                // search for a new centroid
                 if (n != rootSmall && n.size > rootSmall.size / 2) {
                     newRoot = n;
                 }
 
+                // search for a replacement edge
                 for (E nonTreeEdge : n.nonTreeEdges) {
                     Edge edge = edges.get(nonTreeEdge);
 
@@ -653,13 +528,15 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
                     if (oppRoot != rootSmall) {
                         // found a replacement edge
-                        nodeSmall = n;
-                        nodeLarge = oppNode;
-                        nte = nonTreeEdge;
-                        break loop;
+                        removeNonTreeEdge(n, oppNode, nonTreeEdge);
+                        insertTreeEdge(rootSmall, n, oppRoot, oppNode, nonTreeEdge);
+                        edge.treeEdge = true;
+
+                        return;
                     }
                 }
 
+                // add all children to the queue
                 DTNode child = n.firstChild;
                 while (child != null) {
                     queue.add(child);
@@ -667,79 +544,21 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
             }
 
-            if (isInMainComponent(rootLarge) || isInMainComponent(rootSmall)) {
-                stateMapMarkRemoved(edgesState.peek(), removedEdge);
-            }
-            if (nodeSmall != null) {
-                removeNonTreeEdge(nodeSmall, nodeLarge, nte);
-                insertTreeEdge(rootSmall, nodeSmall, rootLarge, nodeLarge, nte);
-                edges.get(nte).treeEdge = true;
-            } else {
-                if (isInMainComponent(rootLarge)) {
-                    markAllRemoved(rootSmall);
-                } else if (isInMainComponent(rootSmall)) {
-                    markAllRemoved(rootLarge);
-                }
-
-                if (newRoot != null) {
-                    newRoot.makeRoot(true);
-                }
+            // fix centroid property
+            if (newRoot != null) {
+                newRoot.makeRoot(true);
             }
         }
 
+        /**
+         * Remove a non tree edge between {@code nodeU} and {@code nodeV}.
+         * @param nodeU one endpoint of the edge to remove.
+         * @param nodeV the other endpoint of the edge to remove.
+         * @param edge the edge to remove.
+         */
         private void removeNonTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
-            if (isInMainComponent(nodeU)) {
-                stateMapMarkRemoved(edgesState.peek(), edge);
-            }
-
             nodeU.nonTreeEdges.remove(edge);
             nodeV.nonTreeEdges.remove(edge);
-        }
-
-        private void markAllAdded(DTNode root) {
-            for (DFSIterator it = iterator(root); it.hasNext();) {
-                V vertex = it.next();
-                stateMapMarkAdded(verticesState.peek(), vertex);
-
-                DTNode node = it.node();
-                if (node.parentEdge != null) {
-                    stateMapMarkAdded(edgesState.peek(), node.parentEdge);
-                }
-
-                for (E nte : node.nonTreeEdges) {
-                    if (getEdgeSource(nte).equals(vertex)) {
-                        stateMapMarkAdded(edgesState.peek(), nte);
-                    }
-                }
-
-                // we don't mark child tree edges as removed
-                // because for each child tree edge, there is a parentEdge
-                // so if we mark a parent edge as removed, we also mark
-                // the corresponding child tree edge as removed
-            }
-        }
-
-        private void markAllRemoved(DTNode root) {
-            for (DFSIterator it = iterator(root); it.hasNext();) {
-                V vertex = it.next();
-                stateMapMarkRemoved(verticesState.peek(), vertex);
-
-                DTNode node = it.node();
-                if (node.parentEdge != null) {
-                    stateMapMarkRemoved(edgesState.peek(), node.parentEdge);
-                }
-
-                for (E nte : node.nonTreeEdges) {
-                    if (getEdgeSource(nte).equals(vertex)) {
-                        stateMapMarkRemoved(edgesState.peek(), nte);
-                    }
-                }
-
-                // we don't mark child tree edges as removed
-                // because for each child tree edge, there is a parentEdge
-                // so if we mark a parent edge as removed, we also mark
-                // the corresponding child tree edge as removed
-            }
         }
 
         // ======================
@@ -811,7 +630,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         // * OTHER *
         // =========
 
-        DFSIterator iterator(DTNode root) {
+        public Iterator<V> iterator(DTNode root) {
             return new DFSIterator(root);
         }
 
@@ -895,25 +714,74 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             throw new UnsupportedOperationException();
         }
 
+        /**
+         * A DTNode (Dynamic Tree Node) is a node in a spanning tree.
+         * Each DTNode maintains the following information:
+         * <ul>
+         *     <li>the vertex in the graph,</li>
+         *     <li>the size of the subtree,</li>
+         *     <li>its parent in the tree and the edge linking them,</li>
+         *     <li>its children in the tree and the edges linking them,</li>
+         *     <li>all non tree edges having at least one endpoint that is the DTNode</li>
+         *     <li>if the node is a root, its index in the list of {@link DTGraph#roots}</li>
+         * </ul>
+         *
+         * <p>
+         * However, children are stored in a particular way, allowing
+         * fast iteration over a tree and insertion and removal of a child,
+         * but slow access to an arbitrary element. Instead of storing them
+         * in a list or a map, each DTNode has a pointer to its previous sibling,
+         * its next sibling and its first child. In other words, the children of
+         * a DTNode are stored in a doubly-linked list. A DTNode stores the first
+         * element in this list and is also used as an element in its parent doubly
+         * linked list of children.
+         * </p>
+         *
+         * <p>
+         * Example:
+         * <pre>
+         * +----- first child ------ 1
+         * |                         ^
+         * |                         |
+         * |                      parent
+         * |                         |
+         * | +-----------------------+-----------------------+
+         * v/                        |                        \
+         * 2 <-- previous sibling -- 3 <-- previous sibling -- 4
+         *  \_____ next sibling _____^\_____ next sibling _____^
+         * </pre>
+         * X --> Y indicates that X contains a pointer to Y.
+         *</p>
+         *
+         * <p>
+         * This complex structure allows fast insertion and removal as we only need
+         * to update the sibling list and eventually the first child pointer. But the
+         * biggest advantage is that it allows fast iteration of a tree with 0 memory
+         * allocations by only following pointers. See {@link DFSIterator}
+         * </p>
+         *
+         */
         private final class DTNode {
 
-            private DTNode parent = null;
-            private E parentEdge = null;
-
-            // the children of this node. They are stored in a
-            // doubly linked list
-            private DTNode previousSibling = null;
-            private DTNode nextSibling = null;
-            private DTNode firstChild = null;
+            private final V vertex;
 
             // the size of this subtree
             private int size;
 
-            private final V vertex;
+            private DTNode parent = null;
+            private E parentEdge = null;
+
+            // the children of this node. They are stored in a doubly linked list
+            // firstChild is the head of the linked list. previousSibling and nextSibling
+            // are used to navigate the list.
+            private DTNode firstChild = null;
+            private DTNode previousSibling = null;
+            private DTNode nextSibling = null;
+
             private final Set<E> childTreeEdges = new LinkedHashSet<>();
             private final Set<E> nonTreeEdges = new LinkedHashSet<>();
 
-            // valid only if this node is a root
+            // index in the list of roots, valid only if this node is a root
             private int rootIndex;
 
             private ComponentView componentView = null;
@@ -924,62 +792,86 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 this.size = 1;
             }
 
+            /**
+             * Make this DTNode the root of the tree in which it is. This is a two steps process
+             * with an intermediate optional operation:
+             * <ol>
+             *     <li>Swap parent-child relationship for each DTNode from this dTNode to the original root</li>
+             *     <li>Optionally, update the list of roots. For most cases, it must be {@code true}</li>
+             *     <li>Update the subtree size attribute from the original root to the new root (this DTNode)</li>
+             * </ol>
+             *
+             * @param updateRoots {@code true} to update the list of roots
+             */
             private void makeRoot(boolean updateRoots) {
                 if (parent == null) {
                     return;
                 }
 
                 DTNode child = this;
-                DTNode parent = child.parent;
-                E parentEdge = child.parentEdge;
-                parent.removeChildUnchecked(child); // remove before making parentEdge null
+                DTNode oldParent = child.parent;
+                E oldParentEdge = child.parentEdge;
+                oldParent.removeChildUnchecked(child); // remove before making parentEdge null
 
                 this.parent = null;
                 this.parentEdge = null;
 
                 // swap parent/child relation
-                while (parent != null) {
-                    DTNode greatParent = parent.parent;
-                    E greatParentEdge = parent.parentEdge;
+                while (oldParent != null) {
+                    DTNode greatParent = oldParent.parent;
+                    E greatParentEdge = oldParent.parentEdge;
 
                     // At this point:
-                    // - the parent of 'parent' aka greatParent should be changed to child
-                    // - parent is in the linked list of child of greatParent
-                    // - child is NOT in the linked list of child of parent
+                    // - 'oldParent' is in the linked list of children of 'greatParent', and must be
+                    //   removed from it because adding 'oldParent' as a child of 'child' will break
+                    //   this linked list.
+                    // - 'child' is NOT in the linked list of children of 'oldParent'.
+                    //   It was removed by the last iteration or before entering in the loop (for the first iteration)
+                    // - the parent of 'oldParent' aka 'greatParent' should be changed to child
                     if (greatParent != null) {
-                        greatParent.removeChildUnchecked(parent);
+                        greatParent.removeChildUnchecked(oldParent);
                     }
 
-                    child.addChildUnchecked(parent, parentEdge);
-
-                    parent.parent = child;
-                    parent.parentEdge = parentEdge;
+                    child.addChildUnchecked(oldParent, oldParentEdge);
+                    oldParent.parent = child;
+                    oldParent.parentEdge = oldParentEdge;
 
                     // At this point:
-                    // - parent isn't anymore is the linked list of child of greatParent
-                    // - parent is a child of 'child'
+                    // - 'oldParent' isn't anymore is the linked list of child of 'greatParent'
+                    // - 'oldParent' is a child of 'child'
 
-                    child = parent;
-                    parent = greatParent;
-                    parentEdge = greatParentEdge;
+                    // process to the next parent/child
+                    child = oldParent;
+                    oldParent = greatParent;
+                    oldParentEdge = greatParentEdge;
                 }
 
+                // child is the old root
+                DTNode oldRoot = child;
+
+                // update the list of roots
                 if (updateRoots) {
-                    // child is the old root, update rootIndex and roots
-                    rootIndex = child.rootIndex;
+                    rootIndex = oldRoot.rootIndex;
                     roots.set(rootIndex, DTNode.this);
                 }
 
-                // update size attributes
-                while (child.parent != null) {
-                    child.size -= child.parent.size;
-                    child.parent.size += child.size;
-                    child = child.parent;
+                // update size attributes, going from oldRoot to this DTNode
+                while (oldRoot.parent != null) {
+                    oldRoot.size -= oldRoot.parent.size;
+                    oldRoot.parent.size += oldRoot.size;
+                    oldRoot = oldRoot.parent;
                 }
             }
 
-            // Add child in the doubly linked list of children
-            // no verification is performed
+            /**
+             * Add child in the doubly linked list of children and
+             * the edge linking this node and child in the set of
+             * tree edges. The child mustn't be in a linked list.
+             * No verification is performed.
+             *
+             * @param child the child node to add
+             * @param edge the edge linking this node and child
+             */
             private void addChildUnchecked(DTNode child, E edge) {
                 DTNode oldFirstChild = this.firstChild;
 
@@ -993,8 +885,13 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 childTreeEdges.add(edge);
             }
 
-            // Remove child from the doubly linked list of children
-            // no verification is performed
+            /**
+             * Remove child from the doubly linked list of children.
+             * The child must be in the linked list. No verification
+             * is performed.
+             *
+             * @param child the child node to remove
+             */
             private void removeChildUnchecked(DTNode child) {
                 DTNode prev = child.previousSibling;
                 DTNode next = child.nextSibling;
@@ -1039,6 +936,15 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 return new ImmutablePair<>(node, dist);
             }
 
+            /**
+             * Returns the root of the tree containing this node
+             * and restores the centroid property by rerooting the
+             * tree. This helps reduce the height of the tree.
+             * <strong>Warning</strong>: rerooting the tree may
+             * break connectivity queries.
+             *
+             * @return the root of the tree
+             */
             private DTNode findRootOptReroot() {
                 DTNode nodeRoot = this;
                 DTNode nodeRootChild = null; // the child of nodeRoot in the path from nodeRoot to node
@@ -1056,7 +962,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 return nodeRoot;
             }
 
-            // This DNode MUST be a root
             public Set<V> componentView() {
                 if (componentView == null) {
                     componentView = new ComponentView(this);
@@ -1130,13 +1035,17 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
             @Override
             public Iterator<V> iterator() {
-                return new DFSIterator(node);
+                return new DFSIterator(node.findRoot());
             }
 
             @Override
             public boolean contains(Object o) {
                 if (o != null) {
-                    return rootOf((V) o) == node;
+                    // node might not be the root anymore, so need to use findRoot on node.
+                    // However, don't use findRootOptReroot on node, it might change the root
+                    // after we got the root of 'o'.
+
+                    return rootOf((V) o) == node.findRoot();
                 }
 
                 return false;
@@ -1144,15 +1053,21 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
             @Override
             public int size() {
-                return node.size;
+                return node.findRoot().size;
             }
         }
 
         private final class DFSIterator implements Iterator<V> {
 
             private DTNode cursor;
-            private DTNode current;
 
+            /**
+             * Creates a new depth-first iterator starting at the specified root node
+             * and returning node according to the pre-order.
+             *
+             * @param root the root of the tree to traverse. It must be a root otherwise,
+             *             the iterator may visit nodes outside the subtree
+             */
             DFSIterator(DTNode root) {
                 cursor = root;
             }
@@ -1168,9 +1083,16 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     throw new NoSuchElementException();
                 }
 
-                current = cursor;
+                DTNode next = cursor;
 
-                // update cursor
+                // Advances to the next node for the next iteration.
+                // The iterator try to:
+                // - descend one level whenever possible,
+                // - otherwise, moves to the next sibling if any,
+                // - otherwise, moves up until it finds a node with
+                //   a next sibling (unvisited by construction) or
+                //   the tree is fully visited.
+
                 if (cursor.firstChild != null) {
                     cursor = cursor.firstChild;
                 } else if (cursor.nextSibling != null) {
@@ -1185,11 +1107,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     }
                 }
 
-                return current.vertex;
-            }
-
-            public DTNode node() {
-                return current;
+                return next.vertex;
             }
         }
 
