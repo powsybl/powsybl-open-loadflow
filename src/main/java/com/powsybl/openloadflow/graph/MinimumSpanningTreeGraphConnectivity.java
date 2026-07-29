@@ -171,6 +171,7 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
             super.addElement(v);
             Set<V> connectedComponent = new HashSet<>();
             connectedComponent.add(v);
+            lazyComputeConnectedComponents();
             rootConnectedComponentMap.put(find(v), connectedComponent);
         }
 

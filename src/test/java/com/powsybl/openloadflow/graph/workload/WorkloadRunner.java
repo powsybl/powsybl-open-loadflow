@@ -55,7 +55,6 @@ public final class WorkloadRunner {
                 new HolmStandaloneFactory<>(),
                 //new DTreeGraphConnectivityFactory<>(),
                 new DTreeStandaloneFactory<>()
-                //new NewDTreeGraphConnectivityFactory<>(i -> i, i -> i)
         );
 
         LOG.log("Workloads:");
