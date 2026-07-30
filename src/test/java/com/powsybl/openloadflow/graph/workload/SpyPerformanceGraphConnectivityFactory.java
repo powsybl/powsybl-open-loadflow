@@ -15,33 +15,44 @@ import java.util.List;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class SpyGraphConnectivityFactory<V, E> implements GraphConnectivityFactory<V, E> {
+public class SpyPerformanceGraphConnectivityFactory<V, E> implements ISpyGraphConnectivityFactory<V, E> {
 
     private final GraphConnectivityFactory<V, E> delegateFactory;
-    private final List<SpyGraphConnectivity<V, E>> spies = new ArrayList<>();
+    private final List<SpyPerformanceGraphConnectivity<V, E>> spies = new ArrayList<>();
 
-    public SpyGraphConnectivityFactory(GraphConnectivityFactory<V, E> delegateFactory) {
+    public SpyPerformanceGraphConnectivityFactory(GraphConnectivityFactory<V, E> delegateFactory) {
         this.delegateFactory = delegateFactory;
     }
 
     @Override
-    public synchronized SpyGraphConnectivity<V, E> create() {
-        SpyGraphConnectivity<V, E> conn = new SpyGraphConnectivity<>();
-        conn.setDelegate(delegateFactory.create());
+    public synchronized SpyPerformanceGraphConnectivity<V, E> create() {
+        SpyPerformanceGraphConnectivity<V, E> conn = new SpyPerformanceGraphConnectivity<>();
+        conn.setDelegateFactory(delegateFactory);
+        conn.newDelegate();
         spies.add(conn);
         return conn;
     }
 
+    @Override
+    public ISpyGraphConnectivity<V, E> createUnregistered() {
+        SpyPerformanceGraphConnectivity<V, E> conn = new SpyPerformanceGraphConnectivity<>();
+        conn.setDelegateFactory(delegateFactory);
+        conn.newDelegate();
+        return conn;
+    }
+
+    @Override
     public GraphConnectivityFactory<V, E> getDelegateFactory() {
         return delegateFactory;
     }
 
+    @Override
     public String resultsToString(int iterations) {
         if (spies.size() == 1) {
             return spies.getFirst().resultsToString(iterations);
         }
 
-        SpyGraphConnectivity<V, E> res = new SpyGraphConnectivity<>();
+        SpyPerformanceGraphConnectivity<V, E> res = new SpyPerformanceGraphConnectivity<>();
         res.setDelegate(delegateFactory.create());
 
         StringBuilder sb = new StringBuilder();

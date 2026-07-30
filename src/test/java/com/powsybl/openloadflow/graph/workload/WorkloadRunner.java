@@ -32,14 +32,15 @@ public final class WorkloadRunner {
 
     }
 
-    private static final int WARMUP = 0;
+    private static final int WARMUP = 10;
     private static final int MEASUREMENT = 10;
+    private static final boolean CHECK = true;
 
     private static final Log LOG = Log.init("results.txt");
     private static final MyProgressManager PROGRESS = new MyProgressManager();
 
     public static void main(String[] args) throws IOException {
-        //List<Workload> workloads = getAllWorkloads(Path.of("workload/"), Set.of()); //, Set.of("spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"));
+        // List<Workload> workloads = getAllWorkloads(Path.of("workload/"), Set.of()); //, Set.of("spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"));
         List<Workload> workloads = List.of(
                 Workload.inMemory(Path.of("workload/spy_5541_1_1_5541_1_1_2026-07-03T11:50:06.510031405Z.txt"))
         );
@@ -52,9 +53,9 @@ public final class WorkloadRunner {
                 // new HolmEtAlGraphConnectivityFactory<>(),
                 // new HolmEtAlWithoutLevelGraphConnectivityFactory<>(),
                 // new NewHolmGraphConnectivityFactory<>(),
-                new HolmStandaloneFactory<>()
+                // new HolmStandaloneFactory<>(),
                 // new DTreeGraphConnectivityFactory<>(),
-                // new DTreeStandaloneFactory<>()
+                new DTreeStandaloneFactory<>()
         );
 
         LOG.log("Workloads:");
@@ -73,7 +74,12 @@ public final class WorkloadRunner {
                     }
 
                     PROGRESS.advance(factory);
-                    String partialResults = run(executor, workload, factory);
+                    String partialResults;
+                    if (CHECK) {
+                        partialResults = run(executor, workload, new SpyCheckGraphConnectivityFactory<>(new NaiveGraphConnectivityFactory<>(i -> i), factory), 0, 1);
+                    } else {
+                        partialResults = run(executor, workload, new SpyPerformanceGraphConnectivityFactory<>(factory), WARMUP, MEASUREMENT);
+                    }
                     LOG.log(partialResults);
                 }
             }
@@ -112,24 +118,28 @@ public final class WorkloadRunner {
 
     private static String run(ExecutorService executor,
                               Workload workload,
-                              GraphConnectivityFactory<Integer, Integer> factory) {
+                              ISpyGraphConnectivityFactory<Integer, Integer> factory,
+                              int warmup,
+                              int measurement) {
         if (workload.threadCount() > 1) {
-            return runMultiThreadedWorkload(executor, workload, factory);
+            runMultiThreadedWorkload(executor, workload, factory, warmup, measurement);
         } else {
-            return runSingleThreadedWorkload(workload, factory);
+            runSingleThreadedWorkload(workload, factory, warmup, measurement);
         }
+
+        return factory.resultsToString(measurement);
     }
 
-    private static String runSingleThreadedWorkload(Workload workload, GraphConnectivityFactory<Integer, Integer> factory) {
-        SpyGraphConnectivity<Integer, Integer> spy = new SpyGraphConnectivity<>();
-
+    private static void runSingleThreadedWorkload(Workload workload,
+                                                    ISpyGraphConnectivityFactory<Integer, Integer> factory,
+                                                    int warmup,
+                                                    int measurement) {
         try (Operations operations = workload.operations(0)) {
-            runOperationsMultipleTimes(PROGRESS.newProgress(new Progress()), operations, spy, factory, null);
+            var progress = PROGRESS.newProgress(new Progress());
+            runOperationsMultipleTimesWithWarmup(progress, operations, factory, null, warmup, measurement);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
-        return spy.resultsToString(MEASUREMENT);
     }
 
     /**
@@ -139,10 +149,11 @@ public final class WorkloadRunner {
      * wait each other once the task Operations is done, before starting
      * a new run.
      */
-    private static String runMultiThreadedWorkload(ExecutorService executor,
+    private static void runMultiThreadedWorkload(ExecutorService executor,
                                                    Workload workload,
-                                                   GraphConnectivityFactory<Integer, Integer> factory) {
-        SpyGraphConnectivityFactory<Integer, Integer> spyFactory = new SpyGraphConnectivityFactory<>(factory);
+                                                   ISpyGraphConnectivityFactory<Integer, Integer> factory,
+                                                   int warmup,
+                                                   int measurement) {
         CyclicBarrier barrier = new CyclicBarrier(workload.threadCount());
 
         // launch each Operations in a thread
@@ -153,7 +164,7 @@ public final class WorkloadRunner {
 
             var future = executor.submit(() -> {
                 try (Operations operations = workload.operations(threadId)) {
-                    runOperationsMultipleTimes(progress, operations, spyFactory.create(), factory, barrier);
+                    runOperationsMultipleTimesWithWarmup(progress, operations, factory, barrier, warmup, measurement);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -169,41 +180,37 @@ public final class WorkloadRunner {
                 throw new RuntimeException(e);
             }
         }
+    }
 
-        return spyFactory.resultsToString(MEASUREMENT);
+    private static void runOperationsMultipleTimesWithWarmup(Progress progress,
+                                                             Operations operations,
+                                                             ISpyGraphConnectivityFactory<Integer, Integer> spy,
+                                                             CyclicBarrier barrier,
+                                                             int warmup,
+                                                             int measurement) {
+        if (warmup > 0) {
+            progress.setWarmup(true, warmup);
+            runOperationsMultipleTimes(progress, operations, spy.createUnregistered(), barrier, warmup);
+        }
+        if (measurement > 0) {
+            progress.setWarmup(false, measurement);
+            runOperationsMultipleTimes(progress, operations, spy.create(), barrier, measurement);
+        }
     }
 
     /**
-     * Run the given operations WARMUP + MEASUREMENT times, each time using
-     * a new GraphConnectivity provided by factory. The results for the MEASUREMENT
-     * last iterations will be accumulated in the give SpyGraphConnectivity.
+     * Run the given operations num times, each time using
+     * a new GraphConnectivity provided by factory. Results will
+     * be accumulated in the given SpyGraphConnectivity.
      */
-    private static void runOperationsMultipleTimes(
-            Progress progress,
-            Operations operations,
-            SpyGraphConnectivity<Integer, Integer> spy,
-            GraphConnectivityFactory<Integer, Integer> factory,
-            CyclicBarrier barrier) {
-        // warmup
-        SpyGraphConnectivity<Integer, Integer> warmup = new SpyGraphConnectivity<>();
-        for (int i = 0; i < WARMUP; i++) {
-            progress.newIteration(i, true);
-            warmup.setDelegate(factory.create());
-            runOperations(progress, operations, warmup);
-
-            if (barrier != null) {
-                try {
-                    barrier.await();
-                } catch (InterruptedException | BrokenBarrierException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
-
-        // actual measurement
-        for (int i = 0; i < MEASUREMENT; i++) {
-            progress.newIteration(i, false);
-            spy.setDelegate(factory.create());
+    private static void runOperationsMultipleTimes(Progress progress,
+                                                   Operations operations,
+                                                   ISpyGraphConnectivity<Integer, Integer> spy,
+                                                   CyclicBarrier barrier,
+                                                   int num) {
+        for (int i = 0; i < num; i++) {
+            progress.newIteration(i);
+            spy.newDelegate();
             runOperations(progress, operations, spy);
 
             if (barrier != null) {
@@ -217,12 +224,12 @@ public final class WorkloadRunner {
     }
 
     /**
-     * Run the operations on the given SpyGraphConnectivity
+     * Run the operations on the given DelegateGraphConnectivity
      */
     private static void runOperations(Progress progress,
                                       Operations operations,
-                                      SpyGraphConnectivity<Integer, Integer> spy) {
-        spy.setInitialGraphBuildDone(false);
+                                      ISpyGraphConnectivity<Integer, Integer> spy) {
+        spy.beginOperations();
         operations.reset();
 
         int n = 0;
@@ -232,6 +239,8 @@ public final class WorkloadRunner {
 
             progress.newOperation(n, operations.size());
         }
+
+        spy.endOperations();
     }
 
     private static final class MyProgressManager extends ProgressManager<Progress> implements ProgressFormatter<Progress> {
@@ -261,10 +270,10 @@ public final class WorkloadRunner {
             StringBuilder sb = new StringBuilder();
             sb.append(connectivity.getClass().getSimpleName()).append(": ");
             if (first.warmup) {
-                appendProgress(sb, first.iter, WARMUP);
+                appendProgress(sb, first.iter, first.maxIter);
                 sb.append(" (warmup)");
             } else {
-                appendProgress(sb, first.iter, MEASUREMENT);
+                appendProgress(sb, first.iter, first.maxIter);
             }
             sb.append(" - ");
             appendProgress(sb, progress, total);
@@ -304,13 +313,19 @@ public final class WorkloadRunner {
 
         private boolean warmup;
         private int iter;
+        private int maxIter;
 
         private int operation;
         private int maxOperation;
 
-        public void newIteration(int iteration, boolean warmup) {
-            iter = iteration;
+        public void setWarmup(boolean warmup, int maxIter) {
             this.warmup = warmup;
+            this.maxIter = maxIter;
+            notifyProgressManager();
+        }
+
+        public void newIteration(int iteration) {
+            iter = iteration;
             notifyProgressManager();
         }
 

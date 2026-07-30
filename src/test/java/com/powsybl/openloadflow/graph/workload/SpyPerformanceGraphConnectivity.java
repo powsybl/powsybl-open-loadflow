@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.graph.workload;
 
-import com.powsybl.openloadflow.graph.*;
 import com.powsybl.openloadflow.graph.utils.Aggregator;
 import com.powsybl.openloadflow.graph.utils.AverageStopWatch;
 import com.powsybl.openloadflow.graph.utils.GraphConnectivityMethod;
@@ -17,18 +16,15 @@ import org.nocrala.tools.texttablefmt.Table;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class SpyGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
+public class SpyPerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnectivity<V, E> {
 
     private static final CellStyle RIGHT_ALIGN = new CellStyle(CellStyle.HorizontalAlign.right);
-
-    private GraphConnectivity<V, E> delegate;
 
     private final AverageStopWatch sw = new AverageStopWatch();
 
@@ -45,7 +41,7 @@ public class SpyGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
 
     private final List<Long> sumOfDistances = new ArrayList<>();
 
-    public SpyGraphConnectivity() {
+    public SpyPerformanceGraphConnectivity() {
         for (int i = 0; i < initialGraphBuild.length; i++) {
             initialGraphBuild[i] = new Aggregator();
             temporaryChanges[i] = new Aggregator();
@@ -54,13 +50,23 @@ public class SpyGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
         current = initialGraphBuild;
     }
 
-    public SpyGraphConnectivity(GraphConnectivity<V, E> delegate) {
-        this();
-        setDelegate(delegate);
+    @Override
+    public void beginOperations() {
+        setInitialGraphBuildDone(false);
     }
 
-    public void setDelegate(GraphConnectivity<V, E> delegate) {
-        this.delegate = Objects.requireNonNull(delegate);
+    @Override
+    public void endOperations() {
+
+    }
+
+    @Override
+    public long computeSd() {
+        long n = super.computeSd();
+        if (n >= 0) {
+            sumOfDistances.add(n);
+        }
+        return n;
     }
 
     public void setInitialGraphBuildDone(boolean initialGraphBuildDone) {
@@ -201,17 +207,7 @@ public class SpyGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
         return edges;
     }
 
-    public void computeSd() {
-        if (delegate instanceof DTreeGraphConnectivity<V, E> dtree) {
-            sumOfDistances.add(dtree.computeSd());
-        }
-    }
-
-    public GraphConnectivity<V, E> getDelegate() {
-        return delegate;
-    }
-
-    public void merge(SpyGraphConnectivity<V, E> connectivity) {
+    public void merge(SpyPerformanceGraphConnectivity<V, E> connectivity) {
         sw.merge(connectivity.sw);
 
         for (int i = 0; i < connectivity.initialGraphBuild.length; i++) {

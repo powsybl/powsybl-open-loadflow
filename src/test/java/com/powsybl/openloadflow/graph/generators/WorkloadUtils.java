@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.graph.generators;
 
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.utils.GraphConnectivityMethod;
-import com.powsybl.openloadflow.graph.workload.SpyGraphConnectivity;
+import com.powsybl.openloadflow.graph.workload.ISpyGraphConnectivity;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -84,7 +84,7 @@ public final class WorkloadUtils {
             case "q" -> query(conn, Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
             case "testpoint" -> testPoint(conn, Integer.parseInt(parts[1]), Long.parseLong(parts[2]));
             case "Sd" -> {
-                if (conn instanceof SpyGraphConnectivity<Integer, Integer> spy) {
+                if (conn instanceof ISpyGraphConnectivity<Integer, Integer> spy) {
                     spy.computeSd();
                 }
             }
