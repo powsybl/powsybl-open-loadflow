@@ -396,7 +396,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
 
     private void link(DTNode rootU, DTNode nodeU, DTNode rootV, E edge) {
         // first: update parent/child relations
-        nodeU.addChildUnchecked(rootV, edge);
+        nodeU.addChildUnchecked(rootV);
         rootV.parent = nodeU;
         rootV.parentEdge = edge;
 
@@ -779,7 +779,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
                     greatParent.removeChildUnchecked(parent);
                 }
 
-                child.addChildUnchecked(parent, parentEdge);
+                child.addChildUnchecked(parent);
                 parent.parent = child;
                 parent.parentEdge = parentEdge;
 
@@ -811,15 +811,13 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         }
 
         /**
-         * Add child in the doubly linked list of children and
-         * the edge linking this node and child in the set of
-         * tree edges. The child mustn't be in a linked list.
-         * No verification is performed.
+         * Add child in the doubly linked list of children.
+         * The child mustn't be in a linked list. No verification
+         * is performed.
          *
          * @param child the child node to add
-         * @param edge the edge linking this node and child
          */
-        private void addChildUnchecked(DTNode child, E edge) {
+        private void addChildUnchecked(DTNode child) {
             DTNode oldFirstChild = this.firstChild;
 
             firstChild = child;
@@ -908,7 +906,6 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         }
 
         // This DNode MUST be a root
-        @Deprecated
         public Set<V> componentView() {
             if (componentView == null) {
                 componentView = new ComponentView(this);
