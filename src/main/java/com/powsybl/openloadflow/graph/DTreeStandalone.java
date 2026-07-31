@@ -1143,7 +1143,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
                         throw new PowsyblException("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes");
                     }
 
-                    // last thing to do is update state of vertices and edges in the two tree.
+                    // last thing to do is update state of vertices and edges in the two trees.
                     markAllRemoved(oldComponentRoot);
                     markAllAdded(newComponentRoot);
                 }
