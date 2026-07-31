@@ -65,6 +65,10 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         return vertexToTreeNode.get(vertex).findRoot();
     }
 
+    private DTNode rootOfOptReroot(V vertex) {
+        return vertexToTreeNode.get(vertex).findRootOptReroot();
+    }
+
     private void sortTrees() {
         if (!isSorted) {
             roots.sort((s1, s2) -> s2.size - s1.size);
@@ -75,6 +79,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         }
     }
 
+    @Override
     public long computeSd() {
         long sum = 0;
 
@@ -525,7 +530,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         if (modifications == null) {
             return false;
         } else {
-            return rootOf(modifications.mainComponentVertex) == node.findRoot();
+            return rootOfOptReroot(modifications.mainComponentVertex) == node.findRoot();
         }
     }
 
@@ -968,13 +973,17 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
 
         @Override
         public Iterator<V> iterator() {
-            return new DFSIterator(node);
+            return new DFSIterator(node.findRoot());
         }
 
         @Override
         public boolean contains(Object o) {
             if (o != null) {
-                return rootOf((V) o) == node;
+                // node might not be the root anymore, so need to use findRoot on node.
+                // However, don't use findRootOptReroot on node, it might change the root
+                // after we got the root of 'o'.
+
+                return rootOfOptReroot((V) o) == node.findRoot();
             }
 
             return false;
@@ -982,7 +991,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
 
         @Override
         public int size() {
-            return node.size;
+            return node.findRoot().size;
         }
     }
 
@@ -1132,7 +1141,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
                 // 2. if the main component vertex isn't in the current main component vertex, we need to
                 //    update state of edges and vertices
 
-                DTNode oldComponentRoot = rootOf(this.mainComponentVertex);
+                DTNode oldComponentRoot = rootOfOptReroot(this.mainComponentVertex);
                 DTNode newComponentRoot = rootOf(mainComponentVertex);
 
                 if (oldComponentRoot != newComponentRoot) {
