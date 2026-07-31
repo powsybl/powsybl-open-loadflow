@@ -112,6 +112,12 @@ class BridgesTest {
     }
 
     @Test
+    void testIDTreeStandalone() {
+        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new IDTreeStandalone<>(), "IDTreeStandalone");
+        assertEquals(bridgesSetReference, bridges);
+    }
+
+    @Test
     void testFindBridges() {
         BridgesFinder<LfBus> graph = new BridgesFinder<>(lfNetwork.getBuses().size(), LfBus::getNum);
         for (LfBus bus : lfNetwork.getBuses()) {

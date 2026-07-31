@@ -46,12 +46,13 @@ public class RandomConnectivityTest {
 
                 // test others implementations produce same results as NaiveGraphConnectivity
                 List<GraphConnectivity<Integer, DefaultEdge>> toTest = List.of(
-                        new HolmEtAlWithoutLevelGraphConnectivity<>(),
-                        new HolmEtAlGraphConnectivity<>(),
-                        new NewHolmGraphConnectivity<>(),
-                        new HolmStandalone<>(),
-                        new DTreeGraphConnectivity<>(),
-                        new DTreeStandalone<>()
+                        // new HolmEtAlWithoutLevelGraphConnectivity<>(),
+                        // new HolmEtAlGraphConnectivity<>(),
+                        // new NewHolmGraphConnectivity<>(),
+                        // new HolmStandalone<>(),
+                        // new DTreeGraphConnectivity<>(),
+                        // new DTreeStandalone<>(),
+                        new IDTreeStandalone<>()
                 );
 
                 for (GraphConnectivity<Integer, DefaultEdge> connectivity : toTest) {

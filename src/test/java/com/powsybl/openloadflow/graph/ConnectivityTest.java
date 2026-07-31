@@ -662,7 +662,8 @@ class ConnectivityTest {
                 Arguments.of(new NewHolmGraphConnectivity<>()),
                 Arguments.of(new HolmStandalone<>()),
                 Arguments.of(new DTreeGraphConnectivity<>()),
-                Arguments.of(new DTreeStandalone<>()));
+                Arguments.of(new DTreeStandalone<>()),
+                Arguments.of(new IDTreeStandalone<>()));
     }
 
     private static Stream<Arguments> provideAllConnectivities() {
@@ -675,6 +676,7 @@ class ConnectivityTest {
                 Arguments.of(new NewHolmGraphConnectivity<>()),
                 Arguments.of(new HolmStandalone<>()),
                 Arguments.of(new DTreeGraphConnectivity<>()),
-                Arguments.of(new DTreeStandalone<>()));
+                Arguments.of(new DTreeStandalone<>()),
+                Arguments.of(new IDTreeStandalone<>()));
     }
 }
