@@ -14,7 +14,6 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
 
@@ -23,8 +22,7 @@ import java.nio.file.Path;
  */
 public class SetNetworkCacheEnabled {
 
-    @Test
-    void setNetworkCacheEnabled() {
+    public static void main(String[] args) {
         LoadFlowParameters params = new LoadFlowParameters()
                 .setDc(true)
                 .setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS);
