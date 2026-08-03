@@ -358,8 +358,13 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
             }
         }
 
+        // /!\ small and large can be both in the main component (when a replacement edge was found)
+        // However, in this case, we only need one of the two variables to be true to have
+        // the correct behavior (i.e. only the removedEdge is marked as removed).
+        // When there is no replacement edge, small and large cannot be simultaneously in the main
+        // component as there are in two distinct component.
         boolean smallInMain = isInMainComponent(rootSmall);
-        boolean largeInMain = !smallInMain && isInMainComponent(rootLarge);
+        boolean largeInMain = !smallInMain && isInMainComponent(rootLarge); // avoid computing isInMainComponent if we know that small is in the main component
 
         if (smallInMain || largeInMain) {
             checkSavedContext().markEdgeRemoved(removedEdge);
