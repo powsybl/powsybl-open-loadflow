@@ -344,7 +344,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
                     // found a replacement edge
                     removeNonTreeEdge(n, oppNode, nonTreeEdge);
                     insertTreeEdge(rootSmall, n, rootLarge, oppNode, nonTreeEdge);
-                    edges.get(nonTreeEdge).treeEdge = true;
+                    edge.treeEdge = true;
                     replacementEdgeFound = true;
 
                     break loop;
@@ -465,15 +465,16 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
 
     @Override
     public void startTemporaryChanges(boolean computeComparisons) {
-        V mainComponentVertex = defaultMainComponentVertex;
+        DTNode mainComponentNode;
         boolean fictitious = false;
-        if (mainComponentVertex == null) {
-            DTNode root = getBiggestRoot();
-            mainComponentVertex = root.vertex;
+        if (defaultMainComponentVertex == null) {
+            mainComponentNode = getBiggestRoot();
             fictitious = true;
+        } else {
+            mainComponentNode = getNodeOrThrow(defaultMainComponentVertex);
         }
 
-        modificationsStack.push(new Modifications(mainComponentVertex, fictitious, computeComparisons));
+        modificationsStack.push(new Modifications(mainComponentNode, fictitious, computeComparisons));
     }
 
     @Override
@@ -528,7 +529,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         if (modifications == null) {
             return false;
         } else {
-            return rootOfOptReroot(modifications.mainComponentVertex) == node.findRoot();
+            return modifications.mainComponentNode.findRootOptReroot() == node.findRoot();
         }
     }
 
@@ -1092,12 +1093,12 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         // null and keep this class functional. However, it has an
         // impact on how edges/vertices removed from/added to are computed
         private boolean isMainComponentVertexFictitious;
-        private V mainComponentVertex;
+        private DTNode mainComponentNode;
 
         private boolean undoing = false;
 
-        Modifications(V mainComponentVertex, boolean fictitiousMCV, boolean computeComparisons) {
-            this.mainComponentVertex = mainComponentVertex;
+        Modifications(DTNode mainComponentVertex, boolean fictitiousMCV, boolean computeComparisons) {
+            this.mainComponentNode = mainComponentVertex;
             this.isMainComponentVertexFictitious = fictitiousMCV;
 
             if (computeComparisons) {
@@ -1125,14 +1126,15 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
                 return;
             }
 
-            if (this.mainComponentVertex != mainComponentVertex) {
+            if (this.mainComponentNode.vertex != mainComponentVertex) {
                 // two things to do:
                 // 1. check if the new main component vertex was in the main component before temporary changes.
                 // 2. if the main component vertex isn't in the current main component vertex, we need to
                 //    update state of edges and vertices
 
-                DTNode oldComponentRoot = rootOfOptReroot(this.mainComponentVertex);
-                DTNode newComponentRoot = rootOf(mainComponentVertex);
+                DTNode oldComponentRoot = this.mainComponentNode.findRootOptReroot();
+                DTNode mainComponentNode = getNodeOrThrow(mainComponentVertex);
+                DTNode newComponentRoot = mainComponentNode.findRoot();
 
                 if (oldComponentRoot != newComponentRoot) {
                     // the new main component vertex isn't in the current main component.
@@ -1147,7 +1149,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
                     markAllAdded(newComponentRoot);
                 }
 
-                this.mainComponentVertex = mainComponentVertex;
+                this.mainComponentNode = mainComponentNode;
             }
 
             isMainComponentVertexFictitious = false;
@@ -1213,12 +1215,12 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         }
 
         private void maybeBiggestTreeChanged(DTNode currentBiggestRoot) {
-            DTNode mainComponentVertexTree = rootOf(mainComponentVertex);
+            DTNode mainComponentVertexTree = mainComponentNode.findRoot();
             if (currentBiggestRoot.size > mainComponentVertexTree.size) {
                 // there is a new biggest main component
                 markAllRemoved(mainComponentVertexTree);
                 markAllAdded(currentBiggestRoot);
-                mainComponentVertex = currentBiggestRoot.vertex;
+                mainComponentNode = currentBiggestRoot;
             }
         }
 
