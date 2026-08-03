@@ -8,6 +8,8 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -15,6 +17,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.ToIntFunction;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -663,7 +666,17 @@ class ConnectivityTest {
                 Arguments.of(new HolmStandalone<>()),
                 Arguments.of(new DTreeGraphConnectivity<>()),
                 Arguments.of(new DTreeStandalone<>()),
-                Arguments.of(new IDTreeStandalone<>()));
+                Arguments.of(new IDTreeStandalone<>()),
+                Arguments.of(new IndexedDTreeStandalone<>(
+                        (Integer v) -> v - 1,
+                        new ToIntFunction<String>() {
+                            private final TObjectIntMap<String> map = new TObjectIntHashMap<>();
+
+                            @Override
+                            public int applyAsInt(String value) {
+                                return map.adjustOrPutValue(value, 0, map.size());
+                            }
+                        })));
     }
 
     private static Stream<Arguments> provideAllConnectivities() {
@@ -677,6 +690,16 @@ class ConnectivityTest {
                 Arguments.of(new HolmStandalone<>()),
                 Arguments.of(new DTreeGraphConnectivity<>()),
                 Arguments.of(new DTreeStandalone<>()),
-                Arguments.of(new IDTreeStandalone<>()));
+                Arguments.of(new IDTreeStandalone<>()),
+                Arguments.of(new IndexedDTreeStandalone<>(
+                        (Integer v) -> v - 1,
+                        new ToIntFunction<String>() {
+                            private final TObjectIntMap<String> map = new TObjectIntHashMap<>();
+
+                            @Override
+                            public int applyAsInt(String value) {
+                                return map.adjustOrPutValue(value, 0, map.size());
+                            }
+                        })));
     }
 }

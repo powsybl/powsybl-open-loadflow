@@ -32,7 +32,7 @@ public final class WorkloadRunner {
 
     }
 
-    private static final int WARMUP = 10;
+    private static final int WARMUP = 0;
     private static final int MEASUREMENT = 10;
     private static final boolean CHECK = false;
 
@@ -40,10 +40,10 @@ public final class WorkloadRunner {
     private static final MyProgressManager PROGRESS = new MyProgressManager();
 
     public static void main(String[] args) throws IOException {
-        List<Workload> workloads = getAllWorkloads(Path.of("workload/"), Set.of()); //, Set.of("spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"));
-        /*List<Workload> workloads = List.of(
-                Workload.inMemory(Path.of("workload/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt"))
-        );*/
+        // List<Workload> workloads = getAllWorkloads(Path.of("workload/"), Set.of()); //, Set.of("spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"));
+        List<Workload> workloads = List.of(
+                Workload.inMemory(Path.of("workload/spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"))
+        );
 
         List<GraphConnectivityFactory<Integer, Integer>> factories = List.of(
                 // new OldNaiveGraphConnectivity.Factory<>((Integer i) -> i)
@@ -55,8 +55,9 @@ public final class WorkloadRunner {
                 // new NewHolmGraphConnectivityFactory<>(),
                 // new HolmStandaloneFactory<>(),
                 // new DTreeGraphConnectivityFactory<>(),
-                new DTreeStandaloneFactory<>(),
-                IDTreeStandalone::new
+                new DTreeStandaloneFactory<>()
+                // IDTreeStandalone::new,
+                // new IndexedDTreeStandalone2ndVerFactory<>((Integer i) -> i, (Integer i) -> i)
         );
 
         LOG.log("Workloads:");
@@ -132,9 +133,9 @@ public final class WorkloadRunner {
     }
 
     private static void runSingleThreadedWorkload(Workload workload,
-                                                    ISpyGraphConnectivityFactory<Integer, Integer> factory,
-                                                    int warmup,
-                                                    int measurement) {
+                                                  ISpyGraphConnectivityFactory<Integer, Integer> factory,
+                                                  int warmup,
+                                                  int measurement) {
         try (Operations operations = workload.operations(0)) {
             var progress = PROGRESS.newProgress(new Progress());
             runOperationsMultipleTimesWithWarmup(progress, operations, factory, null, warmup, measurement);
@@ -307,6 +308,10 @@ public final class WorkloadRunner {
             } else {
                 return (int) (Math.log10(value) + 1);
             }
+        }
+
+        public Progress get(int i) {
+            return progress.get(i);
         }
     }
 

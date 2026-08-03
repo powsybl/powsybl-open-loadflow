@@ -15,11 +15,11 @@ import java.util.List;
  */
 public class ProgressManager<P extends TProgress<P>> {
 
-    private final List<P> progress = new ArrayList<>();
-    private ProgressFormatter<P> formatter;
+    protected final List<P> progress = new ArrayList<>();
+    protected ProgressFormatter<P> formatter;
 
-    private long last = 0;
-    private long period;
+    protected long last = 0;
+    protected long period;
 
     public ProgressManager() {
         this(1000);
