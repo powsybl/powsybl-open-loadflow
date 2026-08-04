@@ -48,6 +48,7 @@ class NetworkConnectivityTest {
         testConnectivity(new DTreeStandalone<>());
         testConnectivity(new IDTreeStandalone<>());
         testConnectivity(new IndexedDTreeStandalone<>(LfBus::getNum, LfBranch::getNum));
+        testConnectivity(new DnDTreeStandalone<>());
     }
 
     @Test
@@ -64,6 +65,7 @@ class NetworkConnectivityTest {
         testReducedMainComponent(new DTreeStandalone<>());
         testReducedMainComponent(new IDTreeStandalone<>());
         testReducedMainComponent(new IndexedDTreeStandalone<>(LfBus::getNum, LfBranch::getNum));
+        testReducedMainComponent(new DnDTreeStandalone<>());
     }
 
     @Test
@@ -80,6 +82,7 @@ class NetworkConnectivityTest {
         testReaddEdge(new DTreeStandalone<>(), true);
         testReaddEdge(new IDTreeStandalone<>(), true);
         testReaddEdge(new IndexedDTreeStandalone<>(LfBus::getNum, LfBranch::getNum), true);
+        testReaddEdge(new DnDTreeStandalone<>(), true);
     }
 
     @Test
@@ -122,6 +125,7 @@ class NetworkConnectivityTest {
         testConnectedComponents(new DTreeStandalone<>());
         testConnectedComponents(new IDTreeStandalone<>());
         testConnectedComponents(new IndexedDTreeStandalone<>(LfBus::getNum, LfBranch::getNum));
+        testConnectedComponents(new DnDTreeStandalone<>());
     }
 
     private void testConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {

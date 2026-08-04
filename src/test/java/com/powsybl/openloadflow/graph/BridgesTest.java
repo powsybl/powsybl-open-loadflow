@@ -16,6 +16,9 @@ import org.jgrapht.alg.connectivity.BiconnectivityInspector;
 import org.jgrapht.graph.Pseudograph;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +29,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -56,65 +60,27 @@ class BridgesTest {
         return Arrays.stream(new String[] {"NGEN_NHV1", "NHV2_NLOAD"}).collect(Collectors.toSet());
     }
 
-    @Test
-    void testNaiveConnectivity() {
-        Set<String> bridges = testBridgesOnConnectivity(lfNetwork,
-            new NaiveGraphConnectivity<>(LfBus::getNum), "naive algorithm");
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("namedConnectivities")
+    void testBridgesOnConnectivityGeneric(GraphConnectivity<LfBus, LfBranch> connectivity, String name) {
+        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, connectivity, name);
         assertEquals(bridgesSetReference, bridges);
     }
 
-    @Test
-    void testEvenShiloach() {
-        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new EvenShiloachGraphDecrementalConnectivity<>(), "Even-Shiloach");
-        assertEquals(bridgesSetReference, bridges);
-    }
-
-    @Test
-    void testMst() {
-        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new MinimumSpanningTreeGraphConnectivity<>(), "Minimum-Spanning-Tree");
-        assertEquals(bridgesSetReference, bridges);
-    }
-
-    @Test
-    void testHolmEtAl() {
-        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new HolmEtAlGraphConnectivity<>(), "Holm-et-al");
-        assertEquals(bridgesSetReference, bridges);
-    }
-
-    @Test
-    void testHolmEtAlWithoutLevel() {
-        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new HolmEtAlWithoutLevelGraphConnectivity<>(), "Holm-et-al (without level)");
-        assertEquals(bridgesSetReference, bridges);
-    }
-
-    @Test
-    void testNewHolm() {
-        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new NewHolmGraphConnectivity<>(), "Holm-et-al-2");
-        assertEquals(bridgesSetReference, bridges);
-    }
-
-    @Test
-    void testHolmStandalone() {
-        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new HolmStandalone<>(), "Holm-et-al-standalone");
-        assertEquals(bridgesSetReference, bridges);
-    }
-
-    @Test
-    void testDTree() {
-        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new DTreeGraphConnectivity<>(), "DTree");
-        assertEquals(bridgesSetReference, bridges);
-    }
-
-    @Test
-    void testDTreeStandalone() {
-        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new DTreeStandalone<>(), "DTreeStandalone");
-        assertEquals(bridgesSetReference, bridges);
-    }
-
-    @Test
-    void testIDTreeStandalone() {
-        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new IDTreeStandalone<>(), "IDTreeStandalone");
-        assertEquals(bridgesSetReference, bridges);
+    private static Stream<Arguments> namedConnectivities() {
+        return Stream.of(
+                Arguments.of(new NaiveGraphConnectivity<>(LfBus::getNum), "naive algorithm"),
+                Arguments.of(new EvenShiloachGraphDecrementalConnectivity<>(), "Even-Shiloach"),
+                Arguments.of(new MinimumSpanningTreeGraphConnectivity<>(), "Minimum-Spanning-Tree"),
+                Arguments.of(new HolmEtAlGraphConnectivity<>(), "Holm-et-al"),
+                Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>(), "Holm-et-al (without level)"),
+                Arguments.of(new NewHolmGraphConnectivity<>(), "Holm-et-al-2"),
+                Arguments.of(new HolmStandalone<>(), "Holm-et-al-standalone"),
+                Arguments.of(new DTreeGraphConnectivity<>(), "DTree"),
+                Arguments.of(new DTreeStandalone<>(), "DTreeStandalon"),
+                Arguments.of(new IDTreeStandalone<>(), "IDTreeStandalone"),
+                Arguments.of(new DnDTreeStandalone<>(), "DNDTreeStandalone")
+        );
     }
 
     @Test

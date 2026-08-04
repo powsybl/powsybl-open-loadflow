@@ -227,6 +227,7 @@ public class DTreeGraphConnectivityTest {
         return Stream.of(
                 Arguments.of(new DTreeGraphConnectivity<>()),
                 Arguments.of(new DTreeStandalone<>()),
-                Arguments.of(new IDTreeStandalone<>()));
+                Arguments.of(new IDTreeStandalone<>()),
+                Arguments.of(new DnDTreeStandalone<>()));
     }
 }

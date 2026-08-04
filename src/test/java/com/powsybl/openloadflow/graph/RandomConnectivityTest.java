@@ -52,7 +52,8 @@ public class RandomConnectivityTest {
                         // new HolmStandalone<>(),
                         // new DTreeGraphConnectivity<>(),
                         // new DTreeStandalone<>(),
-                        new IDTreeStandalone<>()
+                        //new IDTreeStandalone<>(),
+                        new DnDTreeStandalone<>()
                 );
 
                 for (GraphConnectivity<Integer, DefaultEdge> connectivity : toTest) {

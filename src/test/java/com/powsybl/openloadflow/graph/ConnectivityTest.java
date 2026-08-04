@@ -676,7 +676,8 @@ class ConnectivityTest {
                             public int applyAsInt(String value) {
                                 return map.adjustOrPutValue(value, 0, map.size());
                             }
-                        })));
+                        })),
+                Arguments.of(new DnDTreeStandalone<>()));
     }
 
     private static Stream<Arguments> provideAllConnectivities() {
@@ -700,6 +701,7 @@ class ConnectivityTest {
                             public int applyAsInt(String value) {
                                 return map.adjustOrPutValue(value, 0, map.size());
                             }
-                        })));
+                        })),
+                Arguments.of(new DnDTreeStandalone<>()));
     }
 }
