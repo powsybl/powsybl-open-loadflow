@@ -431,18 +431,15 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
          * @param edge edge linking {@code nodeU} and {@code nodeV}
          */
         private void insertTreeEdge(DTNode rootU, DTNode nodeU, DTNode rootV, DTNode nodeV, Edge edge) {
-            DTNode toRemove;
             if (rootU.size < rootV.size) {
                 nodeU.makeRoot(true);
                 nodeU.link(rootV, nodeV, edge);
-                toRemove = nodeU;
+                removeRoot(nodeU);
             } else {
                 nodeV.makeRoot(true);
                 nodeV.link(rootU, nodeU, edge);
-                toRemove = nodeV;
+                removeRoot(nodeV);
             }
-
-            removeRoot(toRemove);
         }
 
         // ===========
