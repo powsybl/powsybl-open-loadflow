@@ -101,41 +101,47 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     protected Set<V> getVerticesNotInMainComponent(V mainComponentVertex) {
         // first determine the excluded tree: either the tree containing
         // the mainComponentVertex, either the biggest tree
-        DTGraph<V, E> graph = getGraph();
         DTGraph<V, E>.DTNode excludedTree = getMainComponentRoot(mainComponentVertex);
+        return new VerticesNotInMainComponent(excludedTree);
+    }
 
-        return new AbstractSetView<>() {
-            int size = -1;
+    private final class VerticesNotInMainComponent extends AbstractSetView<V> {
+        private final DTGraph<V, E>.DTNode excludedTree;
+        private int size = -1;
 
-            @Override
-            public Iterator<V> iterator() {
-                return new VerticesNotInMainComponentIterator(excludedTree.findRoot());
+        VerticesNotInMainComponent(DTGraph<V, E>.DTNode excludedTree) {
+            this.excludedTree = excludedTree;
+        }
+
+        @Override
+        public Iterator<V> iterator() {
+            return new VerticesNotInMainComponentIterator(excludedTree.findRoot());
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            if (o != null) {
+                return getGraph().rootOf((V) o) != excludedTree.findRoot();
             }
 
-            @Override
-            public boolean contains(Object o) {
-                if (o != null) {
-                    return graph.rootOf((V) o) != excludedTree.findRoot();
-                }
+            return false;
+        }
 
-                return false;
-            }
-
-            @Override
-            public int size() {
-                if (size < 0) {
-                    size = 0;
-                    DTGraph<V, E>.DTNode excludedTreeRoot = excludedTree.findRoot();
-                    for (DTGraph<V, E>.DTNode root : graph.roots) {
-                        if (root != excludedTreeRoot) {
-                            size += root.size;
-                        }
+        @Override
+        public int size() {
+            if (size < 0) {
+                size = 0;
+                DTGraph<V, E> graph = getGraph();
+                DTGraph<V, E>.DTNode excludedTreeRoot = excludedTree.findRoot();
+                for (DTGraph<V, E>.DTNode root : graph.roots) {
+                    if (root != excludedTreeRoot) {
+                        size += root.size;
                     }
                 }
-
-                return size;
             }
-        };
+
+            return size;
+        }
     }
 
     private class VerticesNotInMainComponentIterator implements Iterator<V> {
@@ -504,7 +510,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         // * OTHER *
         // =========
 
-        public Iterator<V> iterator(DTNode root) {
+        private Iterator<V> iterator(DTNode root) {
             return new DFSIterator(root);
         }
 
