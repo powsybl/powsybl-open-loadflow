@@ -845,6 +845,13 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
             }
 
+            /**
+             * Unlink this node from its parent, creating two trees, one
+             * whose root is {@code this} and one whose root is returned and
+             * was previously the root of the linked tree.
+             *
+             * @return the root of the other tree
+             */
             private DTNode unlink() {
                 Objects.requireNonNull(parent);
 
