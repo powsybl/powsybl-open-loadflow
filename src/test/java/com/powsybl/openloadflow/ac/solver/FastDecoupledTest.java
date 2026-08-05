@@ -31,14 +31,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
@@ -292,7 +292,7 @@ class FastDecoupledTest {
         // Continuous mode
         parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.CONTINUOUS_WITH_DISCRETISATION);
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.CONTINUOUS_WITH_DISCRETISATION);
-            // Regulation on side 1
+        // Regulation on side 1
         TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("PS1");
         t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setTargetDeadband(1)
@@ -301,14 +301,14 @@ class FastDecoupledTest {
                 .setRegulationTerminal(t2wt.getTerminal1())
                 .setRegulationValue(83);
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
-            // Regulation on side 2
+        // Regulation on side 2
         t2wt.getPhaseTapChanger().setRegulationTerminal(t2wt.getTerminal2());
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
 
         // Incremental mode
         parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
-            // Regulation on side 1
+        // Regulation on side 1
         t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setTargetDeadband(1)
                 .setRegulating(true)
@@ -316,7 +316,7 @@ class FastDecoupledTest {
                 .setRegulationTerminal(t2wt.getTerminal1())
                 .setRegulationValue(83);
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
-            // Regulation on side 2
+        // Regulation on side 2
         t2wt.getPhaseTapChanger().setRegulationTerminal(t2wt.getTerminal2());
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }

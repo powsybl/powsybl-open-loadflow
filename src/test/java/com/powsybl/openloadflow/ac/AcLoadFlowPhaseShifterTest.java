@@ -719,7 +719,7 @@ class AcLoadFlowPhaseShifterTest {
     )
     void rxgbChangeOnPstControlTest(boolean twtSplitShuntAdmittance,
                                                  double tap0p1, double tap0p2, double tap1p1, double tap1p2, double tap2p1, double tap2p2, boolean vectorized) {
-        AcLoadFlowParameters.VECTORIZED_DEFAULT_VALUE = vectorized; // Test with and without AcEquationSystem vectorization
+        AcLoadFlowParameters.vectorizedDefaultValue = vectorized; // Test with and without AcEquationSystem vectorization
         selectNetwork(PhaseControlFactory.createNetworkWithT2wtExaggerateRxgbTable());
 
         parameters
@@ -777,6 +777,6 @@ class AcLoadFlowPhaseShifterTest {
         assertActivePowerEquals(tap2p1, t2wt.getTerminal1());
         assertActivePowerEquals(tap2p2, t2wt.getTerminal2());
 
-        AcLoadFlowParameters.VECTORIZED_DEFAULT_VALUE = true; // Restoring initial static value to avoid interference with other tests
+        AcLoadFlowParameters.vectorizedDefaultValue = true; // Restoring initial static value to avoid interference with other tests
     }
 }

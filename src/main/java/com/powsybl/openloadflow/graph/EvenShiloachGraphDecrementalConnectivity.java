@@ -209,7 +209,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         private final Traverser t2;
         private Set<V> verticesOut;
 
-        public GraphProcessA(V vertex1, V vertex2) {
+        GraphProcessA(V vertex1, V vertex2) {
             Set<V> visitedVerticesT1 = new LinkedHashSet<>();
             Set<V> visitedVerticesT2 = new LinkedHashSet<>();
             this.t1 = new Traverser(vertex1, visitedVerticesT2, visitedVerticesT1);
@@ -250,7 +250,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         private final V vertex2;
         private boolean init;
 
-        public GraphProcessB(V vertex1, V vertex2) {
+        GraphProcessB(V vertex1, V vertex2) {
             this.vertex1 = vertex1;
             this.vertex2 = vertex2;
             this.verticesToUpdate = new LinkedList<>();
@@ -338,7 +338,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         private final Set<V> vertexEnd;
         private boolean ended;
 
-        public Traverser(V vertexStart, Set<V> vertexEnd, Set<V> visitedVertices) {
+        Traverser(V vertexStart, Set<V> vertexEnd, Set<V> visitedVertices) {
             this.vertexEnd = vertexEnd;
             this.visitedVertices = visitedVertices;
             this.visitedVertices.add(vertexStart);
@@ -379,11 +379,11 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         private final Collection<V> upperLevel = new LinkedList<>();
         private int level;
 
-        public LevelNeighbours(int level) {
+        LevelNeighbours(int level) {
             this.level = level;
         }
 
-        public LevelNeighbours(LevelNeighbours origin) {
+        LevelNeighbours(LevelNeighbours origin) {
             this.level = origin.level;
             this.lowerLevel.addAll(origin.lowerLevel);
             this.sameLevel.addAll(origin.sameLevel);

@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
  */
 class UniformValueVoltageInitializerTest {
 
-
     /**
      * This test purpose is to ensure that
      * - Two DC buses connected to the same converter have a different initial voltage value.

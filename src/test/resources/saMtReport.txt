@@ -12,8 +12,6 @@
                + Outer loop iteration 1
                   Slack bus active power (1.998967 MW) distributed in 1 distribution iteration(s)
             Outer loop ReactiveLimits
-            Outer loop DistributedSlack
-            Outer loop ReactiveLimits
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
          + Post-contingency simulation 'compositeContingency'
             Outer loop DistributedSlack

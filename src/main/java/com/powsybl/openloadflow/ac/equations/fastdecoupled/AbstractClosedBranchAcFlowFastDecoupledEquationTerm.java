@@ -14,7 +14,8 @@ import com.powsybl.openloadflow.equations.Variable;
 /**
  * @author Sylvestre Prabakaran {@literal <sylvestre.prabakaran at rte-france.com>}
  */
-public abstract class AbstractClosedBranchAcFlowFastDecoupledEquationTerm<T extends AbstractClosedBranchAcFlowEquationTerm, E extends AbstractClosedBranchEquationTermArrayEvaluator> implements FastDecoupledEquationTerm {
+public abstract class AbstractClosedBranchAcFlowFastDecoupledEquationTerm<T extends AbstractClosedBranchAcFlowEquationTerm, E extends AbstractClosedBranchEquationTermArrayEvaluator>
+    implements FastDecoupledEquationTerm {
 
     protected final double y;
     protected final double ksi;

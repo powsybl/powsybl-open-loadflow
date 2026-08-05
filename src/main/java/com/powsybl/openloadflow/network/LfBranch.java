@@ -12,7 +12,6 @@ import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.LoadingLimits;
 import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.iidm.network.TwoSides;
-import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -91,7 +90,7 @@ public interface LfBranch extends LfElement {
                     i++;
                 }
                 double reduction = limitReductions.length == 0 ? 1d : limitReductions[0];
-                sortedLimits.add(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimit() * toPerUnit, reduction));
+                sortedLimits.add(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimitName(), loadingLimits.getPermanentLimit() * toPerUnit, reduction));
             }
             if (sortedLimits.size() > 1) {
                 // we only make that fix if there is more than a permanent limit attached to the branch.
@@ -127,8 +126,8 @@ public interface LfBranch extends LfElement {
             return new LfLimit(name, acceptableDuration, originalValuePerUnit, reduction);
         }
 
-        public static LfLimit createPermanentLimit(double originalValuePerUnit, Double reduction) {
-            return new LfLimit(LimitViolationUtils.PERMANENT_LIMIT_NAME, Integer.MAX_VALUE, originalValuePerUnit, reduction);
+        public static LfLimit createPermanentLimit(String permanentLimitName, double originalValuePerUnit, Double reduction) {
+            return new LfLimit(permanentLimitName, Integer.MAX_VALUE, originalValuePerUnit, reduction);
         }
 
         public String getName() {

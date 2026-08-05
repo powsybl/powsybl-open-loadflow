@@ -48,6 +48,7 @@ public interface ContingencyActivePowerLossDistribution {
      * @param reportNode the contingency report node - so that the plugin may add any report message needed
      * @return the amount of distributed active power in per-unit
      */
-    double run(LfNetwork network, LfContingency lfContingency, Contingency contingency, SecurityAnalysisParameters securityAnalysisParameters, LoadFlowParametersOverride loadFlowParametersOverride, ReportNode reportNode);
+    double run(LfNetwork network, LfContingency lfContingency, Contingency contingency, SecurityAnalysisParameters securityAnalysisParameters,
+               LoadFlowParametersOverride loadFlowParametersOverride, ReportNode reportNode);
 
 }

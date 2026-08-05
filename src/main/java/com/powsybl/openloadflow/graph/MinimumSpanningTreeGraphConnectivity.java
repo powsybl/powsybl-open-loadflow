@@ -111,12 +111,12 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
     private class SpanningTrees extends SpanningTreeAlgorithm.SpanningTreeImpl<Object> {
         private final transient MyUnionFind forest;
 
-        public SpanningTrees(MyUnionFind forest, Set<Object> edgeList, double spanningTreeCost) {
+        SpanningTrees(MyUnionFind forest, Set<Object> edgeList, double spanningTreeCost) {
             super(edgeList, spanningTreeCost);
             this.forest = forest;
         }
 
-        public SpanningTrees(SpanningTrees other) {
+        SpanningTrees(SpanningTrees other) {
             super(new LinkedHashSet<>(other.getEdges()), other.getWeight());
             this.forest = new MyUnionFind(other.forest);
         }
@@ -137,11 +137,11 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
     private class MyUnionFind extends UnionFind<V> {
         private Map<V, Set<V>> rootConnectedComponentMap;
 
-        public MyUnionFind(Set<V> vs) {
+        MyUnionFind(Set<V> vs) {
             super(vs);
         }
 
-        public MyUnionFind(MyUnionFind other) {
+        MyUnionFind(MyUnionFind other) {
             super(other.getParentMap().keySet());
             other.getRankMap().forEach((k, v) -> getRankMap().put(k, v));
             other.getParentMap().forEach((k, v) -> getParentMap().put(k, v));

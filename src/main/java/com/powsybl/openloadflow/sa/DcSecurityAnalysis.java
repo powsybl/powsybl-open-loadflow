@@ -51,14 +51,29 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
         return false;
     }
 
+    private void warnOverridenParameter(String parameterName, String wantedValue, String usedValue) {
+        LOGGER.warn("Load flow parameter {}={} is not handled in DC security analysis, using parameter value {} instead", parameterName, wantedValue, usedValue);
+    }
+
+    private void overrideUnsupportedParameters(OpenLoadFlowParameters lfParametersExt, DcLoadFlowParameters dcParameters) {
+        if (lfParametersExt.isNetworkCacheEnabled()) {
+            warnOverridenParameter("networkCacheEnabled", "true", "false");
+        }
+        if (lfParametersExt.getReferenceBusSelectionMode() != ReferenceBusSelector.DEFAULT_MODE) {
+            warnOverridenParameter("referenceBusSelectionMode", lfParametersExt.getReferenceBusSelectionMode().name(), ReferenceBusSelector.DEFAULT_MODE.name());
+        }
+        dcParameters.getNetworkParameters()
+                .setCacheEnabled(false)
+                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR);
+    }
+
     @Override
     protected DcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers, boolean areas) {
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, lfParameters,
                 lfParametersExt, matrixFactory, connectivityFactory, false);
+        overrideUnsupportedParameters(lfParametersExt, dcParameters);
         dcParameters.getNetworkParameters()
                 .setBreakers(breakers)
-                .setCacheEnabled(false) // force not caching as not supported in secu analysis
-                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR) // not supported yet
                 .setAreaInterchangeControl(areas);
         return dcParameters;
     }
@@ -105,7 +120,10 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
     }
 
     @Override
-    protected OpenLoadFlowParameters applyGenericContingencyParameters(DcLoadFlowParameters parameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters, OpenSecurityAnalysisParameters openSecurityAnalysisParameters) {
+    protected OpenLoadFlowParameters applyGenericContingencyParameters(DcLoadFlowParameters parameters,
+                                                                       LoadFlowParameters loadFlowParameters,
+                                                                       OpenLoadFlowParameters openLoadFlowParameters,
+                                                                       OpenSecurityAnalysisParameters openSecurityAnalysisParameters) {
         // Nothing to do
         return openLoadFlowParameters;
     }

@@ -7,7 +7,10 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Generator;
+import com.powsybl.iidm.network.Load;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.VoltageLevel;
 import com.powsybl.iidm.network.extensions.SlackTerminalAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -17,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
@@ -44,7 +47,7 @@ class NetworkSlackBusSelectorTest {
     void noExtensionTest() {
         List<LfNetwork> lfNetworks = Networks.load(network, new NetworkSlackBusSelector(network, Collections.emptySet(), selectorMock));
         LfNetwork lfNetwork = lfNetworks.get(0);
-        assertEquals("VLHV1_0", lfNetwork.getSlackBus().getId());
+        assertEquals("VLHV1_0", lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst().getId());
         assertEquals(4, fallbackBusCount);
     }
 
@@ -57,7 +60,7 @@ class NetworkSlackBusSelectorTest {
                 .add();
         List<LfNetwork> lfNetworks = Networks.load(network, new NetworkSlackBusSelector(network, Collections.emptySet(), selectorMock));
         LfNetwork lfNetwork = lfNetworks.get(0);
-        assertEquals("VLLOAD_0", lfNetwork.getSlackBus().getId());
+        assertEquals("VLLOAD_0", lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst().getId());
         assertEquals(-1, fallbackBusCount);
     }
 
@@ -75,7 +78,7 @@ class NetworkSlackBusSelectorTest {
                 .add();
         List<LfNetwork> lfNetworks = Networks.load(network, new NetworkSlackBusSelector(network, Collections.emptySet(), selectorMock));
         LfNetwork lfNetwork = lfNetworks.get(0);
-        assertEquals("VLLOAD_0", lfNetwork.getSlackBus().getId());
+        assertEquals("VLLOAD_0", lfNetwork.getSynchronousNetworks().get(0).getSlackBuses().get(0).getId());
         assertEquals(2, fallbackBusCount);
     }
 }

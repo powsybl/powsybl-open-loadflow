@@ -33,15 +33,18 @@ public interface LfShunt extends LfElement {
 
         private int position;
 
+        private final int minPosition;
+
         private final double bMagnitude;
 
-        public Controller(String id, List<Double> sectionsB, List<Double> sectionsG, int position) {
+        public Controller(String id, List<Double> sectionsB, List<Double> sectionsG, int position, int minPosition) {
             this.id = Objects.requireNonNull(id);
             this.sectionsB = Objects.requireNonNull(sectionsB);
             this.sectionsG = Objects.requireNonNull(sectionsG);
             this.position = position;
-            double bMin = Math.min(sectionsB.get(0), sectionsB.get(sectionsB.size() - 1));
-            double bMax = Math.max(sectionsB.get(0), sectionsB.get(sectionsB.size() - 1));
+            this.minPosition = minPosition;
+            double bMin = Math.min(sectionsB.get(minPosition), sectionsB.getLast());
+            double bMax = Math.max(sectionsB.get(minPosition), sectionsB.getLast());
             this.bMagnitude = Math.abs(bMax - bMin);
         }
 
@@ -55,6 +58,10 @@ public interface LfShunt extends LfElement {
 
         public int getPosition() {
             return position;
+        }
+
+        public int getMinPosition() {
+            return minPosition;
         }
 
         public void setPosition(int position) {
@@ -76,8 +83,8 @@ public interface LfShunt extends LfElement {
         private Range<Integer> getAllowedPositionRange(AllowedDirection allowedDirection) {
             return switch (allowedDirection) {
                 case INCREASE -> Range.of(position, sectionsB.size() - 1);
-                case DECREASE -> Range.of(0, position);
-                case BOTH -> Range.of(0, sectionsB.size() - 1);
+                case DECREASE -> Range.of(minPosition, position);
+                case BOTH -> Range.of(minPosition, sectionsB.size() - 1);
             };
         }
 

@@ -150,13 +150,15 @@ class AreaInterchangeControlTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("allSlackDistributionFailureBehaviors")
-    void slackDistributionFailureBehaviorsTest(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior, double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
+    void slackDistributionFailureBehaviorsTest(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior,
+                                               double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
         runLfOneAreaSlackDistributionFailure(slackDistributionFailureBehavior, expectedGen1P, expectedMismatch, expectedDistributedP);
         parameters.setDc(true);
         runLfOneAreaSlackDistributionFailure(slackDistributionFailureBehavior, expectedGen1P, expectedMismatch, expectedDistributedP);
     }
 
-    private void runLfOneAreaSlackDistributionFailure(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior, double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
+    private void runLfOneAreaSlackDistributionFailure(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior,
+                                                      double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
         parametersExt.setSlackDistributionFailureBehavior(slackDistributionFailureBehavior);
         Network network = MultiAreaNetworkFactory.createOneAreaBase();
         network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target
@@ -323,8 +325,6 @@ class AreaInterchangeControlTest {
                                Area a1 slack distribution share (0.293861 MW) distributed in 1 distribution iteration(s)
                                Area a2 slack distribution share (0.331121 MW) distributed in 1 distribution iteration(s)
                          Outer loop ReactiveLimits
-                         Outer loop AreaInterchangeControl
-                         Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
         LoadFlowAssert.assertTxtReportEquals(expectedReport, node);
@@ -374,8 +374,6 @@ class AreaInterchangeControlTest {
                                Area a1 slack distribution share (-0.395604 MW) distributed in 1 distribution iteration(s)
                                Area a2 slack distribution share (-0.004396 MW) distributed in 1 distribution iteration(s)
                          Outer loop ReactiveLimits
-                         Outer loop AreaInterchangeControl
-                         Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
         LoadFlowAssert.assertTxtReportEquals(expectedReport, node);
@@ -409,8 +407,6 @@ class AreaInterchangeControlTest {
                             + Outer loop iteration 1
                                Area a1 slack distribution share (-0.1 MW) distributed in 1 distribution iteration(s)
                                Area a2 slack distribution share (-0.3 MW) distributed in 2 distribution iteration(s)
-                         Outer loop ReactiveLimits
-                         Outer loop AreaInterchangeControl
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
@@ -471,5 +467,25 @@ class AreaInterchangeControlTest {
         return result;
     }
 
+    @Test
+    void testTwoAreasWithEmbeddedDcNetworkDetailedModel() {
+        // Validate that AreaInterchangeControl outer loop supports AC-DC networks with only one synchronous component
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithXNodeAndEmbeddedDcDetailed();
+        parametersExt.setSlackBusPMaxMismatch(1e-2) // Mismatch is between 1e-2 and 1e-3
+            .setAcDcNetwork(true);
+        runLfTwoAreas(network, -40, 40, -30, 2);
+    }
+
+    @Test
+    void twoSynchronousComponentsConnectedByDetailedDcNetworkIsForbidden() {
+        // Network has an area that has buses in two different synchronous components (connected by a DC network)
+        // This is currently not supported
+        Network network = MultiAreaNetworkFactory.createAreaTwoSynchronousComponentsDetailedDcModel();
+        parametersExt.setAcDcNetwork(true);
+
+        // Run load flow
+        CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("AreaInterchangeControl outer loop is not allowed with AC/DC networks with several synchronous components", e5.getCause().getMessage());
+    }
 }
 

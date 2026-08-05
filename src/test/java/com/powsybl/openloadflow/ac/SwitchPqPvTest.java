@@ -241,7 +241,6 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                                + 2 buses switched PV -> PQ (1 buses remain PV)
                                   Switch bus 'vl1_0' PV -> PQ, q=-200.872086 < minQ=-179
                                   Switch bus 'vl2_0' PV -> PQ, q=712.632433 > maxQ=700
-                         Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
         LoadFlowAssert.assertReportEqualsString(expected, reportNode);

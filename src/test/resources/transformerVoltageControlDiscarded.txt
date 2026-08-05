@@ -13,7 +13,4 @@
                Slack bus active power (-2.888261 MW) distributed in 1 distribution iteration(s)
          Outer loop ReactiveLimits
          Outer loop IncrementalTransformerVoltageControl
-         Outer loop DistributedSlack
-         Outer loop ReactiveLimits
-         Outer loop IncrementalTransformerVoltageControl
          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

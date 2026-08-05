@@ -548,4 +548,47 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+    public static Network createTwoAreasWithXNodeAndEmbeddedDcDetailed() {
+        Network network = createTwoAreasWithXNode();
+
+        // Add embedded HVDC line (detailed DC model)
+        DcNode dn3p = createDcNode(network, "dc3pos", 525);
+        DcNode dn3n = createDcNode(network, "dc3neg", 525, true);
+        DcNode dn2p = createDcNode(network, "dc2pos", 525);
+        DcNode dn2n = createDcNode(network, "dc2neg", 525, true);
+
+        createDcLine(network, dn3p, dn2p, "dcLine", 1);
+        createVoltageSourceConverterPccVac(
+            network.getBusBreakerView().getBus("b3"),
+            dn3p, dn3n, "vsc3", 30, 400
+        );
+        createVoltageSourceConverterVdcVac(
+            network.getBusBreakerView().getBus("b2"),
+            dn2p, dn2n, "vsc2", 525, 400
+        );
+
+        return network;
+    }
+
+    public static Network createAreaTwoSynchronousComponentsDetailedDcModel() {
+        Network network = createAreaTwoComponents();
+
+        // Connect dummy component through DC detailed model
+        DcNode dn3p = createDcNode(network, "dc3pos", 525);
+        DcNode dn3n = createDcNode(network, "dc3neg", 525, true);
+        DcNode dnDummyp = createDcNode(network, "dcDummypos", 525);
+        DcNode dnDummyn = createDcNode(network, "dcDummyneg", 525, true);
+
+        createDcLine(network, dn3p, dnDummyp, "dcLine", 1);
+        createVoltageSourceConverterPccVac(
+            network.getBusBreakerView().getBus("b3"),
+            dn3p, dn3n, "vsc3", 5, 400
+        );
+        createVoltageSourceConverterVdcVac(
+            network.getBusBreakerView().getBus("dummy"),
+            dnDummyp, dnDummyn, "vscDummy", 525, 400
+        );
+
+        return network;
+    }
 }

@@ -23,7 +23,8 @@ import java.util.List;
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
-public class DcAreaInterchangeControlOuterLoop extends AbstractAreaInterchangeControlOuterLoop<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcOuterLoopContext> implements DcOuterLoop {
+public class DcAreaInterchangeControlOuterLoop extends AbstractAreaInterchangeControlOuterLoop<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcOuterLoopContext>
+    implements DcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DcAreaInterchangeControlOuterLoop.class);
 

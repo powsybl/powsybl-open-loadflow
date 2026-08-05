@@ -275,4 +275,6 @@ public interface LfBus extends LfElement {
     ViolationLocation getViolationLocation();
 
     void addConverter(LfVoltageSourceConverter converter);
+
+    int getNumSC();
 }

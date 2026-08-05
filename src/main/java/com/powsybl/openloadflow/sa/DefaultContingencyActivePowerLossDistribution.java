@@ -36,7 +36,9 @@ public class DefaultContingencyActivePowerLossDistribution implements Contingenc
     }
 
     @Override
-    public double run(LfNetwork network, LfContingency lfContingency, Contingency contingency, SecurityAnalysisParameters securityAnalysisParameters, LoadFlowParametersOverride loadFlowParametersOverride, ReportNode reportNode) {
+    public double run(LfNetwork network, LfContingency lfContingency, Contingency contingency,
+                      SecurityAnalysisParameters securityAnalysisParameters, LoadFlowParametersOverride loadFlowParametersOverride,
+                      ReportNode reportNode) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(lfContingency);
         Objects.requireNonNull(contingency);
@@ -48,8 +50,9 @@ public class DefaultContingencyActivePowerLossDistribution implements Contingenc
         OpenLoadFlowParameters openLoadFlowParameters = OpenLoadFlowParameters.get(loadFlowParameters);
 
         if ((paramsOverride.isDistributedSlack(loadFlowParameters) || paramsOverride.isAreaInterchangeControl(openLoadFlowParameters)) && Math.abs(mismatch) > 0) {
-            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(paramsOverride.getBalanceType(loadFlowParameters), openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
-            var result = activePowerDistribution.run(network, mismatch);
+            ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(paramsOverride.getBalanceType(loadFlowParameters),
+                openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
+            ActivePowerDistribution.Result result = activePowerDistribution.run(network.getSynchronousNetworks().getFirst(), mismatch);
             Reports.reportContingencyActivePowerLossDistribution(reportNode, mismatch * PerUnit.SB, result.remainingMismatch() * PerUnit.SB);
             return mismatch - result.remainingMismatch();
         }

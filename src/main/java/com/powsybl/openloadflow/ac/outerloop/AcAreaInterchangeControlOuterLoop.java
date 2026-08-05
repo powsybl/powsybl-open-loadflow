@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.lf.outerloop.AbstractAreaInterchangeControlOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,11 @@ public class AcAreaInterchangeControlOuterLoop
 
     @Override
     public double getSlackBusActivePowerMismatch(AcOuterLoopContext context) {
-        return context.getLastSolverResult().getSlackBusActivePowerMismatch();
+        return context.getLastSolverResult().getSlackBusActivePowerMismatch().values().stream().mapToDouble(Double::doubleValue).sum();
     }
 
+    @Override
+    public double getDistributedActivePower(AcOuterLoopContext context, int numSC) {
+        return ((DistributedSlackContextData) context.getData()).getDistributedActivePower(numSC);
+    }
 }

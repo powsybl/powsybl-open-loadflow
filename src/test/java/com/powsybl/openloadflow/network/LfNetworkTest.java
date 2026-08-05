@@ -521,7 +521,7 @@ class LfNetworkTest extends AbstractSerDeTest {
 
         // Make the initial slack bus selector fail and the fallback fail by setting all buses as excluded buses
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector(Set.of(Country.BE)));
-        LfNetwork first = lfNetworks.get(0);
+        LfSynchronousNetwork first = lfNetworks.get(0).getSynchronousNetworks().getFirst();
         first.setExcludedSlackBuses(new HashSet<>(first.getBuses()));
         assertThrows(PowsyblException.class, first::updateSlackBusesAndReferenceBus,
             "No slack bus could be selected");

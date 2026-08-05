@@ -34,6 +34,8 @@ public interface LfLoad extends PropertyBag {
 
     void setTargetP(double targetP);
 
+    void setInitialTargetP(double initialTargetP);
+
     double getTargetQ();
 
     void setTargetQ(double targetQ);

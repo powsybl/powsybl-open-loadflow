@@ -103,31 +103,7 @@ public abstract class AbstractAcSolver implements AcSolver {
         // report largest mismatches in (P, Q, V) equations
         for (AcEquationType acEquationType : REPORTED_AC_EQUATION_TYPES) {
             Optional.ofNullable(mismatchEquations.get(acEquationType))
-                    .ifPresent(equationPair -> {
-                        Equation<AcVariableType, AcEquationType> equation = equationSystem.getIndex().getEquationAtColumn(equationPair.getLeft());
-                        double equationMismatch = equationPair.getValue();
-                        int elementNum = equation.getElementNum();
-                        // REPORTED_AC_EQUATION_TYPES only contain bus equations
-                        LfBus bus = network.getBus(elementNum);
-                        int busVRow = equationSystem.getVariable(elementNum, AcVariableType.BUS_V).getRow();
-                        int busPhiRow = equationSystem.getVariable(elementNum, AcVariableType.BUS_PHI).getRow();
-                        double busV = equationSystem.getStateVector().get(busVRow);
-                        double busPhi = equationSystem.getStateVector().get(busPhiRow);
-                        double busNominalV = bus.getNominalV();
-                        double busSumP = bus.getP().eval() * PerUnit.SB;
-                        double busSumQ = bus.getQ().eval() * PerUnit.SB;
-
-                        if (logger.isTraceEnabled()) {
-                            logger.trace("Largest mismatch on {}: {}", getEquationTypeDescription(acEquationType), equationMismatch);
-                            logger.trace("    Bus Id: {} (nominalVoltage={})", bus.getId(), busNominalV);
-                            logger.trace("    Bus  V: {} pu, {} rad", busV, busPhi);
-                        }
-
-                        if (reportNode != null) {
-                            Reports.BusReport busReport = new Reports.BusReport(bus.getId(), equationMismatch, busNominalV, busV, busPhi, busSumP, busSumQ);
-                            Reports.reportNewtonRaphsonLargestMismatches(reportNode, getEquationTypeDescription(acEquationType), busReport);
-                        }
-                    });
+                    .ifPresent(equationPair -> reportAndLogEquation(equationPair, acEquationType, reportNode, logger));
         }
     }
 
@@ -144,5 +120,31 @@ public abstract class AbstractAcSolver implements AcSolver {
         }
 
         return null;
+    }
+
+    private void reportAndLogEquation(Pair<Integer, Double> equationPair, AcEquationType acEquationType, ReportNode reportNode, Logger logger) {
+        Equation<AcVariableType, AcEquationType> equation = equationSystem.getIndex().getEquationAtColumn(equationPair.getLeft());
+        double equationMismatch = equationPair.getValue();
+        int elementNum = equation.getElementNum();
+        // REPORTED_AC_EQUATION_TYPES only contain bus equations
+        LfBus bus = network.getBus(elementNum);
+        int busVRow = equationSystem.getVariable(elementNum, AcVariableType.BUS_V).getRow();
+        int busPhiRow = equationSystem.getVariable(elementNum, AcVariableType.BUS_PHI).getRow();
+        double busV = equationSystem.getStateVector().get(busVRow);
+        double busPhi = equationSystem.getStateVector().get(busPhiRow);
+        double busNominalV = bus.getNominalV();
+        double busSumP = bus.getP().eval() * PerUnit.SB;
+        double busSumQ = bus.getQ().eval() * PerUnit.SB;
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("Largest mismatch on {}: {}", getEquationTypeDescription(acEquationType), equationMismatch);
+            logger.trace("    Bus Id: {} (nominalVoltage={})", bus.getId(), busNominalV);
+            logger.trace("    Bus  V: {} pu, {} rad", busV, busPhi);
+        }
+
+        if (reportNode != null) {
+            Reports.BusReport busReport = new Reports.BusReport(bus.getId(), equationMismatch, busNominalV, busV, busPhi, busSumP, busSumQ);
+            Reports.reportNewtonRaphsonLargestMismatches(reportNode, getEquationTypeDescription(acEquationType), busReport);
+        }
     }
 }

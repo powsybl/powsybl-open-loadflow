@@ -22,6 +22,8 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
 import com.powsybl.openloadflow.network.action.LfAction;
+import com.powsybl.openloadflow.network.action.LfGeneratorAction;
+import com.powsybl.openloadflow.network.action.LfLoadAction;
 
 import java.util.*;
 
@@ -126,6 +128,32 @@ public class WoodburyEngine {
                                     targetVectorArray[column] = tapPositionChange.getNewPiModel().getA1();
                                 }
                         );
+                    });
+
+            // apply generator actions by shifting the bus target P injection
+            lfActions.stream()
+                    .filter(LfGeneratorAction.class::isInstance)
+                    .map(LfGeneratorAction.class::cast)
+                    .filter(a -> !a.getGenerator().isDisabled())
+                    .forEach(genAction -> {
+                        LfBus bus = genAction.getGenerator().getBus();
+                        double deltaTargetP = genAction.getNewTargetP() - genAction.getGenerator().getTargetP();
+                        loadFlowContext.getEquationSystem().getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
+                                .filter(Equation::isActive)
+                                .ifPresent(eq -> targetVectorArray[eq.getColumn()] += deltaTargetP);
+                    });
+
+            // apply load actions: a load increase reduces the bus net injection (generation - load)
+            lfActions.stream()
+                    .filter(LfLoadAction.class::isInstance)
+                    .map(LfLoadAction.class::cast)
+                    .filter(a -> a.isValid() && !a.getLfLoad().isOriginalLoadDisabled(a.getLoadId()))
+                    .forEach(loadAction -> {
+                        LfBus bus = loadAction.getLfLoad().getBus();
+                        double deltaTargetP = -loadAction.getPowerShift().getActive();
+                        loadFlowContext.getEquationSystem().getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
+                                .filter(Equation::isActive)
+                                .ifPresent(eq -> targetVectorArray[eq.getColumn()] += deltaTargetP);
                     });
 
             // set transformer phase shift to 0 for disabled phase tap changers by actions

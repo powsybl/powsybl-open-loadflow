@@ -266,23 +266,30 @@ public abstract class AbstractLoadFlowNetworkFactory {
         return createVoltageSourceConverterVdcVac(b, dn1, dn2, id, 0., 0., 0., targetVdc, targetVac);
     }
 
-    protected static VoltageSourceConverter createVoltageSourceConverterPccQac(Bus b, DcNode dn1, DcNode dn2, String id, double idle, double sw, double r, double targetP, double targetQ) {
+    protected static VoltageSourceConverter createVoltageSourceConverterPccQac(Bus b, DcNode dn1, DcNode dn2, String id,
+                                                                               double idle, double sw, double r, double targetP, double targetQ) {
         return createVoltageSourceConverter(b, dn1, dn2, id, idle, sw, r, AcDcConverter.ControlMode.P_PCC, targetP, Double.NaN, false, Double.NaN, targetQ);
     }
 
-    protected static VoltageSourceConverter createVoltageSourceConverterPccVac(Bus b, DcNode dn1, DcNode dn2, String id, double idle, double sw, double r, double targetP, double targetVac) {
+    protected static VoltageSourceConverter createVoltageSourceConverterPccVac(Bus b, DcNode dn1, DcNode dn2, String id,
+                                                                               double idle, double sw, double r, double targetP, double targetVac) {
         return createVoltageSourceConverter(b, dn1, dn2, id, idle, sw, r, AcDcConverter.ControlMode.P_PCC, targetP, Double.NaN, true, targetVac, Double.NaN);
     }
 
-    protected static VoltageSourceConverter createVoltageSourceConverterVdcQac(Bus b, DcNode dn1, DcNode dn2, String id, double idle, double sw, double r, double targetVdc, double targetQ) {
+    protected static VoltageSourceConverter createVoltageSourceConverterVdcQac(Bus b, DcNode dn1, DcNode dn2, String id,
+                                                                               double idle, double sw, double r, double targetVdc, double targetQ) {
         return createVoltageSourceConverter(b, dn1, dn2, id, idle, sw, r, AcDcConverter.ControlMode.V_DC, Double.NaN, targetVdc, false, Double.NaN, targetQ);
     }
 
-    protected static VoltageSourceConverter createVoltageSourceConverterVdcVac(Bus b, DcNode dn1, DcNode dn2, String id, double idle, double sw, double r, double targetVdc, double targetVac) {
+    protected static VoltageSourceConverter createVoltageSourceConverterVdcVac(Bus b, DcNode dn1, DcNode dn2, String id,
+                                                                               double idle, double sw, double r, double targetVdc, double targetVac) {
         return createVoltageSourceConverter(b, dn1, dn2, id, idle, sw, r, AcDcConverter.ControlMode.V_DC, Double.NaN, targetVdc, true, targetVac, Double.NaN);
     }
 
-    protected static VoltageSourceConverter createVoltageSourceConverter(Bus b, DcNode dn1, DcNode dn2, String id, double idle, double sw, double r, AcDcConverter.ControlMode mode, double targetP, double targetVdc, boolean voltageRegulatorOn, double targetVac, double targetQ) {
+    protected static VoltageSourceConverter createVoltageSourceConverter(Bus b, DcNode dn1, DcNode dn2, String id,
+                                                                         double idle, double sw, double r, AcDcConverter.ControlMode mode,
+                                                                         double targetP, double targetVdc, boolean voltageRegulatorOn,
+                                                                         double targetVac, double targetQ) {
         return b.getVoltageLevel().newVoltageSourceConverter()
             .setId(id)
             .setBus1(b.getId())

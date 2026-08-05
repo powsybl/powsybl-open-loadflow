@@ -10,9 +10,11 @@ package com.powsybl.openloadflow.ac.equations.fastdecoupled;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.equations.OpenBranchSide2ReactiveFlowEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
-import static com.powsybl.openloadflow.ac.equations.OpenBranchSide2ReactiveFlowEquationTerm.dq1dv1;
 import net.jafama.FastMath;
+
 import java.util.Objects;
+
+import static com.powsybl.openloadflow.ac.equations.OpenBranchSide2ReactiveFlowEquationTerm.dq1dv1;
 
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}

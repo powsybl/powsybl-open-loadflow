@@ -162,6 +162,4 @@
                      Bus V: 0.995 pu, 0 rad
                      Bus injection: 608.334674 MW, 234.023593 MVar
             Outer loop ReactiveLimits
-            Outer loop DistributedSlack
-            Outer loop ReactiveLimits
             AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

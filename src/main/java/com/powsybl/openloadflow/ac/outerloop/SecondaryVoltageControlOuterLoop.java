@@ -14,8 +14,8 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -53,7 +53,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         this.maxPlausibleTargetVoltage = maxPlausibleTargetVoltage;
     }
 
-    static class SensitivityContext {
+    public static class SensitivityContext {
 
         private final Map<Integer, Integer> controlledBusIndex;
 
@@ -64,7 +64,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             this.sensitivities = Objects.requireNonNull(sensitivities);
         }
 
-        static SensitivityContext create(List<LfBus> controlledBuses, Map<Integer, Integer> controlledBusIndex, AcLoadFlowContext context) {
+        public static SensitivityContext create(List<LfBus> controlledBuses, Map<Integer, Integer> controlledBusIndex, AcLoadFlowContext context) {
             DenseMatrix sensitivities = calculateSensitivityValues(controlledBuses, controlledBusIndex, context.getEquationSystem(),
                                                                    context.getJacobianMatrix());
 
@@ -150,7 +150,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return qToK(q, controllerBus);
     }
 
-    private static DenseMatrix createA(List<LfSecondaryVoltageControl> secondaryVoltageControls,
+    public static DenseMatrix createA(List<LfSecondaryVoltageControl> secondaryVoltageControls,
                                        List<LfBus> allControllerBuses, Map<Integer, Integer> controllerBusIndex) {
         DenseMatrix a = new DenseMatrix(allControllerBuses.size(), allControllerBuses.size());
         // build a block in the global matrix for each of the secondary voltage control
@@ -177,7 +177,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return k0;
     }
 
-    private static DenseMatrix createJk(SensitivityContext sensitivityContext,
+    public static DenseMatrix createJk(SensitivityContext sensitivityContext,
                                         List<LfBus> controllerBuses, List<LfBus> controlledBuses,
                                         Map<Integer, Integer> controllerBusIndex, Map<Integer, Integer> controlledBusIndex) {
         DenseMatrix jK = new DenseMatrix(controlledBuses.size(), controllerBuses.size());
@@ -191,7 +191,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return jK;
     }
 
-    private static DenseMatrix createJvpp(SensitivityContext sensitivityContext, LfBus pilotBus,
+    public static DenseMatrix createJvpp(SensitivityContext sensitivityContext, LfBus pilotBus,
                                           List<LfBus> controlledBuses, Map<Integer, Integer> controlledBusIndex) {
         DenseMatrix jVpp = new DenseMatrix(controlledBuses.size(), 1);
         for (LfBus controlledBus : controlledBuses) {
@@ -360,17 +360,16 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
 
-        OuterLoopStatus status = OuterLoopStatus.STABLE;
-
         List<String> adjustedZoneNames = processSecondaryVoltageControl(secondaryVoltageControls, context.getLoadFlowContext()).orElse(null);
         if (adjustedZoneNames == null) {
-            status = OuterLoopStatus.FAILED;
-        } else {
-            if (!adjustedZoneNames.isEmpty()) {
-                status = OuterLoopStatus.UNSTABLE;
-                LOGGER.info("{} secondary voltage control zones have been adjusted: {}",
-                        adjustedZoneNames.size(), adjustedZoneNames);
-            }
+            return new OuterLoopResult(this, OuterLoopStatus.FAILED, "Cannot adjust secondary voltage control because some calculated controlled bus target voltages are not plausible");
+        }
+
+        OuterLoopStatus status = OuterLoopStatus.STABLE;
+        if (!adjustedZoneNames.isEmpty()) {
+            status = OuterLoopStatus.UNSTABLE;
+            LOGGER.info("{} secondary voltage control zones have been adjusted: {}",
+                    adjustedZoneNames.size(), adjustedZoneNames);
         }
 
         return new OuterLoopResult(this, status);

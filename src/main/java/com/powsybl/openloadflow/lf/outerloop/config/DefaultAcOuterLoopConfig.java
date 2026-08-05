@@ -8,9 +8,9 @@
 package com.powsybl.openloadflow.lf.outerloop.config;
 
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.LoadFlowParametersOverride;
-import com.powsybl.openloadflow.ac.outerloop.*;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 
 import java.util.ArrayList;
 import java.util.List;

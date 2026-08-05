@@ -38,3 +38,11 @@ However limitations remain until the core security analysis API evolves:
 - Convergence status of secondary components are not reported in precontingency status 
 - Convergence status of contingencies that affect multiple components are not reported (only the first run component's status)
 - Actions that change the topology of the network by connecting components not initially connected (using TerminalConnectionAction) are not supported
+
+## DC detailed model
+
+Please note that security analysis supports AC-DC networks with DC detailed model only if:
+1. The DC components are embedded. Therefore, there is only one synchronous component per connected component.
+2. Load flow mode is AC
+
+Please also note that contingencies on DC elements are not supported.

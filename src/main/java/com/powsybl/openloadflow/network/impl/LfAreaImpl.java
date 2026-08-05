@@ -103,12 +103,14 @@ public class LfAreaImpl extends AbstractElement implements LfArea {
                 if (side == TwoSides.ONE) {
                     BoundaryLine boundaryLine1 = lfTieLineBranch.getHalf1();
                     double nominalV1 = boundaryLine1.getTerminal().getVoltageLevel().getNominalV();
-                    return new SV(lfTieLineBranch.getP1().eval() * PerUnit.SB, lfTieLineBranch.getQ1().eval() * PerUnit.SB, lfTieLineBranch.getV1() * nominalV1, Math.toDegrees(lfTieLineBranch.getAngle1()), side)
+                    return new SV(lfTieLineBranch.getP1().eval() * PerUnit.SB, lfTieLineBranch.getQ1().eval() * PerUnit.SB,
+                        lfTieLineBranch.getV1() * nominalV1, Math.toDegrees(lfTieLineBranch.getAngle1()), side)
                             .otherSideP(boundaryLine1, false) / PerUnit.SB;
                 } else if (side == TwoSides.TWO) {
                     BoundaryLine boundaryLine = lfTieLineBranch.getHalf2();
                     double nominalV2 = boundaryLine.getTerminal().getVoltageLevel().getNominalV();
-                    return new SV(lfTieLineBranch.getP2().eval() * PerUnit.SB, lfTieLineBranch.getQ2().eval() * PerUnit.SB, lfTieLineBranch.getV2() * nominalV2, Math.toDegrees(lfTieLineBranch.getAngle2()), side)
+                    return new SV(lfTieLineBranch.getP2().eval() * PerUnit.SB, lfTieLineBranch.getQ2().eval() * PerUnit.SB,
+                        lfTieLineBranch.getV2() * nominalV2, Math.toDegrees(lfTieLineBranch.getAngle2()), side)
                             .otherSideP(boundaryLine, false) / PerUnit.SB;
                 }
             }

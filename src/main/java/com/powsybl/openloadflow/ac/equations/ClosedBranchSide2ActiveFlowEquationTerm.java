@@ -81,6 +81,14 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
         return -y * R2 * v1 * v2 * sinTheta;
     }
 
+    public static double dp2dy(double r1, double v1, double v2, double sinKsi, double sinTheta) {
+        return R2 * v2 * (-r1 * v1 * sinTheta + R2 * v2 * sinKsi);
+    }
+
+    public static double dp2dksi(double y, double r1, double v1, double v2, double cosKsi, double cosTheta) {
+        return R2 * v2 * (-y * r1 * v1 * cosTheta + y * R2 * v2 * cosKsi);
+    }
+
     @Override
     public double eval() {
         return p2(y, FastMath.sin(ksi), g2, v1(), r1(), v2(), FastMath.sin(theta2(ksi, ph1(), a1(), ph2())));

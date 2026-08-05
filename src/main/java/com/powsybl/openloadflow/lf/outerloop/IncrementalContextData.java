@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -40,8 +39,10 @@ public class IncrementalContextData {
             return allowedDirection;
         }
 
+        private boolean insensitive = false;
+
         public void updateAllowedDirection(Direction direction) {
-            if (directionChangeCount.getValue() < maxDirectionChange) {
+            if (directionChangeCount.intValue() < maxDirectionChange) {
                 if (currentDirection != null && currentDirection != direction) {
                     directionChangeCount.increment();
                 }
@@ -50,11 +51,25 @@ public class IncrementalContextData {
                 allowedDirection = direction.getAllowedDirection();
             }
         }
+
+        public void setInsensitive() {
+            insensitive = true;
+        }
+
+        private void resetInsensitive() {
+            insensitive = false;
+        }
+
+        public boolean isInsensitive() {
+            return insensitive;
+        }
     }
 
     private final Map<String, ControllerContext> controllersContexts = new HashMap<>();
 
     private final List<LfBus> candidateControlledBuses;
+
+    private int lastOuterLoopTotalIterations = 0;
 
     public Map<String, ControllerContext> getControllersContexts() {
         return controllersContexts;
@@ -67,7 +82,7 @@ public class IncrementalContextData {
     public IncrementalContextData(LfNetwork network, VoltageControl.Type type) {
         candidateControlledBuses = network.getBuses().stream()
                 .filter(bus -> bus.isVoltageControlled(type))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public IncrementalContextData() {
@@ -78,7 +93,7 @@ public class IncrementalContextData {
         return candidateControlledBuses.stream()
                 .filter(bus -> bus.getVoltageControl(type).orElseThrow().getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                 .filter(bus -> !bus.getVoltageControl(type).orElseThrow().isDisabled())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public static <E extends LfElement> List<E> getControllerElements(List<LfBus> candidateControlledBuses, VoltageControl.Type type) {
@@ -86,6 +101,14 @@ public class IncrementalContextData {
                 .flatMap(bus -> bus.getVoltageControl(type).orElseThrow().getMergedControllerElements().stream())
                 .filter(Predicate.not(LfElement::isDisabled))
                 .map(element -> (E) element)
-                .collect(Collectors.toList());
+                .toList();
+    }
+
+    public void check(int outerLoopTotalIterations) {
+        if (outerLoopTotalIterations > lastOuterLoopTotalIterations + 1) {
+            // another outer loop executed before our last run, reset insensitive status
+            controllersContexts.values().forEach(ControllerContext::resetInsensitive);
+        }
+        lastOuterLoopTotalIterations = outerLoopTotalIterations;
     }
 }

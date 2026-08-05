@@ -14,12 +14,12 @@ The next section details the parameters that are specific to PowSyBl Open LoadFL
 
 ## Specific parameters
 
-(param-sensi-debug-dir)
+(param-sensi-debug-dir)=
 ### debugDir
 Allows to dump debug files to a specific directory.<br>
 The default value is undefined (`null`), disabling any debug files writing.
 
-(param-sensi-start-with-frozen-ac-emulation)
+(param-sensi-start-with-frozen-ac-emulation)=
 ### startWithFrozenACEmulation
 If `true`, contingence simulation starts with HVDC link configured in AC emulation frozen at their previous active set point
 defined by the angles at the HVDC extremities in the base case. If a solution is found then the simulator
@@ -29,7 +29,7 @@ If `false`, contingence simulation allows HVDC lines to immediately adapt to the
 
 The default value is `true`
 
-(param-sensi-thread-count)
+(param-sensi-thread-count)=
 ### threadCount
 The `threadCount` property defines the number of threads used to run an AC sensitivity analysis (multi-threading is currently not 
 supported for DC sensitivity analysis).

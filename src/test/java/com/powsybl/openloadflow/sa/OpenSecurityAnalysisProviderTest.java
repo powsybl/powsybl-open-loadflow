@@ -51,7 +51,8 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
 
     @Test
     void specificParametersNamesTest() {
-        assertEquals(List.of("createResultExtension", "contingencyPropagation", "threadCount", "dcFastMode", "contingencyActivePowerLossDistribution", "startWithFrozenACEmulation"), provider.getSpecificParametersNames());
+        assertEquals(List.of("createResultExtension", "contingencyPropagation", "threadCount", "dcFastMode", "contingencyActivePowerLossDistribution", "startWithFrozenACEmulation"),
+            provider.getSpecificParametersNames());
     }
 
     @Test
@@ -181,9 +182,9 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
 
         byte[] json = """
             {
-              "version" : "1.2",
+              "version" : "1.3",
               "load-flow-parameters" : {
-                "version" : "1.10",
+                "version" : "1.11",
                 "voltageInitMode" : "DC_VALUES",
                 "extensions": {
                   "open-load-flow-parameters": {

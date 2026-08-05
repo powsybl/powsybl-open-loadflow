@@ -36,7 +36,7 @@ class LUDecompositionTest {
         private final LUDecomposition delegate;
         private final SpyMatrixFactory spy;
 
-        public LUDecompositionMockIncrementalFailure(LUDecomposition delegate, SpyMatrixFactory spy) {
+        LUDecompositionMockIncrementalFailure(LUDecomposition delegate, SpyMatrixFactory spy) {
             this.delegate = delegate;
             this.spy = spy;
         }

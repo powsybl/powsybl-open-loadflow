@@ -40,6 +40,10 @@ public class FullVoltageInitializer implements VoltageInitializer {
 
     @Override
     public void prepare(LfNetwork network, ReportNode reportNode) {
+        if (!network.getDcBuses().isEmpty()) {
+            throw new PowsyblException("Full voltage initialization is not yet supported with AcDcNetwork");
+        }
+
         ReportNode initReportNode = Reports.reportVoltageInitializer(reportNode, NAME);
         magnitudeInitializer.prepare(network, initReportNode);
         angleInitializer.prepare(network, initReportNode);

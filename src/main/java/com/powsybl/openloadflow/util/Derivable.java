@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.equations.Variable;
 /**
  * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
  */
-public interface Derivable <V extends Enum<V> & Quantity> extends Evaluable {
+public interface Derivable<V extends Enum<V> & Quantity> extends Evaluable {
 
     double der(Variable<V> variable);
 

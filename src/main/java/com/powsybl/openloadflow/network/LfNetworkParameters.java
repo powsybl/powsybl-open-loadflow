@@ -78,6 +78,8 @@ public class LfNetworkParameters {
 
     public static final boolean INCLUDE_ELEMENTS_RECONNECTING_SMALL_COMPONENTS_DEFAULT_VALUE = true;
 
+    public static final boolean ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE = true;
+
     private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;
@@ -172,6 +174,8 @@ public class LfNetworkParameters {
 
     private boolean includeElementsReconnectingSmallComponents = INCLUDE_ELEMENTS_RECONNECTING_SMALL_COMPONENTS_DEFAULT_VALUE;
 
+    private boolean allowNonLinearShuntZeroSection = ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -227,6 +231,7 @@ public class LfNetworkParameters {
         this.isAcDcNetwork = other.isAcDcNetwork;
         this.detailedReport = other.detailedReport;
         this.includeElementsReconnectingSmallComponents = other.includeElementsReconnectingSmallComponents;
+        this.allowNonLinearShuntZeroSection = other.allowNonLinearShuntZeroSection;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -693,6 +698,15 @@ public class LfNetworkParameters {
         return this;
     }
 
+    public boolean isAllowNonLinearShuntZeroSection() {
+        return allowNonLinearShuntZeroSection;
+    }
+
+    public LfNetworkParameters setAllowNonLinearShuntZeroSection(boolean allowNonLinearShuntZeroSection) {
+        this.allowNonLinearShuntZeroSection = allowNonLinearShuntZeroSection;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -741,6 +755,7 @@ public class LfNetworkParameters {
                 ", isAcDcNetwork=" + isAcDcNetwork +
                 ", detailedReport=" + detailedReport +
                 ", includeElementsReconnectingSmallComponents=" + includeElementsReconnectingSmallComponents +
+                ", allowNonLinearShuntZeroSection=" + allowNonLinearShuntZeroSection +
                 ')';
     }
 }

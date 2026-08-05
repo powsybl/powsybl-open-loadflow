@@ -7,11 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.outerloop.tap;
 
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.PiModel;
-import com.powsybl.openloadflow.network.VoltageControl;
+import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.HashMap;
@@ -47,42 +43,7 @@ public class TransformerRatioManager {
         for (LfBus bus : network.getControlledBuses(VoltageControl.Type.TRANSFORMER)) {
             bus.getTransformerVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                    .ifPresent(voltageControl -> {
-                        var controllerBranches = voltageControl.getMergedControllerElements().stream()
-                                .filter(b -> !b.isDisabled())
-                                .filter(LfBranch::isVoltageControlEnabled)
-                                .toList();
-                        if (!controllerBranches.isEmpty()) {
-                            if (useInitialTapPosition) {
-                                // shared behavior
-                                double a = 0;
-                                double b = 0;
-                                for (LfBranch branch : controllerBranches) {
-                                    PiModel piModel = branch.getPiModel();
-                                    double r1 = piModel.getR1();
-                                    double maxR1 = piModel.getMaxR1();
-                                    double minR1 = piModel.getMinR1();
-                                    if (maxR1 != minR1) {
-                                        a += (maxR1 - r1) / (maxR1 - minR1);
-                                        b += (r1 - minR1) / (maxR1 - minR1);
-                                    } else {
-                                        a += 1;
-                                        b += 1;
-                                    }
-                                }
-                                SharedControl sharedControl = new SharedControl(
-                                        controllerBranches.stream().mapToDouble(branch -> branch.getPiModel().getMaxR1()).average().orElseThrow(),
-                                        controllerBranches.stream().mapToDouble(branch -> branch.getPiModel().getMinR1()).average().orElseThrow(),
-                                        a,
-                                        b,
-                                        controllerBranches.size());
-                                controllerBranches.forEach(branch -> sharedControlByBranchId.put(branch.getId(), Pair.of(branch.getPiModel().getR1(), sharedControl)));
-                            } else {
-                                // individual behavior
-                                controllerBranches.forEach(branch -> sharedControlByBranchId.put(branch.getId(), Pair.of(branch.getPiModel().getR1(), new SharedControl(branch.getPiModel()))));
-                            }
-                        }
-                    });
+                    .ifPresent(this::initializeRatios);
         }
     }
 
@@ -131,5 +92,42 @@ public class TransformerRatioManager {
             }
         }
         return false;
+    }
+
+    private void initializeRatios(TransformerVoltageControl voltageControl) {
+        var controllerBranches = voltageControl.getMergedControllerElements().stream()
+            .filter(b -> !b.isDisabled())
+            .filter(LfBranch::isVoltageControlEnabled)
+            .toList();
+        if (!controllerBranches.isEmpty()) {
+            if (useInitialTapPosition) {
+                // shared behavior
+                double a = 0;
+                double b = 0;
+                for (LfBranch branch : controllerBranches) {
+                    PiModel piModel = branch.getPiModel();
+                    double r1 = piModel.getR1();
+                    double maxR1 = piModel.getMaxR1();
+                    double minR1 = piModel.getMinR1();
+                    if (maxR1 != minR1) {
+                        a += (maxR1 - r1) / (maxR1 - minR1);
+                        b += (r1 - minR1) / (maxR1 - minR1);
+                    } else {
+                        a += 1;
+                        b += 1;
+                    }
+                }
+                SharedControl sharedControl = new SharedControl(
+                    controllerBranches.stream().mapToDouble(branch -> branch.getPiModel().getMaxR1()).average().orElseThrow(),
+                    controllerBranches.stream().mapToDouble(branch -> branch.getPiModel().getMinR1()).average().orElseThrow(),
+                    a,
+                    b,
+                    controllerBranches.size());
+                controllerBranches.forEach(branch -> sharedControlByBranchId.put(branch.getId(), Pair.of(branch.getPiModel().getR1(), sharedControl)));
+            } else {
+                // individual behavior
+                controllerBranches.forEach(branch -> sharedControlByBranchId.put(branch.getId(), Pair.of(branch.getPiModel().getR1(), new SharedControl(branch.getPiModel()))));
+            }
+        }
     }
 }

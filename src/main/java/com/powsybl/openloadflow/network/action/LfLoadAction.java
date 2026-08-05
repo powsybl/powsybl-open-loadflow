@@ -47,6 +47,18 @@ public class LfLoadAction extends AbstractLfAction<LoadAction> {
                 reactivePowerShift / PerUnit.SB);
     }
 
+    public String getLoadId() {
+        return loadId;
+    }
+
+    public LfLoad getLfLoad() {
+        return lfLoad;
+    }
+
+    public PowerShift getPowerShift() {
+        return powerShift;
+    }
+
     @Override
     public boolean isValid() {
         return lfLoad != null;
