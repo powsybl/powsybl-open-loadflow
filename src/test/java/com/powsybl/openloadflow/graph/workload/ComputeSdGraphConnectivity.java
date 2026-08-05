@@ -21,6 +21,10 @@ public class ComputeSdGraphConnectivity<V, E> extends AbstractSpyGraphConnectivi
 
     public ComputeSdGraphConnectivity(Path file) {
         try {
+            if (file.getParent() != null) {
+                Files.createDirectories(file.getParent());
+            }
+
             bw = Files.newBufferedWriter(file);
         } catch (IOException e) {
             throw new RuntimeException(e);

@@ -39,9 +39,9 @@ public final class WorkloadRunner {
             .setMeasurement(10);
     private static final RunParameters VALIDATOR = new RunParameters.Validator();
     private static final RunParameters COMPUTE_SD = new RunParameters.ComputeSd()
-            .setOutput("sum_of_distances/{class}/{workload}/{index}.txt");
+            .setOutput("sum_of_distances/${class}/${workload}/${index}.txt");
 
-    private static final RunParameters WORKLOAD_PARAMS = VALIDATOR;
+    private static final RunParameters WORKLOAD_PARAMS = COMPUTE_SD;
 
     private static final Log LOG = Log.init("results.txt");
     private static final MyProgressManager PROGRESS = new MyProgressManager();
