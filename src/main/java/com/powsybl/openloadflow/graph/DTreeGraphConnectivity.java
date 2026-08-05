@@ -269,8 +269,8 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
         private void checkEdges() {
             for (DTNode node : vertexToTreeNode.values()) {
-                for (E nonTreeEdge : node.nonTreeEdges) {
-                    assert edges.containsKey(nonTreeEdge) && !edges.get(nonTreeEdge).treeEdge;
+                for (Edge nonTreeEdge : node.nonTreeEdges) {
+                    assert !nonTreeEdge.treeEdge;
                 }
             }
 
@@ -278,14 +278,15 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 E e = entry.getKey();
                 Edge edge = entry.getValue();
 
-                DTNode src = Objects.requireNonNull(vertexToTreeNode.get(edge.u));
-                DTNode dest = Objects.requireNonNull(vertexToTreeNode.get(edge.v));
+                DTNode src = edge.nodeU;
+                DTNode dest = edge.nodeV;
+                assert vertexToTreeNode.containsValue(src) && vertexToTreeNode.containsValue(dest);
 
                 if (edge.treeEdge) {
                     assert src.parent == dest && src.parentEdge == e || dest.parent == src && dest.parentEdge == e;
                 } else {
-                    assert src.nonTreeEdges.contains(e);
-                    assert dest.nonTreeEdges.contains(e);
+                    assert src.nonTreeEdges.contains(edge);
+                    assert dest.nonTreeEdges.contains(edge);
                 }
             }
         }
@@ -326,20 +327,22 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             DTNode nodeU = getNodeThrowIfInexistent(u);
             DTNode nodeV = getNodeThrowIfInexistent(v);
 
+            // update edges
+            Edge edge = new Edge(nodeU, nodeV, e, false);
+            edges.put(e, edge);
+
+            // update spanning trees
             Pair<DTNode, Integer> rootUdist = nodeU.findRootWithDist();
             Pair<DTNode, Integer> rootVdist = nodeV.findRootWithDist();
 
-            boolean treeEdge;
             if (rootUdist.getKey() == rootVdist.getKey()) {
                 // insert non tree edge
-                treeEdge = insertNonTreeEdge(rootUdist.getKey(), nodeU, rootUdist.getValue(), nodeV, rootVdist.getValue(), e);
+                edge.treeEdge = insertNonTreeEdge(rootUdist.getKey(), nodeU, rootUdist.getValue(), nodeV, rootVdist.getValue(), edge);
             } else {
                 // insert tree edge
-                insertTreeEdge(rootUdist.getKey(), nodeU, rootVdist.getKey(), nodeV, e);
-                treeEdge = true;
+                edge.treeEdge = true;
+                insertTreeEdge(rootUdist.getKey(), nodeU, rootVdist.getKey(), nodeV, edge);
             }
-
-            edges.put(e, new Edge(u, v, treeEdge));
 
             check();
         }
@@ -370,10 +373,10 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
          * @param depthU the depth of {@code nodeU}.
          * @param nodeV the other endpoint of the edge to add.
          * @param depthV the depth of {@code nodeU}
-         * @param edge user data for the edge
+         * @param edge edge linking {@code nodeU} and {@code nodeV}
          * @return {@code true} if the edge inserted is a tree edge. This is true if |depthU - depthV| >= 2.
          */
-        private boolean insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, E edge) {
+        private boolean insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, Edge edge) {
             DTNode deep;
             DTNode shallow;
             int delta;
@@ -403,7 +406,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 // replace the edge between ancestor and its parent by a non tree edge
                 ancestor.parent.nonTreeEdges.add(ancestor.parentEdge);
                 ancestor.nonTreeEdges.add(ancestor.parentEdge);
-                edges.get(ancestor.parentEdge).treeEdge = false;
+                ancestor.parentEdge.treeEdge = false;
                 ancestor.unlink();
 
                 // updating roots is useless because 'deep' will be
@@ -425,9 +428,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
          * @param nodeU one endpoint of the edge to add.
          * @param rootV {@code nodeV} tree root
          * @param nodeV the other endpoint of the edge to add.
-         * @param edge user data for the edge
+         * @param edge edge linking {@code nodeU} and {@code nodeV}
          */
-        private void insertTreeEdge(DTNode rootU, DTNode nodeU, DTNode rootV, DTNode nodeV, E edge) {
+        private void insertTreeEdge(DTNode rootU, DTNode nodeU, DTNode rootV, DTNode nodeV, Edge edge) {
             DTNode toRemove;
             if (rootU.size < rootV.size) {
                 nodeU.makeRoot(true);
@@ -453,13 +456,10 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 return;
             }
 
-            DTNode nodeU = vertexToTreeNode.get(edge.u);
-            DTNode nodeV = vertexToTreeNode.get(edge.v);
-
             if (edge.treeEdge) {
-                removeTreeEdge(nodeU, nodeV);
+                removeTreeEdge(edge.nodeU, edge.nodeV);
             } else {
-                removeNonTreeEdge(nodeU, nodeV, e);
+                removeNonTreeEdge(edge);
             }
 
             check();
@@ -520,18 +520,15 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
 
                 // search for a replacement edge
-                for (E nonTreeEdge : n.nonTreeEdges) {
-                    Edge edge = edges.get(nonTreeEdge);
-
-                    V opp = edge.opposite(n.vertex);
-                    DTNode oppNode = vertexToTreeNode.get(opp);
+                for (Edge nonTreeEdge : n.nonTreeEdges) {
+                    DTNode oppNode = nonTreeEdge.opposite(n);
                     DTNode oppRoot = oppNode.findRoot();
 
                     if (oppRoot != rootSmall) {
                         // found a replacement edge
-                        removeNonTreeEdge(n, oppNode, nonTreeEdge);
+                        removeNonTreeEdge(nonTreeEdge);
                         insertTreeEdge(rootSmall, n, oppRoot, oppNode, nonTreeEdge);
-                        edge.treeEdge = true;
+                        nonTreeEdge.treeEdge = true;
 
                         return;
                     }
@@ -552,14 +549,12 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         }
 
         /**
-         * Remove a non tree edge between {@code nodeU} and {@code nodeV}.
-         * @param nodeU one endpoint of the edge to remove.
-         * @param nodeV the other endpoint of the edge to remove.
+         * Remove a non tree edge between {@code edge.nodeU} and {@code edge.nodeV}.
          * @param edge the edge to remove.
          */
-        private void removeNonTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
-            nodeU.nonTreeEdges.remove(edge);
-            nodeV.nonTreeEdges.remove(edge);
+        private void removeNonTreeEdge(Edge edge) {
+            edge.nodeU.nonTreeEdges.remove(edge);
+            edge.nodeV.nonTreeEdges.remove(edge);
         }
 
         // ======================
@@ -626,7 +621,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         public V getEdgeSource(E edge) {
             return switch (edges.get(edge)) {
                 case null -> null;
-                case Edge e -> e.u;
+                case Edge e -> e.nodeU.vertex;
             };
         }
 
@@ -634,7 +629,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         public V getEdgeTarget(E edge) {
             return switch (edges.get(edge)) {
                 case null -> null;
-                case Edge e -> e.v;
+                case Edge e -> e.nodeV.vertex;
             };
         }
 
@@ -723,7 +718,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             private int size;
 
             private DTNode parent = null;
-            private E parentEdge = null;
+            private Edge parentEdge = null;
 
             // the children of this node. They are stored in a doubly linked list
             // firstChild is the head of the linked list. previousSibling and nextSibling
@@ -732,7 +727,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             private DTNode previousSibling = null;
             private DTNode nextSibling = null;
 
-            private final Set<E> nonTreeEdges = new LinkedHashSet<>();
+            private final Set<Edge> nonTreeEdges = new LinkedHashSet<>();
 
             // index in the list of roots, valid only if this node is a root
             private int rootIndex;
@@ -763,7 +758,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
                 DTNode child = this;
                 DTNode oldParent = child.parent;
-                E oldParentEdge = child.parentEdge;
+                Edge oldParentEdge = child.parentEdge;
                 oldParent.removeChildUnchecked(child); // remove before making parentEdge null
 
                 this.parent = null;
@@ -772,7 +767,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 // swap parent/child relation
                 while (oldParent != null) {
                     DTNode greatParent = oldParent.parent;
-                    E greatParentEdge = oldParent.parentEdge;
+                    Edge greatParentEdge = oldParent.parentEdge;
 
                     // At this point:
                     // - 'oldParent' is in the linked list of children of 'greatParent', and must be
@@ -822,7 +817,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
              * @param parent node that will become the parent of {@code this}.
              * @param edge the edge linking {@code this} and {@code parent}
              */
-            private void link(DTNode parentRoot, DTNode parent, E edge) {
+            private void link(DTNode parentRoot, DTNode parent, Edge edge) {
                 // first: update parent/child relations
                 parent.addChildUnchecked(this);
                 this.parent = parent;
@@ -995,13 +990,11 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
                 sb.append("} -nte-> {");
 
-                for (E nte : nonTreeEdges) {
-                    Edge e = edges.get(nte);
-
-                    if (e.u.equals(vertex)) {
-                        sb.append(e.v).append(", ");
-                    } else if (e.v.equals(vertex)) {
-                        sb.append(e.u).append(", ");
+                for (Edge nte : nonTreeEdges) {
+                    if (nte.nodeU.vertex.equals(vertex)) {
+                        sb.append(nte.nodeV.vertex).append(", ");
+                    } else if (nte.nodeV.vertex.equals(vertex)) {
+                        sb.append(nte.nodeU.vertex).append(", ");
                     } else {
                         sb.append("nte error, ");
                     }
@@ -1142,9 +1135,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
         private final class NeighborEdgesIterator implements Iterator<E> {
 
-            private E next;
-            private Iterator<E> current;
-            private Iterator<E> nextIt;
+            private Edge next;
+            private Iterator<Edge> current;
+            private Iterator<Edge> nextIt;
 
             NeighborEdgesIterator(DTNode node) {
                 if (node.parent != null) {
@@ -1187,12 +1180,12 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     throw new NoSuchElementException();
                 }
 
-                E ret = next;
+                E ret = next.edge;
                 next = null;
                 return ret;
             }
 
-            private class ChildrenIterator implements Iterator<E> {
+            private class ChildrenIterator implements Iterator<Edge> {
                 private DTNode next;
 
                 ChildrenIterator(DTNode firstChild) {
@@ -1205,7 +1198,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
 
                 @Override
-                public E next() {
+                public Edge next() {
                     if (!hasNext()) {
                         throw new NoSuchElementException();
                     }
@@ -1218,29 +1211,32 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         }
 
         private final class Edge {
-            private final V u;
-            private final V v;
+            private final DTNode nodeU;
+            private final DTNode nodeV;
+            private final E edge;
             private boolean treeEdge;
 
-            private Edge(V u, V v, boolean treeEdge) {
-                this.u = u;
-                this.v = v;
+            private Edge(DTNode nodeU, DTNode nodeV, E edge, boolean treeEdge) {
+                this.nodeU = nodeU;
+                this.nodeV = nodeV;
+                this.edge = edge;
                 this.treeEdge = treeEdge;
             }
 
-            public V opposite(V vertex) {
-                if (u.equals(vertex)) {
-                    return v;
+            public DTNode opposite(DTNode node) {
+                if (nodeU == node) {
+                    return nodeV;
                 } else {
-                    return u;
+                    return nodeU;
                 }
             }
 
             @Override
             public String toString() {
                 return "Edge{" +
-                        "u=" + u +
-                        ", v=" + v +
+                        "u=" + nodeU.vertex +
+                        ", v=" + nodeV.vertex +
+                        ", edge=" + edge +
                         ", treeEdge=" + treeEdge +
                         '}';
             }
