@@ -977,16 +977,16 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 Set<E> neighbor = new HashSet<>();
 
                 if (parentEdge != null) {
-                    neighbor.add(parentEdge.edge);
+                    neighbor.add(parentEdge.edgeData);
                 }
 
                 for (Edge nte : nonTreeEdges) {
-                    neighbor.add(nte.edge);
+                    neighbor.add(nte.edgeData);
                 }
 
                 DTNode child = firstChild;
                 while (child != null) {
-                    neighbor.add(child.parentEdge.edge);
+                    neighbor.add(child.parentEdge.edgeData);
                     child = child.nextSibling;
                 }
 
@@ -1129,13 +1129,13 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         private final class Edge {
             private final DTNode nodeU;
             private final DTNode nodeV;
-            private final E edge;
+            private final E edgeData;
             private boolean treeEdge;
 
-            private Edge(DTNode nodeU, DTNode nodeV, E edge, boolean treeEdge) {
+            private Edge(DTNode nodeU, DTNode nodeV, E edgeData, boolean treeEdge) {
                 this.nodeU = nodeU;
                 this.nodeV = nodeV;
-                this.edge = edge;
+                this.edgeData = edgeData;
                 this.treeEdge = treeEdge;
             }
 
@@ -1152,7 +1152,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 return "Edge{" +
                         "u=" + nodeU.vertex +
                         ", v=" + nodeV.vertex +
-                        ", edge=" + edge +
+                        ", edge=" + edgeData +
                         ", treeEdge=" + treeEdge +
                         '}';
             }

@@ -38,20 +38,6 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         return edges.containsKey(edge);
     }
 
-    public V getEdgeSource(E edge) {
-        return switch (edges.get(edge)) {
-            case null -> null;
-            case Edge e -> e.nodeU.vertex;
-        };
-    }
-
-    public V getEdgeTarget(E edge) {
-        return switch (edges.get(edge)) {
-            case null -> null;
-            case Edge e -> e.nodeV.vertex;
-        };
-    }
-
     private DTNode getNodeOrThrow(V v) {
         DTNode node = vertexToTreeNode.get(v);
         if (node == null) {
@@ -117,16 +103,22 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         }
 
         DTNode node = vertexToTreeNode.get(v); // can't use Map#remove because removeEdge will update this DTNode
+
+        // remove non tree edges
         while (!node.nonTreeEdges.isEmpty()) {
             // this is weird, but removeEdge will modify node.nonTreeEdges, invalidating the iterator...
-            E edge = node.nonTreeEdges.iterator().next();
-            removeEdge(edge);
+            Edge edge = node.nonTreeEdges.iterator().next();
+            removeEdge(edge.edgeData);
         }
+
+        // remove child tree edges
         while (node.firstChild != null) {
-            removeEdge(node.firstChild.parentEdge);
+            removeEdge(node.firstChild.parentEdge.edgeData);
         }
+
+        // remove parent tree edge
         if (node.parentEdge != null) {
-            removeEdge(node.parentEdge);
+            removeEdge(node.parentEdge.edgeData);
         }
 
         DTNode root = vertexToTreeNode.remove(v);
@@ -149,38 +141,40 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
             return;
         }
 
-        // first update the spanning tree
         DTNode nodeU = getNodeOrThrow(vertex1);
         DTNode nodeV = getNodeOrThrow(vertex2);
 
+        // update edges
+        Edge e = new Edge(nodeU, nodeV, edge, false);
+        edges.put(edge, e);
+
+        // update the spanning trees
         Pair<DTNode, Integer> rootUdepth = nodeU.findRootWithDepth();
         Pair<DTNode, Integer> rootVdepth = nodeV.findRootWithDepth();
 
         DTNode rootU = rootUdepth.getKey();
         DTNode rootV = rootVdepth.getKey();
 
-        boolean treeEdge;
+        DTNode mergedTree = null; // in case two trees were merged
         if (rootU == rootV) {
             // insert non tree edge
             insertNonTreeEdgeRecordModifications(rootU, edge);
-            treeEdge = insertNonTreeEdge(rootU, nodeU, rootUdepth.getValue(), nodeV, rootVdepth.getValue(), edge);
+            e.treeEdge = insertNonTreeEdge(rootU, nodeU, rootUdepth.getValue(), nodeV, rootVdepth.getValue(), e);
         } else {
             // insert tree edge
             insertTreeEdgeRecordModifications(rootU, rootV, edge);
-            DTNode newRoot = insertTreeEdge(rootU, nodeU, rootV, nodeV, edge);
-
-            if (!modificationsStack.isEmpty()) {
-                modificationsStack.peek().notifyInsertTreeEdge(newRoot);
-            }
-
-            treeEdge = true;
+            mergedTree = insertTreeEdge(rootU, nodeU, rootV, nodeV, e);
+            e.treeEdge = true;
         }
 
-        edges.put(edge, new Edge(nodeU, nodeV, treeEdge));
-
         // keep track of modifications
-        if (!modificationsStack.isEmpty()) {
-            modificationsStack.peek().push(new EdgeAdd<>(vertex1, vertex2, edge));
+        Modifications modifications = modificationsStack.peek();
+        if (modifications != null) {
+            if (mergedTree != null) {
+                modifications.notifyInsertTreeEdge(mergedTree);
+            }
+
+            modifications.push(new EdgeAdd<>(vertex1, vertex2, edge));
         }
 
         // invalidate roots ordering
@@ -195,7 +189,27 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         }
     }
 
-    private boolean insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, E edge) {
+    /**
+     * Insert a non tree edge between {@code nodeU} (whose depth is {@code depthU})
+     * and {@code nodeV} (whose depth is {@code depthV}). The two node must be in the
+     * same tree rooted at {@code root}.
+     * <p>
+     * If the difference of depth, delta, is less than two, the edge is inserted
+     * as a non-tree edge. Otherwise, assuming depthU < depthV, the delta-2 ancestor of
+     * {@code nodeU} is unlinked from the tree. Then {@code nodeU} and {@code nodeV} are
+     * linked with a tree edge. In this case, the inserted edge is in fact a tree edge
+     * and the method return {@code true}
+     * </p>
+     *
+     * @param root the root of the tree in which an edge is to be added.
+     * @param nodeU one endpoint of the edge to add.
+     * @param depthU the depth of {@code nodeU}.
+     * @param nodeV the other endpoint of the edge to add.
+     * @param depthV the depth of {@code nodeU}
+     * @param edge edge linking {@code nodeU} and {@code nodeV}
+     * @return {@code true} if the edge inserted is a tree edge. This is true if |depthU - depthV| >= 2.
+     */
+    private boolean insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, Edge edge) {
         DTNode deep;
         DTNode shallow;
         int delta;
@@ -216,21 +230,23 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
             nodeV.nonTreeEdges.add(edge);
             return false;
         } else {
-            DTNode i = deep;
+            // get the delta - 2 DTNode.
+            DTNode ancestor = deep;
             for (int j = 0; j < delta - 2; j++) {
-                i = i.parent;
+                ancestor = ancestor.parent;
             }
 
-            i.parent.nonTreeEdges.add(i.parentEdge);
-            i.nonTreeEdges.add(i.parentEdge);
-            edges.get(i.parentEdge).treeEdge = false;
+            // replace the edge between ancestor and its parent by a non tree edge
+            ancestor.parent.nonTreeEdges.add(ancestor.parentEdge);
+            ancestor.nonTreeEdges.add(ancestor.parentEdge);
+            ancestor.parentEdge.treeEdge = false;
+            ancestor.unlink();
 
-            unlink(i);
             // updating roots is useless because 'deep' will be
-            // connected to 'shallow' juste after. It is also impossible
+            // connected to 'shallow' juste after. Updating is also impossible
             // because the tree created by the previous unlink isn't in 'roots'
             deep.makeRoot(false);
-            link(root, shallow, deep, edge);
+            deep.link(root, shallow, edge);
             return true;
         }
     }
@@ -245,17 +261,28 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         }
     }
 
-    private DTNode insertTreeEdge(DTNode rootU, DTNode nodeU, DTNode rootV, DTNode nodeV, E edge) {
+    /**
+     * Insert a tree edge between {@code nodeU} (in tree rooted at {@code rootU})
+     * and {@code nodeV} (in tree rooted at {@code rootV}).
+     * Assuming the size of rootU is less than the size of rootV, we simply
+     * make {@code nodeU} a root and link it with {@code nodeV}.
+     *
+     * @param rootU {@code nodeU} tree root
+     * @param nodeU one endpoint of the edge to add.
+     * @param rootV {@code nodeV} tree root
+     * @param nodeV the other endpoint of the edge to add.
+     * @param edge edge linking {@code nodeU} and {@code nodeV}
+     * @return root of the merge tree.
+     */
+    private DTNode insertTreeEdge(DTNode rootU, DTNode nodeU, DTNode rootV, DTNode nodeV, Edge edge) {
         if (rootU.size < rootV.size) {
             nodeU.makeRoot(true);
-            link(rootV, nodeV, nodeU, edge);
             removeRoot(nodeU);
-            return nodeV;
+            return nodeU.link(rootV, nodeV, edge);
         } else {
             nodeV.makeRoot(true);
-            link(rootU, nodeU, nodeV, edge);
             removeRoot(nodeV);
-            return nodeU;
+            return nodeV.link(rootU, nodeU, edge);
         }
     }
 
@@ -273,19 +300,20 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
 
         // update the spanning tree
         if (e.treeEdge) {
-            removeTreeEdge(e.nodeU, e.nodeV, edge);
-
-            if (!modificationsStack.isEmpty()) {
-                modificationsStack.peek().notifyRemoveTreeEdge();
-            }
+            removeTreeEdge(e);
         } else {
             removeNonTreeEdgeRecordModifications(e.nodeU, edge);
-            removeNonTreeEdge(e.nodeU, e.nodeV, edge);
+            removeNonTreeEdge(e);
         }
 
         // keep track of modifications
-        if (!modificationsStack.isEmpty()) {
-            modificationsStack.peek().push(new EdgeRemove<>(e.nodeU.vertex, e.nodeV.vertex, edge));
+        Modifications modifications = modificationsStack.peek();
+        if (modifications != null) {
+            if (e.treeEdge) {
+                modifications.notifyRemoveTreeEdge();
+            }
+
+            modifications.push(new EdgeRemove<>(e.nodeU.vertex, e.nodeV.vertex, edge));
         }
 
         // invalidate roots ordering
@@ -294,16 +322,30 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         check();
     }
 
-    private void removeTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
+    /**
+     * Remove the tree edge between {@code nodeU} and {@code nodeV}.
+     * Assuming nodeU is a child of nodeV, this is a two steps process :
+     * <ol>
+     *     <li>Unlink nodeU from nodeV. This creates two trees with a smaller one called {@code small},</li>
+     *     <li>Search for a replacement edge and a potential new centroid by iterating over {@code small}.</li>
+     *     <ul>
+     *         <li>if one is found, it is a non-tree edge so it is removed and then added as a tree edge</li>
+     *         <li>if none is found, fix the centroid property</li>
+     *     </ul>
+     * </ol>
+     *
+     * @param edge the tree edge to remove
+     */
+    private void removeTreeEdge(Edge edge) {
         DTNode child;
-
-        if (nodeU == nodeV.parent) {
-            child = nodeV;
+        if (edge.nodeU == edge.nodeV.parent) {
+            child = edge.nodeV;
         } else {
-            child = nodeU;
+            child = edge.nodeU;
         }
 
-        DTNode otherTree = unlink(child);
+        // unlink child from its parent
+        DTNode otherTree = child.unlink();
         addRoot(child);
 
         DTNode small;
@@ -316,7 +358,8 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
             large = child;
         }
 
-        replace(small, large, edge);
+        // try to reconnect them
+        replace(small, large, edge.edgeData);
     }
 
     // search a replacement edge by doing a BFS over the smaller tree between rootSmall and rooLarge
@@ -335,17 +378,16 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
                 newRoot = n;
             }
 
-            for (E nonTreeEdge : n.nonTreeEdges) {
-                Edge edge = edges.get(nonTreeEdge);
-
-                DTNode oppNode = edge.opposite(n);
+            // search for a replacement edge
+            for (Edge nonTreeEdge : n.nonTreeEdges) {
+                DTNode oppNode = nonTreeEdge.opposite(n);
                 DTNode oppRoot = oppNode.findRoot();
 
                 if (oppRoot != rootSmall) {
                     // found a replacement edge
-                    removeNonTreeEdge(n, oppNode, nonTreeEdge);
-                    insertTreeEdge(rootSmall, n, rootLarge, oppNode, nonTreeEdge);
-                    edge.treeEdge = true;
+                    removeNonTreeEdge(nonTreeEdge);
+                    insertTreeEdge(rootSmall, n, oppRoot, oppNode, nonTreeEdge);
+                    nonTreeEdge.treeEdge = true;
                     replacementEdgeFound = true;
 
                     break loop;
@@ -390,60 +432,18 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         }
     }
 
-    private void removeNonTreeEdge(DTNode nodeU, DTNode nodeV, E edge) {
-        nodeU.nonTreeEdges.remove(edge);
-        nodeV.nonTreeEdges.remove(edge);
+    /**
+     * Remove a non tree edge between {@code edge.nodeU} and {@code edge.nodeV}.
+     * @param edge the edge to remove.
+     */
+    private void removeNonTreeEdge(Edge edge) {
+        edge.nodeU.nonTreeEdges.remove(edge);
+        edge.nodeV.nonTreeEdges.remove(edge);
     }
 
     // ======================
     // * TREE MANIPULATIONS *
     // ======================
-
-    private void link(DTNode rootU, DTNode nodeU, DTNode rootV, E edge) {
-        // first: update parent/child relations
-        nodeU.addChildUnchecked(rootV);
-        rootV.parent = nodeU;
-        rootV.parentEdge = edge;
-
-        // next: update size attributes in the parent tree
-        DTNode newCentroid = null;
-        DTNode cur = nodeU;
-
-        while (cur != null) {
-            cur.size += rootV.size;
-
-            if (newCentroid == null && cur != rootU && cur.size > (rootU.size + rootV.size) / 2) {
-                // the new root is the first node in the path from nodeU to rootU
-                // such that it contains more than half of the nodes in the merged
-                // tree. This reduces the sum of distances.
-                newCentroid = cur;
-            }
-
-            cur = cur.parent;
-        }
-
-        // eventually, change the root to a better one
-        if (newCentroid != null) {
-            newCentroid.makeRoot(true);
-        }
-    }
-
-    private DTNode unlink(DTNode node) {
-        Objects.requireNonNull(node.parent);
-
-        // first step: update size attribute in the parent tree
-        DTNode newTree = node;
-        while (newTree.parent != null) {
-            newTree = newTree.parent;
-            newTree.size -= node.size;
-        }
-
-        // second step: update parent/child relations
-        node.parent.removeChildUnchecked(node);
-        node.parent = null;
-        node.parentEdge = null;
-        return newTree;
-    }
 
     private void addRoot(DTNode node) {
         node.rootIndex = roots.size();
@@ -625,8 +625,8 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
 
     private void checkEdges() {
         for (DTNode node : vertexToTreeNode.values()) {
-            for (E nonTreeEdge : node.nonTreeEdges) {
-                assert edges.containsKey(nonTreeEdge) && !edges.get(nonTreeEdge).treeEdge;
+            for (Edge nonTreeEdge : node.nonTreeEdges) {
+                assert !nonTreeEdge.treeEdge;
             }
         }
 
@@ -636,12 +636,13 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
 
             DTNode src = edge.nodeU;
             DTNode dest = edge.nodeV;
+            assert vertexToTreeNode.containsValue(src) && vertexToTreeNode.containsValue(dest);
 
             if (edge.treeEdge) {
                 assert src.parent == dest && src.parentEdge == e || dest.parent == src && dest.parentEdge == e;
             } else {
-                assert src.nonTreeEdges.contains(e);
-                assert dest.nonTreeEdges.contains(e);
+                assert src.nonTreeEdges.contains(edge);
+                assert dest.nonTreeEdges.contains(edge);
             }
         }
     }
@@ -724,7 +725,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         private int size;
 
         private DTNode parent = null;
-        private E parentEdge = null;
+        private Edge parentEdge = null;
 
         // the children of this node. They are stored in a doubly linked list
         // firstChild is the head of the linked list. previousSibling and nextSibling
@@ -733,7 +734,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         private DTNode previousSibling = null;
         private DTNode nextSibling = null;
 
-        private final Set<E> nonTreeEdges = new HashSet<>();
+        private final Set<Edge> nonTreeEdges = new HashSet<>();
 
         // index in the list of roots, valid only if this node is a root
         private int rootIndex;
@@ -763,7 +764,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
 
             DTNode child = this;
             DTNode parent = child.parent;
-            E parentEdge = child.parentEdge;
+            Edge parentEdge = child.parentEdge;
             parent.removeChildUnchecked(child); // remove before making parentEdge null
 
             this.parent = null;
@@ -772,7 +773,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
             // swap parent/child relation
             while (parent != null) {
                 DTNode greatParent = parent.parent;
-                E greatParentEdge = parent.parentEdge;
+                Edge greatParentEdge = parent.parentEdge;
 
                 // At this point:
                 // - 'parent' is in the linked list of children of 'greatParent', and must be
@@ -814,6 +815,70 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
                 oldRoot.parent.size += oldRoot.size;
                 oldRoot = oldRoot.parent;
             }
+        }
+
+        /**
+         * Make this node a child of {@code parent} whose tree is rooted at {@code parentRoot}.
+         * @param parentRoot root of parent
+         * @param parent node that will become the parent of {@code this}.
+         * @param edge the edge linking {@code this} and {@code parent}
+         * @return root of the merged tree. In some cases {@code parentRoot} won't be the final root
+         * because of the restoration of the centroid property
+         */
+        private DTNode link(DTNode parentRoot, DTNode parent, Edge edge) {
+            // first: update parent/child relations
+            parent.addChildUnchecked(this);
+            this.parent = parent;
+            this.parentEdge = edge;
+
+            // next: update size attributes in the parent tree
+            DTNode newCentroid = null;
+            DTNode cur = parent;
+
+            while (cur != null) {
+                cur.size += this.size;
+
+                if (newCentroid == null && cur != parentRoot && cur.size > (parentRoot.size + this.size) / 2) {
+                    // the new root is the first node in the path from parent to parentRoot
+                    // such that it contains more than half of the nodes in the merged
+                    // tree. This reduces the sum of distances.
+                    newCentroid = cur;
+                }
+
+                cur = cur.parent;
+            }
+
+            // eventually, change the root to a better one
+            if (newCentroid != null) {
+                newCentroid.makeRoot(true);
+                return newCentroid;
+            } else {
+                return parentRoot;
+            }
+        }
+
+        /**
+         * Unlink this node from its parent, creating two trees, one
+         * whose root is {@code this} and one whose root is returned and
+         * was previously the root of the linked tree.
+         *
+         * @return the root of the other tree
+         */
+        private DTNode unlink() {
+            Objects.requireNonNull(parent);
+
+            // first step: update size attribute in the parent tree
+            DTNode newTree = this;
+            while (newTree.parent != null) {
+                newTree = newTree.parent;
+                newTree.size -= size;
+            }
+
+            // second step: update parent/child relations
+            parent.removeChildUnchecked(this);
+            parent = null;
+            parentEdge = null;
+            return newTree;
         }
 
         /**
@@ -939,13 +1004,11 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
             }
             sb.append("} -nte-> ");
 
-            for (E nte : nonTreeEdges) {
-                Edge e = edges.get(nte);
-
-                if (e.nodeU.vertex.equals(vertex)) {
-                    sb.append(e.nodeV.vertex).append(", ");
-                } else if (e.nodeV.vertex.equals(vertex)) {
-                    sb.append(e.nodeU.vertex).append(", ");
+            for (Edge nte : nonTreeEdges) {
+                if (nte.nodeU.vertex.equals(vertex)) {
+                    sb.append(nte.nodeV.vertex).append(", ");
+                } else if (nte.nodeV.vertex.equals(vertex)) {
+                    sb.append(nte.nodeU.vertex).append(", ");
                 } else {
                     sb.append("nte error, ");
                 }
@@ -1049,11 +1112,13 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
     private final class Edge {
         private final DTNode nodeU;
         private final DTNode nodeV;
+        private final E edgeData;
         private boolean treeEdge;
 
-        private Edge(DTNode nodeU, DTNode nodeV, boolean treeEdge) {
+        private Edge(DTNode nodeU, DTNode nodeV, E edgeData, boolean treeEdge) {
             this.nodeU = nodeU;
             this.nodeV = nodeV;
+            this.edgeData = edgeData;
             this.treeEdge = treeEdge;
         }
 
@@ -1187,12 +1252,12 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
 
                 DTNode node = it.node();
                 if (node.parentEdge != null) {
-                    edgesState.mark(node.parentEdge, newState);
+                    edgesState.mark(node.parentEdge.edgeData, newState);
                 }
 
-                for (E nte : node.nonTreeEdges) {
-                    if (getEdgeSource(nte).equals(vertex)) {
-                        edgesState.mark(nte, newState);
+                for (Edge nte : node.nonTreeEdges) {
+                    if (nte.nodeU == it.node()) { // only if current node is edge source
+                        edgesState.mark(nte.edgeData, newState);
                     }
                 }
 
