@@ -335,12 +335,12 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 ancestor.parent.nonTreeEdges.add(ancestor.parentEdge);
                 ancestor.nonTreeEdges.add(ancestor.parentEdge);
                 edges.get(ancestor.parentEdge).treeEdge = false;
-                unlink(ancestor);
+                ancestor.unlink();
 
                 // updating roots is useless because 'deep' will be
                 // connected to 'shallow' juste after.
                 deep.makeRoot(false);
-                link(root, shallow, deep, edge);
+                deep.link(root, shallow, edge);
                 return true;
             }
         }
@@ -361,11 +361,11 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             DTNode toRemove;
             if (rootU.size < rootV.size) {
                 nodeU.makeRoot(true);
-                link(rootV, nodeV, nodeU, edge);
+                nodeU.link(rootV, nodeV, edge);
                 toRemove = nodeU;
             } else {
                 nodeV.makeRoot(true);
-                link(rootU, nodeU, nodeV, edge);
+                nodeV.link(rootU, nodeU, edge);
                 toRemove = nodeV;
             }
 
@@ -400,7 +400,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
          *     <li>Unlink nodeU from nodeV. This creates two trees with a smaller one called {@code small},</li>
          *     <li>Search for a replacement edge and a potential new centroid by iterating over {@code small}.</li>
          *     <ul>
-         *         <li>if one is found, it is a non-tree edge so it removed and then added as a tree edge</li>
+         *         <li>if one is found, it is a non-tree edge so it is removed and then added as a tree edge</li>
          *         <li>if none is found, fix the centroid property</li>
          *     </ul>
          * </ol>
@@ -418,7 +418,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             }
 
             // unlink child from its parent
-            DTNode otherTree = unlink(child);
+            DTNode otherTree = child.unlink();
             addRoot(child);
 
             DTNode small;
@@ -493,53 +493,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         // ======================
         // * TREE MANIPULATIONS *
         // ======================
-
-        private void link(DTNode rootU, DTNode nodeU, DTNode rootV, E edge) {
-            // first: update parent/child relations
-            nodeU.addChildUnchecked(rootV, edge);
-
-            rootV.parent = nodeU;
-            rootV.parentEdge = edge;
-
-            // next: update size attributes in the parent tree
-            DTNode newCentroid = null;
-            DTNode cur = nodeU;
-
-            while (cur != null) {
-                cur.size += rootV.size;
-
-                if (newCentroid == null && cur != rootU && cur.size > (rootU.size + rootV.size) / 2) {
-                    // the new root is the first node in the path from nodeU to rootU
-                    // such that it contains more than half of the nodes in the merged
-                    // tree. This reduces the sum of distances.
-                    newCentroid = cur;
-                }
-
-                cur = cur.parent;
-            }
-
-            // eventually, change the root to a better one
-            if (newCentroid != null) {
-                newCentroid.makeRoot(true);
-            }
-        }
-
-        private DTNode unlink(DTNode node) {
-            Objects.requireNonNull(node.parent);
-
-            // first step: update size attribute in the parent tree
-            DTNode newTree = node;
-            while (newTree.parent != null) {
-                newTree = newTree.parent;
-                newTree.size -= node.size;
-            }
-
-            // second step: update parent/child relations
-            node.parent.removeChildUnchecked(node);
-            node.parent = null;
-            node.parentEdge = null;
-            return newTree;
-        }
 
         private void addRoot(DTNode node) {
             node.rootIndex = roots.size();
@@ -790,6 +743,58 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     oldRoot.parent.size += oldRoot.size;
                     oldRoot = oldRoot.parent;
                 }
+            }
+
+            /**
+             * Make this node a child of {@code parent} whose tree is rooted at {@code parentRoot}.
+             * @param parentRoot root of parent
+             * @param parent node that will become the parent of {@code this}.
+             * @param edge the edge linking {@code this} and {@code parent}
+             */
+            private void link(DTNode parentRoot, DTNode parent, E edge) {
+                // first: update parent/child relations
+                parent.addChildUnchecked(this, edge);
+                this.parent = parent;
+                this.parentEdge = edge;
+
+                // next: update size attributes in the parent tree
+                DTNode newCentroid = null;
+                DTNode cur = parent;
+
+                while (cur != null) {
+                    cur.size += this.size;
+
+                    if (newCentroid == null && cur != parentRoot && cur.size > (parentRoot.size + this.size) / 2) {
+                        // the new root is the first node in the path from parent to parentRoot
+                        // such that it contains more than half of the nodes in the merged
+                        // tree. This reduces the sum of distances.
+                        newCentroid = cur;
+                    }
+
+                    cur = cur.parent;
+                }
+
+                // eventually, change the root to a better one
+                if (newCentroid != null) {
+                    newCentroid.makeRoot(true);
+                }
+            }
+
+            private DTNode unlink() {
+                Objects.requireNonNull(parent);
+
+                // first step: update size attribute in the parent tree
+                DTNode newTree = this;
+                while (newTree.parent != null) {
+                    newTree = newTree.parent;
+                    newTree.size -= size;
+                }
+
+                // second step: update parent/child relations
+                parent.removeChildUnchecked(this);
+                parent = null;
+                parentEdge = null;
+                return newTree;
             }
 
             /**
