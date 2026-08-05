@@ -17,22 +17,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class SpyCheckGraphConnectivity<V, E> extends AbstractSpyGraphConnectivity<V, E> {
+public class SpyValidatorGraphConnectivity<V, E> extends AbstractSpyGraphConnectivity<V, E> {
 
     private final GraphConnectivityFactory<V, E> checkerFactory;
     private GraphConnectivity<V, E> checker;
 
-    public SpyCheckGraphConnectivity(GraphConnectivityFactory<V, E> checkerFactory) {
+    public SpyValidatorGraphConnectivity(GraphConnectivityFactory<V, E> checkerFactory) {
         this.checkerFactory = checkerFactory;
     }
 
     @Override
-    public void beginOperations() {
+    public void beginOperations(Operations operations) {
 
     }
 
     @Override
-    public void endOperations() {
+    public void endOperations(Operations operations) {
 
     }
 

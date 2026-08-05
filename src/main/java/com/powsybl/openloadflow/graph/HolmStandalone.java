@@ -16,7 +16,7 @@ import java.util.*;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
+public class HolmStandalone<V, E> implements SpanningForestGraphConnectivity<V, E> {
 
     private final Map<V, AVLTree.TreeNode<Occurrence<V, E>>> activeOccurrences = new HashMap<>();
     private final Map<E, Edge<V, E>> edges = new HashMap<>();
@@ -566,6 +566,32 @@ public class HolmStandalone<V, E> implements GraphConnectivity<V, E> {
     @Override
     public Set<E> getEdgesAddedToMainComponent() {
         return checkSavedContext().getEdgesAddedToMainComponent();
+    }
+
+    @Override
+    public long computeSd() {
+        long sum = 0;
+        for (AVLTree.TreeNode<Occurrence<V, E>> occ : activeOccurrences.values()) {
+            sum += depth(occ);
+        }
+
+        return sum;
+    }
+
+    private long depth(AVLTree.TreeNode<Occurrence<V, E>> occ) {
+        AVLTree.TreeNode<Occurrence<V, E>> curr = occ;
+        long depth = -1; // there is a virtual root
+        while (curr != null) {
+            curr = curr.getParent();
+            depth++;
+        }
+
+        return depth;
+    }
+
+    @Override
+    public int vertexCount() {
+        return activeOccurrences.size();
     }
 
     // ==============

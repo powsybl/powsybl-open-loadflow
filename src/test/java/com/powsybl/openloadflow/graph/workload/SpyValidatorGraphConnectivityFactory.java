@@ -12,24 +12,24 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class SpyCheckGraphConnectivityFactory<V, E> implements ISpyGraphConnectivityFactory<V, E> {
+public class SpyValidatorGraphConnectivityFactory<V, E> implements ISpyGraphConnectivityFactory<V, E> {
 
     private final GraphConnectivityFactory<V, E> checkFactory;
     private final GraphConnectivityFactory<V, E> delegateFactory;
 
-    public SpyCheckGraphConnectivityFactory(GraphConnectivityFactory<V, E> checkFactory, GraphConnectivityFactory<V, E> delegateFactory) {
+    public SpyValidatorGraphConnectivityFactory(GraphConnectivityFactory<V, E> checkFactory, GraphConnectivityFactory<V, E> delegateFactory) {
         this.checkFactory = checkFactory;
         this.delegateFactory = delegateFactory;
     }
 
     @Override
-    public SpyCheckGraphConnectivity<V, E> create() {
+    public SpyValidatorGraphConnectivity<V, E> create() {
         return createUnregistered();
     }
 
     @Override
-    public SpyCheckGraphConnectivity<V, E> createUnregistered() {
-        SpyCheckGraphConnectivity<V, E> conn = new SpyCheckGraphConnectivity<>(checkFactory);
+    public SpyValidatorGraphConnectivity<V, E> createUnregistered() {
+        SpyValidatorGraphConnectivity<V, E> conn = new SpyValidatorGraphConnectivity<>(checkFactory);
         conn.setDelegateFactory(delegateFactory);
         conn.newDelegate();
         return conn;

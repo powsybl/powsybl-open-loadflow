@@ -7,7 +7,9 @@
  */
 package com.powsybl.openloadflow.graph.workload;
 
-import com.powsybl.openloadflow.graph.*;
+import com.powsybl.openloadflow.graph.DTreeStandaloneFactory;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
 import com.powsybl.openloadflow.graph.log.Log;
 import com.powsybl.openloadflow.graph.log.ProgressFormatter;
@@ -32,18 +34,23 @@ public final class WorkloadRunner {
 
     }
 
-    private static final int WARMUP = 10;
-    private static final int MEASUREMENT = 10;
-    private static final boolean CHECK = false;
+    private static final RunParameters PERFORMANCE = new RunParameters.Performance()
+            .setWarmup(10)
+            .setMeasurement(10);
+    private static final RunParameters VALIDATOR = new RunParameters.Validator();
+    private static final RunParameters COMPUTE_SD = new RunParameters.ComputeSd()
+            .setOutput("sum_of_distances/{class}/{workload}/{index}.txt");
+
+    private static final RunParameters WORKLOAD_PARAMS = VALIDATOR;
 
     private static final Log LOG = Log.init("results.txt");
     private static final MyProgressManager PROGRESS = new MyProgressManager();
 
     public static void main(String[] args) throws IOException {
-        List<Workload> workloads = getAllWorkloads(Path.of("workload/"), Set.of()); //, Set.of("spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"));
-        /*List<Workload> workloads = List.of(
-                Workload.inMemory(Path.of("workload/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt"))
-        );*/
+        //List<Workload> workloads = getAllWorkloads(Path.of("workload/"), Set.of()); //, Set.of("spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"));
+        List<Workload> workloads = List.of(
+                Workload.inMemory(Path.of("workload/spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"))
+        );
 
         List<GraphConnectivityFactory<Integer, Integer>> factories = List.of(
                 // new OldNaiveGraphConnectivity.Factory<>((Integer i) -> i)
@@ -54,8 +61,8 @@ public final class WorkloadRunner {
                 // new HolmEtAlWithoutLevelGraphConnectivityFactory<>(),
                 // new NewHolmGraphConnectivityFactory<>(),
                 // new HolmStandaloneFactory<>(),
-                new DTreeGraphConnectivityFactory<>()
-                // new DTreeStandaloneFactory<>(),
+                // new DTreeGraphConnectivityFactory<>(),
+                new DTreeStandaloneFactory<>()
                 // IDTreeStandalone::new,
                 // new IndexedDTreeStandalone2ndVerFactory<>((Integer i) -> i, (Integer i) -> i)
                 // new DnDTreeStandaloneFactory<>()
@@ -77,12 +84,8 @@ public final class WorkloadRunner {
                     }
 
                     PROGRESS.advance(factory);
-                    String partialResults;
-                    if (CHECK) {
-                        partialResults = run(executor, workload, new SpyCheckGraphConnectivityFactory<>(new NaiveGraphConnectivityFactory<>(i -> i), factory), 0, 1);
-                    } else {
-                        partialResults = run(executor, workload, new SpyPerformanceGraphConnectivityFactory<>(factory), WARMUP, MEASUREMENT);
-                    }
+                    ISpyGraphConnectivityFactory<Integer, Integer> spy = WORKLOAD_PARAMS.factoryFor(workload, factory);
+                    String partialResults = run(executor, workload, spy, WORKLOAD_PARAMS.warmup(), WORKLOAD_PARAMS.measurement());
                     LOG.log(partialResults);
                 }
             }
@@ -232,7 +235,7 @@ public final class WorkloadRunner {
     private static void runOperations(Progress progress,
                                       Operations operations,
                                       ISpyGraphConnectivity<Integer, Integer> spy) {
-        spy.beginOperations();
+        spy.beginOperations(operations);
         operations.reset();
 
         int n = 0;
@@ -243,7 +246,7 @@ public final class WorkloadRunner {
             progress.newOperation(n, operations.size());
         }
 
-        spy.endOperations();
+        spy.endOperations(operations);
     }
 
     private static final class MyProgressManager extends ProgressManager<Progress> implements ProgressFormatter<Progress> {

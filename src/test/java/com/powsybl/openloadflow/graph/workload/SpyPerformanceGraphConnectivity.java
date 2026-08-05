@@ -51,12 +51,12 @@ public class SpyPerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConne
     }
 
     @Override
-    public void beginOperations() {
+    public void beginOperations(Operations operations) {
         setInitialGraphBuildDone(false);
     }
 
     @Override
-    public void endOperations() {
+    public void endOperations(Operations operations) {
 
     }
 
