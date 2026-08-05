@@ -655,13 +655,12 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             private DTNode previousSibling = null;
             private DTNode nextSibling = null;
 
-            private final Set<Edge> nonTreeEdges = new LinkedHashSet<>();
+            private final Set<Edge> nonTreeEdges = new HashSet<>();
 
             // index in the list of roots, valid only if this node is a root
             private int rootIndex;
 
             private ComponentView componentView = null;
-            private NeighborEdges neighborEdges = null;
 
             DTNode(V vertex) {
                 this.vertex = vertex;
@@ -893,10 +892,23 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             }
 
             public Set<E> getNeighborEdges() {
-                if (neighborEdges == null) {
-                    neighborEdges = new NeighborEdges(this);
+                Set<E> neighbor = new HashSet<>();
+
+                if (parentEdge != null) {
+                    neighbor.add(parentEdge.edge);
                 }
-                return neighborEdges;
+
+                for (Edge nte : nonTreeEdges) {
+                    neighbor.add(nte.edge);
+                }
+
+                DTNode child = firstChild;
+                while (child != null) {
+                    neighbor.add(child.parentEdge.edge);
+                    child = child.nextSibling;
+                }
+
+                return neighbor;
             }
         }
 
@@ -996,112 +1008,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 }
 
                 return next.vertex;
-            }
-        }
-
-        private final class NeighborEdges extends AbstractSetView<E> {
-
-            private final DTNode node;
-
-            NeighborEdges(DTNode node) {
-                this.node = node;
-            }
-
-            @Override
-            public Iterator<E> iterator() {
-                return new NeighborEdgesIterator(node);
-            }
-
-            @Override
-            public int size() {
-                int size = node.nonTreeEdges.size();
-                DTNode child = node.firstChild;
-                while (child != null) {
-                    size++;
-                    child = child.nextSibling;
-                }
-
-                if (node.parent != null) {
-                    size++;
-                }
-                return size;
-            }
-        }
-
-        private final class NeighborEdgesIterator implements Iterator<E> {
-
-            private Edge next;
-            private Iterator<Edge> current;
-            private Iterator<Edge> nextIt;
-
-            NeighborEdgesIterator(DTNode node) {
-                if (node.parent != null) {
-                    next = node.parentEdge;
-                }
-
-                if (node.firstChild != null) {
-                    current = new ChildrenIterator(node);
-
-                    if (!node.nonTreeEdges.isEmpty()) {
-                        nextIt = node.nonTreeEdges.iterator();
-                    }
-
-                } else if (!node.nonTreeEdges.isEmpty()) {
-                    current = node.nonTreeEdges.iterator();
-                }
-            }
-
-            @Override
-            public boolean hasNext() {
-                if (next != null) {
-                    return true;
-                }
-
-                while (current != null) {
-                    if (current.hasNext()) {
-                        next = current.next();
-                        return true;
-                    }
-                    current = nextIt;
-                    nextIt = null; // this loop can loop at most two times
-                }
-
-                return false;
-            }
-
-            @Override
-            public E next() {
-                if (!hasNext()) {
-                    throw new NoSuchElementException();
-                }
-
-                E ret = next.edge;
-                next = null;
-                return ret;
-            }
-
-            private class ChildrenIterator implements Iterator<Edge> {
-                private DTNode next;
-
-                ChildrenIterator(DTNode firstChild) {
-                    next = firstChild.firstChild;
-                }
-
-                @Override
-                public boolean hasNext() {
-                    return next != null;
-                }
-
-                @Override
-                public Edge next() {
-                    if (!hasNext()) {
-                        throw new NoSuchElementException();
-                    }
-
-                    DTNode curr = next;
-                    next = curr.nextSibling;
-                    return curr.parentEdge;
-                }
             }
         }
 
