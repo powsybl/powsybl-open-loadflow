@@ -50,7 +50,7 @@ public class RandomConnectivityTest {
                         // new HolmEtAlGraphConnectivity<>(),
                         // new NewHolmGraphConnectivity<>(),
                         // new HolmStandalone<>(),
-                        // new DTreeGraphConnectivity<>(),
+                        new DTreeGraphConnectivity<>(),
                         // new DTreeStandalone<>(),
                         //new IDTreeStandalone<>(),
                         new DnDTreeStandalone<>()

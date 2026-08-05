@@ -407,7 +407,8 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 ancestor.unlink();
 
                 // updating roots is useless because 'deep' will be
-                // connected to 'shallow' juste after.
+                // connected to 'shallow' juste after. Updating is also impossible
+                // because the tree created by the previous unlink isn't in 'roots'
                 deep.makeRoot(false);
                 deep.link(root, shallow, edge);
                 return true;
@@ -731,7 +732,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             private DTNode previousSibling = null;
             private DTNode nextSibling = null;
 
-            private final Set<E> childTreeEdges = new LinkedHashSet<>();
             private final Set<E> nonTreeEdges = new LinkedHashSet<>();
 
             // index in the list of roots, valid only if this node is a root
@@ -785,7 +785,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                         greatParent.removeChildUnchecked(oldParent);
                     }
 
-                    child.addChildUnchecked(oldParent, oldParentEdge);
+                    child.addChildUnchecked(oldParent);
                     oldParent.parent = child;
                     oldParent.parentEdge = oldParentEdge;
 
@@ -824,7 +824,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
              */
             private void link(DTNode parentRoot, DTNode parent, E edge) {
                 // first: update parent/child relations
-                parent.addChildUnchecked(this, edge);
+                parent.addChildUnchecked(this);
                 this.parent = parent;
                 this.parentEdge = edge;
 
@@ -869,15 +869,13 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             }
 
             /**
-             * Add child in the doubly linked list of children and
-             * the edge linking this node and child in the set of
-             * tree edges. The child mustn't be in a linked list.
-             * No verification is performed.
+             * Add child in the doubly linked list of children.
+             * The child mustn't be in a linked list. No verification
+             * is performed.
              *
              * @param child the child node to add
-             * @param edge the edge linking this node and child
              */
-            private void addChildUnchecked(DTNode child, E edge) {
+            private void addChildUnchecked(DTNode child) {
                 DTNode oldFirstChild = this.firstChild;
 
                 firstChild = child;
@@ -886,8 +884,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 if (oldFirstChild != null) {
                     oldFirstChild.previousSibling = child;
                 }
-
-                childTreeEdges.add(edge);
             }
 
             /**
@@ -915,8 +911,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 if (next != null) {
                     next.previousSibling = prev;
                 }
-
-                childTreeEdges.remove(child.parentEdge);
             }
 
             private DTNode findRoot() {
@@ -1132,7 +1126,13 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
             @Override
             public int size() {
-                int size = node.nonTreeEdges.size() + node.childTreeEdges.size();
+                int size = node.nonTreeEdges.size();
+                DTNode child = node.firstChild;
+                while (child != null) {
+                    size++;
+                    child = child.nextSibling;
+                }
+
                 if (node.parent != null) {
                     size++;
                 }
@@ -1151,8 +1151,8 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                     next = node.parentEdge;
                 }
 
-                if (!node.childTreeEdges.isEmpty()) {
-                    current = node.childTreeEdges.iterator();
+                if (node.firstChild != null) {
+                    current = new ChildrenIterator(node);
 
                     if (!node.nonTreeEdges.isEmpty()) {
                         nextIt = node.nonTreeEdges.iterator();
@@ -1190,6 +1190,30 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 E ret = next;
                 next = null;
                 return ret;
+            }
+
+            private class ChildrenIterator implements Iterator<E> {
+                private DTNode next;
+
+                ChildrenIterator(DTNode firstChild) {
+                    next = firstChild.firstChild;
+                }
+
+                @Override
+                public boolean hasNext() {
+                    return next != null;
+                }
+
+                @Override
+                public E next() {
+                    if (!hasNext()) {
+                        throw new NoSuchElementException();
+                    }
+
+                    DTNode curr = next;
+                    next = curr.nextSibling;
+                    return curr.parentEdge;
+                }
             }
         }
 
