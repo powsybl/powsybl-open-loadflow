@@ -320,8 +320,9 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
         ArrayDeque<IDNode> queue = new ArrayDeque<>();
         queue.offer(rootSmall);
 
-        Set<IDNode> visited = new HashSet<>();
+        List<IDNode> visited = new ArrayList<>();
         visited.add(rootSmall);
+        rootSmall.visited = true;
 
         loop:
         while (!queue.isEmpty()) {
@@ -337,7 +338,10 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
 
                 if (edge.treeEdge) {
                     if (n == oppNode.parent) {
-                        visited.add(oppNode);
+                        if (!oppNode.visited) {
+                            visited.add(oppNode);
+                            oppNode.visited = true;
+                        }
                         queue.offer(oppNode); // only go down
                     }
                 } else if (allAncestorUnvisited(oppNode, visited)) {
@@ -354,12 +358,14 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
             }
         }
 
+        visited.forEach(n -> n.visited = false);
+
         if (!replacementEdgeFound) {
             rootLarge.dsNode.makeRoot();
 
             rootSmall.dsNode.isolate();
-            visited.remove(rootSmall);
-            for (IDNode n : visited) {
+            for (int i = 1; i < visited.size(); i++) { // rootSmall is at index 0 and mustn't be linked with itself
+                IDNode n = visited.get(i);
                 n.dsNode.isolate();
                 rootSmall.dsNode.link(n.dsNode);
             }
@@ -372,12 +378,14 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
         replaceRecordModifications(rootSmall, rootLarge, removedEdge, replacementEdgeFound);
     }
 
-    private boolean allAncestorUnvisited(IDNode node, Set<IDNode> visited) {
+    private boolean allAncestorUnvisited(IDNode node, List<IDNode> visited) {
         IDNode ancestor = node;
         while (ancestor != null) {
-            if (!visited.add(ancestor)) {
+            if (ancestor.visited) {
                 return false;
             }
+            visited.add(ancestor);
+            ancestor.visited = true;
             ancestor = ancestor.parent;
         }
 
@@ -774,6 +782,8 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
 
         private ComponentView componentView = null;
 
+        private boolean visited = false;
+
         IDNode(V vertex) {
             this.vertex = vertex;
             this.size = 1;
@@ -960,10 +970,6 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
 
         DSNode(IDNode idNode) {
             this.idNode = idNode;
-        }
-
-        private int size() {
-            return idNode.size;
         }
 
         /**
