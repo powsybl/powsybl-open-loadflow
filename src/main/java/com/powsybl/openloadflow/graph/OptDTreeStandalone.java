@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import com.google.common.collect.Sets;
 import com.powsybl.commons.PowsyblException;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -429,10 +428,12 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         for (DFSIterator it = new DFSIterator(root); it.hasNext();) {
             it.next();
             DTNode node = it.node();
-            int sd = node.sumOfDistanceIfRootedAndBFSTree();
-            if (sd < min) {
-                min = sd;
-                best = it.node();
+            if (node.size >= root.size / 2) {
+                int sd = node.sumOfDistanceIfRootedAndBFSTree();
+                if (sd < min) {
+                    min = sd;
+                    best = it.node();
+                }
             }
         }
 
@@ -818,11 +819,7 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         }
 
         private void makeBFSTree(boolean updateRoots) {
-            Set<V> nodes = Sets.newHashSet(new DFSIterator(this.findRoot()));
             makeRoot(updateRoots);
-
-            Set<V> nodesAfter = Sets.newHashSet(new DFSIterator(this));
-            assert nodes.equals(nodesAfter);
 
             Queue<DTNode> queue = new ArrayDeque<>();
             queue.offer(this);
@@ -865,9 +862,6 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
                     node.parent.size += node.size;
                 }
             }
-
-            nodesAfter = Sets.newHashSet(new DFSIterator(this));
-            assert nodes.equals(nodesAfter);
         }
 
         private int sumOfDistanceIfRootedAndBFSTree() {
@@ -952,8 +946,8 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         }
 
         private void replaceNTEByTE(DTNode parent, Edge edge) {
-            assert nonTreeEdges.remove(edge);
-            assert parent.nonTreeEdges.remove(edge);
+            nonTreeEdges.remove(edge);
+            parent.nonTreeEdges.remove(edge);
 
             parent.addChildUnchecked(this);
             this.parent = parent;
@@ -962,8 +956,8 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         }
 
         private void replaceParentLinkByNTE() {
-            assert parent.nonTreeEdges.add(parentEdge);
-            assert nonTreeEdges.add(parentEdge);
+            parent.nonTreeEdges.add(parentEdge);
+            nonTreeEdges.add(parentEdge);
             parentEdge.treeEdge = false;
 
             parent.removeChildUnchecked(this);
