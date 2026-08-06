@@ -75,7 +75,7 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
     }
 
     @Override
-    public long computeSd() {
+    public long computeSumOfDistances() {
         long sum = 0;
 
         for (IDNode node : vertexToTreeNode.values()) {

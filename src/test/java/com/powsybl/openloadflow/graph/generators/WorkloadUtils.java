@@ -8,10 +8,8 @@
 package com.powsybl.openloadflow.graph.generators;
 
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.graph.SpanningForest;
 import com.powsybl.openloadflow.graph.SpanningForestGraphConnectivity;
 import com.powsybl.openloadflow.graph.utils.GraphConnectivityMethod;
-import com.powsybl.openloadflow.graph.workload.ISpyGraphConnectivity;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -87,7 +85,7 @@ public final class WorkloadUtils {
             case "testpoint" -> testPoint(conn, Integer.parseInt(parts[1]), Long.parseLong(parts[2]));
             case "Sd" -> {
                 if (conn instanceof SpanningForestGraphConnectivity<Integer, Integer> spanningForest) {
-                    spanningForest.computeSd();
+                    spanningForest.computeSumOfDistances();
                 }
             }
             default -> {

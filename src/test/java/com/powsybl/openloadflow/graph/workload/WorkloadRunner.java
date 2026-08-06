@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.graph.workload;
 import com.powsybl.openloadflow.graph.DTreeStandaloneFactory;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.HolmStandaloneFactory;
 import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
 import com.powsybl.openloadflow.graph.log.Log;
 import com.powsybl.openloadflow.graph.log.ProgressFormatter;
@@ -39,7 +40,7 @@ public final class WorkloadRunner {
             .setMeasurement(10);
     private static final RunParameters VALIDATOR = new RunParameters.Validator();
     private static final RunParameters COMPUTE_SD = new RunParameters.ComputeSd()
-            .setOutput("sum_of_distances/${class}/${workload}/${index}.txt");
+            .setOutput("sum_of_distances/${workload}/${class}/${index}.txt");
 
     private static final RunParameters WORKLOAD_PARAMS = COMPUTE_SD;
 
@@ -49,7 +50,7 @@ public final class WorkloadRunner {
     public static void main(String[] args) throws IOException {
         //List<Workload> workloads = getAllWorkloads(Path.of("workload/"), Set.of()); //, Set.of("spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"));
         List<Workload> workloads = List.of(
-                Workload.inMemory(Path.of("workload/spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"))
+                Workload.inMemory(Path.of("workload/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt"))
         );
 
         List<GraphConnectivityFactory<Integer, Integer>> factories = List.of(
@@ -60,7 +61,7 @@ public final class WorkloadRunner {
                 // new HolmEtAlGraphConnectivityFactory<>(),
                 // new HolmEtAlWithoutLevelGraphConnectivityFactory<>(),
                 // new NewHolmGraphConnectivityFactory<>(),
-                // new HolmStandaloneFactory<>(),
+                new HolmStandaloneFactory<>(),
                 // new DTreeGraphConnectivityFactory<>(),
                 new DTreeStandaloneFactory<>()
                 // IDTreeStandalone::new,

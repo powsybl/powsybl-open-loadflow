@@ -42,9 +42,9 @@ public abstract class AbstractSpyGraphConnectivity<V, E> implements ISpyGraphCon
     }
 
     @Override
-    public long computeSd() {
+    public long computeSumOfDistances() {
         if (delegate instanceof SpanningForestGraphConnectivity<V, E> sfgc) {
-            return sfgc.computeSd();
+            return sfgc.computeSumOfDistances();
         } else {
             return -1;
         }

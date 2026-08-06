@@ -12,11 +12,11 @@ package com.powsybl.openloadflow.graph;
  */
 public interface SpanningForestGraphConnectivity<V, E> extends GraphConnectivity<V, E> {
 
-    long computeSd();
+    long computeSumOfDistances();
 
     int vertexCount();
 
     default double averageDepth() {
-        return computeSd() / (double) vertexCount();
+        return computeSumOfDistances() / (double) vertexCount();
     }
 }

@@ -61,8 +61,8 @@ public class SpyPerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConne
     }
 
     @Override
-    public long computeSd() {
-        long n = super.computeSd();
+    public long computeSumOfDistances() {
+        long n = super.computeSumOfDistances();
         if (n >= 0) {
             sumOfDistances.add(n);
         }

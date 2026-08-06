@@ -85,7 +85,7 @@ public class IndexedDTreeStandalone<V, E> implements SpanningForestGraphConnecti
     }
 
     @Override
-    public long computeSd() {
+    public long computeSumOfDistances() {
         long sum = 0;
 
         for (DTNode node : vertexToTreeNode) {

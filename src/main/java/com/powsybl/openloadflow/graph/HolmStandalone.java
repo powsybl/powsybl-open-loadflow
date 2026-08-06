@@ -569,7 +569,7 @@ public class HolmStandalone<V, E> implements SpanningForestGraphConnectivity<V, 
     }
 
     @Override
-    public long computeSd() {
+    public long computeSumOfDistances() {
         long sum = 0;
         for (AVLTree.TreeNode<Occurrence<V, E>> occ : activeOccurrences.values()) {
             sum += depth(occ);

@@ -45,7 +45,7 @@ public class DTreeGraphConnectivityTest {
         for (int i = 0; i < 6; i++) {
             assertEquals(0, connectivity.getComponentNumber(i));
         }
-        assertEquals(8, connectivity.computeSd());
+        assertEquals(8, connectivity.computeSumOfDistances());
 
         // Adding this edge doesn't affect connectivity.
         // However, it modifies the spanning tree.
@@ -65,7 +65,7 @@ public class DTreeGraphConnectivityTest {
         for (int i = 0; i < 6; i++) {
             assertEquals(0, connectivity.getComponentNumber(i));
         }
-        assertEquals(6, connectivity.computeSd());
+        assertEquals(6, connectivity.computeSumOfDistances());
     }
 
     @ParameterizedTest(name = "{0}")
@@ -87,7 +87,7 @@ public class DTreeGraphConnectivityTest {
         // 4 <-- 0 <-- 1 --> 2 --> 3
 
         connectivity.startTemporaryChanges();
-        assertEquals(6, connectivity.computeSd());
+        assertEquals(6, connectivity.computeSumOfDistances());
         for (int i = 0; i < 5; i++) {
             assertEquals(0, connectivity.getComponentNumber(i));
         }
@@ -95,7 +95,7 @@ public class DTreeGraphConnectivityTest {
         connectivity.removeEdge("0-1");
         // the root is now 3, changing the root involves updating the great parent of 1 (which is 3)
         // 1 <-- 2 <-- 3 --> 4 --> 0
-        assertEquals(6, connectivity.computeSd());
+        assertEquals(6, connectivity.computeSumOfDistances());
         for (int i = 0; i < 5; i++) {
             final int index = i;
             assertEquals(0, connectivity.getComponentNumber(index));

@@ -66,11 +66,37 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
     }
 
     @Override
-    public long computeSd() {
+    public long computeSumOfDistances() {
         long sum = 0;
 
-        for (DTNode node : vertexToTreeNode.values()) {
-            sum += node.findRootWithDepth().getValue();
+        for (DTNode root : roots) {
+            int currentDepth = 0;
+
+            DTNode ptr = root;
+            while (ptr != null) {
+                if (ptr.firstChild != null) {
+                    ptr = ptr.firstChild;
+                    currentDepth++;
+                    // go deeper
+                } else if (ptr.nextSibling != null) {
+                    ptr = ptr.nextSibling;
+                    // same height
+                } else {
+                    while (ptr != null && ptr.nextSibling == null) {
+                        ptr = ptr.parent;
+                        currentDepth--;
+                        // go up
+                    }
+
+                    if (ptr != null) {
+                        ptr = ptr.nextSibling;
+                    }
+                }
+
+                if (ptr != null) {
+                    sum += currentDepth; // update sum
+                }
+            }
         }
 
         return sum;

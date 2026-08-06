@@ -79,7 +79,7 @@ public class IDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V
     }
 
     @Override
-    public long computeSd() {
+    public long computeSumOfDistances() {
         long sum = 0;
 
         for (IDTNode node : vertexToTreeNode.values()) {

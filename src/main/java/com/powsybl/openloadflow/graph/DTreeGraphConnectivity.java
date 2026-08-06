@@ -214,7 +214,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     }
 
     @Override
-    public long computeSd() {
+    public long computeSumOfDistances() {
         return getGraph().sumOfDistances();
     }
 
