@@ -677,7 +677,8 @@ class ConnectivityTest {
                                 return map.adjustOrPutValue(value, 0, map.size());
                             }
                         })),
-                Arguments.of(new DnDTreeStandalone<>()));
+                Arguments.of(new DnDTreeStandalone<>()),
+                Arguments.of(new OptDTreeStandalone<>()));
     }
 
     private static Stream<Arguments> provideAllConnectivities() {
@@ -702,6 +703,7 @@ class ConnectivityTest {
                                 return map.adjustOrPutValue(value, 0, map.size());
                             }
                         })),
-                Arguments.of(new DnDTreeStandalone<>()));
+                Arguments.of(new DnDTreeStandalone<>()),
+                Arguments.of(new OptDTreeStandalone<>()));
     }
 }

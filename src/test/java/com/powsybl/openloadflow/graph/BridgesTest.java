@@ -77,9 +77,10 @@ class BridgesTest {
                 Arguments.of(new NewHolmGraphConnectivity<>(), "Holm-et-al-2"),
                 Arguments.of(new HolmStandalone<>(), "Holm-et-al-standalone"),
                 Arguments.of(new DTreeGraphConnectivity<>(), "DTree"),
-                Arguments.of(new DTreeStandalone<>(), "DTreeStandalon"),
+                Arguments.of(new DTreeStandalone<>(), "DTreeStandalone"),
                 Arguments.of(new IDTreeStandalone<>(), "IDTreeStandalone"),
-                Arguments.of(new DnDTreeStandalone<>(), "DNDTreeStandalone")
+                Arguments.of(new DnDTreeStandalone<>(), "DNDTreeStandalone"),
+                Arguments.of(new OptDTreeStandalone<>(), "OptDTreeStandalone")
         );
     }
 

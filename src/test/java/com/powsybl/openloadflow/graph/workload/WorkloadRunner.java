@@ -40,7 +40,7 @@ public final class WorkloadRunner {
             .setMeasurement(10);
     private static final RunParameters VALIDATOR = new RunParameters.Validator();
     private static final RunParameters COMPUTE_SD = new RunParameters.ComputeSd()
-            .setOutput("sum_of_distances/${workload}/${class}/${index}.txt");
+            .setOutput("sum_of_distances/data/${workload}/${class}/${index}.txt");
 
     private static final RunParameters WORKLOAD_PARAMS = COMPUTE_SD;
 

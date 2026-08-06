@@ -228,6 +228,7 @@ public class DTreeGraphConnectivityTest {
                 Arguments.of(new DTreeGraphConnectivity<>()),
                 Arguments.of(new DTreeStandalone<>()),
                 Arguments.of(new IDTreeStandalone<>()),
-                Arguments.of(new DnDTreeStandalone<>()));
+                Arguments.of(new DnDTreeStandalone<>()),
+                Arguments.of(new OptDTreeStandalone<>()));
     }
 }

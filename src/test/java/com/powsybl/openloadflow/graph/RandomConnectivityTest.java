@@ -50,10 +50,11 @@ public class RandomConnectivityTest {
                         // new HolmEtAlGraphConnectivity<>(),
                         // new NewHolmGraphConnectivity<>(),
                         // new HolmStandalone<>(),
-                        new DTreeGraphConnectivity<>(),
+                        // new DTreeGraphConnectivity<>(),
                         // new DTreeStandalone<>(),
-                        //new IDTreeStandalone<>(),
-                        new DnDTreeStandalone<>()
+                        // new IDTreeStandalone<>(),
+                        // new DnDTreeStandalone<>(),
+                        new OptDTreeStandalone<>()
                 );
 
                 for (GraphConnectivity<Integer, DefaultEdge> connectivity : toTest) {
