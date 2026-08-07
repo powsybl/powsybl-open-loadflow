@@ -1,1 +1,2 @@
-matplotlib
+pyqt6~=6.8.0
+pyqtgraph~=0.13.7
