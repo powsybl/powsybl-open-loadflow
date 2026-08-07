@@ -119,10 +119,10 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     }
 
     @Override
-    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
-        LOGGER.trace("onTapPositionChange(branchId='{}', oldPosition={}, newPosition={})",
-                branch.getId(), oldPosition, newPosition);
-        delegate.onTapPositionChange(branch, oldPosition, newPosition);
+    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition, boolean modifiedTapImpedance) {
+        LOGGER.trace("onTapPositionChange(branchId='{}', oldPosition={}, newPosition={}, modifiedTapImpedance={})",
+                branch.getId(), oldPosition, newPosition, modifiedTapImpedance);
+        delegate.onTapPositionChange(branch, oldPosition, newPosition, modifiedTapImpedance);
     }
 
     @Override
