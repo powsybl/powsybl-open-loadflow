@@ -12,7 +12,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}

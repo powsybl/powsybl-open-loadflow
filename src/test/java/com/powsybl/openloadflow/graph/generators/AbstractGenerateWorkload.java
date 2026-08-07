@@ -16,7 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import static com.powsybl.openloadflow.graph.utils.GraphConnectivityMethod.*;
+import static com.powsybl.openloadflow.graph.utils.GraphConnectivityMethod.ADD_VERTEX;
+import static com.powsybl.openloadflow.graph.utils.GraphConnectivityMethod.START_TEMPORARY_CHANGES;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}

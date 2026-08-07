@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.graph.log;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -49,7 +50,7 @@ public class Log {
         try {
             output = Files.newBufferedWriter(Path.of(logFile));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
 
         shutdownHook = new Thread(this::close);
@@ -71,7 +72,7 @@ public class Log {
                 output.write(System.lineSeparator());
                 output.flush();
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
         }
     }

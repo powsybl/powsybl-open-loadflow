@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.graph.generators;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.SpanningForestGraphConnectivity;
 import com.powsybl.openloadflow.graph.utils.GraphConnectivityMethod;
+import com.powsybl.openloadflow.graph.workload.ISpyGraphConnectivity;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -45,7 +46,7 @@ public final class WorkloadUtils {
             bw.write(" ");
             bw.write(o.toString());
         }
-        bw.write('\n');
+        bw.newLine();
     }
 
     public static void testPoint(BufferedWriter bw, int vertexCount, long seed) throws IOException {
@@ -53,11 +54,13 @@ public final class WorkloadUtils {
     }
 
     public static void sd(BufferedWriter bw) throws IOException {
-        bw.write("Sd%n".formatted());
+        bw.write("Sd");
+        bw.newLine();
     }
 
     public static void newConnectivity(BufferedWriter bw) throws IOException {
         bw.write("new");
+        bw.newLine();
     }
 
     public static void executeFromLine(GraphConnectivity<Integer, Integer> conn, String line) {
@@ -86,6 +89,11 @@ public final class WorkloadUtils {
             case "Sd" -> {
                 if (conn instanceof SpanningForestGraphConnectivity<Integer, Integer> spanningForest) {
                     spanningForest.computeSumOfDistances();
+                }
+            }
+            case "new" -> {
+                if (conn instanceof ISpyGraphConnectivity<Integer, Integer> spy) {
+                    spy.newDelegate();
                 }
             }
             default -> {

@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.graph;
 
 import com.powsybl.action.Action;
 import com.powsybl.action.TerminalsConnectionAction;
+import com.powsybl.computation.ComputationManager;
+import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
@@ -20,6 +22,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.graph.ng.BusBreakerGraph;
 import com.powsybl.openloadflow.graph.utils.AverageStopWatch;
+import com.powsybl.openloadflow.graph.workload.ExecutorWithException;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysisParameters;
@@ -29,8 +32,13 @@ import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisRunParameters;
 import org.apache.commons.lang3.tuple.Pair;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 /**
@@ -245,7 +253,8 @@ public class SecurityAnalysisRunner {
         securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, osap);
 
         SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
-                .setSecurityAnalysisParameters(securityAnalysisParameters);
+                .setSecurityAnalysisParameters(securityAnalysisParameters)
+                .setComputationManager(getDefaultComputationManager());
 
         if (!actions.isEmpty() || !operatorStrategies.isEmpty()) {
             if (actions.isEmpty() || operatorStrategies.isEmpty()) {
@@ -265,6 +274,30 @@ public class SecurityAnalysisRunner {
         new SecurityAnalysis.Runner(provider).run(network, contingencies, runParameters);
         sa.stop();
         return sa;
+    }
+
+    private static final Lock LOCK = new ReentrantLock();
+    private static ComputationManager computationManager;
+
+    private static ComputationManager getDefaultComputationManager() {
+        LOCK.lock();
+        try {
+            if (computationManager == null) {
+                try {
+                    ExecutorService executor = ExecutorWithException.newCachedThreadPool(); // let openloadflow use the appropriate number of threads
+                    computationManager = new LocalComputationManager(executor);
+                    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                        computationManager.close();
+                        executor.shutdown();
+                    }));
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            }
+            return computationManager;
+        } finally {
+            LOCK.unlock();
+        }
     }
 
     public enum Mode {

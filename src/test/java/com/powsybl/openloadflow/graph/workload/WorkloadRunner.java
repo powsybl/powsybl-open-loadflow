@@ -7,7 +7,9 @@
  */
 package com.powsybl.openloadflow.graph.workload;
 
-import com.powsybl.openloadflow.graph.*;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.OptDTreeStandaloneFactory;
 import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
 import com.powsybl.openloadflow.graph.log.Log;
 import com.powsybl.openloadflow.graph.log.ProgressFormatter;
@@ -15,6 +17,7 @@ import com.powsybl.openloadflow.graph.log.ProgressManager;
 import com.powsybl.openloadflow.graph.log.TProgress;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -47,7 +50,7 @@ public final class WorkloadRunner {
     public static void main(String[] args) throws IOException {
         //List<Workload> workloads = getAllWorkloads(Path.of("workload/"), Set.of()); //, Set.of("spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"));
         List<Workload> workloads = List.of(
-                Workload.inMemory(Path.of("workload/spy_5541_1_1_5541_1_1_2026-07-03T11:50:06.510031405Z.txt"))
+                Workload.inMemory(Path.of("workload/spy_10000_10_10_10000_10_10_2026-08-07T07:59:16.649371906Z.zip"))
         );
 
         List<GraphConnectivityFactory<Integer, Integer>> factories = List.of(
@@ -99,12 +102,12 @@ public final class WorkloadRunner {
                         try {
                             return Workload.inMemory(p);
                         } catch (IOException e) {
-                            throw new RuntimeException(e);
+                            throw new UncheckedIOException(e);
                         }
                     })
                     .toList();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -143,7 +146,7 @@ public final class WorkloadRunner {
             var progress = PROGRESS.newProgress(new Progress());
             runOperationsMultipleTimesWithWarmup(progress, operations, factory, null, warmup, measurement);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -171,7 +174,7 @@ public final class WorkloadRunner {
                 try (Operations operations = workload.operations(threadId)) {
                     runOperationsMultipleTimesWithWarmup(progress, operations, factory, barrier, warmup, measurement);
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    throw new UncheckedIOException(e);
                 }
             });
             futures.add(future);

@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.network.LfBus;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.*;
 import java.time.Instant;
 import java.util.*;
@@ -127,25 +128,29 @@ public class SpyWorkloadGenerator implements IGenerateWorkload {
                     Path temp = Files.createTempFile("SpyGraphConnectivity", ".txt");
                     System.out.println("Creating new GraphConnectivity input file: " + temp);
 
-                    return new Context(temp, Files.newBufferedWriter(temp));
+                    return new Context(temp, Files.newBufferedWriter(temp), new ArrayList<>());
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    throw new UncheckedIOException(e);
                 }
             });
 
-            return new SpyGraphConnectivity(context.bw, delegate.create());
+            SpyGraphConnectivity spy = new SpyGraphConnectivity(context.bw, delegate.create());
+            context.connectivities.add(spy);
+            return spy;
         }
 
         public List<Path> finish() throws IOException {
             List<Path> paths = new ArrayList<>();
             for (Context context : contextMap.values()) {
                 context.bw.close();
-                paths.add(context.file);
+                if (context.connectivities.stream().anyMatch(s -> s.useful)) {
+                    paths.add(context.file);
+                }
             }
             return paths;
         }
 
-        private record Context(Path file, BufferedWriter bw) { }
+        private record Context(Path file, BufferedWriter bw, List<SpyGraphConnectivity> connectivities) { }
 
         @Override
         public String toString() {
@@ -157,6 +162,7 @@ public class SpyWorkloadGenerator implements IGenerateWorkload {
 
         private final BufferedWriter bw;
         private final GraphConnectivity<LfBus, LfBranch> delegate;
+        private boolean useful = false;
 
         SpyGraphConnectivity(BufferedWriter bw, GraphConnectivity<LfBus, LfBranch> delegate) {
             this.bw = bw;
@@ -165,36 +171,39 @@ public class SpyWorkloadGenerator implements IGenerateWorkload {
             try {
                 WorkloadUtils.newConnectivity(bw);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
         }
 
         @Override
         public void addVertex(LfBus vertex) {
+            useful = true;
             try {
                 WorkloadUtils.write(bw, ADD_VERTEX, vertex.getNum());
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
             delegate.addVertex(vertex);
         }
 
         @Override
         public void addEdge(LfBus vertex1, LfBus vertex2, LfBranch edge) {
+            useful = true;
             try {
                 WorkloadUtils.insert(bw, vertex1.getNum(), vertex2.getNum(), edge.getNum());
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
             delegate.addEdge(vertex1, vertex2, edge);
         }
 
         @Override
         public void removeEdge(LfBranch edge) {
+            useful = true;
             try {
                 WorkloadUtils.remove(bw, edge.getNum());
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
             delegate.removeEdge(edge);
         }
@@ -206,110 +215,121 @@ public class SpyWorkloadGenerator implements IGenerateWorkload {
 
         @Override
         public void startTemporaryChanges(boolean quick) {
+            useful = true;
             try {
                 WorkloadUtils.write(bw, START_TEMPORARY_CHANGES, quick);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
             delegate.startTemporaryChanges();
         }
 
         @Override
         public void undoTemporaryChanges() {
+            useful = true;
             try {
                 WorkloadUtils.write(bw, UNDO_TEMPORARY_CHANGES);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
             delegate.undoTemporaryChanges();
         }
 
         @Override
         public int getComponentNumber(LfBus vertex) {
+            useful = true;
             try {
                 WorkloadUtils.write(bw, GET_COMPONENT_NUMBER, vertex.getNum());
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
             return delegate.getComponentNumber(vertex);
         }
 
         @Override
         public void setMainComponentVertex(LfBus mainComponentVertex) {
+            useful = true;
             try {
                 WorkloadUtils.write(bw, SET_MAIN_COMPONENT_VERTEX, mainComponentVertex.getNum());
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
             delegate.setMainComponentVertex(mainComponentVertex);
         }
 
         @Override
         public int getNbConnectedComponents() {
+            useful = true;
             try {
                 WorkloadUtils.write(bw, GET_NB_CONNECTED_COMPONENTS);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
             return delegate.getNbConnectedComponents();
         }
 
         @Override
         public Set<LfBus> getConnectedComponent(LfBus vertex) {
+            useful = true;
             try {
                 WorkloadUtils.write(bw, GET_CONNECTED_COMPONENT, vertex.getNum());
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
             return delegate.getConnectedComponent(vertex);
         }
 
         @Override
         public Set<LfBus> getLargestConnectedComponent() {
+            useful = true;
             try {
                 WorkloadUtils.write(bw, GET_LARGEST_CONNECTED_COMPONENT);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
             return delegate.getLargestConnectedComponent();
         }
 
         @Override
         public Set<LfBus> getVerticesRemovedFromMainComponent() {
+            useful = true;
             try {
                 WorkloadUtils.write(bw, GET_VERTICES_REMOVED_FROM_MAIN_COMPONENT);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
             return delegate.getVerticesRemovedFromMainComponent();
         }
 
         @Override
         public Set<LfBranch> getEdgesRemovedFromMainComponent() {
+            useful = true;
             try {
                 WorkloadUtils.write(bw, GET_EDGES_REMOVED_FROM_MAIN_COMPONENT);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
             return delegate.getEdgesRemovedFromMainComponent();
         }
 
         @Override
         public Set<LfBus> getVerticesAddedToMainComponent() {
+            useful = true;
             try {
                 WorkloadUtils.write(bw, GET_VERTICES_ADDED_TO_MAIN_COMPONENT);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
             return delegate.getVerticesAddedToMainComponent();
         }
 
         @Override
         public Set<LfBranch> getEdgesAddedToMainComponent() {
+            useful = true;
             try {
                 WorkloadUtils.write(bw, GET_EDGES_ADDED_TO_MAIN_COMPONENT);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
             return delegate.getEdgesAddedToMainComponent();
         }

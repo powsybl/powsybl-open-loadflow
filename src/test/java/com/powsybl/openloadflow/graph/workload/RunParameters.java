@@ -9,9 +9,7 @@ package com.powsybl.openloadflow.graph.workload;
 
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
-import org.apache.commons.text.StringSubstitutor;
 
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 

@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.graph.utils.GraphConnectivityMethod;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
@@ -30,7 +31,7 @@ public class ComputeSdGraphConnectivity<V, E> extends AbstractSpyGraphConnectivi
 
             bw = Files.newBufferedWriter(file);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -38,7 +39,7 @@ public class ComputeSdGraphConnectivity<V, E> extends AbstractSpyGraphConnectivi
         try {
             bw.write("%s %d%n".formatted(method.shortName(), computeSumOfDistances()));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -52,7 +53,7 @@ public class ComputeSdGraphConnectivity<V, E> extends AbstractSpyGraphConnectivi
         try {
             bw.close();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
