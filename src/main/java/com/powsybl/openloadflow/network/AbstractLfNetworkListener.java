@@ -77,7 +77,7 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
-    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
+    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition, boolean modifiedTapImpedance) {
         // empty
     }
 

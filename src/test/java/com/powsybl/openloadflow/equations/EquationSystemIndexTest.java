@@ -110,6 +110,11 @@ class EquationSystemIndexTest {
             public void onEquationIndexOrderChanged() {
                 // nothing to do
             }
+
+            @Override
+            public void onEquationTermConstantsChanged() {
+                // nothing to do
+            }
         });
 
         // x = a + b

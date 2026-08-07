@@ -87,6 +87,13 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
     }
 
     @Override
+    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition, boolean modifiedTapImpedance) {
+        if (modifiedTapImpedance) {
+            equationSystem.notifyEquationTermConstantsChange();
+        }
+    }
+
+    @Override
     protected DcEquationType getTypeBusTargetP() {
         return DcEquationType.BUS_TARGET_P;
     }

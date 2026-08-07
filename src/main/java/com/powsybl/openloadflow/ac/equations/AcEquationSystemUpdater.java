@@ -220,11 +220,11 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     }
 
     @Override
-    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
+    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition, boolean modifiedTapImpedance) {
         // TODO :
         //  This code is not necessary with AcVectorizedEquationSystemCreator since values of closed branch terms are updated in AcBranchVector
         //  It should be removed if vectorized parameter in AcLoadFlowParameters is removed
-        if (branch.isConnectedSide1() && branch.isConnectedSide2()) { // Transformers that can change tap position should only be closed branches
+        if (modifiedTapImpedance && branch.isConnectedSide1() && branch.isConnectedSide2()) { // Transformers that can change tap position should only be closed branches
             PiModel piModel = branch.getPiModel();
             updateAcClosedBranchEquationTerm(branch.getClosedP1(), piModel);
             updateAcClosedBranchEquationTerm(branch.getClosedQ1(), piModel);
@@ -232,6 +232,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
             updateAcClosedBranchEquationTerm(branch.getClosedP2(), piModel);
             updateAcClosedBranchEquationTerm(branch.getClosedQ2(), piModel);
             updateAcClosedBranchEquationTerm(branch.getClosedI2(), piModel);
+            equationSystem.notifyEquationTermConstantsChange();
         }
     }
 
