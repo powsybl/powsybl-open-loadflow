@@ -250,6 +250,11 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         List<OperatorStrategyResult> operatorStrategyResults = result.getOperatorStrategyResults();
         NetworkResult mergedPreContingencyNetworkResult = result.getPreContingencyResult().getNetworkResult();
         List<LimitViolation> preContingencyViolations = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations();
+        List<PhaseShifterResultsExtension.MovedPhaseShifterResult> mergedMovedPhaseShifters = new ArrayList<>();
+        PhaseShifterResultsExtension firstPreCtgExtension = result.getPreContingencyResult().getExtension(PhaseShifterResultsExtension.class);
+        if (firstPreCtgExtension != null) {
+            mergedMovedPhaseShifters.addAll(firstPreCtgExtension.getPhaseShifterResults().values());
+        }
 
         Map<String, PostContingencyResult> postContingencyResultMap = new LinkedHashMap<>();
         Map<String, OperatorStrategyResult> operatorStrategyResultMap = new LinkedHashMap<>();
@@ -268,6 +273,10 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             // PreContingency results first
             preContingencyViolations.addAll(resultOtherComponent.getPreContingencyResult().getLimitViolationsResult().getLimitViolations());
             mergedPreContingencyNetworkResult = mergeNetworkResult(mergedPreContingencyNetworkResult, resultOtherComponent.getPreContingencyResult().getNetworkResult());
+            PhaseShifterResultsExtension otherPreCtgExtension = resultOtherComponent.getPreContingencyResult().getExtension(PhaseShifterResultsExtension.class);
+            if (otherPreCtgExtension != null) {
+                mergedMovedPhaseShifters.addAll(otherPreCtgExtension.getPhaseShifterResults().values());
+            }
 
             // PostContingency and OperatorStrategies results
             mergeSecurityAnalysisResult(resultOtherComponent, postContingencyResultMap, operatorStrategyResultMap, n.getNumCC());
@@ -279,6 +288,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             new PreContingencyResult(result.getPreContingencyResult().getStatus(),
                 new LimitViolationsResult(preContingencyViolations),
                 mergedPreContingencyNetworkResult, preContingencyDistributedActivePower);
+        mergedPrecontingencyResult.addExtension(PhaseShifterResultsExtension.class, new PhaseShifterResultsExtension(mergedMovedPhaseShifters));
         return new SecurityAnalysisResult(mergedPrecontingencyResult, postContingencyResults, operatorStrategyResults);
     }
 
@@ -579,14 +589,14 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 componentParametersResetter.accept(p);
             }
 
-            return new SecurityAnalysisResult(
-                    new PreContingencyResult(
-                            preContingencyLoadFlowResult.toComponentResultStatus().status(),
-                            new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
-                            new NetworkResult(preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
-                            preContingencyNetworkResult.getThreeWindingsTransformerResults()),
-                            preContingencyLoadFlowResult.getDistributedActivePower() * PerUnit.SB),
-                    postContingencyResults, operatorStrategyResults);
+            PreContingencyResult preContingencyResult = new PreContingencyResult(
+                    preContingencyLoadFlowResult.toComponentResultStatus().status(),
+                    new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
+                    new NetworkResult(preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
+                    preContingencyNetworkResult.getThreeWindingsTransformerResults()),
+                    preContingencyLoadFlowResult.getDistributedActivePower() * PerUnit.SB);
+            preContingencyResult.addExtension(PhaseShifterResultsExtension.class, new PhaseShifterResultsExtension(preContingencyNetworkResult.getMovedPhaseShifterResults()));
+            return new SecurityAnalysisResult(preContingencyResult, postContingencyResults, operatorStrategyResults);
         }
     }
 

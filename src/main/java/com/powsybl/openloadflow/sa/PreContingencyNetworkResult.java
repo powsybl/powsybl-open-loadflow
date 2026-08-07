@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LoadFlowModel;
@@ -29,8 +28,8 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
     private final Map<String, BusResult> busResults = new LinkedHashMap<>();
     private final Map<String, ThreeWindingsTransformerResult> threeWindingsTransformerResults = new LinkedHashMap<>();
 
-    public PreContingencyNetworkResult(LfNetwork network, Network iidmNetwork, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
-        super(network, iidmNetwork, monitorIndexes, createResultExtension, loadFlowModel, dcPowerFactor);
+    public PreContingencyNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
+        super(network, monitorIndexes, createResultExtension, loadFlowModel, dcPowerFactor);
     }
 
     protected void clear() {

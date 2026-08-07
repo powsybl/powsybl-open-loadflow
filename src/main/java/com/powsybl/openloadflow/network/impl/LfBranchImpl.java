@@ -195,6 +195,10 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         return branchRef.get();
     }
 
+    public TwoWindingsTransformer getTwoWindingsTransformer() {
+        return (TwoWindingsTransformer) branchRef.get();
+    }
+
     @Override
     public String getId() {
         return getBranch().getId();
@@ -210,6 +214,20 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         var branch = getBranch();
         return branch.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER
                 && ((TwoWindingsTransformer) branch).getPhaseTapChanger() != null;
+    }
+
+    @Override
+    public Optional<PhaseTapChanger> getPhaseTapChanger() {
+        var branch = getBranch();
+        if (branch instanceof TwoWindingsTransformer twt) {
+            return Optional.ofNullable(twt.getPhaseTapChanger());
+        }
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<String> getThreeWindingsTransformerId() {
+        return Optional.empty();
     }
 
     @Override
