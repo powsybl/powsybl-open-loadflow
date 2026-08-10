@@ -7,16 +7,15 @@ import math
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from random import randint
-from typing import Tuple
 
 import numpy as np
 import pyqtgraph as pg
+import qdarktheme
 from PyQt6 import QtCore, QtWidgets
-from PyQt6.QtCore import Qt, QModelIndex
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
-from PyQt6.QtWidgets import QMainWindow, QListView
-from pyqtgraph import mkPen, PlotItem, PlotDataItem, PlotCurveItem
+from PyQt6.QtWidgets import QMainWindow, QListView, QFrame
+from pyqtgraph import mkPen, PlotItem, PlotCurveItem
 
 
 class Method(Enum):
@@ -103,6 +102,17 @@ class Results:
     def __len__(self):
         return len(self.per_operations)
 
+class GraphType(Enum):
+    SD = "Sd"
+    TIME = "Time"
+
+    def get_data(self, r: SingleResult):
+        match self:
+            case GraphType.SD:
+                return r.sd
+            case GraphType.TIME:
+                return r.time
+
 
 class OperationsPlotCurveItem(PlotCurveItem):
 
@@ -111,6 +121,8 @@ class OperationsPlotCurveItem(PlotCurveItem):
         self.connectivity = connectivity
         self.operations = operations
         self.to_operation_index = []
+        self.filter = {}
+        self.graph_type = GraphType.SD
 
     def nearest_point_index(self, obj) -> int:
         if isinstance(obj, QtCore.QPointF):
@@ -135,17 +147,26 @@ class OperationsPlotCurveItem(PlotCurveItem):
             Sd=r.sd
         )
 
-    def filter_data(self, filtered_methods: dict[Method, bool]):
+    def set_filter(self, filtered_methods: dict[Method, bool]):
+        if self.filter != filtered_methods:
+            self.filter = filtered_methods
+            self.update_data()
+
+    def set_graph_type(self, graph_type: GraphType):
+        if graph_type != self.graph_type:
+            self.graph_type = graph_type
+            self.update_data()
+
+    def update_data(self):
         self.to_operation_index = [
-            i for (i, r) in enumerate(self.operations) if not filtered_methods.get(r.method, False)
+            i for (i, r) in enumerate(self.operations) if not self.filter.get(r.method, False)
         ]
 
         y_data = [
-            r.sd for r in self.operations if not filtered_methods.get(r.method, False)
+            self.graph_type.get_data(r) for r in self.operations if not self.filter.get(r.method, False)
         ]
 
         self.parentItem().setData(range(len(y_data)), y_data)
-
 
 class ConnectivityOperationsResultPlot(PlotItem):
 
@@ -160,7 +181,7 @@ class ConnectivityOperationsResultPlot(PlotItem):
             plot = self.plot()
             plot.curve = OperationsPlotCurveItem(connectivity, op)
             plot.curve.setParentItem(plot)
-            plot.curve.filter_data({})
+            plot.curve.update_data()
             plot.setPen(pen)
 
             self.legend.addItem(plot, connectivity)
@@ -193,10 +214,13 @@ class ConnectivityOperationsResultPlot(PlotItem):
                 self.guideline.label.setFormat(tooltip)
                 self.guideline.setPos(int(mouse_pos.x() + 0.5))
 
-    def filter_data(self, filtered_methods: dict[Method, bool]):
+    def set_filter(self, filtered_methods: dict[Method, bool]):
         for plot_data_item in self.curves:
-            plot_data_item.curve.filter_data(filtered_methods)
+            plot_data_item.curve.set_filter(filtered_methods)
 
+    def set_graph_type(self, graph_type: GraphType):
+        for plot_data_item in self.curves:
+            plot_data_item.curve.set_graph_type(graph_type)
 
 class Window(QMainWindow):
 
@@ -238,10 +262,16 @@ class Window(QMainWindow):
         view = QListView()
         view.setModel(self.model)
 
+        graph_type = QtWidgets.QComboBox()
+        graph_type.addItems([g.value for g in GraphType])
+        graph_type.currentTextChanged.connect(self.graph_type_changed)
+
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(QtWidgets.QLabel("Filter by method"))
         layout.addWidget(view)
+        layout.addWidget(graph_type)
+        layout.addStretch()
 
         params = QtWidgets.QWidget()
         params.setLayout(layout)
@@ -278,7 +308,12 @@ class Window(QMainWindow):
         }
 
         for plot in self.plots:
-            plot.filter_data(unchecked)
+            plot.set_filter(unchecked)
+
+    def graph_type_changed(self, current):
+        graph_type = GraphType(current)
+        for plot in self.plots:
+            plot.set_graph_type(graph_type)
 
 
 def get_data(path: Path) -> Results:
@@ -298,13 +333,14 @@ def get_data(path: Path) -> Results:
 
 
 if __name__ == '__main__':
-    workload = Path("data/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt")
+    workload = Path("data/spy_10000_10_10_10000_10_10_2026-08-07T07:59:16.649371906Z.zip")
     data = get_data(workload)
 
     pg.setConfigOptions(antialias=True)
     pg.setConfigOption('background', 'w')
     pg.setConfigOption('foreground', 'k')
     pg.mkQApp("Results")
+    qdarktheme.setup_theme()
 
     window = Window(data)
     pg.exec()
