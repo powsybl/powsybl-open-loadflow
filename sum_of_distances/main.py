@@ -37,8 +37,9 @@ class Method(Enum):
 class SingleResult:
     operation_line: int
     method: Method
-    time: int # nanos
+    time: int  # nanos
     sd: int
+
 
 @dataclass
 class OperationsResult:
@@ -94,13 +95,43 @@ class Results:
         return len(self.per_operations)
 
 
+class OperationsPlotCurveItem(PlotCurveItem):
+
+    def __init__(self, connectivity: str, operations: OperationsResult, *args, **kargs):
+        super().__init__(*args, **kargs)
+        self.connectivity = connectivity
+        self.operations = operations
+
+    def nearest_point_index(self, obj) -> int:
+        if isinstance(obj, QtCore.QPointF):
+            l = obj.x() - 0.5  # - 0.5 to account for integer precision and have proper guideline and tooltip around the mouse
+        else:
+            raise TypeError
+
+        i = np.clip(np.searchsorted(self.xData, l), 0, len(self.xData) - 1)
+
+        if abs(self.xData[i] - l) > 5:
+            return -1
+        else:
+            return i
+
+    def make_tooltip(self, x_index: int) -> str:
+        r = self.operations.operations[x_index]
+
+        return "{conn}: {method} ({i}) - Sd: {Sd}".format(
+            conn=self.connectivity,
+            method=r.method,
+            i=r.operation_line,
+            Sd=r.sd
+        )
+
+
 class ConnectivityOperationsResultPlot(PlotItem):
 
     def __init__(self, res: ConnectivityOperationsResult, **kwargs):
         super().__init__(**kwargs)
         self.setTitle(res.operations_file)
         self.addLegend()
-        self.tooltips = {}
 
         for i, (connectivity, op) in enumerate(res.per_connectivity.items()):
             x_data = [r.operation_line for r in op.operations]
@@ -109,7 +140,7 @@ class ConnectivityOperationsResultPlot(PlotItem):
             pen = mkPen(color=(i, len(res.per_connectivity)))
 
             plot = self.plot()
-            plot.curve = HoverPlotCurveItem(self, connectivity, op)
+            plot.curve = OperationsPlotCurveItem(connectivity, op)
             plot.curve.setParentItem(plot)
             plot.setData(x_data, y_data)
             plot.setPen(pen)
@@ -121,86 +152,28 @@ class ConnectivityOperationsResultPlot(PlotItem):
         self.guideline.label.setColor('k')
         self.addItem(self.guideline)
 
-    def update_tooltip(self, plot: PlotCurveItem, tooltip: str):
-        self.tooltips[plot] = str(tooltip)
-
-        full_tooltip = "\n".join(self.tooltips.values())
-        self.guideline.label.setText(full_tooltip)
-
-    def set_guideline(self, x: int):
-        if x >= 0:
-            self.guideline.setPos(x)
-            self.guideline.setVisible(True)
-        else:
-            self.guideline.setVisible(False)
-
-
-class HoverPlotCurveItem(PlotCurveItem):
-
-    def __init__(self, plot_item: ConnectivityOperationsResultPlot, connectivity: str, operations: OperationsResult, *args, **kargs):
-        super().__init__(*args, **kargs)
-        self.plot_item = plot_item
-        self.connectivity = connectivity
-        self.operations = operations
-
-    def nearest_point_index(self, obj) -> int:
-        if isinstance(obj, QtCore.QPointF):
-            l = obj.x()# - 0.5 # - 0.5 to account for integer precision and have proper guideline and tooltip around the mouse
-        else:
-            raise TypeError
-
-        i = np.clip(np.searchsorted(self.xData, l), 0, len(self.xData) - 1)
-
-        if abs(self.xData[i] - l) > 5:
-            return -1
-        else:
-            return i
-
     def hoverEvent(self, ev):
+        super().hoverEvent(ev)
+
         vb = self.getViewBox()
-        if vb is None:
-            return
+        if not ev.exit and vb is not None:
+            mouse_pos = self.getViewBox().mapSceneToView(ev.pos())
 
-        if ev.exit:
-            self.plot_item.update_tooltip(self, "")
-            self.plot_item.set_guideline(-1)
-        else:
-            i = self.nearest_point_index(ev.pos())
+            mouse_outside = True
+            tooltip = ""
+            for plot_data_item in self.curves:
+                plot_curve: OperationsPlotCurveItem = plot_data_item.curve
+                i = plot_curve.nearest_point_index(mouse_pos)
 
-            if vb is not None:
-                if 0 <= i < len(self.xData):
-                    self.plot_item.update_tooltip(self, self.tooltip_for(i))
-                    self.plot_item.set_guideline(self.xData[i])
-                else:
-                    self.plot_item.update_tooltip(self, "")
-                    self.plot_item.set_guideline(-1)
-            else:
-                self.plot_item.set_guideline(-1)
+                if 0 <= i < len(plot_curve.xData):
+                    if not tooltip.isspace():
+                        tooltip += "\n"
+                    tooltip += plot_curve.make_tooltip(i)
+                    mouse_outside = False
 
-
-    def tooltip_for(self, x_index: int) -> str:
-        r = self.operations.operations[x_index]
-
-        return "{conn}: {method} ({i}) - Sd: {Sd}".format(
-            conn=self.connectivity,
-            method=r.method,
-            i=r.operation_line,
-            Sd = r.sd
-        )
-
-def get_data(path: Path) -> Results:
-    results = Results({})
-
-    # iterate over results per connectivity
-    for connectivity in path.iterdir():
-        # iterate over results per operations
-        for operation_res in connectivity.iterdir():
-            op_res = OperationsResult(operation_res)
-
-            conn_res = results.get(op_res.operations_file)
-            conn_res.set(connectivity.name, op_res)
-
-    return results
+            if not mouse_outside:
+                self.guideline.label.setFormat(tooltip)
+                self.guideline.setPos(int(mouse_pos.x() + 0.5))
 
 
 class Window(QMainWindow):
@@ -237,6 +210,21 @@ class Window(QMainWindow):
 
         qr.moveCenter(cp)
         self.move(qr.topLeft())
+
+
+def get_data(path: Path) -> Results:
+    results = Results({})
+
+    # iterate over results per connectivity
+    for connectivity in path.iterdir():
+        # iterate over results per operations
+        for operation_res in connectivity.iterdir():
+            op_res = OperationsResult(operation_res)
+
+            conn_res = results.get(op_res.operations_file)
+            conn_res.set(connectivity.name, op_res)
+
+    return results
 
 
 if __name__ == '__main__':
