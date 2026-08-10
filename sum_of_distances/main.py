@@ -132,7 +132,7 @@ class OperationsPlotCurveItem(PlotCurveItem):
 
         i = np.clip(np.searchsorted(self.xData, l), 0, len(self.xData) - 1)
 
-        if i <= 0 < len(self.xData) and abs(self.xData[i] - l) > 5:
+        if i < 0 or i >= len(self.xData) or abs(self.xData[i] - l) > 5:
             return -1
         else:
             return i
