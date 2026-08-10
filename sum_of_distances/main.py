@@ -219,16 +219,17 @@ def get_data(path: Path) -> Results:
     for connectivity in path.iterdir():
         # iterate over results per operations
         for operation_res in connectivity.iterdir():
-            op_res = OperationsResult(operation_res)
+            if operation_res.is_file() and operation_res.name.endswith(".txt"):
+                op_res = OperationsResult(operation_res)
 
-            conn_res = results.get(op_res.operations_file)
-            conn_res.set(connectivity.name, op_res)
+                conn_res = results.get(op_res.operations_file)
+                conn_res.set(connectivity.name, op_res)
 
     return results
 
 
 if __name__ == '__main__':
-    workload = Path("data/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt")
+    workload = Path("data/spy_10000_10_10_10000_10_10_2026-08-07T07:59:16.649371906Z.zip")
     data = get_data(workload)
 
     pg.setConfigOptions(antialias=True)

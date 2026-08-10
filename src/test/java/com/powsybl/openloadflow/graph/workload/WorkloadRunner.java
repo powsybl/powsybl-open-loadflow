@@ -48,7 +48,7 @@ public final class WorkloadRunner {
     public static void main(String[] args) throws IOException {
         //List<Workload> workloads = getAllWorkloads(Path.of("workload/"), Set.of()); //, Set.of("spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"));
         List<Workload> workloads = List.of(
-                Workload.inMemory(Path.of("workload/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt"))
+                Workload.inMemory(Path.of("workload/spy_10000_10_10_10000_10_10_2026-08-07T07:59:16.649371906Z.zip"))
         );
 
         List<GraphConnectivityFactory<Integer, Integer>> factories = List.of(
@@ -59,8 +59,9 @@ public final class WorkloadRunner {
                 // new HolmEtAlGraphConnectivityFactory<>(),
                 // new HolmEtAlWithoutLevelGraphConnectivityFactory<>(),
                 // new NewHolmGraphConnectivityFactory<>(),
-                new HolmStandaloneFactory<>(),
+                // new HolmStandaloneFactory<>(),
                 // new DTreeGraphConnectivityFactory<>()
+                DTreeStandalone2::new,
                 new DTreeStandaloneFactory<>()
                 // IDTreeStandalone::new,
                 // new IndexedDTreeStandalone2ndVerFactory<>((Integer i) -> i, (Integer i) -> i)

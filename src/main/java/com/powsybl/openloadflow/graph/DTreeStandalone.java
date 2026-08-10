@@ -221,7 +221,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
      * same tree rooted at {@code root}.
      * <p>
      * If the difference of depth, delta, is less than two, the edge is inserted
-     * as a non-tree edge. Otherwise, assuming depthU < depthV, the delta-2 ancestor of
+     * as a non-tree edge. Otherwise, assuming depthU < depthV, the delta / 2 - 1 ancestor of
      * {@code nodeU} is unlinked from the tree. Then {@code nodeU} and {@code nodeV} are
      * linked with a tree edge. In this case, the inserted edge is in fact a tree edge
      * and the method return {@code true}
@@ -256,9 +256,9 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
             nodeV.nonTreeEdges.add(edge);
             return false;
         } else {
-            // get the delta - 2 DTNode.
+            // get the (delta / 2 - 1) DTNode.
             DTNode ancestor = deep;
-            for (int j = 0; j < delta - 2; j++) {
+            for (int j = 0; j < delta / 2 - 1; j++) {
                 ancestor = ancestor.parent;
             }
 
