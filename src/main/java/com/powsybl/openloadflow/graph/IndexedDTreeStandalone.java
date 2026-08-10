@@ -221,16 +221,17 @@ public class IndexedDTreeStandalone<V, E> implements SpanningForestGraphConnecti
             nodeV.nonTreeEdges.add(edge);
             return false;
         } else {
-            DTNode i = deep;
-            for (int j = 0; j < delta - 2; j++) {
-                i = i.parent;
+            // get the (delta / 2 - 1) DTNode.
+            DTNode ancestor = deep;
+            for (int j = 0; j < delta / 2 - 1; j++) {
+                ancestor = ancestor.parent;
             }
 
-            i.parent.nonTreeEdges.add(i.parentEdge);
-            i.nonTreeEdges.add(i.parentEdge);
-            edges.get(i.parentEdge).treeEdge = false;
+            ancestor.parent.nonTreeEdges.add(ancestor.parentEdge);
+            ancestor.nonTreeEdges.add(ancestor.parentEdge);
+            edges.get(ancestor.parentEdge).treeEdge = false;
 
-            unlink(i);
+            unlink(ancestor);
             // updating roots is useless because 'deep' will be
             // connected to 'shallow' juste after.
             deep.makeRoot(false);

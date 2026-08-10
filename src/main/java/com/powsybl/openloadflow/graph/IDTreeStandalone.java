@@ -207,7 +207,7 @@ public class IDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V
 
         if (delta >= 2) {
             IDTNode i = deep;
-            for (int j = 0; j < delta - 2; j++) {
+            for (int j = 0; j < delta / 2 - 1; j++) {
                 i = i.parent;
             }
 
