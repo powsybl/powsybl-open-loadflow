@@ -7,9 +7,7 @@
  */
 package com.powsybl.openloadflow.graph.workload;
 
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.graph.OptDTreeStandaloneFactory;
+import com.powsybl.openloadflow.graph.*;
 import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
 import com.powsybl.openloadflow.graph.log.Log;
 import com.powsybl.openloadflow.graph.log.ProgressFormatter;
@@ -40,7 +38,7 @@ public final class WorkloadRunner {
             .setMeasurement(10);
     private static final RunParameters VALIDATOR = new RunParameters.Validator();
     private static final RunParameters COMPUTE_SD = new RunParameters.ComputeSd()
-            .setOutput("sum_of_distances/data/${workload}/${class}/${index}.txt");
+            .setOutput("sum_of_distances/data/${workload}/${class}/${operations}");
 
     private static final RunParameters WORKLOAD_PARAMS = COMPUTE_SD;
 
@@ -62,12 +60,12 @@ public final class WorkloadRunner {
                 // new HolmEtAlWithoutLevelGraphConnectivityFactory<>(),
                 // new NewHolmGraphConnectivityFactory<>(),
                 // new HolmStandaloneFactory<>()
-                // new DTreeGraphConnectivityFactory<>(),
-                // new DTreeStandaloneFactory<>()
+                // new DTreeGraphConnectivityFactory<>()
+                new DTreeStandaloneFactory<>()
                 // IDTreeStandalone::new,
                 // new IndexedDTreeStandalone2ndVerFactory<>((Integer i) -> i, (Integer i) -> i)
                 // new DnDTreeStandaloneFactory<>()
-                new OptDTreeStandaloneFactory<>()
+                // new OptDTreeStandaloneFactory<>()
         );
 
         LOG.log("Workloads:");
@@ -198,11 +196,11 @@ public final class WorkloadRunner {
                                                              int measurement) {
         if (warmup > 0) {
             progress.setWarmup(true, warmup);
-            runOperationsMultipleTimes(progress, operations, spy.createUnregistered(), barrier, warmup);
+            runOperationsMultipleTimes(progress, operations, spy.createUnregistered(operations), barrier, warmup);
         }
         if (measurement > 0) {
             progress.setWarmup(false, measurement);
-            runOperationsMultipleTimes(progress, operations, spy.create(), barrier, measurement);
+            runOperationsMultipleTimes(progress, operations, spy.create(operations), barrier, measurement);
         }
     }
 

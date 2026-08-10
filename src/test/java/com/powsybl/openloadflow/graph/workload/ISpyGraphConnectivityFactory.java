@@ -17,7 +17,15 @@ public interface ISpyGraphConnectivityFactory<V, E> extends GraphConnectivityFac
     @Override
     ISpyGraphConnectivity<V, E> create();
 
+    default ISpyGraphConnectivity<V, E> create(Operations operations) {
+        return create();
+    }
+
     ISpyGraphConnectivity<V, E> createUnregistered();
+
+    default ISpyGraphConnectivity<V, E> createUnregistered(Operations operations) {
+        return createUnregistered();
+    }
 
     GraphConnectivityFactory<V, E> getDelegateFactory();
 

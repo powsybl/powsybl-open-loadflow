@@ -35,7 +35,12 @@ public class MultiThreadedWorkload implements Workload {
             }
         }
 
-        return new MultiThreadedWorkload(workloads, source);
+        MultiThreadedWorkload workload = new MultiThreadedWorkload(workloads, source);
+        for (Workload w : workloads) {
+            ((InMemorySingleThreadedWorkload) w).parentWorkload = workload;
+        }
+
+        return workload;
     }
 
     private final List<Workload> workloadPerThread;

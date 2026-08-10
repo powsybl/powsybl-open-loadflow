@@ -24,6 +24,7 @@ public class InMemorySingleThreadedWorkload implements Workload {
         return new InMemorySingleThreadedWorkload(operations, file);
     }
 
+    Workload parentWorkload;
     private final List<String> operations;
     private final Type type;
     private final Path source;
@@ -65,6 +66,16 @@ public class InMemorySingleThreadedWorkload implements Workload {
     private final class ListOperations implements Operations {
 
         private int pos = 0;
+
+        @Override
+        public Workload workload() {
+            return parentWorkload == null ? InMemorySingleThreadedWorkload.this : parentWorkload;
+        }
+
+        @Override
+        public Path source() {
+            return parentWorkload == null ? source.getFileName() : source;
+        }
 
         @Override
         public void reset() {

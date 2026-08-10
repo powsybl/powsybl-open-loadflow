@@ -23,7 +23,6 @@ public class ComputeSdGraphConnectivityFactory<V, E> implements ISpyGraphConnect
 
     private final String output;
     private final Map<String, String> outputPathParameters;
-    private int num;
 
     public ComputeSdGraphConnectivityFactory(GraphConnectivityFactory<V, E> delegateFactory,
                                              String output, Map<String, String> outputPathParameters) {
@@ -32,10 +31,8 @@ public class ComputeSdGraphConnectivityFactory<V, E> implements ISpyGraphConnect
         this.outputPathParameters = outputPathParameters;
     }
 
-    @Override
-    public synchronized ISpyGraphConnectivity<V, E> create() {
-        num++;
-        outputPathParameters.put("index", String.valueOf(num));
+    private synchronized ISpyGraphConnectivity<V, E> create(Path source) {
+        outputPathParameters.put("operations", source.toString());
 
         StringSubstitutor substitutor = new StringSubstitutor(outputPathParameters);
         substitutor.setEnableUndefinedVariableException(true);
@@ -50,8 +47,23 @@ public class ComputeSdGraphConnectivityFactory<V, E> implements ISpyGraphConnect
     }
 
     @Override
+    public ISpyGraphConnectivity<V, E> create() {
+        throw new IllegalStateException();
+    }
+
+    @Override
+    public ISpyGraphConnectivity<V, E> create(Operations operations) {
+        return create(operations.source());
+    }
+
+    @Override
     public ISpyGraphConnectivity<V, E> createUnregistered() {
-        return create();
+        throw new IllegalStateException();
+    }
+
+    @Override
+    public ISpyGraphConnectivity<V, E> createUnregistered(Operations operations) {
+        throw new IllegalStateException();
     }
 
     @Override

@@ -8,12 +8,24 @@
 package com.powsybl.openloadflow.graph.workload;
 
 import java.io.Closeable;
+import java.nio.file.Path;
 import java.util.Iterator;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
 public interface Operations extends Closeable, Iterator<String> {
+
+    Workload workload();
+
+    /**
+     * For a single-threaded workload stored in a text files, it returns
+     * the name of the file. For an operation in a workload stored in a zip file,
+     * it returns the absolute path to the operation in the zip file.
+     *
+     * @return source file relative to the workload file
+     */
+    Path source();
 
     void reset();
 
