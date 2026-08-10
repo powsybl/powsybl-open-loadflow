@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Set;
 
 /**
@@ -32,7 +33,7 @@ public class ComputeSdGraphConnectivity<V, E> extends AbstractSpyGraphConnectivi
                 Files.createDirectories(file.getParent());
             }
 
-            bw = Files.newBufferedWriter(file);
+            bw = Files.newBufferedWriter(file, StandardOpenOption.CREATE_NEW);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
