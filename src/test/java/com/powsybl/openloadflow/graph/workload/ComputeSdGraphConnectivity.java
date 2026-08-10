@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.graph.workload;
 
+import com.powsybl.openloadflow.graph.utils.AverageStopWatch;
 import com.powsybl.openloadflow.graph.utils.GraphConnectivityMethod;
 
 import java.io.BufferedWriter;
@@ -21,7 +22,9 @@ import java.util.Set;
  */
 public class ComputeSdGraphConnectivity<V, E> extends AbstractSpyGraphConnectivity<V, E> {
 
+    private final AverageStopWatch asw = new AverageStopWatch();
     private final BufferedWriter bw;
+    private int operation;
 
     public ComputeSdGraphConnectivity(Path file) {
         try {
@@ -35,17 +38,17 @@ public class ComputeSdGraphConnectivity<V, E> extends AbstractSpyGraphConnectivi
         }
     }
 
-    private void writeSd(GraphConnectivityMethod method) {
+    private void writeLine(GraphConnectivityMethod method, long nanos) {
         try {
-            bw.write("%s %d%n".formatted(method.shortName(), computeSumOfDistances()));
+            bw.write("%d %s %d %d%n".formatted(operation, method.shortName(), nanos, computeSumOfDistances()));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
     @Override
-    public void beginOperations(Operations operations) {
-
+    public void notifyOperation(int operation) {
+        this.operation = operation;
     }
 
     @Override
@@ -59,93 +62,121 @@ public class ComputeSdGraphConnectivity<V, E> extends AbstractSpyGraphConnectivi
 
     @Override
     public void addVertex(V vertex) {
+        asw.start();
         super.addVertex(vertex);
-        writeSd(GraphConnectivityMethod.ADD_VERTEX);
+        asw.stop();
+        writeLine(GraphConnectivityMethod.ADD_VERTEX, asw.elapsed());
     }
 
     @Override
     public void addEdge(V vertex1, V vertex2, E edge) {
+        asw.start();
         super.addEdge(vertex1, vertex2, edge);
-        writeSd(GraphConnectivityMethod.ADD_EDGE);
+        asw.stop();
+        writeLine(GraphConnectivityMethod.ADD_EDGE, asw.elapsed());
     }
 
     @Override
     public void removeEdge(E edge) {
+        asw.start();
         super.removeEdge(edge);
-        writeSd(GraphConnectivityMethod.REMOVE_EDGE);
+        asw.stop();
+        writeLine(GraphConnectivityMethod.REMOVE_EDGE, asw.elapsed());
     }
 
     @Override
     public void startTemporaryChanges(boolean computeComparisons) {
+        asw.start();
         super.startTemporaryChanges(computeComparisons);
-        writeSd(GraphConnectivityMethod.START_TEMPORARY_CHANGES);
+        asw.stop();
+        writeLine(GraphConnectivityMethod.START_TEMPORARY_CHANGES, asw.elapsed());
     }
 
     @Override
     public void undoTemporaryChanges() {
+        asw.start();
         super.undoTemporaryChanges();
-        writeSd(GraphConnectivityMethod.UNDO_TEMPORARY_CHANGES);
+        asw.stop();
+        writeLine(GraphConnectivityMethod.UNDO_TEMPORARY_CHANGES, asw.elapsed());
     }
 
     @Override
     public int getComponentNumber(V vertex) {
+        asw.start();
         int n = super.getComponentNumber(vertex);
-        writeSd(GraphConnectivityMethod.GET_COMPONENT_NUMBER);
+        asw.stop();
+        writeLine(GraphConnectivityMethod.GET_COMPONENT_NUMBER, asw.elapsed());
         return n;
     }
 
     @Override
     public void setMainComponentVertex(V mainComponentVertex) {
+        asw.start();
         super.setMainComponentVertex(mainComponentVertex);
-        writeSd(GraphConnectivityMethod.SET_MAIN_COMPONENT_VERTEX);
+        asw.stop();
+        writeLine(GraphConnectivityMethod.SET_MAIN_COMPONENT_VERTEX, asw.elapsed());
     }
 
     @Override
     public int getNbConnectedComponents() {
+        asw.start();
         int n = super.getNbConnectedComponents();
-        writeSd(GraphConnectivityMethod.GET_NB_CONNECTED_COMPONENTS);
+        asw.stop();
+        writeLine(GraphConnectivityMethod.GET_NB_CONNECTED_COMPONENTS, asw.elapsed());
         return n;
     }
 
     @Override
     public Set<V> getConnectedComponent(V vertex) {
+        asw.start();
         Set<V> set = super.getConnectedComponent(vertex);
-        writeSd(GraphConnectivityMethod.GET_CONNECTED_COMPONENT);
+        asw.stop();
+        writeLine(GraphConnectivityMethod.GET_CONNECTED_COMPONENT, asw.elapsed());
         return set;
     }
 
     @Override
     public Set<V> getLargestConnectedComponent() {
+        asw.start();
         Set<V> set = super.getLargestConnectedComponent();
-        writeSd(GraphConnectivityMethod.GET_LARGEST_CONNECTED_COMPONENT);
+        asw.stop();
+        writeLine(GraphConnectivityMethod.GET_LARGEST_CONNECTED_COMPONENT, asw.elapsed());
         return set;
     }
 
     @Override
     public Set<V> getVerticesRemovedFromMainComponent() {
+        asw.start();
         Set<V> set = super.getVerticesRemovedFromMainComponent();
-        writeSd(GraphConnectivityMethod.GET_VERTICES_REMOVED_FROM_MAIN_COMPONENT);
+        asw.stop();
+        writeLine(GraphConnectivityMethod.GET_VERTICES_REMOVED_FROM_MAIN_COMPONENT, asw.elapsed());
         return set;
     }
 
     @Override
     public Set<E> getEdgesRemovedFromMainComponent() {
+        asw.start();
         Set<E> set = super.getEdgesRemovedFromMainComponent();
-        writeSd(GraphConnectivityMethod.GET_EDGES_REMOVED_FROM_MAIN_COMPONENT);
+        asw.stop();
+        writeLine(GraphConnectivityMethod.GET_EDGES_REMOVED_FROM_MAIN_COMPONENT, asw.elapsed());
         return set;
     }
 
     @Override
     public Set<V> getVerticesAddedToMainComponent() {
+        asw.start();
         Set<V> set = super.getVerticesAddedToMainComponent();
-        writeSd(GraphConnectivityMethod.GET_VERTICES_ADDED_TO_MAIN_COMPONENT);
+        asw.stop();
+        writeLine(GraphConnectivityMethod.GET_VERTICES_ADDED_TO_MAIN_COMPONENT, asw.elapsed());
         return set;
     }
 
     @Override
     public Set<E> getEdgesAddedToMainComponent() {
+        asw.start();
         Set<E> set = super.getEdgesAddedToMainComponent();
-        writeSd(GraphConnectivityMethod.GET_EDGES_ADDED_TO_MAIN_COMPONENT);
+        asw.stop();
+        writeLine(GraphConnectivityMethod.GET_EDGES_ADDED_TO_MAIN_COMPONENT, asw.elapsed());
         return set;
     }
 }

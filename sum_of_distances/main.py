@@ -11,11 +11,9 @@ from typing import Tuple
 
 import numpy as np
 import pyqtgraph as pg
-import qdarktheme
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import QMainWindow
 from pyqtgraph import mkPen, PlotItem, PlotDataItem, PlotCurveItem
-from pyqtgraph.graphicsItems import ScatterPlotItem, InfiniteLine
 
 
 class Method(Enum):
@@ -36,9 +34,16 @@ class Method(Enum):
 
 
 @dataclass
+class SingleResult:
+    operation_line: int
+    method: Method
+    time: int # nanos
+    sd: int
+
+@dataclass
 class OperationsResult:
     operations_file: str
-    operations: list[Tuple[Method, int]]
+    operations: list[SingleResult]
 
     def __init__(self, file: Path):
         self.file = file
@@ -55,9 +60,9 @@ class OperationsResult:
             self.operations += [OperationsResult.parse_line(line) for line in f]
 
     @staticmethod
-    def parse_line(line: str) -> Tuple[Method, int]:
+    def parse_line(line: str) -> SingleResult:
         parts = line.split(" ")
-        return Method(parts[0]), int(parts[1])
+        return SingleResult(int(parts[0]), Method(parts[1]), int(parts[2]), int(parts[3]))
 
 
 @dataclass
@@ -98,32 +103,29 @@ class ConnectivityOperationsResultPlot(PlotItem):
         self.tooltips = {}
 
         for i, (connectivity, op) in enumerate(res.per_connectivity.items()):
-            y_data = op.operations
-            x_data = range(0, len(y_data))
+            x_data = [r.operation_line for r in op.operations]
+            y_data = [r.sd for r in op.operations]
 
             pen = mkPen(color=(i, len(res.per_connectivity)))
 
             plot = self.plot()
             plot.curve = HoverPlotCurveItem(self, connectivity, op)
             plot.curve.setParentItem(plot)
-            plot.setData(x_data, [sd for (_, sd) in y_data])
+            plot.setData(x_data, y_data)
             plot.setPen(pen)
 
             self.legend.addItem(plot, connectivity)
 
-        self.guideline = pg.InfiniteLine(angle=90, pen='r')
-        self.guideline.setVisible(False)
+        self.guideline = pg.InfiniteLine(angle=90, pen='r', label="")
+        self.guideline.setVisible(True)
+        self.guideline.label.setColor('k')
         self.addItem(self.guideline)
 
     def update_tooltip(self, plot: PlotCurveItem, tooltip: str):
         self.tooltips[plot] = str(tooltip)
 
-        vb = plot.getViewBox()
         full_tooltip = "\n".join(self.tooltips.values())
-        if vb is not None:
-            vb.setToolTip(full_tooltip)
-
-        self.upper_left_text.setText(full_tooltip)
+        self.guideline.label.setText(full_tooltip)
 
     def set_guideline(self, x: int):
         if x >= 0:
@@ -143,7 +145,7 @@ class HoverPlotCurveItem(PlotCurveItem):
 
     def nearest_point_index(self, obj) -> int:
         if isinstance(obj, QtCore.QPointF):
-            l = obj.x() - 0.5 # - 0.5 to account for integer precision and have proper guideline and tooltip around the mouse
+            l = obj.x()# - 0.5 # - 0.5 to account for integer precision and have proper guideline and tooltip around the mouse
         else:
             raise TypeError
 
@@ -161,13 +163,14 @@ class HoverPlotCurveItem(PlotCurveItem):
 
         if ev.exit:
             self.plot_item.update_tooltip(self, "")
+            self.plot_item.set_guideline(-1)
         else:
             i = self.nearest_point_index(ev.pos())
 
             if vb is not None:
                 if 0 <= i < len(self.xData):
                     self.plot_item.update_tooltip(self, self.tooltip_for(i))
-                    self.plot_item.set_guideline(i)
+                    self.plot_item.set_guideline(self.xData[i])
                 else:
                     self.plot_item.update_tooltip(self, "")
                     self.plot_item.set_guideline(-1)
@@ -176,13 +179,13 @@ class HoverPlotCurveItem(PlotCurveItem):
 
 
     def tooltip_for(self, x_index: int) -> str:
-        method, Sd = self.operations.operations[x_index]
+        r = self.operations.operations[x_index]
 
         return "{conn}: {method} ({i}) - Sd: {Sd}".format(
             conn=self.connectivity,
-            method=method,
-            i=x_index,
-            Sd = Sd
+            method=r.method,
+            i=r.operation_line,
+            Sd = r.sd
         )
 
 def get_data(path: Path) -> Results:
@@ -237,7 +240,7 @@ class Window(QMainWindow):
 
 
 if __name__ == '__main__':
-    workload = Path("data/spy_10000_10_10_10000_10_10_2026-08-07T07:59:16.649371906Z.zip/")
+    workload = Path("data/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt")
     data = get_data(workload)
 
     pg.setConfigOptions(antialias=True)

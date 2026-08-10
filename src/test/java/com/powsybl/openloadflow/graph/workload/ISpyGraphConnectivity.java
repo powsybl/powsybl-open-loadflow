@@ -16,9 +16,11 @@ import com.powsybl.openloadflow.graph.SpanningForestGraphConnectivity;
  */
 public interface ISpyGraphConnectivity<V, E> extends SpanningForestGraphConnectivity<V, E> {
 
-    void beginOperations(Operations operations);
+    default void beginOperations(Operations operations) { }
 
-    void endOperations(Operations operations);
+    default void notifyOperation(int operation) { }
+
+    default void endOperations(Operations operations) { }
 
     void setDelegate(GraphConnectivity<V, E> delegate);
 
