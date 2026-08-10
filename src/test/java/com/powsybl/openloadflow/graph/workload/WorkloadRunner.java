@@ -7,7 +7,9 @@
  */
 package com.powsybl.openloadflow.graph.workload;
 
-import com.powsybl.openloadflow.graph.*;
+import com.powsybl.openloadflow.graph.DTreeStandaloneFactory;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
 import com.powsybl.openloadflow.graph.log.Log;
 import com.powsybl.openloadflow.graph.log.ProgressFormatter;
@@ -61,7 +63,6 @@ public final class WorkloadRunner {
                 // new NewHolmGraphConnectivityFactory<>(),
                 // new HolmStandaloneFactory<>(),
                 // new DTreeGraphConnectivityFactory<>()
-                DTreeStandalone2::new,
                 new DTreeStandaloneFactory<>()
                 // IDTreeStandalone::new,
                 // new IndexedDTreeStandalone2ndVerFactory<>((Integer i) -> i, (Integer i) -> i)
