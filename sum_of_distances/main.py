@@ -7,12 +7,15 @@ import math
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from random import randint
 from typing import Tuple
 
 import numpy as np
 import pyqtgraph as pg
-from PyQt6 import QtCore
-from PyQt6.QtWidgets import QMainWindow
+from PyQt6 import QtCore, QtWidgets
+from PyQt6.QtCore import Qt, QModelIndex
+from PyQt6.QtGui import QStandardItem, QStandardItemModel
+from PyQt6.QtWidgets import QMainWindow, QListView
 from pyqtgraph import mkPen, PlotItem, PlotDataItem, PlotCurveItem
 
 
@@ -65,6 +68,12 @@ class OperationsResult:
         parts = line.split(" ")
         return SingleResult(int(parts[0]), Method(parts[1]), int(parts[2]), int(parts[3]))
 
+    def __iter__(self):
+        return self.operations.__iter__()
+
+    def __len__(self):
+        return self.operations.__len__()
+
 
 @dataclass
 class ConnectivityOperationsResult:
@@ -101,6 +110,7 @@ class OperationsPlotCurveItem(PlotCurveItem):
         super().__init__(*args, **kargs)
         self.connectivity = connectivity
         self.operations = operations
+        self.to_operation_index = []
 
     def nearest_point_index(self, obj) -> int:
         if isinstance(obj, QtCore.QPointF):
@@ -110,13 +120,13 @@ class OperationsPlotCurveItem(PlotCurveItem):
 
         i = np.clip(np.searchsorted(self.xData, l), 0, len(self.xData) - 1)
 
-        if abs(self.xData[i] - l) > 5:
+        if i <= 0 < len(self.xData) and abs(self.xData[i] - l) > 5:
             return -1
         else:
             return i
 
     def make_tooltip(self, x_index: int) -> str:
-        r = self.operations.operations[x_index]
+        r = self.operations.operations[self.to_operation_index[x_index]]
 
         return "{conn}: {method} ({i}) - Sd: {Sd}".format(
             conn=self.connectivity,
@@ -124,6 +134,17 @@ class OperationsPlotCurveItem(PlotCurveItem):
             i=r.operation_line,
             Sd=r.sd
         )
+
+    def filter_data(self, filtered_methods: dict[Method, bool]):
+        self.to_operation_index = [
+            i for (i, r) in enumerate(self.operations) if not filtered_methods.get(r.method, False)
+        ]
+
+        y_data = [
+            r.sd for r in self.operations if not filtered_methods.get(r.method, False)
+        ]
+
+        self.parentItem().setData(range(len(y_data)), y_data)
 
 
 class ConnectivityOperationsResultPlot(PlotItem):
@@ -134,15 +155,12 @@ class ConnectivityOperationsResultPlot(PlotItem):
         self.addLegend()
 
         for i, (connectivity, op) in enumerate(res.per_connectivity.items()):
-            x_data = [r.operation_line for r in op.operations]
-            y_data = [r.sd for r in op.operations]
-
             pen = mkPen(color=(i, len(res.per_connectivity)))
 
             plot = self.plot()
             plot.curve = OperationsPlotCurveItem(connectivity, op)
             plot.curve.setParentItem(plot)
-            plot.setData(x_data, y_data)
+            plot.curve.filter_data({})
             plot.setPen(pen)
 
             self.legend.addItem(plot, connectivity)
@@ -175,18 +193,59 @@ class ConnectivityOperationsResultPlot(PlotItem):
                 self.guideline.label.setFormat(tooltip)
                 self.guideline.setPos(int(mouse_pos.x() + 0.5))
 
+    def filter_data(self, filtered_methods: dict[Method, bool]):
+        for plot_data_item in self.curves:
+            plot_data_item.curve.filter_data(filtered_methods)
+
 
 class Window(QMainWindow):
 
     def __init__(self, results: Results):
         super().__init__()
         self.results = results
+        self.plots = []
 
-        self.setCentralWidget(self.plot_all())
+        self.parameters = self.make_parameters()
+        self.graphics_layout = self.plot_all()
+        self.mainw = self.make_main_widget()
+
+        self.setCentralWidget(self.mainw)
         self.show()
         self.setWindowTitle("Results")
         self.resize(1200, 1200 * 3 // 4)
         self.center_window()
+
+    def make_main_widget(self) -> QtWidgets.QWidget:
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Horizontal)
+        splitter.addWidget(self.parameters)
+        splitter.addWidget(self.graphics_layout)
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 4)
+
+        return splitter
+
+    def make_parameters(self) -> QtWidgets.QWidget:
+        self.model = QStandardItemModel()
+
+        for m in Method:
+            item = QStandardItem(m.value)
+            item.setCheckState(Qt.CheckState.Checked)
+            item.setCheckable(True)
+            item.setEditable(False)
+            self.model.appendRow(item)
+        self.model.itemChanged.connect(self.filter_data)
+
+        view = QListView()
+        view.setModel(self.model)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(QtWidgets.QLabel("Filter by method"))
+        layout.addWidget(view)
+
+        params = QtWidgets.QWidget()
+        params.setLayout(layout)
+        return params
 
     def plot_all(self) -> pg.GraphicsLayoutWidget:
         w = int(math.ceil(math.sqrt(len(self.results))))
@@ -195,11 +254,12 @@ class Window(QMainWindow):
 
         graphics = pg.GraphicsLayoutWidget()
 
-        for i, operations in enumerate(self.results.per_operations.values()):
+        for i, operations in enumerate(sorted(self.results.per_operations.values(), key=lambda x: x.operations_file)):
             x = i % w
             y = i // w
 
             plot = ConnectivityOperationsResultPlot(operations)
+            self.plots.append(plot)
             graphics.ci.addItem(plot, col=x, row=y)
 
         return graphics
@@ -210,6 +270,15 @@ class Window(QMainWindow):
 
         qr.moveCenter(cp)
         self.move(qr.topLeft())
+
+    def filter_data(self, item):
+        unchecked = {
+            Method(self.model.item(row).text()): self.model.item(row).checkState() == Qt.CheckState.Unchecked
+            for row in range(self.model.rowCount())
+        }
+
+        for plot in self.plots:
+            plot.filter_data(unchecked)
 
 
 def get_data(path: Path) -> Results:
@@ -229,7 +298,7 @@ def get_data(path: Path) -> Results:
 
 
 if __name__ == '__main__':
-    workload = Path("data/spy_10000_10_10_10000_10_10_2026-08-07T07:59:16.649371906Z.zip")
+    workload = Path("data/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt")
     data = get_data(workload)
 
     pg.setConfigOptions(antialias=True)
