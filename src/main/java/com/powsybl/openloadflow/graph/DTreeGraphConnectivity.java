@@ -13,7 +13,18 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.*;
 
 /**
- * D-Tree implementation from <a href="https://arxiv.org/pdf/2207.06887"/>
+ * D-Tree implementation from <cite>Qing Chen, Oded Lachish, Sven Helmer, and Michael H. Böhlen. Dynamic
+ * Spanning Trees for Connectivity Queries on Fully-dynamic Undirected
+ * Graphs. PVLDB, 15(11): 3263 - 3276, 2022.
+ * doi:10.14778/3551793.3551868</cite>. An extended version is available at
+ * <a href="https://arxiv.org/pdf/2207.06887">https://arxiv.org/pdf/2207.06887</a>
+ *
+ * <p>
+ * This implementation also includes one optimization (see {@link DTGraph#insertNonTreeEdge(DTGraph.DTNode, DTGraph.DTNode, int, DTGraph.DTNode, int, DTGraph.Edge)})
+ * from another paper: <cite>Lantian Xu, Dong Wen, Lu Qin, Ronghua Li, Ying Zhang, and Xuemin Lin. 2024.
+ * Constant-time Connectivity Querying in Dynamic Graphs. Proc. ACM Manag. Data 2, 6 (SIGMOD), Article 230
+ * (December 2024), 23 pages. <a href="https://doi.org/10.1145/3698805">https://doi.org/10.1145/3698805</a></cite>.
+ * </p>
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
@@ -298,10 +309,16 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
          * same tree rooted at {@code root}.
          * <p>
          * If the difference of depth, delta, is less than two, the edge is inserted
-         * as a non-tree edge. Otherwise, assuming depthU < depthV, the delta-2 ancestor of
+         * as a non-tree edge. Otherwise, assuming depthU < depthV, the delta / 2 - 1 ancestor of
          * {@code nodeU} is unlinked from the tree. Then {@code nodeU} and {@code nodeV} are
          * linked with a tree edge. In this case, the inserted edge is in fact a tree edge
          * and the method return {@code true}
+         * </p>
+         *
+         * <p>
+         * The original DTree paper uses delta - 2 instead of delta / 2 - 1. But a more recent
+         * article indicates better results with delta / 2 - 1. Experimentation confirms this,
+         * the average depth is smaller with the new upper bound.
          * </p>
          *
          * @param root the root of the tree in which an edge is to be added.
@@ -333,9 +350,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 nodeV.nonTreeEdges.add(edge);
                 return false;
             } else {
-                // get the delta - 2 DTNode.
+                // get the (delta / 2 - 1) DTNode.
                 DTNode ancestor = deep;
-                for (int j = 0; j < delta - 2; j++) {
+                for (int j = 0; j < delta / 2 - 1; j++) {
                     ancestor = ancestor.parent;
                 }
 
