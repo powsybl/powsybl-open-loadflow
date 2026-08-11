@@ -18,7 +18,7 @@ import java.util.*;
  */
 public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V, E> {
 
-    public static boolean debug = true;
+    public static boolean debug = false;
 
     private final Map<V, DTNode> vertexToTreeNode = new HashMap<>();
     private final Map<E, Edge> edges = new HashMap<>();
@@ -28,6 +28,8 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
 
     private final Deque<Modifications> modificationsStack = new ArrayDeque<>();
     private V defaultMainComponentVertex;
+
+    private long counter = 1;
 
     public boolean containsVertex(V vertex) {
         return vertexToTreeNode.containsKey(vertex);
@@ -65,33 +67,7 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         long sum = 0;
 
         for (DTNode root : roots) {
-            int currentDepth = 0;
-
-            DTNode ptr = root;
-            while (ptr != null) {
-                if (ptr.firstChild != null) {
-                    ptr = ptr.firstChild;
-                    currentDepth++;
-                    // go deeper
-                } else if (ptr.nextSibling != null) {
-                    ptr = ptr.nextSibling;
-                    // same height
-                } else {
-                    while (ptr != null && ptr.nextSibling == null) {
-                        ptr = ptr.parent;
-                        currentDepth--;
-                        // go up
-                    }
-
-                    if (ptr != null) {
-                        ptr = ptr.nextSibling;
-                    }
-                }
-
-                if (ptr != null) {
-                    sum += currentDepth; // update sum
-                }
-            }
+            sum += root.sumOfDistance();
         }
 
         return sum;
@@ -126,20 +102,10 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         DTNode node = vertexToTreeNode.get(v); // can't use Map#remove because removeEdge will update this DTNode
 
         // remove non tree edges
-        while (!node.nonTreeEdges.isEmpty()) {
+        while (!node.incidentEdges.isEmpty()) {
             // this is weird, but removeEdge will modify node.nonTreeEdges, invalidating the iterator...
-            Edge edge = node.nonTreeEdges.iterator().next();
+            Edge edge = node.incidentEdges.iterator().next();
             removeEdge(edge.edgeData);
-        }
-
-        // remove child tree edges
-        while (node.firstChild != null) {
-            removeEdge(node.firstChild.parentEdge.edgeData);
-        }
-
-        // remove parent tree edge
-        if (node.parentEdge != null) {
-            removeEdge(node.parentEdge.edgeData);
         }
 
         DTNode root = vertexToTreeNode.remove(v);
@@ -209,36 +175,13 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         }
     }
 
-    /**
-     * Insert a non tree edge between {@code nodeU} (whose depth is {@code depthU})
-     * and {@code nodeV} (whose depth is {@code depthV}). The two node must be in the
-     * same tree rooted at {@code root}.
-     * <p>
-     * If the difference of depth, delta, is less than two, the edge is inserted
-     * as a non-tree edge. Otherwise, assuming depthU < depthV, the delta-2 ancestor of
-     * {@code nodeU} is unlinked from the tree. Then {@code nodeU} and {@code nodeV} are
-     * linked with a tree edge. In this case, the inserted edge is in fact a tree edge
-     * and the method return {@code true}
-     * </p>
-     *
-     * @param root the root of the tree in which an edge is to be added.
-     * @param nodeU one endpoint of the edge to add.
-     * @param depthU the depth of {@code nodeU}.
-     * @param nodeV the other endpoint of the edge to add.
-     * @param depthV the depth of {@code nodeU}
-     * @param edge edge linking {@code nodeU} and {@code nodeV}
-     * @return {@code true} if the edge inserted is a tree edge. This is true if |depthU - depthV| >= 2.
-     */
-    private boolean insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, Edge edge) {
+    private void insertNonTreeEdge(DTNode root, DTNode nodeU, int depthU, DTNode nodeV, int depthV, Edge edge) {
+        nodeU.incidentEdges.add(edge);
+        nodeV.incidentEdges.add(edge);
         int delta = Math.abs(depthU - depthV);
-        nodeU.nonTreeEdges.add(edge);
-        nodeV.nonTreeEdges.add(edge);
 
         if (delta >= 2) {
             findBestRoot(root);
-            return false;
-        } else {
-            return false;
         }
     }
 
@@ -253,6 +196,9 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
     }
 
     private DTNode insertTreeEdge(DTNode rootU, DTNode nodeU, DTNode rootV, DTNode nodeV, Edge edge, boolean findBestRoot) {
+        nodeU.incidentEdges.add(edge);
+        nodeV.incidentEdges.add(edge);
+
         edge.treeEdge = true;
         if (rootU.size < rootV.size) {
             nodeU.makeRoot(true);
@@ -284,7 +230,7 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
             removeTreeEdge(e);
         } else {
             removeNonTreeEdgeRecordModifications(e.nodeU, edge);
-            removeNonTreeEdge(e);
+            removeIncidentEdge(e);
         }
 
         // keep track of modifications
@@ -318,6 +264,8 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
      * @param edge the tree edge to remove
      */
     private void removeTreeEdge(Edge edge) {
+        removeIncidentEdge(edge);
+
         DTNode child;
         if (edge.nodeU == edge.nodeV.parent) {
             child = edge.nodeV;
@@ -356,15 +304,19 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
             DTNode n = queue.poll();
 
             // search for a replacement edge
-            for (Edge nonTreeEdge : n.nonTreeEdges) {
-                DTNode oppNode = nonTreeEdge.opposite(n);
+            for (Edge incidentEdge : n.incidentEdges) {
+                if (incidentEdge.treeEdge) {
+                    continue;
+                }
+
+                DTNode oppNode = incidentEdge.opposite(n);
                 DTNode oppRoot = oppNode.findRoot();
 
                 if (oppRoot != rootSmall) {
                     // found a replacement edge
-                    removeNonTreeEdge(nonTreeEdge);
-                    insertTreeEdge(rootSmall, n, oppRoot, oppNode, nonTreeEdge, false);
-                    nonTreeEdge.treeEdge = true;
+                    removeIncidentEdge(incidentEdge);
+                    insertTreeEdge(rootSmall, n, oppRoot, oppNode, incidentEdge, false);
+                    incidentEdge.treeEdge = true;
                     replacementEdgeFound = true;
 
                     break loop;
@@ -412,33 +364,35 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         }
     }
 
-    /**
-     * Remove a non tree edge between {@code edge.nodeU} and {@code edge.nodeV}.
-     * @param edge the edge to remove.
-     */
-    private void removeNonTreeEdge(Edge edge) {
-        edge.nodeU.nonTreeEdges.remove(edge);
-        edge.nodeV.nonTreeEdges.remove(edge);
+    private void removeIncidentEdge(Edge edge) {
+        edge.nodeU.incidentEdges.remove(edge);
+        edge.nodeV.incidentEdges.remove(edge);
     }
 
     private DTNode findBestRoot(DTNode root) {
         DTNode best = root;
         int min = Integer.MAX_VALUE;
 
-        for (DFSIterator it = new DFSIterator(root); it.hasNext();) {
-            it.next();
-            DTNode node = it.node();
-            if (node.size >= root.size / 2) {
-                int sd = node.sumOfDistanceIfRootedAndBFSTree();
-                if (sd < min) {
-                    min = sd;
-                    best = it.node();
-                }
+        // this doesn't necessarily find the root whose BFS tree minimizes Sd
+        // it can be enhanced by doing a local search, that is, iterate over
+        // centroid candidate, choose the best one, and restart until no
+        // amelioration is found. However, it is slower and the improvement is small.
+        // Ensuring root is a root of a BFS tree can also help.
+        for (CentroidIterator it = new CentroidIterator(root); it.hasNext();) {
+            DTNode node = it.next();
+            int sd = node.sumOfDistanceIfRootedAndBFSTree();
+            if (sd < min) {
+                min = sd;
+                best = node;
             }
         }
 
         best.makeBFSTree(true);
         return best;
+    }
+
+    private void unVisitAll() {
+        counter++;
     }
 
     // ======================
@@ -621,15 +575,11 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
 
         checkEdges();
         checkParentChildRelation();
+        checkSize();
+        checkTrees();
     }
 
     private void checkEdges() {
-        for (DTNode node : vertexToTreeNode.values()) {
-            for (Edge nonTreeEdge : node.nonTreeEdges) {
-                assert !nonTreeEdge.treeEdge;
-            }
-        }
-
         for (Map.Entry<E, Edge> entry : edges.entrySet()) {
             E e = entry.getKey();
             Edge edge = entry.getValue();
@@ -637,12 +587,11 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
             DTNode src = edge.nodeU;
             DTNode dest = edge.nodeV;
             assert vertexToTreeNode.containsValue(src) && vertexToTreeNode.containsValue(dest);
+            assert src.incidentEdges.contains(edge);
+            assert dest.incidentEdges.contains(edge);
 
             if (edge.treeEdge) {
                 assert src.parent == dest && src.parentEdge == edge || dest.parent == src && dest.parentEdge == edge;
-            } else {
-                assert src.nonTreeEdges.contains(edge);
-                assert dest.nonTreeEdges.contains(edge);
             }
         }
     }
@@ -666,6 +615,28 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
                 }
 
                 assert present;
+            }
+        }
+    }
+
+    private void checkSize() {
+        for (DTNode node : vertexToTreeNode.values()) {
+            int expectedSize = 1;
+            DTNode child = node.firstChild;
+            while (child != null) {
+                expectedSize += child.size;
+                child = child.nextSibling;
+            }
+
+            assert node.size == expectedSize;
+        }
+    }
+
+    private void checkTrees() {
+        for (DTNode root : roots) {
+            for (DFSIterator it = new DFSIterator(root); it.hasNext();) {
+                V vertex = it.next();
+                assert vertexToTreeNode.get(vertex) == it.node();
             }
         }
     }
@@ -724,6 +695,7 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         // the size of this subtree
         private int size;
         private int depth;
+        private long visited = OptDTreeStandalone.this.counter - 1;
 
         private DTNode parent = null;
         private Edge parentEdge = null;
@@ -735,7 +707,7 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         private DTNode previousSibling = null;
         private DTNode nextSibling = null;
 
-        private final Set<Edge> nonTreeEdges = new HashSet<>();
+        private final Set<Edge> incidentEdges = new HashSet<>();
 
         // index in the list of roots, valid only if this node is a root
         private int rootIndex;
@@ -824,82 +796,136 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
             Queue<DTNode> queue = new ArrayDeque<>();
             queue.offer(this);
 
-            LinkedHashSet<DTNode> visited = new LinkedHashSet<>();
-            visited.add(this);
-
-            Set<Edge> nte = new HashSet<>();
+            unVisitAll();
+            this.setVisited();
 
             while (!queue.isEmpty()) {
                 DTNode node = queue.poll();
                 node.size = 1;
 
-                nte.clear();
-                nte.addAll(node.nonTreeEdges);
+                for (Edge incidentEdge : node.incidentEdges) {
+                    // path to child in the tree is already the fastest path
+                    // so we only need to check non tree edges
+                    if (incidentEdge.treeEdge) {
+                        continue;
+                    }
 
-                // path to child in the tree is already the fastest path
-                // so we only need to check non tree edges
-                for (Edge nonTreeEdge : nte) {
-                    DTNode dest = nonTreeEdge.opposite(node);
-                    if (!visited.contains(dest)) {
-                        visited.add(dest);
-
+                    DTNode dest = incidentEdge.opposite(node);
+                    if (dest.setVisited()) {
                         dest.replaceParentLinkByNTE();
-                        dest.replaceNTEByTE(node, nonTreeEdge);
-                        nonTreeEdge.treeEdge = true;
+                        dest.replaceNTEByTE(node, incidentEdge);
+                        incidentEdge.treeEdge = true;
                     }
                 }
 
                 DTNode child = node.firstChild;
                 while (child != null) {
                     queue.add(child);
-                    visited.add(child);
+                    child.setVisited();
                     child = child.nextSibling;
                 }
             }
 
-            for (DTNode node : visited.reversed()) {
-                if (node.parent != null) {
-                    node.parent.size += node.size;
+            recomputeSize();
+        }
+
+        private void recomputeSize() {
+            DTNode ptr = this;
+
+            while (ptr != null) {
+                if (ptr.firstChild != null) {
+                    ptr = ptr.firstChild;
+                } else if (ptr.nextSibling != null) {
+                    if (ptr.parent != null) {
+                        ptr.parent.size += ptr.size;
+                    }
+
+                    ptr = ptr.nextSibling;
+                } else {
+                    while (ptr != null && ptr.nextSibling == null) {
+                        if (ptr.parent != null) {
+                            ptr.parent.size += ptr.size;
+                        }
+
+                        ptr = ptr.parent;
+                    }
+
+                    if (ptr != null) {
+                        if (ptr.parent != null) {
+                            ptr.parent.size += ptr.size;
+                        }
+
+                        ptr = ptr.nextSibling;
+                    }
                 }
             }
         }
 
         private int sumOfDistanceIfRootedAndBFSTree() {
             ArrayDeque<DTNode> queue = new ArrayDeque<>();
-            Set<DTNode> visited = new HashSet<>();
-
             queue.offer(this);
-            visited.add(this);
+
+            unVisitAll();
+            this.setVisited();
+
             this.depth = 0;
 
             int sum = 0;
 
             while (!queue.isEmpty()) {
                 DTNode node = queue.poll();
-
                 sum += node.depth;
 
-                if (node.parent != null && visited.add(node.parent)) {
-                    node.parent.depth = node.depth + 1;
-                    queue.offer(node.parent);
-                }
-
-                DTNode child = node.firstChild;
-                while (child != null) {
-                    if (visited.add(child)) {
-                        child.depth = node.depth + 1;
-                        queue.offer(child);
-                    }
-                    child = child.nextSibling;
-                }
-
-                for (Edge edge : node.nonTreeEdges) {
+                for (Edge edge : node.incidentEdges) {
                     DTNode dest = edge.opposite(node);
 
-                    if (visited.add(dest)) {
+                    if (dest.setVisited()) {
                         dest.depth = node.depth + 1;
                         queue.offer(dest);
                     }
+                }
+            }
+
+            return sum;
+        }
+
+        private boolean setVisited() {
+            boolean notVisited = visited != OptDTreeStandalone.this.counter;
+            visited = OptDTreeStandalone.this.counter;
+            return notVisited;
+        }
+
+        private boolean isVisited() {
+            return visited == OptDTreeStandalone.this.counter;
+        }
+
+        private int sumOfDistance() {
+            int sum = 0;
+            int currentDepth = 0;
+
+            DTNode ptr = this;
+            while (ptr != null) {
+                if (ptr.firstChild != null) {
+                    ptr = ptr.firstChild;
+                    currentDepth++;
+                    // go deeper
+                } else if (ptr.nextSibling != null) {
+                    ptr = ptr.nextSibling;
+                    // same height
+                } else {
+                    while (ptr != null && ptr.nextSibling == null) {
+                        ptr = ptr.parent;
+                        currentDepth--;
+                        // go up
+                    }
+
+                    if (ptr != null) {
+                        ptr = ptr.nextSibling;
+                    }
+                }
+
+                if (ptr != null) {
+                    sum += currentDepth; // update sum
                 }
             }
 
@@ -946,9 +972,6 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         }
 
         private void replaceNTEByTE(DTNode parent, Edge edge) {
-            nonTreeEdges.remove(edge);
-            parent.nonTreeEdges.remove(edge);
-
             parent.addChildUnchecked(this);
             this.parent = parent;
             this.parentEdge = edge;
@@ -956,10 +979,7 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         }
 
         private void replaceParentLinkByNTE() {
-            parent.nonTreeEdges.add(parentEdge);
-            nonTreeEdges.add(parentEdge);
             parentEdge.treeEdge = false;
-
             parent.removeChildUnchecked(this);
             parent = null;
             parentEdge = null;
@@ -1060,11 +1080,15 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
             }
             sb.append("} -nte-> ");
 
-            for (Edge nte : nonTreeEdges) {
-                if (nte.nodeU.vertex.equals(vertex)) {
-                    sb.append(nte.nodeV.vertex).append(", ");
-                } else if (nte.nodeV.vertex.equals(vertex)) {
-                    sb.append(nte.nodeU.vertex).append(", ");
+            for (Edge edge : incidentEdges) {
+                if (edge.treeEdge) {
+                    continue;
+                }
+
+                if (edge.nodeU.vertex.equals(vertex)) {
+                    sb.append(edge.nodeV.vertex).append(", ");
+                } else if (edge.nodeV.vertex.equals(vertex)) {
+                    sb.append(edge.nodeU.vertex).append(", ");
                 } else {
                     sb.append("nte error, ");
                 }
@@ -1158,6 +1182,53 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
 
         public DTNode node() {
             return current;
+        }
+    }
+
+    private final class CentroidIterator implements Iterator<DTNode> {
+
+        private final DTNode root;
+        private DTNode cursor;
+
+        private CentroidIterator(DTNode root) {
+            this.root = root;
+            this.cursor = root;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return cursor != null;
+        }
+
+        @Override
+        public DTNode next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+
+            DTNode next = cursor;
+
+            do {
+                if (cursor.firstChild != null && isCentroidCandidate(cursor)) { // only go deeper if the *current* node is a centroid, some children may be a centroid
+                    cursor = cursor.firstChild;
+                } else if (cursor.nextSibling != null) {
+                    cursor = cursor.nextSibling;
+                } else {
+                    while (cursor != null && cursor.nextSibling == null) {
+                        cursor = cursor.parent;
+                    }
+
+                    if (cursor != null) {
+                        cursor = cursor.nextSibling;
+                    }
+                }
+            } while (cursor != null && !isCentroidCandidate(cursor));
+
+            return next;
+        }
+
+        private boolean isCentroidCandidate(DTNode node) {
+            return node.size >= root.size / 2;
         }
     }
 
@@ -1303,11 +1374,7 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
                 verticesState.mark(vertex, newState);
 
                 DTNode node = it.node();
-                if (node.parentEdge != null) {
-                    edgesState.mark(node.parentEdge.edgeData, newState);
-                }
-
-                for (Edge nte : node.nonTreeEdges) {
+                for (Edge nte : node.incidentEdges) {
                     if (nte.nodeU == it.node()) { // only if current node is edge source
                         edgesState.mark(nte.edgeData, newState);
                     }
