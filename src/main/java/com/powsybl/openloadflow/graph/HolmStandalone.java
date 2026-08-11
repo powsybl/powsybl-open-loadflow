@@ -581,7 +581,7 @@ public class HolmStandalone<V, E> implements SpanningForestGraphConnectivity<V, 
     private long depth(AVLTree.TreeNode<Occurrence<V, E>> occ) {
         AVLTree.TreeNode<Occurrence<V, E>> curr = occ;
         long depth = -1; // there is a virtual root
-        while (curr != null) {
+        while (curr.getParent() != null) {
             curr = curr.getParent();
             depth++;
         }
