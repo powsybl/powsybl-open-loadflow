@@ -66,7 +66,10 @@ class OperationsResult:
     @staticmethod
     def parse_line(line: str) -> SingleResult:
         parts = line.split(" ")
-        return SingleResult(int(parts[0]), Method(parts[1]), int(parts[2]), int(parts[3]))
+        try:
+            return SingleResult(int(parts[0]), Method(parts[1]), int(parts[2]), int(parts[3]))
+        except:
+            return SingleResult(0, Method.ADD_EDGE, 0, 0)
 
     def __iter__(self):
         return self.operations.__iter__()
@@ -160,7 +163,7 @@ class OperationsPlotCurveItem(PlotCurveItem):
 
     def update_data(self):
         self.to_operation_index = [
-            i for (i, r) in enumerate(self.operations) if not self.filter.get(r.method, False)
+            i + 1 for (i, r) in enumerate(self.operations) if not self.filter.get(r.method, False)
         ]
 
         y_data = [
@@ -287,6 +290,8 @@ class Window(QMainWindow):
 
         params = QtWidgets.QWidget()
         params.setLayout(layout)
+        params.setMinimumWidth(100)
+
         return params
 
     def create_plots(self) -> dict[str, ConnectivityOperationsResultPlot]:
@@ -359,7 +364,6 @@ if __name__ == '__main__':
     pg.setConfigOptions(antialias=True)
     pg.setConfigOption('background', 'w')
     pg.setConfigOption('foreground', 'k')
-    pg.setConfigOption("useOpenGL", True)
     pg.mkQApp("Results")
     qdarktheme.setup_theme()
 
