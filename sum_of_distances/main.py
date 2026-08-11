@@ -14,7 +14,8 @@ import qdarktheme
 from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
-from PyQt6.QtWidgets import QMainWindow, QListView, QFrame
+from PyQt6.QtWidgets import QMainWindow, QListView
+from pyparsing import results
 from pyqtgraph import mkPen, PlotItem, PlotCurveItem
 
 
@@ -196,12 +197,15 @@ class ConnectivityOperationsResultPlot(PlotItem):
 
         vb = self.getViewBox()
         if not ev.exit and vb is not None:
-            mouse_pos = self.getViewBox().mapSceneToView(ev.pos())
+            mouse_pos = vb.mapSceneToView(ev.pos())
 
             mouse_outside = True
             tooltip = ""
             for plot_data_item in self.curves:
                 plot_curve: OperationsPlotCurveItem = plot_data_item.curve
+                if not isinstance(plot_curve, OperationsPlotCurveItem):
+                    pass
+
                 i = plot_curve.nearest_point_index(mouse_pos)
 
                 if 0 <= i < len(plot_curve.xData):
@@ -227,10 +231,11 @@ class Window(QMainWindow):
     def __init__(self, results: Results):
         super().__init__()
         self.results = results
-        self.plots = []
+        self.plots = self.create_plots()
 
         self.parameters = self.make_parameters()
-        self.graphics_layout = self.plot_all()
+        self.graphics_layout = pg.GraphicsLayoutWidget()
+        self.graph_layout_changed("All")
         self.mainw = self.make_main_widget()
 
         self.setCentralWidget(self.mainw)
@@ -266,33 +271,29 @@ class Window(QMainWindow):
         graph_type.addItems([g.value for g in GraphType])
         graph_type.currentTextChanged.connect(self.graph_type_changed)
 
+        graph_layout = QtWidgets.QComboBox()
+        graph_layout.addItems(["All"] + sorted(self.plots.keys()))
+        graph_layout.currentTextChanged.connect(self.graph_layout_changed)
+
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(QtWidgets.QLabel("Filter by method"))
+        layout.addWidget(QtWidgets.QLabel("Filter by method:"))
         layout.addWidget(view)
+        layout.addWidget(QtWidgets.QLabel("Graph:"))
         layout.addWidget(graph_type)
+        layout.addWidget(QtWidgets.QLabel("Layout:"))
+        layout.addWidget(graph_layout)
         layout.addStretch()
 
         params = QtWidgets.QWidget()
         params.setLayout(layout)
         return params
 
-    def plot_all(self) -> pg.GraphicsLayoutWidget:
-        w = int(math.ceil(math.sqrt(len(self.results))))
-        h = int(math.ceil(len(self.results) / w))
-        print(w, h)
-
-        graphics = pg.GraphicsLayoutWidget()
-
-        for i, operations in enumerate(sorted(self.results.per_operations.values(), key=lambda x: x.operations_file)):
-            x = i % w
-            y = i // w
-
-            plot = ConnectivityOperationsResultPlot(operations)
-            self.plots.append(plot)
-            graphics.ci.addItem(plot, col=x, row=y)
-
-        return graphics
+    def create_plots(self) -> dict[str, ConnectivityOperationsResultPlot]:
+        return {
+            name: ConnectivityOperationsResultPlot(op)
+            for name, op in sorted(self.results.per_operations.items(), key=lambda x: x[0])
+        }
 
     def center_window(self):
         qr = self.frameGeometry()
@@ -307,14 +308,33 @@ class Window(QMainWindow):
             for row in range(self.model.rowCount())
         }
 
-        for plot in self.plots:
+        for plot in self.plots.values():
             plot.set_filter(unchecked)
 
     def graph_type_changed(self, current):
         graph_type = GraphType(current)
-        for plot in self.plots:
+        for plot in self.plots.values():
             plot.set_graph_type(graph_type)
 
+    def graph_layout_changed(self, current):
+        w = int(math.ceil(math.sqrt(len(self.results))))
+        h = int(math.ceil(len(self.results) / w))
+
+        for p in self.plots.values():
+            try:
+                self.graphics_layout.ci.removeItem(p)
+            except ValueError:
+                pass
+
+        if current == "All":
+            for i, plot in enumerate(self.plots.values()):
+                x = i % w
+                y = i // w
+
+                self.graphics_layout.ci.addItem(plot, col=x, row=y)
+        else:
+            self.graphics_layout.ci.addItem(self.plots[current], col=0, row=0)
+            self.graphics_layout.ci.getViewBox()
 
 def get_data(path: Path) -> Results:
     results = Results({})
@@ -339,6 +359,7 @@ if __name__ == '__main__':
     pg.setConfigOptions(antialias=True)
     pg.setConfigOption('background', 'w')
     pg.setConfigOption('foreground', 'k')
+    pg.setConfigOption("useOpenGL", True)
     pg.mkQApp("Results")
     qdarktheme.setup_theme()
 
