@@ -381,9 +381,22 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         for (CentroidIterator it = new CentroidIterator(root); it.hasNext();) {
             DTNode node = it.next();
             int sd = node.sumOfDistanceIfRootedAndBFSTree();
-            if (sd < min) {
+            if (sd < min || sd == min) {
                 min = sd;
                 best = node;
+            }
+        }
+
+        // checking incident non tree edges helps a lot!
+        for (Edge edge : root.incidentEdges) {
+            if (!edge.treeEdge) {
+                DTNode opposite = edge.opposite(root);
+
+                int sd = opposite.sumOfDistanceIfRootedAndBFSTree();
+                if (sd < min || sd == min) {
+                    min = sd;
+                    best = opposite;
+                }
             }
         }
 
@@ -707,7 +720,7 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         private DTNode previousSibling = null;
         private DTNode nextSibling = null;
 
-        private final Set<Edge> incidentEdges = new HashSet<>();
+        private final List<Edge> incidentEdges = new ArrayList<>();
 
         // index in the list of roots, valid only if this node is a root
         private int rootIndex;
