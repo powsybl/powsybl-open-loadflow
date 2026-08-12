@@ -163,7 +163,7 @@ class OperationsPlotCurveItem(PlotCurveItem):
 
     def update_data(self):
         self.to_operation_index = [
-            i + 1 for (i, r) in enumerate(self.operations) if not self.filter.get(r.method, False)
+            i for (i, r) in enumerate(self.operations) if not self.filter.get(r.method, False)
         ]
 
         y_data = [
@@ -207,7 +207,7 @@ class ConnectivityOperationsResultPlot(PlotItem):
             for plot_data_item in self.curves:
                 plot_curve: OperationsPlotCurveItem = plot_data_item.curve
                 if not isinstance(plot_curve, OperationsPlotCurveItem):
-                    pass
+                    continue
 
                 i = plot_curve.nearest_point_index(mouse_pos)
 
