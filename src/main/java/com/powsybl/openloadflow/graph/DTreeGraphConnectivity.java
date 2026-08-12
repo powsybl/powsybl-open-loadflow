@@ -246,7 +246,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             long sum = 0;
 
             for (DTNode node : vertexToTreeNode.values()) {
-                sum += node.findRootWithDist().getValue();
+                sum += node.findRootWithDepth().getValue();
             }
 
             return sum;
@@ -281,8 +281,8 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             edges.put(e, edge);
 
             // update spanning trees
-            Pair<DTNode, Integer> rootUdist = nodeU.findRootWithDist();
-            Pair<DTNode, Integer> rootVdist = nodeV.findRootWithDist();
+            Pair<DTNode, Integer> rootUdist = nodeU.findRootWithDepth();
+            Pair<DTNode, Integer> rootVdist = nodeV.findRootWithDepth();
 
             if (rootUdist.getKey() == rootVdist.getKey()) {
                 // insert non tree edge
@@ -872,16 +872,16 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 return node;
             }
 
-            private Pair<DTNode, Integer> findRootWithDist() {
+            private Pair<DTNode, Integer> findRootWithDepth() {
                 DTNode node = this;
-                int dist = 0;
+                int depth = 0;
 
                 while (node.parent != null) {
                     node = node.parent;
-                    dist++;
+                    depth++;
                 }
 
-                return new ImmutablePair<>(node, dist);
+                return new ImmutablePair<>(node, depth);
             }
 
             /**
