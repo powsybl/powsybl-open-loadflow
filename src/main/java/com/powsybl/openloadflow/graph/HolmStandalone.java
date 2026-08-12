@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.StateMap.State;
 import org.jgrapht.util.AVLTree;
 
+import java.lang.reflect.Field;
 import java.util.*;
 
 /**
@@ -571,22 +572,24 @@ public class HolmStandalone<V, E> implements SpanningForestGraphConnectivity<V, 
     @Override
     public long computeSumOfDistances() {
         long sum = 0;
-        for (AVLTree.TreeNode<Occurrence<V, E>> occ : activeOccurrences.values()) {
-            sum += depth(occ);
+        for (AVLTree<Occurrence<V, E>> tree : trees) {
+            sum += sumOfDistancesRec(tree.getRoot(), 0);
         }
 
         return sum;
     }
 
-    private long depth(AVLTree.TreeNode<Occurrence<V, E>> occ) {
-        AVLTree.TreeNode<Occurrence<V, E>> curr = occ;
-        long depth = -1; // there is a virtual root
-        while (curr.getParent() != null) {
-            curr = curr.getParent();
-            depth++;
+    private long sumOfDistancesRec(AVLTree.TreeNode<Occurrence<V, E>> node, int depth) {
+        long sum = node.getValue().active ? depth : 0;
+
+        if (node.getLeft() != null) {
+            sum += sumOfDistancesRec(node.getLeft(), depth + 1);
+        }
+        if (node.getRight() != null) {
+            sum += sumOfDistancesRec(node.getRight(), depth + 1);
         }
 
-        return depth;
+        return sum;
     }
 
     @Override
