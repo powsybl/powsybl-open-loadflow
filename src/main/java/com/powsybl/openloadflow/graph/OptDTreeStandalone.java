@@ -12,10 +12,6 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -33,7 +29,7 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
     private final Deque<Modifications> modificationsStack = new ArrayDeque<>();
     private V defaultMainComponentVertex;
 
-    private long[] counter = new long[THREADS];
+    private long counter = 1;
 
     public boolean containsVertex(V vertex) {
         return vertexToTreeNode.containsKey(vertex);
@@ -373,102 +369,43 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         edge.nodeV.incidentEdges.remove(edge);
     }
 
-    public static final int THREADS = Runtime.getRuntime().availableProcessors();
-    public static final ExecutorService EXECUTOR = Executors.newFixedThreadPool(THREADS);
-
     private DTNode findBestRoot(DTNode root) {
-
-        List<DTNode> nodes = new ArrayList<>();
-        for (DFSIterator it = new DFSIterator(root); it.hasNext();) {
-            it.next();
-            nodes.add(it.node());
-        }
-
-        Pair<DTNode, Integer> res;
-        if (nodes.size() < 16) {
-            res = findBestNode(nodes, 0);
-        } else {
-            CompletableFuture<Pair<DTNode, Integer>> result = null;
-
-            int delta = nodes.size() / THREADS;
-            for (int i = 0; i < THREADS; i++) {
-                final List<DTNode> partition = nodes.subList(i * delta, i == THREADS - 1 ? nodes.size() : (i + 1) * delta);
-                final int thread = i;
-
-                CompletableFuture<Pair<DTNode, Integer>> future = CompletableFuture.supplyAsync(
-                        () -> findBestNode(partition, thread),
-                        EXECUTOR);
-
-                if (result == null) {
-                    result = future;
-                } else {
-                    result = result.thenCombine(future, (r1, r2) -> {
-                        if (r1.getRight() < r2.getRight()) {
-                            return r1;
-                        } else {
-                            return r2;
-                        }
-                    });
-                }
-            }
-
-            try {
-                res = result.get();
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        DTNode best = res.getLeft();
+        DTNode best = root;
+        int min = Integer.MAX_VALUE;
 
         // this doesn't necessarily find the root whose BFS tree minimizes Sd
         // it can be enhanced by doing a local search, that is, iterate over
         // centroid candidate, choose the best one, and restart until no
         // amelioration is found. However, it is slower and the improvement is small.
         // Ensuring root is a root of a BFS tree can also help.
-        /*for (DFSIterator it = new DFSIterator(root); it.hasNext();) {
-            it.next();
-            DTNode node = it.node();
-            int sd = node.sumOfDistanceIfRootedAndBFSTree(min);
-            if (sd < min) {
-                min = sd;
-                best = node;
-            }
-        }*/
-
-        // checking incident non tree edges helps a lot!
-        /*for (Edge edge : root.incidentEdges) {
-            if (!edge.treeEdge) {
-                DTNode opposite = edge.opposite(root);
-
-                int sd = opposite.sumOfDistanceIfRootedAndBFSTree(min);
-                if (sd < min || sd == min) {
-                    min = sd;
-                    best = opposite;
-                }
-            }
-        }*/
-
-        best.makeBFSTree(true);
-        return best;
-    }
-
-    private Pair<DTNode, Integer> findBestNode(List<DTNode> nodes, int thread) {
-        DTNode best = nodes.getFirst();
-        int min = Integer.MAX_VALUE;
-
-        for (DTNode node : nodes) {
-            int sd = node.sumOfDistanceIfRootedAndBFSTree(thread, min);
-            if (sd < min) {
+        for (CentroidIterator it = new CentroidIterator(root); it.hasNext();) {
+            DTNode node = it.next();
+            int sd = node.sumOfDistanceIfRootedAndBFSTree();
+            if (sd < min || sd == min) {
                 min = sd;
                 best = node;
             }
         }
 
-        return new ImmutablePair<>(best, min);
+        // checking incident non tree edges helps a lot!
+        for (Edge edge : root.incidentEdges) {
+            if (!edge.treeEdge) {
+                DTNode opposite = edge.opposite(root);
+
+                int sd = opposite.sumOfDistanceIfRootedAndBFSTree();
+                if (sd < min || sd == min) {
+                    min = sd;
+                    best = opposite;
+                }
+            }
+        }
+
+        best.makeBFSTree(true);
+        return best;
     }
 
-    private void unVisitAll(int thread) {
-        counter[thread]++;
+    private void unVisitAll() {
+        counter++;
     }
 
     // ======================
@@ -770,8 +707,8 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
 
         // the size of this subtree
         private int size;
-        private int[] depth = new int[THREADS];
-        private long[] visited = new long[THREADS]; // OptDTreeStandalone.this.counter - 1;
+        private int depth;
+        private long visited = OptDTreeStandalone.this.counter - 1;
 
         private DTNode parent = null;
         private Edge parentEdge = null;
@@ -872,8 +809,8 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
             Queue<DTNode> queue = new ArrayDeque<>();
             queue.offer(this);
 
-            unVisitAll(0);
-            this.setVisited(0);
+            unVisitAll();
+            this.setVisited();
 
             while (!queue.isEmpty()) {
                 DTNode node = queue.poll();
@@ -887,7 +824,7 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
                     }
 
                     DTNode dest = incidentEdge.opposite(node);
-                    if (dest.setVisited(0)) {
+                    if (dest.setVisited()) {
                         dest.replaceParentLinkByNTE();
                         dest.replaceNTEByTE(node, incidentEdge);
                         incidentEdge.treeEdge = true;
@@ -897,7 +834,7 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
                 DTNode child = node.firstChild;
                 while (child != null) {
                     queue.add(child);
-                    child.setVisited(0);
+                    child.setVisited();
                     child = child.nextSibling;
                 }
             }
@@ -937,30 +874,26 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
             }
         }
 
-        private int sumOfDistanceIfRootedAndBFSTree(int thread, int max) {
+        private int sumOfDistanceIfRootedAndBFSTree() {
             ArrayDeque<DTNode> queue = new ArrayDeque<>();
             queue.offer(this);
 
-            unVisitAll(thread);
-            this.setVisited(thread);
+            unVisitAll();
+            this.setVisited();
 
-            this.depth[thread] = 0;
+            this.depth = 0;
 
             int sum = 0;
 
             while (!queue.isEmpty()) {
                 DTNode node = queue.poll();
-                sum += node.depth[thread];
-
-                if (sum > max) {
-                    return Integer.MAX_VALUE;
-                }
+                sum += node.depth;
 
                 for (Edge edge : node.incidentEdges) {
                     DTNode dest = edge.opposite(node);
 
-                    if (dest.setVisited(thread)) {
-                        dest.depth[thread] = node.depth[thread] + 1;
+                    if (dest.setVisited()) {
+                        dest.depth = node.depth + 1;
                         queue.offer(dest);
                     }
                 }
@@ -969,10 +902,14 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
             return sum;
         }
 
-        private boolean setVisited(int thread) {
-            boolean notVisited = visited[thread] != OptDTreeStandalone.this.counter[thread];
-            visited[thread] = OptDTreeStandalone.this.counter[thread];
+        private boolean setVisited() {
+            boolean notVisited = visited != OptDTreeStandalone.this.counter;
+            visited = OptDTreeStandalone.this.counter;
             return notVisited;
+        }
+
+        private boolean isVisited() {
+            return visited == OptDTreeStandalone.this.counter;
         }
 
         private int sumOfDistance() {
