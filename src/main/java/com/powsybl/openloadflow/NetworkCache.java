@@ -470,7 +470,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         private CacheUpdateResult<V> onLoadUpdate(Load load, String attribute, Object oldValue, Object newValue) {
             return onInjectionUpdate(load, (value, lfBus) -> {
-                if ("p0".equals(attribute)) {
+                if ("p0".equals(attribute) || "q0".equals(attribute)) {
                     LoadDetail loadDetail = load.getExtension(LoadDetail.class);
                     if (loadDetail != null) {
                         LOGGER.info("Load {} has a LoadDetail extension: not supported", load.getId());
@@ -482,7 +482,9 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                         LOGGER.info("Load active power distribution is enabled: not supported");
                         return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(load, attribute));
                     }
-                    return updateLfLoadTargetP(load.getId(), (double) oldValue, (double) newValue, value, lfBus);
+                    return "p0".equals(attribute) ?
+                            updateLfLoadTargetP(load.getId(), (double) oldValue, (double) newValue, value, lfBus)
+                            : updateLfLoadTargetQ(load.getId(), (double) oldValue, (double) newValue, value, lfBus);
                 }
                 return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(load, attribute));
             });
