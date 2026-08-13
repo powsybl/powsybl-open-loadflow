@@ -202,11 +202,27 @@ class LoadFlowWithCachingTest {
         assertEquals(isDc ? 0 : 3, result.getComponentResults().get(0).getIterationCount());
         assertActivePowerEquals(620, load.getTerminal());
         assertActivePowerEquals(isDc ? -620 : -625.895, gen.getTerminal());
+    }
 
-        // test unsupported update
-        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
+    @Test
+    void testLoadQ() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        Load load = network.getLoad("LOAD");
+        Generator gen = network.getGenerator("GEN");
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertReactivePowerEquals(200, load.getTerminal());
+        assertReactivePowerEquals(-225.283, gen.getTerminal());
+
         load.setQ0(20);
-        assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because unsupported update
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertReactivePowerEquals(20, load.getTerminal());
+        assertReactivePowerEquals(-11.667, gen.getTerminal());
     }
 
     @ParameterizedTest
