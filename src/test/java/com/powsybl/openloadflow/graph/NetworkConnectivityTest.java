@@ -9,6 +9,9 @@ package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
+import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
+import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +49,9 @@ class NetworkConnectivityTest {
         testConnectivity(new HolmStandalone<>());
         testConnectivity(new DTreeGraphConnectivity<>());
         testConnectivity(new DTreeStandalone<>());
+        testConnectivity(new Delta2DTreeStandalone<>());
+        testConnectivity(new Delta2ReplaceWithBestDTreeStandalone<>());
+        testConnectivity(new ReplaceWithBestDTreeStandalone<>());
         testConnectivity(new IDTreeStandalone<>());
         testConnectivity(new IndexedDTreeStandalone<>(LfBus::getNum, LfBranch::getNum));
         testConnectivity(new DnDTreeStandalone<>());
@@ -63,6 +69,9 @@ class NetworkConnectivityTest {
         testReducedMainComponent(new NewHolmGraphConnectivity<>());
         testReducedMainComponent(new HolmStandalone<>());
         testReducedMainComponent(new DTreeGraphConnectivity<>());
+        testReducedMainComponent(new Delta2DTreeStandalone<>());
+        testReducedMainComponent(new Delta2ReplaceWithBestDTreeStandalone<>());
+        testReducedMainComponent(new ReplaceWithBestDTreeStandalone<>());
         testReducedMainComponent(new DTreeStandalone<>());
         testReducedMainComponent(new IDTreeStandalone<>());
         testReducedMainComponent(new IndexedDTreeStandalone<>(LfBus::getNum, LfBranch::getNum));
@@ -82,6 +91,9 @@ class NetworkConnectivityTest {
         testReaddEdge(new HolmStandalone<>(), true);
         testReaddEdge(new DTreeGraphConnectivity<>(), true);
         testReaddEdge(new DTreeStandalone<>(), true);
+        testReaddEdge(new Delta2DTreeStandalone<>(), true);
+        testReaddEdge(new Delta2ReplaceWithBestDTreeStandalone<>(), true);
+        testReaddEdge(new ReplaceWithBestDTreeStandalone<>(), true);
         testReaddEdge(new IDTreeStandalone<>(), true);
         testReaddEdge(new IndexedDTreeStandalone<>(LfBus::getNum, LfBranch::getNum), true);
         testReaddEdge(new DnDTreeStandalone<>(), true);
@@ -126,6 +138,9 @@ class NetworkConnectivityTest {
         testConnectedComponents(new HolmStandalone<>());
         testConnectedComponents(new DTreeGraphConnectivity<>());
         testConnectedComponents(new DTreeStandalone<>());
+        testConnectedComponents(new Delta2DTreeStandalone<>());
+        testConnectedComponents(new Delta2ReplaceWithBestDTreeStandalone<>());
+        testConnectedComponents(new ReplaceWithBestDTreeStandalone<>());
         testConnectedComponents(new IDTreeStandalone<>());
         testConnectedComponents(new IndexedDTreeStandalone<>(LfBus::getNum, LfBranch::getNum));
         testConnectedComponents(new DnDTreeStandalone<>());

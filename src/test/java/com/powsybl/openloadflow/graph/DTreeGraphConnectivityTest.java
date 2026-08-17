@@ -8,6 +8,9 @@
 package com.powsybl.openloadflow.graph;
 
 import com.google.common.collect.Sets;
+import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
+import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
+import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -227,6 +230,9 @@ public class DTreeGraphConnectivityTest {
         return Stream.of(
                 Arguments.of(new DTreeGraphConnectivity<>()),
                 Arguments.of(new DTreeStandalone<>()),
+                Arguments.of(new Delta2DTreeStandalone<>()),
+                Arguments.of(new Delta2ReplaceWithBestDTreeStandalone<>()),
+                Arguments.of(new ReplaceWithBestDTreeStandalone<>()),
                 Arguments.of(new IDTreeStandalone<>()),
                 Arguments.of(new DnDTreeStandalone<>()),
                 Arguments.of(new OptDTreeStandalone<>()));

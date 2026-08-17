@@ -8,6 +8,9 @@
 package com.powsybl.openloadflow.graph.workload;
 
 import com.powsybl.openloadflow.graph.*;
+import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
+import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
+import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
 import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
 import com.powsybl.openloadflow.graph.log.Log;
 import com.powsybl.openloadflow.graph.log.ProgressFormatter;
@@ -34,13 +37,13 @@ public final class WorkloadRunner {
     }
 
     private static final RunParameters PERFORMANCE = new RunParameters.Performance()
-            .setWarmup(10)
+            .setWarmup(100)
             .setMeasurement(10);
     private static final RunParameters VALIDATOR = new RunParameters.Validator();
     private static final RunParameters STATS_WRITER = new RunParameters.StatsWriter()
             .setOutput("sum_of_distances/data/${workload}/${class}/${operations}");
 
-    private static final RunParameters WORKLOAD_PARAMS = STATS_WRITER;
+    private static final RunParameters WORKLOAD_PARAMS = PERFORMANCE;
 
     private static final Log LOG = Log.init("results.txt");
     private static final MyProgressManager PROGRESS = new MyProgressManager();
@@ -63,7 +66,10 @@ public final class WorkloadRunner {
                 // new NewHolmGraphConnectivityFactory<>(),
                 // new HolmStandaloneFactory<>()
                 // new DTreeGraphConnectivityFactory<>()
-                new DTreeStandaloneFactory<>()
+                new DTreeStandaloneFactory<>(),
+                new Delta2DTreeStandalone.Factory<>(),
+                new Delta2ReplaceWithBestDTreeStandalone.Factory<>(),
+                new ReplaceWithBestDTreeStandalone.Factory<>()
                 // IDTreeStandalone::new,
                 // new IndexedDTreeStandalone2ndVerFactory<>((Integer i) -> i, (Integer i) -> i)
                 // new DnDTreeStandaloneFactory<>()
@@ -277,7 +283,7 @@ public final class WorkloadRunner {
             }
 
             StringBuilder sb = new StringBuilder();
-            sb.append(connectivity.getClass().getSimpleName()).append(": ");
+            sb.append(getName(connectivity.getClass())).append(": ");
             if (first.warmup) {
                 appendProgress(sb, first.iter, first.maxIter);
                 sb.append(" (warmup)");
@@ -296,6 +302,13 @@ public final class WorkloadRunner {
             }
 
             return sb.toString();
+        }
+
+        private String getName(Class<?> clazz) {
+            String name = clazz.getName();
+            int index = name.lastIndexOf('.');
+
+            return name.substring(index + 1);
         }
 
         private void appendProgress(StringBuilder sb, int current, int max) {

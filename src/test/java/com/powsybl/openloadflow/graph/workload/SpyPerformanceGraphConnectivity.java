@@ -14,8 +14,6 @@ import org.nocrala.tools.texttablefmt.BorderStyle;
 import org.nocrala.tools.texttablefmt.CellStyle;
 import org.nocrala.tools.texttablefmt.Table;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -39,8 +37,6 @@ public class SpyPerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConne
     private Aggregator[] current;
     private boolean initialGraphBuildDone = false;
 
-    private final List<Long> sumOfDistances = new ArrayList<>();
-
     public SpyPerformanceGraphConnectivity() {
         for (int i = 0; i < initialGraphBuild.length; i++) {
             initialGraphBuild[i] = new Aggregator();
@@ -53,20 +49,6 @@ public class SpyPerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConne
     @Override
     public void beginOperations(Operations operations) {
         setInitialGraphBuildDone(false);
-    }
-
-    @Override
-    public void endOperations(Operations operations) {
-
-    }
-
-    @Override
-    public long computeSumOfDistances() {
-        long n = super.computeSumOfDistances();
-        if (n >= 0) {
-            sumOfDistances.add(n);
-        }
-        return n;
     }
 
     public void setInitialGraphBuildDone(boolean initialGraphBuildDone) {
@@ -102,11 +84,6 @@ public class SpyPerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConne
         delegate.removeEdge(edge);
         sw.stop();
         current[GraphConnectivityMethod.REMOVE_EDGE.ordinal()].add(sw.elapsed());
-    }
-
-    @Override
-    public boolean supportTemporaryChangesNesting() {
-        return delegate.supportTemporaryChangesNesting();
     }
 
     @Override
@@ -217,8 +194,6 @@ public class SpyPerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConne
             temporaryChanges[i].merge(connectivity.temporaryChanges[i]);
         }
 
-        sumOfDistances.addAll(connectivity.sumOfDistances);
-
         initialGraphBuildDone |= connectivity.initialGraphBuildDone;
     }
 
@@ -268,11 +243,6 @@ public class SpyPerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConne
         }
 
         sb.append(table.render()).append(System.lineSeparator());
-
-        if (!sumOfDistances.isEmpty()) {
-            sb.append(sumOfDistances);
-        }
-
         return sb.toString();
     }
 

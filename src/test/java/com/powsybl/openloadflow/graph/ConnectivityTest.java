@@ -8,6 +8,9 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
+import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
+import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import org.junit.jupiter.api.Test;
@@ -666,6 +669,9 @@ class ConnectivityTest {
                 Arguments.of(new HolmStandalone<>()),
                 Arguments.of(new DTreeGraphConnectivity<>()),
                 Arguments.of(new DTreeStandalone<>()),
+                Arguments.of(new Delta2DTreeStandalone<>()),
+                Arguments.of(new Delta2ReplaceWithBestDTreeStandalone<>()),
+                Arguments.of(new ReplaceWithBestDTreeStandalone<>()),
                 Arguments.of(new IDTreeStandalone<>()),
                 Arguments.of(new IndexedDTreeStandalone<>(
                         (Integer v) -> v - 1,
@@ -692,6 +698,9 @@ class ConnectivityTest {
                 Arguments.of(new HolmStandalone<>()),
                 Arguments.of(new DTreeGraphConnectivity<>()),
                 Arguments.of(new DTreeStandalone<>()),
+                Arguments.of(new Delta2DTreeStandalone<>()),
+                Arguments.of(new Delta2ReplaceWithBestDTreeStandalone<>()),
+                Arguments.of(new ReplaceWithBestDTreeStandalone<>()),
                 Arguments.of(new IDTreeStandalone<>()),
                 Arguments.of(new IndexedDTreeStandalone<>(
                         (Integer v) -> v - 1,

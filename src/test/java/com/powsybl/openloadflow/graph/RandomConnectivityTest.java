@@ -7,6 +7,9 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
+import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
+import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
 import org.jgrapht.Graph;
 import org.jgrapht.generate.ScaleFreeGraphGenerator;
 import org.jgrapht.graph.DefaultEdge;
@@ -50,11 +53,14 @@ public class RandomConnectivityTest {
                         // new HolmEtAlGraphConnectivity<>(),
                         // new NewHolmGraphConnectivity<>(),
                         // new HolmStandalone<>(),
-                        // new DTreeGraphConnectivity<>(),
+                        new DTreeGraphConnectivity<>(),
+                        new Delta2DTreeStandalone<>(),
+                        new Delta2ReplaceWithBestDTreeStandalone<>(),
+                        new ReplaceWithBestDTreeStandalone<>()
                         // new DTreeStandalone<>(),
                         // new IDTreeStandalone<>(),
                         // new DnDTreeStandalone<>(),
-                        new OptDTreeStandalone<>()
+                        //new OptDTreeStandalone<>()
                 );
 
                 for (GraphConnectivity<Integer, DefaultEdge> connectivity : toTest) {

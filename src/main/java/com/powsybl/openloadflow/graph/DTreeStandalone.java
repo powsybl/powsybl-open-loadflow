@@ -258,7 +258,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         } else {
             // get the (delta / 2 - 1) DTNode.
             DTNode ancestor = deep;
-            for (int j = 0; j < delta / 2 - 1; j++) {
+            for (int j = 0, bound = ancestorBound(delta); j < bound; j++) {
                 ancestor = ancestor.parent;
             }
 
@@ -275,6 +275,10 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
             deep.link(root, shallow, edge);
             return true;
         }
+    }
+
+    protected int ancestorBound(int delta) {
+        return delta / 2 - 1;
     }
 
     private void insertTreeEdgeRecordModifications(DTNode rootU, DTNode rootV, E edge) {
@@ -385,11 +389,35 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         }
 
         // try to reconnect them
-        replace(small, large, edge.edgeData);
+        boolean replacementEdgeFound;
+        if (replaceWithBest()) {
+            replacementEdgeFound = replaceWithBest(small, large);
+        } else {
+            replacementEdgeFound = replace(small);
+        }
+        // /!\ small and large can be both in the main component (when a replacement edge was found)
+        // However, in this case, we only need one of the two variables to be true to have
+        // the correct behavior (i.e. only the removedEdge is marked as removed).
+        // When there is no replacement edge, small and large cannot be simultaneously in the main
+        // component as there are in two distinct components.
+        boolean smallInMain = isInMainComponent(small);
+        boolean largeInMain = !smallInMain && isInMainComponent(large); // avoid computing isInMainComponent if we know that small is in the main component
+
+        if (smallInMain || largeInMain) {
+            checkSavedContext().markEdgeRemoved(edge.edgeData);
+        }
+
+        if (!replacementEdgeFound) {
+            if (largeInMain) {
+                markAllRemoved(small);
+            } else if (smallInMain) {
+                markAllRemoved(large);
+            }
+        }
     }
 
     // search a replacement edge by doing a BFS over the smaller tree between rootSmall and rooLarge
-    private void replace(DTNode rootSmall, DTNode rootLarge, E removedEdge) {
+    private boolean replace(DTNode rootSmall) {
         boolean replacementEdgeFound = false;
         DTNode newRoot = null; // a potential new root in case no replacement edge is found
 
@@ -427,29 +455,61 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
             }
         }
 
-        // /!\ small and large can be both in the main component (when a replacement edge was found)
-        // However, in this case, we only need one of the two variables to be true to have
-        // the correct behavior (i.e. only the removedEdge is marked as removed).
-        // When there is no replacement edge, small and large cannot be simultaneously in the main
-        // component as there are in two distinct component.
-        boolean smallInMain = isInMainComponent(rootSmall);
-        boolean largeInMain = !smallInMain && isInMainComponent(rootLarge); // avoid computing isInMainComponent if we know that small is in the main component
-
-        if (smallInMain || largeInMain) {
-            checkSavedContext().markEdgeRemoved(removedEdge);
+        if (newRoot != null) {
+            newRoot.makeRoot(true);
         }
 
-        if (!replacementEdgeFound) {
-            if (largeInMain) {
-                markAllRemoved(rootSmall);
-            } else if (smallInMain) {
-                markAllRemoved(rootLarge);
+        return replacementEdgeFound;
+    }
+
+    // search a replacement edge by doing a BFS over the smaller tree between rootSmall and rooLarge
+    private boolean replaceWithBest(DTNode rootSmall, DTNode rootLarge) {
+        boolean replacementEdgeFound = false;
+        DTNode newRoot = null; // a potential new root in case no replacement edge is found
+
+        Edge bestNonTreeEdge = null;
+        DTNode smallNode = null;
+        DTNode largeNode = null;
+        int bestDepth = Integer.MAX_VALUE;
+
+        for (DFSIterator it = new DFSIterator(rootSmall); it.hasNext();) {
+            it.next();
+            DTNode n = it.node();
+
+            if (n != rootSmall && n.size > rootSmall.size / 2) {
+                newRoot = n;
             }
 
-            if (newRoot != null) {
-                newRoot.makeRoot(true);
+            // search for a replacement edge
+            for (Edge nonTreeEdge : n.nonTreeEdges) {
+                DTNode oppNode = nonTreeEdge.opposite(n);
+                Pair<DTNode, Integer> oppRoot = oppNode.findRootWithDepth();
+
+                if (oppRoot.getKey() != rootSmall && oppRoot.getValue() < bestDepth) {
+                    // found a replacement edge
+                    bestNonTreeEdge = nonTreeEdge;
+                    smallNode = n;
+                    largeNode = oppNode;
+                    replacementEdgeFound = true;
+                }
             }
         }
+
+        if (replacementEdgeFound) {
+            removeNonTreeEdge(bestNonTreeEdge);
+            insertTreeEdge(rootSmall, smallNode, rootLarge, largeNode, bestNonTreeEdge);
+            bestNonTreeEdge.treeEdge = true;
+        }
+
+        if (newRoot != null) {
+            newRoot.makeRoot(true);
+        }
+
+        return replacementEdgeFound;
+    }
+
+    protected boolean replaceWithBest() {
+        return false;
     }
 
     private void removeNonTreeEdgeRecordModifications(DTNode node, E edge) {

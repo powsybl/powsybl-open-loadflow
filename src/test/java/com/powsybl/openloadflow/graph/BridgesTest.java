@@ -10,6 +10,9 @@ package com.powsybl.openloadflow.graph;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
+import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
+import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.jgrapht.alg.connectivity.BiconnectivityInspector;
@@ -77,6 +80,9 @@ class BridgesTest {
                 Arguments.of(new NewHolmGraphConnectivity<>(), "Holm-et-al-2"),
                 Arguments.of(new HolmStandalone<>(), "Holm-et-al-standalone"),
                 Arguments.of(new DTreeGraphConnectivity<>(), "DTree"),
+                Arguments.of(new Delta2DTreeStandalone<>(), "Delta2DTree"),
+                Arguments.of(new Delta2ReplaceWithBestDTreeStandalone<>(), "Delta2ReplaceWithBestDTree"),
+                Arguments.of(new ReplaceWithBestDTreeStandalone<>(), "ReplaceWithBestDTree"),
                 Arguments.of(new DTreeStandalone<>(), "DTreeStandalone"),
                 Arguments.of(new IDTreeStandalone<>(), "IDTreeStandalone"),
                 Arguments.of(new DnDTreeStandalone<>(), "DNDTreeStandalone"),
