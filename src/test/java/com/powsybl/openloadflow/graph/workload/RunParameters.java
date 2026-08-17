@@ -79,7 +79,7 @@ public interface RunParameters {
         }
     }
 
-    final class ComputeSd implements RunParameters {
+    final class StatsWriter implements RunParameters {
 
         private String output;
 
@@ -89,7 +89,7 @@ public interface RunParameters {
             outputFilenameParameters.put("workload", workload.source().getFileName().toString());
             outputFilenameParameters.put("class", factory.getClass().getSimpleName());
 
-            return new ComputeSdGraphConnectivityFactory<>(factory, output, outputFilenameParameters);
+            return new SpyStatsWriterGraphConnectivityFactory<>(factory, output, outputFilenameParameters);
         }
 
         @Override
@@ -102,7 +102,7 @@ public interface RunParameters {
             return 1;
         }
 
-        public ComputeSd setOutput(String output) {
+        public StatsWriter setOutput(String output) {
             this.output = output;
             return this;
         }

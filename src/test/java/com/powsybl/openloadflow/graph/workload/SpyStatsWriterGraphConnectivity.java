@@ -21,13 +21,13 @@ import java.util.Set;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class ComputeSdGraphConnectivity<V, E> extends AbstractSpyGraphConnectivity<V, E> {
+public class SpyStatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnectivity<V, E> {
 
     private final AverageStopWatch asw = new AverageStopWatch();
     private final BufferedWriter bw;
     private int operation;
 
-    public ComputeSdGraphConnectivity(Path file) {
+    public SpyStatsWriterGraphConnectivity(Path file) {
         try {
             if (file.getParent() != null) {
                 Files.createDirectories(file.getParent());

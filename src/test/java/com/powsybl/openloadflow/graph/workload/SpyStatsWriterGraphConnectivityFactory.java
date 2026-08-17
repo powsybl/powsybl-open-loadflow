@@ -17,15 +17,15 @@ import java.util.Map;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class ComputeSdGraphConnectivityFactory<V, E> implements ISpyGraphConnectivityFactory<V, E> {
+public class SpyStatsWriterGraphConnectivityFactory<V, E> implements ISpyGraphConnectivityFactory<V, E> {
 
     private final GraphConnectivityFactory<V, E> delegateFactory;
 
     private final String output;
     private final Map<String, String> outputPathParameters;
 
-    public ComputeSdGraphConnectivityFactory(GraphConnectivityFactory<V, E> delegateFactory,
-                                             String output, Map<String, String> outputPathParameters) {
+    public SpyStatsWriterGraphConnectivityFactory(GraphConnectivityFactory<V, E> delegateFactory,
+                                                  String output, Map<String, String> outputPathParameters) {
         this.delegateFactory = delegateFactory;
         this.output = output;
         this.outputPathParameters = outputPathParameters;
@@ -40,7 +40,7 @@ public class ComputeSdGraphConnectivityFactory<V, E> implements ISpyGraphConnect
         String path = substitutor.replace(output);
         Log.get().log("Creating ComputeSdGraphConnectivity to %s", path);
 
-        ComputeSdGraphConnectivity<V, E> conn = new ComputeSdGraphConnectivity<>(Path.of(path));
+        SpyStatsWriterGraphConnectivity<V, E> conn = new SpyStatsWriterGraphConnectivity<>(Path.of(path));
         conn.setDelegateFactory(delegateFactory);
         conn.newDelegate();
         return conn;
