@@ -9,10 +9,8 @@ package com.powsybl.openloadflow.graph.workload;
 
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.log.Log;
-import org.apache.commons.text.StringSubstitutor;
 
 import java.nio.file.Path;
-import java.util.Map;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -20,30 +18,11 @@ import java.util.Map;
 public class SpyStatsWriterGraphConnectivityFactory<V, E> implements ISpyGraphConnectivityFactory<V, E> {
 
     private final GraphConnectivityFactory<V, E> delegateFactory;
+    private final SpyOutputFolder output;
 
-    private final String output;
-    private final Map<String, String> outputPathParameters;
-
-    public SpyStatsWriterGraphConnectivityFactory(GraphConnectivityFactory<V, E> delegateFactory,
-                                                  String output, Map<String, String> outputPathParameters) {
+    public SpyStatsWriterGraphConnectivityFactory(GraphConnectivityFactory<V, E> delegateFactory, SpyOutputFolder output) {
         this.delegateFactory = delegateFactory;
         this.output = output;
-        this.outputPathParameters = outputPathParameters;
-    }
-
-    private synchronized ISpyGraphConnectivity<V, E> create(Path source) {
-        outputPathParameters.put("operations", source.toString());
-
-        StringSubstitutor substitutor = new StringSubstitutor(outputPathParameters);
-        substitutor.setEnableUndefinedVariableException(true);
-
-        String path = substitutor.replace(output);
-        Log.get().log("Creating ComputeSdGraphConnectivity to %s", path);
-
-        SpyStatsWriterGraphConnectivity<V, E> conn = new SpyStatsWriterGraphConnectivity<>(Path.of(path));
-        conn.setDelegateFactory(delegateFactory);
-        conn.newDelegate();
-        return conn;
     }
 
     @Override
@@ -53,7 +32,15 @@ public class SpyStatsWriterGraphConnectivityFactory<V, E> implements ISpyGraphCo
 
     @Override
     public ISpyGraphConnectivity<V, E> create(Operations operations) {
-        return create(operations.source());
+        output.setOperations(operations);
+
+        Path path = this.output.getOutputPath();
+        Log.get().log("Creating ComputeSdGraphConnectivity to %s", path);
+
+        SpyStatsWriterGraphConnectivity<V, E> conn = new SpyStatsWriterGraphConnectivity<>(path);
+        conn.setDelegateFactory(delegateFactory);
+        conn.newDelegate();
+        return conn;
     }
 
     @Override

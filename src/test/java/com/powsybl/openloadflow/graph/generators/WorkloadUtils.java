@@ -131,4 +131,11 @@ public final class WorkloadUtils {
             }
         }
     }
+
+    public static String getClassName(Class<?> clazz) {
+        String name = clazz.getName();
+        int index = name.lastIndexOf('.');
+
+        return name.substring(index + 1);
+    }
 }

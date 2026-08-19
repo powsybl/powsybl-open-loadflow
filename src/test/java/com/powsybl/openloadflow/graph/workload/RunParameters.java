@@ -9,7 +9,9 @@ package com.powsybl.openloadflow.graph.workload;
 
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import org.mockito.Spy;
 
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,10 +30,14 @@ public interface RunParameters {
 
         private int warmup = 10;
         private int measurement = 10;
+        private final SpyOutputFolder output = new SpyOutputFolder();
 
         @Override
         public ISpyGraphConnectivityFactory<Integer, Integer> factoryFor(Workload workload, GraphConnectivityFactory<Integer, Integer> factory) {
-            return new SpyPerformanceGraphConnectivityFactory<>(factory);
+            output.setWorkload(workload);
+            output.setGraphConnectivityFactory(factory.getClass());
+
+            return new SpyPerformanceGraphConnectivityFactory<>(factory, output);
         }
 
         public Performance setWarmup(int warmup) {
@@ -59,6 +65,11 @@ public interface RunParameters {
         public int measurement() {
             return measurement;
         }
+
+        public Performance setOutput(String output) {
+            this.output.setOutputFormat(output);
+            return this;
+        }
     }
 
     final class Validator implements RunParameters {
@@ -81,15 +92,14 @@ public interface RunParameters {
 
     final class StatsWriter implements RunParameters {
 
-        private String output;
+        private final SpyOutputFolder output = new SpyOutputFolder();
 
         @Override
         public ISpyGraphConnectivityFactory<Integer, Integer> factoryFor(Workload workload, GraphConnectivityFactory<Integer, Integer> factory) {
-            Map<String, String> outputFilenameParameters = new HashMap<>();
-            outputFilenameParameters.put("workload", workload.source().getFileName().toString());
-            outputFilenameParameters.put("class", factory.getClass().getSimpleName());
+            output.setWorkload(workload);
+            output.setGraphConnectivityFactory(factory.getClass());
 
-            return new SpyStatsWriterGraphConnectivityFactory<>(factory, output, outputFilenameParameters);
+            return new SpyStatsWriterGraphConnectivityFactory<>(factory, output);
         }
 
         @Override
@@ -103,7 +113,7 @@ public interface RunParameters {
         }
 
         public StatsWriter setOutput(String output) {
-            this.output = output;
+            this.output.setOutputFormat(output);
             return this;
         }
     }

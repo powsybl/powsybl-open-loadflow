@@ -14,6 +14,14 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
  */
 public interface ISpyGraphConnectivityFactory<V, E> extends GraphConnectivityFactory<V, E> {
 
+    default void beginIterations(int iterations, IterationType type) { }
+
+    default void endIterations(int iterations, IterationType type) { }
+
+    default void beginIteration(int i, IterationType type) { }
+
+    default void endIteration(int i, IterationType type) { }
+
     @Override
     ISpyGraphConnectivity<V, E> create();
 

@@ -203,12 +203,18 @@ public final class WorkloadRunner {
                                                              int warmup,
                                                              int measurement) {
         if (warmup > 0) {
-            progress.setWarmup(true, warmup);
+            progress.newIterations(warmup, IterationType.WARMUP);
+
+            spy.beginIterations(warmup, IterationType.WARMUP);
             runOperationsMultipleTimes(progress, operations, spy.createUnregistered(operations), barrier, warmup);
+            spy.endIterations(warmup, IterationType.WARMUP);
         }
         if (measurement > 0) {
-            progress.setWarmup(false, measurement);
+            progress.newIterations(measurement, IterationType.MEASURE);
+
+            spy.beginIterations(measurement, IterationType.MEASURE);
             runOperationsMultipleTimes(progress, operations, spy.create(operations), barrier, measurement);
+            spy.endIterations(measurement, IterationType.MEASURE);
         }
     }
 
@@ -283,12 +289,13 @@ public final class WorkloadRunner {
             }
 
             StringBuilder sb = new StringBuilder();
-            sb.append(getName(connectivity.getClass())).append(": ");
-            if (first.warmup) {
-                appendProgress(sb, first.iter, first.maxIter);
-                sb.append(" (warmup)");
-            } else {
-                appendProgress(sb, first.iter, first.maxIter);
+            sb.append(WorkloadUtils.getClassName(connectivity.getClass())).append(": ");
+            switch (first.iterType) {
+                case WARMUP -> {
+                    appendProgress(sb, first.iter, first.maxIter);
+                    sb.append(" (warmup)");
+                }
+                case MEASURE -> appendProgress(sb, first.iter, first.maxIter);
             }
             sb.append(" - ");
             appendProgress(sb, progress, total);
@@ -302,13 +309,6 @@ public final class WorkloadRunner {
             }
 
             return sb.toString();
-        }
-
-        private String getName(Class<?> clazz) {
-            String name = clazz.getName();
-            int index = name.lastIndexOf('.');
-
-            return name.substring(index + 1);
         }
 
         private void appendProgress(StringBuilder sb, int current, int max) {
@@ -337,16 +337,16 @@ public final class WorkloadRunner {
 
     private static final class Progress extends TProgress<Progress> {
 
-        private boolean warmup;
+        private IterationType iterType;
         private int iter;
         private int maxIter;
 
         private int operation;
         private int maxOperation;
 
-        public void setWarmup(boolean warmup, int maxIter) {
-            this.warmup = warmup;
+        public void newIterations(int maxIter, IterationType iterType) {
             this.maxIter = maxIter;
+            this.iterType = iterType;
             notifyProgressManager();
         }
 

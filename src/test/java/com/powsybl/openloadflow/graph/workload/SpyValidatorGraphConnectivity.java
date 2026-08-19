@@ -27,16 +27,6 @@ public class SpyValidatorGraphConnectivity<V, E> extends AbstractSpyGraphConnect
     }
 
     @Override
-    public void beginOperations(Operations operations) {
-
-    }
-
-    @Override
-    public void endOperations(Operations operations) {
-
-    }
-
-    @Override
     public void setDelegate(GraphConnectivity<V, E> delegate) {
         super.setDelegate(delegate);
         this.checker = checkerFactory.create();
