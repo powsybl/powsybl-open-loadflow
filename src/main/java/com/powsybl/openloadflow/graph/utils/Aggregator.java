@@ -7,6 +7,9 @@
  */
 package com.powsybl.openloadflow.graph.utils;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -107,6 +110,18 @@ public class Aggregator {
 
         min = Math.min(min, aggregator.min);
         max = Math.max(max, aggregator.max);
+    }
+
+    public void serialize(JsonGenerator g) throws IOException {
+        g.writeNumberField("sum", sum);
+        g.writeNumberField("count", count);
+        g.writeNumberField("m2", m2);
+        g.writeNumberField("min", min);
+        g.writeNumberField("max", max);
+
+        g.writeNumberField("mean", getMean());
+        g.writeNumberField("sampleVariance", getSampleVariance());
+        g.writeNumberField("sampleStandardDeviation", getSampleStandardDeviation());
     }
 
     @Override

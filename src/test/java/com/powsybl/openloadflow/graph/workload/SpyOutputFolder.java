@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.graph.workload;
 
-import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
 import org.apache.commons.text.StringSubstitutor;
 

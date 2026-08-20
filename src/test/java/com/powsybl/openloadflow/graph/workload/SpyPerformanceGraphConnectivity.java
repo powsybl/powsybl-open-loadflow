@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.graph.workload;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.powsybl.openloadflow.graph.utils.Aggregator;
 import com.powsybl.openloadflow.graph.utils.AverageStopWatch;
 import com.powsybl.openloadflow.graph.utils.GraphConnectivityMethod;
@@ -14,6 +15,8 @@ import org.nocrala.tools.texttablefmt.BorderStyle;
 import org.nocrala.tools.texttablefmt.CellStyle;
 import org.nocrala.tools.texttablefmt.Table;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -23,6 +26,8 @@ import java.util.concurrent.TimeUnit;
 public class SpyPerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnectivity<V, E> {
 
     private static final CellStyle RIGHT_ALIGN = new CellStyle(CellStyle.HorizontalAlign.right);
+
+    private final Path operationsSource;
 
     private final AverageStopWatch sw = new AverageStopWatch();
 
@@ -38,6 +43,11 @@ public class SpyPerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConne
     private boolean initialGraphBuildDone = false;
 
     public SpyPerformanceGraphConnectivity() {
+        this(null);
+    }
+
+    public SpyPerformanceGraphConnectivity(Path operationsSource) {
+        this.operationsSource = operationsSource;
         for (int i = 0; i < initialGraphBuild.length; i++) {
             initialGraphBuild[i] = new Aggregator();
             temporaryChanges[i] = new Aggregator();
@@ -195,6 +205,35 @@ public class SpyPerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConne
         }
 
         initialGraphBuildDone |= connectivity.initialGraphBuildDone;
+    }
+
+    public void serialize(JsonGenerator g) throws IOException {
+        if (operationsSource != null) {
+            g.writeStringField("source", operationsSource.toString());
+        }
+
+        g.writeNumberField("totalRuntime", sw.totalElapsed());
+        g.writeNumberField("operationsCount", sw.count());
+
+        g.writeObjectFieldStart("initialGraphBuild");
+        serialize(g, initialGraphBuild);
+        g.writeEndObject();
+
+        g.writeObjectFieldStart("temporaryChanges");
+        serialize(g, temporaryChanges);
+        g.writeEndObject();
+    }
+
+    private void serialize(JsonGenerator g, Aggregator[] aggregators) throws IOException {
+        for (GraphConnectivityMethod method : GraphConnectivityMethod.values()) {
+            Aggregator agg = aggregators[method.ordinal()];
+
+            if (agg.getCount() > 0) {
+                g.writeObjectFieldStart(method.name());
+                aggregators[method.ordinal()].serialize(g);
+                g.writeEndObject();
+            }
+        }
     }
 
     public String resultsToString(int iterations) {

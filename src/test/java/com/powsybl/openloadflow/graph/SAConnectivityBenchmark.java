@@ -46,13 +46,13 @@ public class SAConnectivityBenchmark {
 
         List<GraphConnectivityFactory<LfBus, LfBranch>> factories = List.of(
                 // new OldNaiveGraphConnectivity.Factory<>((Integer i) -> i)
-                new NaiveGraphConnectivityFactory<>(LfBus::getNum),
+                // new NaiveGraphConnectivityFactory<>(LfBus::getNum),
                 // new MinimumSpanningTreeGraphConnectivityFactory<>(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(),
+                // new EvenShiloachGraphDecrementalConnectivityFactory<>(),
                 // new HolmEtAlGraphConnectivityFactory<>(),
                 // new HolmEtAlWithoutLevelGraphConnectivityFactory<>(),
                 // new NewHolmGraphConnectivityFactory<>(),
-                new HolmStandaloneFactory<>(),
+                // new HolmStandaloneFactory<>(),
                 // new DTreeGraphConnectivityFactory<>(),
                 new DTreeStandaloneFactory<>()
         );

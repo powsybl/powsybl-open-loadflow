@@ -7,14 +7,12 @@
  */
 package com.powsybl.openloadflow.graph.workload;
 
-import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParametersJsonSerializer;
+import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -43,24 +41,19 @@ public class SpyPerformanceGraphConnectivityFactory<V, E> implements ISpyGraphCo
         if (type == IterationType.MEASURE) {
             Path output = this.output.getOutputPath();
 
-            ObjectMapper mapper = new ObjectMapper();
+            if (output != null) {
+                ObjectMapper mapper = new ObjectMapper();
 
-            try (JsonGenerator g = mapper.createGenerator(output.toFile(), JsonEncoding.UTF8)) {
-                g.writeStartObject();
-                serialize(g);
-                g.writeEndObject();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+                try (JsonGenerator g = mapper.createGenerator(WorkloadUtils.newBufferedWriter(output))) {
+                    g.setPrettyPrinter(new DefaultPrettyPrinter());
+                    g.writeStartObject();
+                    serialize(g);
+                    g.writeEndObject();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
-    }
-
-    private void serialize(JsonGenerator g) throws IOException {
-        g.writeObjectFieldStart("operations");
-        g.writeEndObject();
-
-        g.writeObjectFieldStart("merged");
-        g.writeEndObject();
     }
 
     @Override
@@ -75,7 +68,7 @@ public class SpyPerformanceGraphConnectivityFactory<V, E> implements ISpyGraphCo
     @Override
     public synchronized ISpyGraphConnectivity<V, E> create(Operations operations) {
         output.setOperations(operations);
-        SpyPerformanceGraphConnectivity<V, E> conn = new SpyPerformanceGraphConnectivity<>();
+        SpyPerformanceGraphConnectivity<V, E> conn = new SpyPerformanceGraphConnectivity<>(operations.source());
         conn.setDelegateFactory(delegateFactory);
         conn.newDelegate();
         spies.add(conn);
@@ -98,6 +91,23 @@ public class SpyPerformanceGraphConnectivityFactory<V, E> implements ISpyGraphCo
     @Override
     public GraphConnectivityFactory<V, E> getDelegateFactory() {
         return delegateFactory;
+    }
+
+    private void serialize(JsonGenerator g) throws IOException {
+        SpyPerformanceGraphConnectivity<V, E> merged = new SpyPerformanceGraphConnectivity<>();
+
+        g.writeArrayFieldStart("operations");
+        for (SpyPerformanceGraphConnectivity<V, E> spy : spies) {
+            g.writeStartObject();
+            spy.serialize(g);
+            g.writeEndObject();
+            merged.merge(spy);
+        }
+        g.writeEndArray();
+
+        g.writeObjectFieldStart("merged");
+        merged.serialize(g);
+        g.writeEndObject();
     }
 
     @Override

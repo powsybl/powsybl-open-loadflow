@@ -7,13 +7,13 @@
  */
 package com.powsybl.openloadflow.graph.workload;
 
+import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
 import com.powsybl.openloadflow.graph.utils.AverageStopWatch;
 import com.powsybl.openloadflow.graph.utils.GraphConnectivityMethod;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Set;
@@ -29,11 +29,7 @@ public class SpyStatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConne
 
     public SpyStatsWriterGraphConnectivity(Path file) {
         try {
-            if (file.getParent() != null) {
-                Files.createDirectories(file.getParent());
-            }
-
-            bw = Files.newBufferedWriter(file, StandardOpenOption.CREATE_NEW);
+            bw = WorkloadUtils.newBufferedWriter(file, StandardOpenOption.CREATE_NEW);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

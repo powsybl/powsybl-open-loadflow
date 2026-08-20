@@ -14,6 +14,11 @@ import com.powsybl.openloadflow.graph.workload.ISpyGraphConnectivity;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Random;
 
 import static com.powsybl.openloadflow.graph.utils.GraphConnectivityMethod.ADD_EDGE;
@@ -137,5 +142,13 @@ public final class WorkloadUtils {
         int index = name.lastIndexOf('.');
 
         return name.substring(index + 1);
+    }
+
+    public static BufferedWriter newBufferedWriter(Path path, OpenOption... options) throws IOException {
+        if (path.getParent() != null) {
+            Files.createDirectories(path.getParent());
+        }
+
+        return Files.newBufferedWriter(path, options);
     }
 }

@@ -37,8 +37,9 @@ public final class WorkloadRunner {
     }
 
     private static final RunParameters PERFORMANCE = new RunParameters.Performance()
-            .setWarmup(100)
-            .setMeasurement(10);
+            .setWarmup(10)
+            .setMeasurement(10)
+            .setOutput("results/workload/${workload}/${class}.json");
     private static final RunParameters VALIDATOR = new RunParameters.Validator();
     private static final RunParameters STATS_WRITER = new RunParameters.StatsWriter()
             .setOutput("sum_of_distances/data/${workload}/${class}/${operations}");
