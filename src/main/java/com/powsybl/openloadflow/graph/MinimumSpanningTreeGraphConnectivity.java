@@ -93,7 +93,7 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
 
         @Override
         public SpanningTrees getSpanningTree() {
-            GraphModel<V, E> graph = getGraph();
+            JGraphTModel<V, E> graph = getGraph();
             MyUnionFind forest = new MyUnionFind(graph.getVertices());
             Set<Object> edgeList = new HashSet<>();
             SpanningTrees spanningTree = new SpanningTrees(forest, edgeList, 0);
