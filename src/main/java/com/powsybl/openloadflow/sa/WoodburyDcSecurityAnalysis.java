@@ -41,6 +41,7 @@ import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.*;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.event.Level;
 
 import java.util.*;
@@ -380,16 +381,19 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     }
 
     @Override
-    protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, DcLoadFlowParameters dcParameters,
-                                                    SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
-                                                    List<Action> actions, List<LimitReduction> limitReductions, ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution) {
+    protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, SecurityAnalysisContext<DcLoadFlowParameters> securityContext) {
+        Pair<Integer, Integer> numComponent = Pair.of(lfNetwork.getNumCC(), lfNetwork.getSynchronousNetworks().getFirst().getNumSC());
+        Queue<PropagatedContingency> queueContingencies = securityContext.getQueueContingenciesByComponent().get(numComponent);
+        List<PropagatedContingency> propagatedContingencies = new ArrayList<>(queueContingencies);
+        DcLoadFlowParameters dcParameters = securityContext.getParameters();
+        SecurityAnalysisParameters securityAnalysisParameters = securityContext.getSecurityAnalysisParameters();
+        Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId = securityContext.getOperatorStrategiesById();
+        Set<Action> neededActions = securityContext.getNeededActions();
+        List<LimitReduction> limitReductions = securityContext.getLimitReductions();
+
         // DC security analysis does not support AC-DC networks.
         // Therefore, we can also assume that lfNetwork contains only one synchronous network
 
-        Map<String, Action> actionsById = Actions.indexById(actions);
-        Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId =
-                OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById, true);
-        Set<Action> neededActions = OperatorStrategies.getNeededActions(operatorStrategiesByContingencyId, actionsById);
         Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network); // only convert needed actions
 
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
