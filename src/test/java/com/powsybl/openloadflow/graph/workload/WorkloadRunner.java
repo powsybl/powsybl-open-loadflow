@@ -7,10 +7,11 @@
  */
 package com.powsybl.openloadflow.graph.workload;
 
-import com.powsybl.openloadflow.graph.*;
-import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
-import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
-import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
+import com.powsybl.openloadflow.graph.DTreeStandalone;
+import com.powsybl.openloadflow.graph.DTreeStandaloneFactory;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTNode;
 import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
 import com.powsybl.openloadflow.graph.log.Log;
 import com.powsybl.openloadflow.graph.log.ProgressFormatter;
@@ -39,12 +40,12 @@ public final class WorkloadRunner {
     private static final RunParameters PERFORMANCE = new RunParameters.Performance()
             .setWarmup(10)
             .setMeasurement(10)
-            .setOutput("results/workload/${workload}/${class}.json");
+            .setOutput("results/workload/${workload}/${class}.${ext}");
     private static final RunParameters VALIDATOR = new RunParameters.Validator();
     private static final RunParameters STATS_WRITER = new RunParameters.StatsWriter()
-            .setOutput("sum_of_distances/data/${workload}/${class}/${operations}");
+            .setOutput("graph_stats/data/${workload}/${class}/${operations}");
 
-    private static final RunParameters WORKLOAD_PARAMS = PERFORMANCE;
+    private static final RunParameters WORKLOAD_PARAMS = VALIDATOR;
 
     private static final Log LOG = Log.init("results.txt");
     private static final MyProgressManager PROGRESS = new MyProgressManager();
@@ -52,8 +53,8 @@ public final class WorkloadRunner {
     public static void main(String[] args) throws IOException {
         //List<Workload> workloads = getAllWorkloads(Path.of("workload/"), Set.of()); //, Set.of("spy_10000_10_10_10000_10_10_2026-07-09T08:47:18.906235251Z.zip"));
         List<Workload> workloads = List.of(
-                Workload.inMemory(Path.of("workload/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt")),
-                Workload.inMemory(Path.of("workload/spy_5541_1_1_5541_1_1_2026-07-03T11:50:06.510031405Z.txt")),
+                // Workload.inMemory(Path.of("workload/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt")),
+                // Workload.inMemory(Path.of("workload/spy_5541_1_1_5541_1_1_2026-07-03T11:50:06.510031405Z.txt")),
                 Workload.inMemory(Path.of("workload/spy_10000_10_10_10000_10_10_2026-08-07T07:59:16.649371906Z.zip"))
         );
 
@@ -66,11 +67,11 @@ public final class WorkloadRunner {
                 // new HolmEtAlWithoutLevelGraphConnectivityFactory<>(),
                 // new NewHolmGraphConnectivityFactory<>(),
                 // new HolmStandaloneFactory<>()
-                // new DTreeGraphConnectivityFactory<>()
-                new DTreeStandaloneFactory<>(),
-                new Delta2DTreeStandalone.Factory<>(),
-                new Delta2ReplaceWithBestDTreeStandalone.Factory<>(),
-                new ReplaceWithBestDTreeStandalone.Factory<>()
+                // new DTreeGraphConnectivityFactory<>(),
+                new DTreeStandaloneFactory<>()
+                // new Delta2DTreeStandalone.Factory<>(),
+                // new Delta2ReplaceWithBestDTreeStandalone.Factory<>(),
+                // new ReplaceWithBestDTreeStandalone.Factory<>()
                 // IDTreeStandalone::new,
                 // new IndexedDTreeStandalone2ndVerFactory<>((Integer i) -> i, (Integer i) -> i)
                 // new DnDTreeStandaloneFactory<>()
@@ -99,6 +100,9 @@ public final class WorkloadRunner {
                 }
             }
         }
+
+        System.out.println(DTNode.N.get());
+        System.out.println(DTreeStandalone.N.get());
     }
 
     private static List<Workload> getAllWorkloads(Path folder, Set<String> filter) {
