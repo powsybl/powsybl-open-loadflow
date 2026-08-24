@@ -14,6 +14,8 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,18 +41,30 @@ public class SpyPerformanceGraphConnectivityFactory<V, E> implements ISpyGraphCo
     @Override
     public void endIterations(int iterations, IterationType type) {
         if (type == IterationType.MEASURE) {
-            Path output = this.output.getOutputPath();
+            output.set("ext", "json");
+            Path outputPath = this.output.getOutputPath();
 
-            if (output != null) {
+            if (outputPath != null) {
                 ObjectMapper mapper = new ObjectMapper();
 
-                try (JsonGenerator g = mapper.createGenerator(WorkloadUtils.newBufferedWriter(output))) {
+                try (JsonGenerator g = mapper.createGenerator(WorkloadUtils.newBufferedWriter(outputPath))) {
                     g.setPrettyPrinter(new DefaultPrettyPrinter());
                     g.writeStartObject();
                     serialize(g);
                     g.writeEndObject();
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    throw new UncheckedIOException(e);
+                }
+            }
+
+            this.output.set("ext", "txt");
+            outputPath = this.output.getOutputPath();
+
+            if (outputPath != null) {
+                try {
+                    Files.writeString(outputPath, resultsToString(iterations));
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
                 }
             }
         }

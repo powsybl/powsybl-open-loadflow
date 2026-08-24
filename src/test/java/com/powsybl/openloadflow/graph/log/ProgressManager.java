@@ -29,13 +29,13 @@ public class ProgressManager<P extends TProgress<P>> {
         this.period = period;
     }
 
-    public P newProgress(P progress) {
+    public synchronized P newProgress(P progress) {
         this.progress.add(progress);
         progress.setManager(this);
         return progress;
     }
 
-    public boolean remove(P progress) {
+    public synchronized boolean remove(P progress) {
         if (this.progress.remove(progress)) {
             progress.setManager(null);
             return true;
@@ -43,7 +43,7 @@ public class ProgressManager<P extends TProgress<P>> {
         return false;
     }
 
-    public void removeAll() {
+    public synchronized void removeAll() {
         for (P progress : this.progress) {
             progress.setManager(null);
         }

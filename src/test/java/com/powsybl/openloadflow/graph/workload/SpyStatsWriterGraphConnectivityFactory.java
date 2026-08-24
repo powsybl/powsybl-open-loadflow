@@ -31,7 +31,7 @@ public class SpyStatsWriterGraphConnectivityFactory<V, E> implements ISpyGraphCo
     }
 
     @Override
-    public ISpyGraphConnectivity<V, E> create(Operations operations) {
+    public synchronized ISpyGraphConnectivity<V, E> create(Operations operations) {
         output.setOperations(operations);
 
         Path path = this.output.getOutputPath();

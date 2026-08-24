@@ -13,6 +13,7 @@ import org.apache.commons.text.StringSubstitutor;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -20,7 +21,16 @@ import java.util.Map;
 public class SpyOutputFolder {
 
     private String outputFormat;
-    private final Map<String, String> outputPathParameters = new HashMap<>();
+    private final Map<String, String> outputPathParameters;
+
+    public SpyOutputFolder() {
+        this.outputPathParameters = new HashMap<>();
+    }
+
+    public SpyOutputFolder(SpyOutputFolder other) {
+        this.outputFormat = other.outputFormat;
+        this.outputPathParameters = new HashMap<>(other.outputPathParameters);
+    }
 
     public Path getOutputPath() {
         if (outputFormat == null) {
@@ -31,6 +41,10 @@ public class SpyOutputFolder {
         substitutor.setEnableUndefinedVariableException(true);
 
         return Path.of(substitutor.replace(outputFormat));
+    }
+
+    public void set(String key, String value) {
+        outputPathParameters.put(key, value);
     }
 
     public void setOutputFormat(String outputFormat) {

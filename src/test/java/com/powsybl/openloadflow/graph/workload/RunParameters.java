@@ -37,7 +37,7 @@ public interface RunParameters {
             output.setWorkload(workload);
             output.setGraphConnectivityFactory(factory.getClass());
 
-            return new SpyPerformanceGraphConnectivityFactory<>(factory, output);
+            return new SpyPerformanceGraphConnectivityFactory<>(factory, new SpyOutputFolder(output));
         }
 
         public Performance setWarmup(int warmup) {
