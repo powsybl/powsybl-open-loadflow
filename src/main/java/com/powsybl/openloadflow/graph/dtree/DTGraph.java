@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.graph.dtree;
 
 import com.powsybl.openloadflow.graph.GraphModel;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 
@@ -38,7 +37,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         long sum = 0;
 
         for (DTNode<V, E> node : vertexToTreeNode.values()) {
-            sum += node.findRootWithDepth().getValue();
+            sum += node.findRootWithDepth().depth();
         }
 
         return sum;
@@ -69,17 +68,17 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         edges.put(e, edge);
 
         // update spanning trees
-        Pair<DTNode<V, E>, Integer> rootUdist = nodeU.findRootWithDepth();
-        Pair<DTNode<V, E>, Integer> rootVdist = nodeV.findRootWithDepth();
+        DTNodeWithDepth<V, E> rootUdepth = nodeU.findRootWithDepth();
+        DTNodeWithDepth<V, E> rootVdepth = nodeV.findRootWithDepth();
 
         boolean treeEdge;
-        if (rootUdist.getKey() == rootVdist.getKey()) {
+        if (rootUdepth.node() == rootVdepth.node()) {
             // insert non tree edge
-            treeEdge = insertNonTreeEdge(rootUdist.getKey(), nodeU, rootUdist.getValue(), nodeV, rootVdist.getValue(), edge);
+            treeEdge = insertNonTreeEdge(rootUdepth.node(), nodeU, rootUdepth.depth(), nodeV, rootVdepth.depth(), edge);
         } else {
             // insert tree edge
             treeEdge = true;
-            insertTreeEdge(rootUdist.getKey(), nodeU, rootVdist.getKey(), nodeV, edge);
+            insertTreeEdge(rootUdepth.node(), nodeU, rootVdepth.node(), nodeV, edge);
         }
         edge.setTreeEdge(treeEdge);
     }

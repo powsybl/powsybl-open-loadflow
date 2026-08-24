@@ -296,7 +296,7 @@ public class DTNode<V, E> {
         return node;
     }
 
-    public Pair<DTNode<V, E>, Integer> findRootWithDepth() {
+    public DTNodeWithDepth<V, E> findRootWithDepth() {
         DTNode<V, E> node = this;
         int depth = 0;
 
@@ -305,7 +305,7 @@ public class DTNode<V, E> {
             depth++;
         }
 
-        return new ImmutablePair<>(node, depth);
+        return new DTNodeWithDepth<>(node, depth);
     }
 
     /**
