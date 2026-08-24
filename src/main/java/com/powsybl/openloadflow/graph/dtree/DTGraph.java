@@ -134,8 +134,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
 
         if (delta < 2) {
             // no changes in the BFS tree
-            nodeU.nonTreeEdges.add(edge);
-            nodeV.nonTreeEdges.add(edge);
+            nodeU.addNonTreeEdge(edge);
+            nodeV.addNonTreeEdge(edge);
             return false;
         } else {
             // get the (delta / 2 - 1) DTNode.
@@ -145,10 +145,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
             }
 
             // replace the edge between ancestor and its parent by a non tree edge
-            ancestor.getParent().nonTreeEdges.add(ancestor.getParentEdge());
-            ancestor.nonTreeEdges.add(ancestor.getParentEdge());
-            ancestor.getParentEdge().setTreeEdge(false);
-            ancestor.unlink();
+            ancestor.replaceParentLinkByNonTreeEdge();
 
             // updating roots is useless because 'deep' will be
             // connected to 'shallow' juste after. Updating is also impossible
@@ -252,7 +249,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
             }
 
             // search for a replacement edge
-            for (Edge<V, E> nonTreeEdge : n.nonTreeEdges) {
+            for (Edge<V, E> nonTreeEdge : n.getNonTreeEdges()) {
                 DTNode<V, E> oppNode = nonTreeEdge.opposite(n);
                 DTNode<V, E> oppRoot = oppNode.findRoot();
 
@@ -286,8 +283,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      * @param edge the edge to remove.
      */
     private void removeNonTreeEdge(Edge<V, E> edge) {
-        edge.getNodeU().nonTreeEdges.remove(edge);
-        edge.getNodeV().nonTreeEdges.remove(edge);
+        edge.getNodeU().removeNonTreeEdge(edge);
+        edge.getNodeV().removeNonTreeEdge(edge);
     }
 
     private void addRoot(DTNode<V, E> node) {
