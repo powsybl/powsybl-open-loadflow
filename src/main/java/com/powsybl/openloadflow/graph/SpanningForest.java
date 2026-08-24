@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.graph;
 
 import com.google.common.collect.Iterators;
+import com.powsybl.openloadflow.graph.dtree.AbstractSetView;
 import org.jgrapht.util.AVLTree;
 
 import java.util.*;

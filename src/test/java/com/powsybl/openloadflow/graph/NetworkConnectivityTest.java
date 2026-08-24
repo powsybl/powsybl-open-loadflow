@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;

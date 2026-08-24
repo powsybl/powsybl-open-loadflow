@@ -8,8 +8,8 @@
 package com.powsybl.openloadflow.graph.ng;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.graph.DTreeGraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import org.jgrapht.graph.Pseudograph;

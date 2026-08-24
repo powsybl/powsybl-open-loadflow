@@ -344,4 +344,37 @@ public class DTNode<V, E> {
 
         return neighbor;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(vertex.toString()).append(" -te-> {");
+
+        Set<V> set = new HashSet<>();
+
+        DTNode<V, E> child = firstChild;
+        while (child != null) {
+            if (!set.add(child.vertex)) {
+                sb.append("loop detected");
+                break;
+            } else {
+                sb.append(child.vertex).append(", ");
+            }
+            child = child.nextSibling;
+        }
+        sb.append("} -nte-> {");
+
+        for (Edge<V, E> nte : nonTreeEdges) {
+            if (nte.getNodeU().vertex.equals(vertex)) {
+                sb.append(nte.getNodeV().vertex).append(", ");
+            } else if (nte.getNodeV().vertex.equals(vertex)) {
+                sb.append(nte.getNodeU().vertex).append(", ");
+            } else {
+                sb.append("nte error, ");
+            }
+        }
+        sb.append("}");
+
+        return sb.toString();
+    }
 }

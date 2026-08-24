@@ -11,6 +11,7 @@ import com.google.common.collect.Sets;
 import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;

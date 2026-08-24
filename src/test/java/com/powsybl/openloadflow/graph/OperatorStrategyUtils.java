@@ -16,6 +16,7 @@ import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.*;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
 import com.powsybl.openloadflow.graph.ng.BusBreakerGraph;
 import com.powsybl.openloadflow.graph.ng.Edge;
 import com.powsybl.openloadflow.graph.ng.Vertex;

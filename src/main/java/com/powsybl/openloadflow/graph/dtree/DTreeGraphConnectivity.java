@@ -14,7 +14,7 @@ import java.util.*;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, DTGraph<V, E>> {
+public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, DTGraph<V, E>> implements SpanningForestGraphConnectivity<V, E> {
 
     public DTreeGraphConnectivity() {
         super(new DTGraph<>());
@@ -108,6 +108,16 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         // the mainComponentVertex, either the biggest tree
         DTNode<V, E> excludedTree = getMainComponentRoot(mainComponentVertex);
         return new VerticesNotInMainComponent(excludedTree);
+    }
+
+    @Override
+    public long computeSumOfDistances() {
+        return getGraph().sumOfDistances();
+    }
+
+    @Override
+    public int vertexCount() {
+        return getGraph().vertexToTreeNode.size();
     }
 
     private final class VerticesNotInMainComponent extends AbstractSetView<V> {

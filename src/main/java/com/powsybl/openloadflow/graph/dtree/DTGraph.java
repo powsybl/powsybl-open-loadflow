@@ -14,6 +14,8 @@ import java.util.*;
 
 public class DTGraph<V, E> implements GraphModel<V, E> {
 
+    public static boolean debug = false;
+
     /**
      * map a vertex to a node in a spanning tree
      */
@@ -394,6 +396,62 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         @Override
         public int size() {
             return roots.size();
+        }
+    }
+
+    private void check() {
+        if (!debug) {
+            return;
+        }
+
+        checkEdges();
+        checkParentChildRelation();
+    }
+
+    private void checkEdges() {
+        for (DTNode<V, E> node : vertexToTreeNode.values()) {
+            for (Edge<V, E> nonTreeEdge : node.nonTreeEdges) {
+                assert !nonTreeEdge.isTreeEdge();
+            }
+        }
+
+        for (Map.Entry<E, Edge<V, E>> entry : edges.entrySet()) {
+            E e = entry.getKey();
+            Edge<V, E> edge = entry.getValue();
+
+            DTNode<V, E> src = edge.getNodeU();
+            DTNode<V, E> dest = edge.getNodeV();
+            assert vertexToTreeNode.containsValue(src) && vertexToTreeNode.containsValue(dest);
+
+            if (edge.isTreeEdge()) {
+                assert src.parent == dest && src.parentEdge == e || dest.parent == src && dest.parentEdge == e;
+            } else {
+                assert src.nonTreeEdges.contains(edge);
+                assert dest.nonTreeEdges.contains(edge);
+            }
+        }
+    }
+
+    private void checkParentChildRelation() {
+        for (DTNode<V, E> node : vertexToTreeNode.values()) {
+            DTNode<V, E> child = node.firstChild;
+
+            while (child != null) {
+                assert child.parent == node;
+                child = child.nextSibling;
+            }
+
+            if (node.parent != null) {
+                DTNode<V, E> parentChild = node.parent.firstChild;
+                boolean present = false;
+
+                while (parentChild != null && !present) {
+                    present = parentChild == node;
+                    parentChild = parentChild.nextSibling;
+                }
+
+                assert present;
+            }
         }
     }
 }

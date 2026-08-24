@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import org.junit.jupiter.api.Test;

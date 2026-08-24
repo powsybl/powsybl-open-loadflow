@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.graph;
 import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
 import org.jgrapht.Graph;
 import org.jgrapht.generate.ScaleFreeGraphGenerator;
 import org.jgrapht.graph.DefaultEdge;

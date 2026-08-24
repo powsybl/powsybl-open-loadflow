@@ -47,4 +47,14 @@ public class Edge<V, E> {
     public boolean isTreeEdge() {
         return treeEdge;
     }
+
+    @Override
+    public String toString() {
+        return "Edge{" +
+                "u=" + nodeU.vertex +
+                ", v=" + nodeV.vertex +
+                ", edge=" + edgeData +
+                ", treeEdge=" + treeEdge +
+                '}';
+    }
 }
