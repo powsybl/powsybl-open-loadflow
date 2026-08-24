@@ -60,6 +60,6 @@ public class DFSIterator<V, E> implements Iterator<V> {
             }
         }
 
-        return next.vertex;
+        return next.getVertex();
     }
 }

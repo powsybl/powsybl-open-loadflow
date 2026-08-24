@@ -172,7 +172,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      * @param edge  edge linking {@code nodeU} and {@code nodeV}
      */
     private void insertTreeEdge(DTNode<V, E> rootU, DTNode<V, E> nodeU, DTNode<V, E> rootV, DTNode<V, E> nodeV, Edge<V, E> edge) {
-        if (rootU.size < rootV.size) {
+        if (rootU.size() < rootV.size()) {
             nodeU.makeRoot(true);
             nodeU.link(rootV, nodeV, edge);
             removeRoot(nodeU);
@@ -226,7 +226,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         addRoot(child);
 
         DTNode<V, E> small;
-        if (child.size < otherTree.size) {
+        if (child.size() < otherTree.size()) {
             small = child;
         } else {
             small = otherTree;
@@ -247,7 +247,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
             DTNode<V, E> n = queue.poll();
 
             // search for a new centroid
-            if (n != rootSmall && n.size > rootSmall.size / 2) {
+            if (n != rootSmall && n.size() > rootSmall.size() / 2) {
                 newRoot = n;
             }
 
@@ -342,7 +342,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     public V getEdgeSource(E edge) {
         return switch (edges.get(edge)) {
             case null -> null;
-            case Edge<V, E> e -> e.getNodeU().vertex;
+            case Edge<V, E> e -> e.getNodeU().getVertex();
         };
     }
 
@@ -350,7 +350,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     public V getEdgeTarget(E edge) {
         return switch (edges.get(edge)) {
             case null -> null;
-            case Edge<V, E> e -> e.getNodeV().vertex;
+            case Edge<V, E> e -> e.getNodeV().getVertex();
         };
     }
 
