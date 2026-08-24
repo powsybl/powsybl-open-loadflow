@@ -81,7 +81,7 @@ public class DTNode<V, E> {
     private DTNode<V, E> previousSibling = null;
     private DTNode<V, E> nextSibling = null;
 
-    final Set<Edge<V, E>> nonTreeEdges = new HashSet<>();
+    private final Set<Edge<V, E>> nonTreeEdges = new HashSet<>();
 
     // index in the list of roots, valid only if this node is a root
     int rootIndex;
@@ -273,6 +273,19 @@ public class DTNode<V, E> {
         }
     }
 
+    /**
+     * Remove the tree edge between this node and its parent
+     * and replace it by a non tree edge.
+     *
+     * @throws NullPointerException if this node is the root (no parent)
+     */
+    public void replaceParentLinkByNonTreeEdge() {
+        parent.nonTreeEdges.add(parentEdge);
+        nonTreeEdges.add(parentEdge);
+        parentEdge.setTreeEdge(false);
+        unlink();
+    }
+
     public DTNode<V, E> findRoot() {
         DTNode<V, E> node = this;
 
@@ -319,6 +332,14 @@ public class DTNode<V, E> {
         }
 
         return nodeRoot;
+    }
+
+    public void addNonTreeEdge(Edge<V, E> edge) {
+        nonTreeEdges.add(edge);
+    }
+
+    public void removeNonTreeEdge(Edge<V, E> edge) {
+        nonTreeEdges.remove(edge);
     }
 
     public Set<V> componentView() {
@@ -379,6 +400,10 @@ public class DTNode<V, E> {
 
     public DTNode<V, E> getNextSibling() {
         return nextSibling;
+    }
+
+    public Set<Edge<V, E>> getNonTreeEdges() {
+        return nonTreeEdges;
     }
 
     @Override

@@ -136,8 +136,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
 
         if (delta < 2) {
             // no changes in the BFS tree
-            nodeU.nonTreeEdges.add(edge);
-            nodeV.nonTreeEdges.add(edge);
+            nodeU.addNonTreeEdge(edge);
+            nodeV.addNonTreeEdge(edge);
             return false;
         } else {
             // get the (delta / 2 - 1) DTNode.
@@ -147,10 +147,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
             }
 
             // replace the edge between ancestor and its parent by a non tree edge
-            ancestor.getParent().nonTreeEdges.add(ancestor.getParentEdge());
-            ancestor.nonTreeEdges.add(ancestor.getParentEdge());
-            ancestor.getParentEdge().setTreeEdge(false);
-            ancestor.unlink();
+            ancestor.replaceParentLinkByNonTreeEdge();
 
             // updating roots is useless because 'deep' will be
             // connected to 'shallow' juste after. Updating is also impossible
@@ -254,7 +251,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
             }
 
             // search for a replacement edge
-            for (Edge<V, E> nonTreeEdge : n.nonTreeEdges) {
+            for (Edge<V, E> nonTreeEdge : n.getNonTreeEdges()) {
                 DTNode<V, E> oppNode = nonTreeEdge.opposite(n);
                 DTNode<V, E> oppRoot = oppNode.findRoot();
 
@@ -288,8 +285,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      * @param edge the edge to remove.
      */
     private void removeNonTreeEdge(Edge<V, E> edge) {
-        edge.getNodeU().nonTreeEdges.remove(edge);
-        edge.getNodeV().nonTreeEdges.remove(edge);
+        edge.getNodeU().removeNonTreeEdge(edge);
+        edge.getNodeV().removeNonTreeEdge(edge);
     }
 
     private void addRoot(DTNode<V, E> node) {
@@ -410,7 +407,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
 
     private void checkEdges() {
         for (DTNode<V, E> node : vertexToTreeNode.values()) {
-            for (Edge<V, E> nonTreeEdge : node.nonTreeEdges) {
+            for (Edge<V, E> nonTreeEdge : node.getNonTreeEdges()) {
                 assert !nonTreeEdge.isTreeEdge();
             }
         }
@@ -426,8 +423,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
             if (edge.isTreeEdge()) {
                 assert src.getParent() == dest && src.getParentEdge() == e || dest.getParent() == src && dest.getParentEdge() == e;
             } else {
-                assert src.nonTreeEdges.contains(edge);
-                assert dest.nonTreeEdges.contains(edge);
+                assert src.getNonTreeEdges().contains(edge);
+                assert dest.getNonTreeEdges().contains(edge);
             }
         }
     }
