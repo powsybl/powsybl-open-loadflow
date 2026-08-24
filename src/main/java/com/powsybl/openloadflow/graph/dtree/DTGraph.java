@@ -143,13 +143,13 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
             // get the (delta / 2 - 1) DTNode.
             DTNode<V, E> ancestor = deep;
             for (int j = 0; j < delta / 2 - 1; j++) {
-                ancestor = ancestor.parent;
+                ancestor = ancestor.getParent();
             }
 
             // replace the edge between ancestor and its parent by a non tree edge
-            ancestor.parent.nonTreeEdges.add(ancestor.parentEdge);
-            ancestor.nonTreeEdges.add(ancestor.parentEdge);
-            ancestor.parentEdge.setTreeEdge(false);
+            ancestor.getParent().nonTreeEdges.add(ancestor.getParentEdge());
+            ancestor.nonTreeEdges.add(ancestor.getParentEdge());
+            ancestor.getParentEdge().setTreeEdge(false);
             ancestor.unlink();
 
             // updating roots is useless because 'deep' will be
@@ -217,7 +217,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     private void removeTreeEdge(DTNode<V, E> nodeU, DTNode<V, E> nodeV) {
         DTNode<V, E> child;
 
-        if (nodeU == nodeV.parent) {
+        if (nodeU == nodeV.getParent()) {
             child = nodeV;
         } else {
             child = nodeU;
@@ -269,10 +269,10 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
             }
 
             // add all children to the queue
-            DTNode<V, E> child = n.firstChild;
+            DTNode<V, E> child = n.getFirstChild();
             while (child != null) {
                 queue.add(child);
-                child = child.nextSibling;
+                child = child.getNextSibling();
             }
         }
 
@@ -424,7 +424,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
             assert vertexToTreeNode.containsValue(src) && vertexToTreeNode.containsValue(dest);
 
             if (edge.isTreeEdge()) {
-                assert src.parent == dest && src.parentEdge == e || dest.parent == src && dest.parentEdge == e;
+                assert src.getParent() == dest && src.getParentEdge() == e || dest.getParent() == src && dest.getParentEdge() == e;
             } else {
                 assert src.nonTreeEdges.contains(edge);
                 assert dest.nonTreeEdges.contains(edge);
@@ -434,20 +434,20 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
 
     private void checkParentChildRelation() {
         for (DTNode<V, E> node : vertexToTreeNode.values()) {
-            DTNode<V, E> child = node.firstChild;
+            DTNode<V, E> child = node.getFirstChild();
 
             while (child != null) {
-                assert child.parent == node;
-                child = child.nextSibling;
+                assert child.getParent() == node;
+                child = child.getNextSibling();
             }
 
-            if (node.parent != null) {
-                DTNode<V, E> parentChild = node.parent.firstChild;
+            if (node.getParent() != null) {
+                DTNode<V, E> parentChild = node.getParent().getFirstChild();
                 boolean present = false;
 
                 while (parentChild != null && !present) {
                     present = parentChild == node;
-                    parentChild = parentChild.nextSibling;
+                    parentChild = parentChild.getNextSibling();
                 }
 
                 assert present;
