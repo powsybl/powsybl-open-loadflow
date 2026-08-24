@@ -64,12 +64,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class DTNode<V, E> {
 
-    final DTGraph<V, E> graph;
+    private final DTGraph<V, E> graph;
 
-    final V vertex;
+    private final V vertex;
 
     // the size of this subtree
-    int size;
+    private int size;
 
     private DTNode<V, E> parent = null;
     private Edge<V, E> parentEdge = null;
@@ -347,6 +347,18 @@ public class DTNode<V, E> {
         }
 
         return neighbor;
+    }
+
+    public DTGraph<V, E> getGraph() {
+        return graph;
+    }
+
+    public V getVertex() {
+        return vertex;
+    }
+
+    public int size() {
+        return size;
     }
 
     public DTNode<V, E> getParent() {

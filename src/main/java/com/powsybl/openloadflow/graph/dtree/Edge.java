@@ -51,8 +51,8 @@ public class Edge<V, E> {
     @Override
     public String toString() {
         return "Edge{" +
-                "u=" + nodeU.vertex +
-                ", v=" + nodeV.vertex +
+                "u=" + nodeU.getVertex() +
+                ", v=" + nodeV.getVertex() +
                 ", edge=" + edgeData +
                 ", treeEdge=" + treeEdge +
                 '}';

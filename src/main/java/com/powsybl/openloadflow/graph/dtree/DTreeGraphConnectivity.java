@@ -58,7 +58,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         List<DTNode<V, E>> roots = graph.roots;
 
         // sorting roots will sort components as components is a wrapper around roots
-        roots.sort(Comparator.comparingInt((DTNode<V, E> root) -> root.size).reversed());
+        roots.sort(Comparator.<DTNode<V, E>>comparingInt(DTNode::size).reversed());
         for (int i = 0; i < graph.roots.size(); i++) {
             roots.get(i).rootIndex = i;
         }
@@ -150,7 +150,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 DTNode<V, E> excludedTreeRoot = excludedTree.findRoot();
                 size = getGraph().roots.stream()
                         .filter(root -> root != excludedTreeRoot)
-                        .mapToInt(root -> root.size)
+                        .mapToInt(DTNode::size)
                         .sum();
             }
 
@@ -213,7 +213,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
             for (int i = 1; i < graph.roots.size(); i++) {
                 DTNode<V, E> root = graph.roots.get(i);
-                if (root.size > biggestRoot.size) {
+                if (root.size() > biggestRoot.size()) {
                     biggestRoot = root;
                 }
             }

@@ -29,7 +29,7 @@ public class ComponentView<V, E> extends AbstractSetView<V> {
             // However, don't use findRootOptReroot on node, it might change the root
             // after we got the root of 'o'.
 
-            return node.graph.rootOf((V) o) == node.findRoot();
+            return node.getGraph().rootOf((V) o) == node.findRoot();
         }
 
         return false;
@@ -37,6 +37,6 @@ public class ComponentView<V, E> extends AbstractSetView<V> {
 
     @Override
     public int size() {
-        return node.findRoot().size;
+        return node.findRoot().size();
     }
 }
