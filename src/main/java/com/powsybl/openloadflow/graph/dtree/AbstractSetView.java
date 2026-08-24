@@ -5,7 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.graph;
+package com.powsybl.openloadflow.graph.dtree;
+
+import com.powsybl.openloadflow.graph.AbstractGraphConnectivity;
+import com.powsybl.openloadflow.graph.GraphConnectivity;
 
 import java.util.AbstractSet;
 import java.util.Collection;

@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.graph;
 
 import com.google.common.collect.Sets;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;

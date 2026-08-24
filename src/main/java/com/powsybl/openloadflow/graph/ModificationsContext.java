@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import com.powsybl.openloadflow.graph.dtree.AbstractSetView;
 import gnu.trove.set.hash.THashSet;
 
 import java.util.*;
