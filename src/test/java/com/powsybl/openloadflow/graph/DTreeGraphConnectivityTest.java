@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class DTreeGraphConnectivityTest {
+class DTreeGraphConnectivityTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideDTreeConnectivities")
@@ -193,11 +193,12 @@ public class DTreeGraphConnectivityTest {
         connectivity.addEdge(0, 5, "0-5");
         //   _         _
         //  | |       | |
-        //   7 --- 3 - 0 - 5
-        //   |   ╱ |     ╱ | ╲
-        //   |  ╱  |   ╱   |   1
-        //   | ╱   | ╱     | ╱|_|
-        //   2 --- 6 ----- 4
+        //   7 ----- 3 - 0 - 5
+        //   |     ╱ |     ╱ | ╲
+        //   |   ╱   |   ╱   |   1
+        //   | ╱     | ╱     | ╱|_|
+        //   2 ----- 6 ----- 4
+        //   |_____________|
         // Spanning tree:
         // 3 - 7
         //   - 2
