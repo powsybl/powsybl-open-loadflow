@@ -14,6 +14,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -198,7 +199,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         Modifications modifications = modificationsStack.peek();
         if (modifications != null) {
             if (mergedTree != null) {
-                modifications.notifyInsertTreeEdge(mergedTree);
+                modifications.notifyConnection(mergedTree);
             }
 
             modifications.push(new EdgeAdd<>(vertex1, vertex2, edge));
@@ -340,10 +341,6 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         // keep track of modifications
         Modifications modifications = modificationsStack.peek();
         if (modifications != null) {
-            if (e.treeEdge) {
-                modifications.notifyRemoveTreeEdge();
-            }
-
             modifications.push(new EdgeRemove<>(e.nodeU.vertex, e.nodeV.vertex, edge));
         }
 
@@ -409,6 +406,11 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         }
 
         if (!replacementEdgeFound) {
+            Modifications modifications = modificationsStack.peek();
+            if (modifications != null) {
+                modifications.notifyDisconnection();
+            }
+
             if (largeInMain) {
                 markAllRemoved(small);
             } else if (smallInMain) {
@@ -617,7 +619,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         if (modifications == null) {
             return false;
         } else {
-            return modifications.mainComponentNode.findRootOptReroot() == node.findRoot();
+            return modifications.mainComponentNode.findRoot() == node.findRoot();
         }
     }
 
@@ -757,6 +759,8 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         }
     }
 
+    public static final AtomicInteger N = new AtomicInteger();
+
     /**
      * A DTNode (Dynamic Tree Node) is a node in a spanning tree.
      * Each DTNode maintains the following information:
@@ -848,6 +852,8 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
             if (parent == null) {
                 return;
             }
+
+            N.incrementAndGet();
 
             DTNode child = this;
             DTNode parent = child.parent;
@@ -1045,22 +1051,22 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
          * @return the root of the tree
          */
         private DTNode findRootOptReroot() {
-            DTNode nodeRoot = this;
-            DTNode nodeRootChild = null; // the child of nodeRoot in the path from nodeRoot to node
+            // DTNode nodeRoot = this;
+            // DTNode nodeRootChild = null; // the child of nodeRoot in the path from nodeRoot to node
 
-            // find the parent
-            while (nodeRoot.parent != null) {
-                nodeRootChild = nodeRoot;
-                nodeRoot = nodeRoot.parent;
-            }
+            // // find the parent
+            // while (nodeRoot.parent != null) {
+            //     nodeRootChild = nodeRoot;
+            //     nodeRoot = nodeRoot.parent;
+            // }
 
-            // Restores the centroid property. See Theorem 5.12.
-            if (nodeRootChild != null && nodeRootChild.size > nodeRoot.size / 2) {
-                nodeRootChild.makeRoot(true);
-                nodeRoot = nodeRootChild;
-            }
+            // // Restores the centroid property. See Theorem 5.12.
+            // if (nodeRootChild != null && nodeRootChild.size > nodeRoot.size / 2) {
+            //     nodeRootChild.makeRoot(true);
+            //     nodeRoot = nodeRootChild;
+            // }
 
-            return nodeRoot;
+            return findRoot();
         }
 
         // This DNode MUST be a root
@@ -1285,7 +1291,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
                 // 2. if the main component vertex isn't in the current main component vertex, we need to
                 //    update state of edges and vertices
 
-                DTNode oldComponentRoot = this.mainComponentNode.findRootOptReroot();
+                DTNode oldComponentRoot = this.mainComponentNode.findRoot();
                 DTNode mainComponentNode = getNodeOrThrow(mainComponentVertex);
                 DTNode newComponentRoot = mainComponentNode.findRoot();
 
@@ -1355,13 +1361,13 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
             }
         }
 
-        public void notifyInsertTreeEdge(DTNode newTree) {
+        public void notifyConnection(DTNode newTree) {
             if (isMainComponentVertexFictitious) {
                 maybeBiggestTreeChanged(newTree);
             }
         }
 
-        public void notifyRemoveTreeEdge() {
+        public void notifyDisconnection() {
             if (isMainComponentVertexFictitious) {
                 maybeBiggestTreeChanged(getBiggestRoot());
             }
