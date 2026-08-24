@@ -319,7 +319,7 @@ public class DTNode<V, E> {
 
     public Set<V> componentView() {
         if (componentView == null) {
-            componentView = new ComponentView(this);
+            componentView = new ComponentView<>(this);
         }
 
         return componentView;
