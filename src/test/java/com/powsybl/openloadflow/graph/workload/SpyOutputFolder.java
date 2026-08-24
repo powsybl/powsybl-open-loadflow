@@ -10,10 +10,14 @@ package com.powsybl.openloadflow.graph.workload;
 import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
 import org.apache.commons.text.StringSubstitutor;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -21,6 +25,8 @@ import java.util.concurrent.locks.ReentrantLock;
 public class SpyOutputFolder {
 
     private String outputFormat;
+    private String replacementFormat = null;
+    private boolean overwrite = false;
     private final Map<String, String> outputPathParameters;
 
     public SpyOutputFolder() {
@@ -29,18 +35,39 @@ public class SpyOutputFolder {
 
     public SpyOutputFolder(SpyOutputFolder other) {
         this.outputFormat = other.outputFormat;
+        this.replacementFormat = other.replacementFormat;
+        this.overwrite = other.overwrite;
         this.outputPathParameters = new HashMap<>(other.outputPathParameters);
     }
 
-    public Path getOutputPath() {
+    public Path getOutputPath() throws IOException {
         if (outputFormat == null) {
             return null;
         }
 
+        outputPathParameters.put("time", Instant.now().toString());
         StringSubstitutor substitutor = new StringSubstitutor(outputPathParameters);
         substitutor.setEnableUndefinedVariableException(true);
 
-        return Path.of(substitutor.replace(outputFormat));
+        Path output = Path.of(substitutor.replace(outputFormat));
+
+        if (Files.exists(output) && outputFormat != null) {
+            Path destination = Path.of(substitutor.replace(replacementFormat));
+
+            if (overwrite) {
+                Files.move(output, destination, StandardCopyOption.REPLACE_EXISTING);
+            } else {
+                Files.move(output, destination);
+            }
+
+            if (Files.exists(output) && !overwrite) {
+                throw new IOException("Replacement file already exists: " + output);
+            }
+        } else if (!overwrite) {
+            throw new IOException("File already exists: " + output);
+        }
+
+        return output;
     }
 
     public void set(String key, String value) {
@@ -49,6 +76,14 @@ public class SpyOutputFolder {
 
     public void setOutputFormat(String outputFormat) {
         this.outputFormat = outputFormat;
+    }
+
+    public void setReplacementFormat(String replacementFormat) {
+        this.replacementFormat = replacementFormat;
+    }
+
+    public void setOverwrite(boolean overwrite) {
+        this.overwrite = overwrite;
     }
 
     public void setGraphConnectivityFactory(Class<?> factory) {

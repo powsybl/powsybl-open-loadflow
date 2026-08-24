@@ -41,31 +41,29 @@ public class SpyPerformanceGraphConnectivityFactory<V, E> implements ISpyGraphCo
     @Override
     public void endIterations(int iterations, IterationType type) {
         if (type == IterationType.MEASURE) {
-            output.set("ext", "json");
-            Path outputPath = this.output.getOutputPath();
+            try {
+                output.set("ext", "json");
+                Path outputPath = this.output.getOutputPath();
 
-            if (outputPath != null) {
-                ObjectMapper mapper = new ObjectMapper();
+                if (outputPath != null) {
+                    ObjectMapper mapper = new ObjectMapper();
 
-                try (JsonGenerator g = mapper.createGenerator(WorkloadUtils.newBufferedWriter(outputPath))) {
-                    g.setPrettyPrinter(new DefaultPrettyPrinter());
-                    g.writeStartObject();
-                    serialize(g);
-                    g.writeEndObject();
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
+                    try (JsonGenerator g = mapper.createGenerator(WorkloadUtils.newBufferedWriter(outputPath))) {
+                        g.setPrettyPrinter(new DefaultPrettyPrinter());
+                        g.writeStartObject();
+                        serialize(g);
+                        g.writeEndObject();
+                    }
                 }
-            }
 
-            this.output.set("ext", "txt");
-            outputPath = this.output.getOutputPath();
+                this.output.set("ext", "txt");
+                outputPath = this.output.getOutputPath();
 
-            if (outputPath != null) {
-                try {
+                if (outputPath != null) {
                     Files.writeString(outputPath, resultsToString(iterations));
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
                 }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
             }
         }
     }

@@ -70,6 +70,16 @@ public interface RunParameters {
             this.output.setOutputFormat(output);
             return this;
         }
+
+        public Performance setReplacement(String output) {
+            this.output.setReplacementFormat(output);
+            return this;
+        }
+
+        public Performance setOverwrite(boolean overwrite) {
+            this.output.setOverwrite(overwrite);
+            return this;
+        }
     }
 
     final class Validator implements RunParameters {
@@ -114,6 +124,16 @@ public interface RunParameters {
 
         public StatsWriter setOutput(String output) {
             this.output.setOutputFormat(output);
+            return this;
+        }
+
+        public StatsWriter setReplacement(String output) {
+            this.output.setReplacementFormat(output);
+            return this;
+        }
+
+        public StatsWriter setOverwrite(boolean overwrite) {
+            this.output.setOverwrite(overwrite);
             return this;
         }
     }

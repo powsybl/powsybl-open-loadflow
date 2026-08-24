@@ -10,6 +10,8 @@ package com.powsybl.openloadflow.graph.workload;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.log.Log;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 
 /**
@@ -34,7 +36,13 @@ public class SpyStatsWriterGraphConnectivityFactory<V, E> implements ISpyGraphCo
     public synchronized ISpyGraphConnectivity<V, E> create(Operations operations) {
         output.setOperations(operations);
 
-        Path path = this.output.getOutputPath();
+        Path path;
+        try {
+            path = this.output.getOutputPath();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+
         Log.get().log("Creating ComputeSdGraphConnectivity to %s", path);
 
         SpyStatsWriterGraphConnectivity<V, E> conn = new SpyStatsWriterGraphConnectivity<>(path);
