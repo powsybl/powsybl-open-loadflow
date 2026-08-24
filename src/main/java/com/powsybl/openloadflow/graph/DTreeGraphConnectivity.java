@@ -36,21 +36,29 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     @Override
     protected void updateConnectivity(EdgeRemove<V, E> edgeRemove) {
+        // only invalidate components.
+        // update is done directly in DTGraph because the graph is stored inside the spanning forest.
         componentSets = null;
     }
 
     @Override
     protected void updateConnectivity(EdgeAdd<V, E> edgeAdd) {
+        // only invalidate components.
+        // update is done directly in DTGraph because the graph is stored inside the spanning forest.
         componentSets = null;
     }
 
     @Override
     protected void updateConnectivity(VertexAdd<V, E> vertexAdd) {
+        // only invalidate components.
+        // update is done directly in DTGraph because the graph is stored inside the spanning forest.
         componentSets = null;
     }
 
     @Override
     protected void resetConnectivity(Deque<GraphModification<V, E>> m) {
+        // only invalidate components.
+        // update is done directly in undoTemporaryChanges because the graph is stored inside the spanning forest.
         componentSets = null;
     }
 
@@ -64,7 +72,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         List<DTGraph<V, E>.DTNode> roots = graph.roots;
 
         // sorting roots will sort components as components is a wrapper around roots
-        roots.sort((s1, s2) -> s2.size - s1.size);
+        roots.sort(Comparator.comparingInt((DTGraph<V, E>.DTNode root) -> root.size).reversed());
         for (int i = 0; i < graph.roots.size(); i++) {
             roots.get(i).rootIndex = i;
         }
@@ -142,13 +150,12 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         public int size() {
             if (size < 0) {
                 size = 0;
-                DTGraph<V, E> graph = getGraph();
+
                 DTGraph<V, E>.DTNode excludedTreeRoot = excludedTree.findRoot();
-                for (DTGraph<V, E>.DTNode root : graph.roots) {
-                    if (root != excludedTreeRoot) {
-                        size += root.size;
-                    }
-                }
+                size = getGraph().roots.stream()
+                        .filter(root -> root != excludedTreeRoot)
+                        .mapToInt(root -> root.size)
+                        .sum();
             }
 
             return size;
@@ -230,14 +237,14 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     public static final class DTGraph<V, E> implements GraphModel<V, E> {
 
-        // map a vertex to a node in a spanning tree
+        /** map a vertex to a node in a spanning tree */
         private final Map<V, DTNode> vertexToTreeNode = new HashMap<>();
-        // map an edge to an edge in a spanning tree
+        /** map an edge to an edge in a spanning tree */
         private final Map<E, Edge> edges = new HashMap<>();
 
-        // the list of tree roots. Roots are maintained in a way such that
-        // the value of the attribute 'rootIndex' of the DTNode at index i is i.
-        // In other words: roots.get(i).rootIndex == i
+        /** the list of tree roots. Roots are maintained in a way such that
+         * the value of the attribute 'rootIndex' of the DTNode at index i is i.
+         * In other words: roots.get(i).rootIndex == i */
         private final List<DTNode> roots = new ArrayList<>();
 
         private final AllComponentsView components = new AllComponentsView();
@@ -262,10 +269,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         DTNode rootOf(V vertex) {
             return vertexToTreeNode.get(vertex).findRootOptReroot();
         }
-
-        // =============
-        // * INSERTION *
-        // =============
 
         @Override
         public void addEdge(V u, V v, E e) {
@@ -305,7 +308,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
         /**
          * Insert a non tree edge between {@code nodeU} (whose depth is {@code depthU})
-         * and {@code nodeV} (whose depth is {@code depthV}). The two node must be in the
+         * and {@code nodeV} (whose depth is {@code depthV}). The two nodes must be in the
          * same tree rooted at {@code root}.
          * <p>
          * If the difference of depth, delta, is less than two, the edge is inserted
@@ -394,10 +397,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 removeRoot(nodeV);
             }
         }
-
-        // ===========
-        // * REMOVAL *
-        // ===========
 
         @Override
         public void removeEdge(E e) {
@@ -505,10 +504,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
             edge.nodeV.nonTreeEdges.remove(edge);
         }
 
-        // ======================
-        // * TREE MANIPULATIONS *
-        // ======================
-
         private void addRoot(DTNode node) {
             node.rootIndex = roots.size();
             roots.add(node);
@@ -522,10 +517,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 roots.set(last.rootIndex, last);
             }
         }
-
-        // =========
-        // * OTHER *
-        // =========
 
         private Iterator<V> iterator(DTNode root) {
             return new DFSIterator(root);

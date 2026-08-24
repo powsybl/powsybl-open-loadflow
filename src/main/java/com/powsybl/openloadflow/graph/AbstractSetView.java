@@ -12,6 +12,12 @@ import java.util.Collection;
 import java.util.Iterator;
 
 /**
+ * An unmodifiable view of a set why can be backed by any structure providing
+ * iteration of distinct elements. It is used by {@link DTreeGraphConnectivity} to
+ * avoid copies in {@link GraphConnectivity#getLargestConnectedComponent()},
+ * {@link GraphConnectivity#getConnectedComponent(Object)} and
+ * {@link AbstractGraphConnectivity#getVerticesNotInMainComponent(Object)}.
+ *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
 public abstract class AbstractSetView<E> extends AbstractSet<E> {
