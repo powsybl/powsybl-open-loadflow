@@ -226,8 +226,4 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     public boolean supportTemporaryChangesNesting() {
         return true;
     }
-
-    public long computeSd() {
-        return getGraph().sumOfDistances();
-    }
 }
