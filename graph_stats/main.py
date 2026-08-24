@@ -15,7 +15,6 @@ from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QStandardItem, QStandardItemModel
 from PyQt6.QtWidgets import QMainWindow, QListView
-from pyparsing import results
 from pyqtgraph import mkPen, PlotItem, PlotCurveItem
 
 
