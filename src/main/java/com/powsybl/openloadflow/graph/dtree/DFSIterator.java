@@ -46,17 +46,17 @@ public class DFSIterator<V, E> implements Iterator<V> {
         //   a next sibling (unvisited by construction) or
         //   the tree is fully visited.
 
-        if (cursor.firstChild != null) {
-            cursor = cursor.firstChild;
-        } else if (cursor.nextSibling != null) {
-            cursor = cursor.nextSibling;
+        if (cursor.getFirstChild() != null) {
+            cursor = cursor.getFirstChild();
+        } else if (cursor.getNextSibling() != null) {
+            cursor = cursor.getNextSibling();
         } else {
-            while (cursor != null && cursor.nextSibling == null) {
-                cursor = cursor.parent;
+            while (cursor != null && cursor.getNextSibling() == null) {
+                cursor = cursor.getParent();
             }
 
             if (cursor != null) {
-                cursor = cursor.nextSibling;
+                cursor = cursor.getNextSibling();
             }
         }
 

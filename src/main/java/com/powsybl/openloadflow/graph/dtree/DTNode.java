@@ -70,15 +70,15 @@ public class DTNode<V, E> {
     // the size of this subtree
     int size;
 
-    DTNode<V, E> parent = null;
-    Edge<V, E> parentEdge = null;
+    private DTNode<V, E> parent = null;
+    private Edge<V, E> parentEdge = null;
 
     // the children of this node. They are stored in a doubly linked list
     // firstChild is the head of the linked list. previousSibling and nextSibling
     // are used to navigate the list.
-    DTNode<V, E> firstChild = null;
-    DTNode<V, E> previousSibling = null;
-    DTNode<V, E> nextSibling = null;
+    private DTNode<V, E> firstChild = null;
+    private DTNode<V, E> previousSibling = null;
+    private DTNode<V, E> nextSibling = null;
 
     final Set<Edge<V, E>> nonTreeEdges = new HashSet<>();
 
@@ -343,5 +343,25 @@ public class DTNode<V, E> {
         }
 
         return neighbor;
+    }
+
+    public DTNode<V, E> getParent() {
+        return parent;
+    }
+
+    public Edge<V, E> getParentEdge() {
+        return parentEdge;
+    }
+
+    public DTNode<V, E> getFirstChild() {
+        return firstChild;
+    }
+
+    public DTNode<V, E> getPreviousSibling() {
+        return previousSibling;
+    }
+
+    public DTNode<V, E> getNextSibling() {
+        return nextSibling;
     }
 }
