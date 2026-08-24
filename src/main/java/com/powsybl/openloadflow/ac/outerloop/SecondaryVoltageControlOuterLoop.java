@@ -360,17 +360,16 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
 
-        OuterLoopStatus status = OuterLoopStatus.STABLE;
-
         List<String> adjustedZoneNames = processSecondaryVoltageControl(secondaryVoltageControls, context.getLoadFlowContext()).orElse(null);
         if (adjustedZoneNames == null) {
-            status = OuterLoopStatus.FAILED;
-        } else {
-            if (!adjustedZoneNames.isEmpty()) {
-                status = OuterLoopStatus.UNSTABLE;
-                LOGGER.info("{} secondary voltage control zones have been adjusted: {}",
-                        adjustedZoneNames.size(), adjustedZoneNames);
-            }
+            return new OuterLoopResult(this, OuterLoopStatus.FAILED, "Cannot adjust secondary voltage control because some calculated controlled bus target voltages are not plausible");
+        }
+
+        OuterLoopStatus status = OuterLoopStatus.STABLE;
+        if (!adjustedZoneNames.isEmpty()) {
+            status = OuterLoopStatus.UNSTABLE;
+            LOGGER.info("{} secondary voltage control zones have been adjusted: {}",
+                    adjustedZoneNames.size(), adjustedZoneNames);
         }
 
         return new OuterLoopResult(this, status);

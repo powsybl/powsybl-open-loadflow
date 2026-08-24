@@ -4158,7 +4158,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // Remove Windows EOL
         String reportString = TestUtil.normalizeLineSeparator(reportToString(testReport));
-        //reportString = reportToString(testReport);
 
         // The report should be the same with one or two threads
         // Let's just check the size here
@@ -4178,7 +4177,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                                     Outer loop ReactiveLimits
                                     AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                         """;
-        System.out.println(reportString);
         assertTrue(reportString.contains(expected));
     }
 
