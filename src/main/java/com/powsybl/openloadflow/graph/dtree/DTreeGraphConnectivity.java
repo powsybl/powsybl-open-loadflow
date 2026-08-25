@@ -123,7 +123,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         // first determine the excluded tree: either the tree containing
         // the mainComponentVertex, either the biggest tree
         DTNode<V, E> excludedTree = getMainComponentRoot(mainComponentVertex);
-        return new VerticesNotInMainComponent(excludedTree);
+        return new VerticesNotInMainComponent<>(getGraph(), excludedTree);
     }
 
     @Override
@@ -140,84 +140,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     @Override
     public int vertexCount() {
         return getGraph().getVertices().size();
-    }
-
-    private final class VerticesNotInMainComponent extends AbstractSetView<V> {
-        private final DTNode<V, E> excludedTree;
-        private int size = -1;
-
-        VerticesNotInMainComponent(DTNode<V, E> excludedTree) {
-            this.excludedTree = excludedTree;
-        }
-
-        @Override
-        public Iterator<V> iterator() {
-            return new VerticesNotInMainComponentIterator(excludedTree.findRoot());
-        }
-
-        @Override
-        public boolean contains(Object o) {
-            if (o != null) {
-                return getGraph().rootOf((V) o) != excludedTree.findRoot();
-            }
-
-            return false;
-        }
-
-        @Override
-        public int size() {
-            if (size < 0) {
-                size = 0;
-
-                DTNode<V, E> excludedTreeRoot = excludedTree.findRoot();
-                size = getGraph().getRoots().stream()
-                        .filter(root -> root != excludedTreeRoot)
-                        .mapToInt(DTNode::size)
-                        .sum();
-            }
-
-            return size;
-        }
-    }
-
-    private class VerticesNotInMainComponentIterator implements Iterator<V> {
-
-        private final DTNode<V, E> excludedTree;
-        private int index = 0;
-        private Iterator<V> curIt;
-
-        VerticesNotInMainComponentIterator(DTNode<V, E> excludedTree) {
-            this.excludedTree = excludedTree;
-        }
-
-        @Override
-        public boolean hasNext() {
-            if (curIt != null && curIt.hasNext()) {
-                return true;
-            }
-
-            List<DTNode<V, E>> roots = getGraph().getRoots();
-            while (index < roots.size()) {
-                DTNode<V, E> next = roots.get(index);
-                index++;
-
-                if (next != excludedTree) {
-                    curIt = new DFSIterator<>(next);
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        @Override
-        public V next() {
-            if (!hasNext()) {
-                throw new NoSuchElementException();
-            }
-
-            return curIt.next();
-        }
     }
 
     /**
