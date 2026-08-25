@@ -8,11 +8,15 @@
 package com.powsybl.openloadflow.graph;
 
 import com.google.common.collect.Sets;
+import com.powsybl.openloadflow.graph.dtree.DTGraph;
+import com.powsybl.openloadflow.graph.dtree.DTNode;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
+import com.powsybl.openloadflow.graph.dtree.Edge;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,55 +25,72 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class DTreeGraphConnectivityTest {
 
+    private <V, E> void assertDTNode(DTNode<V, E> node, V parent, E parentEdge, Set<V> children, Set<E> nonTreeEdges) {
+        assertEquals(parent, node.getParent() == null ? null : node.getParent().getVertex());
+        assertEquals(parentEdge, node.getParentEdge() == null ? null : node.getParentEdge().getEdgeData());
+        assertEquals(nonTreeEdges, node.getNonTreeEdges().stream().map(Edge::getEdgeData).collect(Collectors.toSet()));
+
+        Set<V> actualChildren = new HashSet<>();
+        DTNode<V, E> child = node.getFirstChild();
+        while (child != null) {
+            assertTrue(actualChildren.add(child.getVertex())); // all children are distinct
+            child = child.getNextSibling();
+        }
+
+        assertEquals(children, actualChildren);
+    }
+
     @Test
     void testInsertNonTreeEdge() {
-        //      0 -- 1
-        //      |    |
-        // 3 -- 2 -- 5
-        //      |
-        //      4
-
         DTreeGraphConnectivity<Integer, String> connectivity = new DTreeGraphConnectivity<>();
+        DTGraph<Integer, String> graph = connectivity.getGraph();
+
         for (int i = 0; i < 6; i++) {
             connectivity.addVertex(i);
         }
-
+        connectivity.addEdge(1, 2, "1-2");
         connectivity.addEdge(0, 1, "0-1");
-        connectivity.addEdge(2, 0, "2-0");
+        connectivity.addEdge(0, 5, "0-5");
+        connectivity.addEdge(0, 4, "0-4");
         connectivity.addEdge(2, 3, "2-3");
-        connectivity.addEdge(2, 4, "2-4");
-        connectivity.addEdge(1, 5, "1-5");
+
+        //      1 -- 2
+        //      |    |
+        // 5 -- 0    3
+        //      |
+        //      4
 
         connectivity.startTemporaryChanges();
-        for (int i = 0; i < 6; i++) {
-            assertEquals(0, connectivity.getComponentNumber(i));
-        }
-        assertEquals(8, connectivity.computeSd());
+        assertDTNode(graph.getNodeThrowIfInexistent(0), null, null, Set.of(1, 4, 5), Set.of());
+        assertDTNode(graph.getNodeThrowIfInexistent(1), 0, "0-1", Set.of(2), Set.of());
+        assertDTNode(graph.getNodeThrowIfInexistent(2), 1, "1-2", Set.of(3), Set.of());
+        assertDTNode(graph.getNodeThrowIfInexistent(3), 2, "2-3", Set.of(), Set.of());
+        assertDTNode(graph.getNodeThrowIfInexistent(4), 0, "0-4", Set.of(), Set.of());
+        assertDTNode(graph.getNodeThrowIfInexistent(5), 0, "0-5", Set.of(), Set.of());
 
         // Adding this edge doesn't affect connectivity.
         // However, it modifies the spanning tree.
-        // Before:
-        //      0 -- 1
-        //      |    |
-        // 3 -- 2    5  (5 and 2 not connected)
-        //      |
-        //      4
-        connectivity.addEdge(5, 2, "5-2");
+        connectivity.addEdge(0, 3, "0-3");
         // After:
-        //      0    1   (0 and 1 are still connected, but not in the spanning tree!)
-        //      |    |
-        // 3 -- 1 -- 5
+        //      1 -- 2   (2 and 3 are still connected, but not in the spanning tree!)
+        //      |
+        // 5 -- 0 -- 3
         //      |
         //      4
-        for (int i = 0; i < 6; i++) {
-            assertEquals(0, connectivity.getComponentNumber(i));
-        }
-        assertEquals(6, connectivity.computeSd());
+
+        assertDTNode(graph.getNodeThrowIfInexistent(0), null, null, Set.of(1, 3, 4, 5), Set.of());
+        assertDTNode(graph.getNodeThrowIfInexistent(1), 0, "0-1", Set.of(2), Set.of());
+        assertDTNode(graph.getNodeThrowIfInexistent(2), 1, "1-2", Set.of(), Set.of("2-3"));
+        assertDTNode(graph.getNodeThrowIfInexistent(3), 0, "0-3", Set.of(), Set.of("2-3"));
+        assertDTNode(graph.getNodeThrowIfInexistent(4), 0, "0-4", Set.of(), Set.of());
+        assertDTNode(graph.getNodeThrowIfInexistent(5), 0, "0-5", Set.of(), Set.of());
     }
 
     @Test
     void testMakeRootUpdateGreatParent() {
         DTreeGraphConnectivity<Integer, String> connectivity = new DTreeGraphConnectivity<>();
+        DTGraph<Integer, String> graph = connectivity.getGraph();
+
         connectivity.addVertex(0);
         connectivity.addVertex(1);
         connectivity.addVertex(2);
@@ -86,23 +107,21 @@ class DTreeGraphConnectivityTest {
         // 4 <-- 0 <-- 1 --> 2 --> 3
 
         connectivity.startTemporaryChanges();
-        assertEquals(6, connectivity.computeSd());
-        for (int i = 0; i < 5; i++) {
-            assertEquals(0, connectivity.getComponentNumber(i));
-        }
+        assertDTNode(graph.getNodeThrowIfInexistent(0), 1, "0-1", Set.of(4), Set.of());
+        assertDTNode(graph.getNodeThrowIfInexistent(1), null, null, Set.of(0, 2), Set.of());
+        assertDTNode(graph.getNodeThrowIfInexistent(2), 1, "1-2", Set.of(3), Set.of());
+        assertDTNode(graph.getNodeThrowIfInexistent(3), 2, "2-3", Set.of(), Set.of("3-4"));
+        assertDTNode(graph.getNodeThrowIfInexistent(4), 0, "0-4", Set.of(), Set.of("3-4"));
 
         connectivity.removeEdge("0-1");
+
         // the root is now 3, it involves getting the great parent of 1 (which is 3)
         // 1 <-- 2 <-- 3 --> 4 --> 0
-        assertEquals(6, connectivity.computeSd());
-        for (int i = 0; i < 5; i++) {
-            final int index = i;
-            assertEquals(0, connectivity.getComponentNumber(index));
-            assertTimeoutPreemptively(Duration.ofSeconds(3), () -> {
-                // if the great parent is updated incorrectly, an infinite loop may appear here
-                assertEquals(Set.of(0, 1, 2, 3, 4), connectivity.getConnectedComponent(index));
-            });
-        }
+        assertDTNode(graph.getNodeThrowIfInexistent(0), 4, "0-4", Set.of(), Set.of());
+        assertDTNode(graph.getNodeThrowIfInexistent(1), 2, "1-2", Set.of(), Set.of());
+        assertDTNode(graph.getNodeThrowIfInexistent(2), 3, "2-3", Set.of(1), Set.of());
+        assertDTNode(graph.getNodeThrowIfInexistent(3), null, null, Set.of(2, 4), Set.of());
+        assertDTNode(graph.getNodeThrowIfInexistent(4), 3, "3-4", Set.of(0), Set.of());
     }
 
     @Test
