@@ -55,15 +55,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         }
 
         DTGraph<V, E> graph = getGraph();
-        List<DTNode<V, E>> roots = graph.roots;
-
         // sorting roots will sort components as components is a wrapper around roots
-        roots.sort(Comparator.<DTNode<V, E>>comparingInt(DTNode::size).reversed());
-        for (int i = 0; i < graph.roots.size(); i++) {
-            roots.get(i).setIndex(i);
-        }
-
-        componentSets = graph.components;
+        graph.sortComponents();
+        componentSets = graph.allComponents();
     }
 
     @Override
@@ -74,14 +68,14 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     @Override
     public int getNbConnectedComponents() {
         checkSavedContext();
-        return getGraph().roots.size();
+        return getGraph().getNbConnectedComponent();
     }
 
     @Override
     public Set<V> getConnectedComponent(V vertex) {
         checkSavedContext();
         checkVertex(vertex);
-        return getGraph().vertexToTreeNode.get(vertex).componentView();
+        return getGraph().componentView(vertex);
     }
 
     @Override
@@ -93,7 +87,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         DTNode<V, E> excludedTree = graph.rootOf(vertex);
 
         Set<V> components = new HashSet<>();
-        for (DTNode<V, E> root : graph.roots) {
+        for (DTNode<V, E> root : graph.getRoots()) {
             if (root != excludedTree) {
                 components.addAll(root.componentView());
             }
@@ -138,7 +132,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 size = 0;
 
                 DTNode<V, E> excludedTreeRoot = excludedTree.findRoot();
-                size = getGraph().roots.stream()
+                size = getGraph().getRoots().stream()
                         .filter(root -> root != excludedTreeRoot)
                         .mapToInt(DTNode::size)
                         .sum();
@@ -164,9 +158,9 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
                 return true;
             }
 
-            DTGraph<V, E> graph = getGraph();
-            while (index < graph.roots.size()) {
-                DTNode<V, E> next = graph.roots.get(index);
+            List<DTNode<V, E>> roots = getGraph().getRoots();
+            while (index < roots.size()) {
+                DTNode<V, E> next = roots.get(index);
                 index++;
 
                 if (next != excludedTree) {
@@ -199,10 +193,11 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         if (mainComponentVertex != null) {
             return graph.rootOf(mainComponentVertex);
         } else {
-            DTNode<V, E> biggestRoot = graph.roots.getFirst();
+            List<DTNode<V, E>> roots = getGraph().getRoots();
+            DTNode<V, E> biggestRoot = roots.getFirst();
 
-            for (int i = 1; i < graph.roots.size(); i++) {
-                DTNode<V, E> root = graph.roots.get(i);
+            for (int i = 1; i < roots.size(); i++) {
+                DTNode<V, E> root = roots.get(i);
                 if (root.size() > biggestRoot.size()) {
                     biggestRoot = root;
                 }
@@ -215,9 +210,5 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     @Override
     public boolean supportTemporaryChangesNesting() {
         return true;
-    }
-
-    public long computeSd() {
-        return getGraph().sumOfDistances();
     }
 }

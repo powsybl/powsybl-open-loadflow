@@ -16,20 +16,20 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     /**
      * map a vertex to a node in a spanning tree
      */
-    final Map<V, DTNode<V, E>> vertexToTreeNode = new HashMap<>();
+    private final Map<V, DTNode<V, E>> vertexToTreeNode = new HashMap<>();
     /**
      * map an edge to an edge in a spanning tree
      */
-    final Map<E, Edge<V, E>> edges = new HashMap<>();
+    private final Map<E, Edge<V, E>> edges = new HashMap<>();
 
     /**
      * the list of tree roots. Roots are maintained in a way such that
      * the value of the attribute 'rootIndex' of the DTNode at index i is i.
      * In other words: roots.get(i).rootIndex == i
      */
-    final List<DTNode<V, E>> roots = new ArrayList<>();
+    private final List<DTNode<V, E>> roots = new ArrayList<>();
 
-    final AllComponentsView components = new AllComponentsView();
+    private final AllComponentsView components = new AllComponentsView();
 
     public long sumOfDistances() {
         long sum = 0;
@@ -300,6 +300,12 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         }
     }
 
+    void replaceRoot(DTNode<V, E> oldRoot, DTNode<V, E> newRoot) {
+        int index = oldRoot.getIndex();
+        newRoot.setIndex(index);
+        roots.set(index, newRoot);
+    }
+
     @Override
     public void addVertex(V v) {
         if (containsVertex(v)) {
@@ -375,9 +381,36 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         return vertexToTreeNode.keySet();
     }
 
+    public int getVertexCount() {
+        return vertexToTreeNode.size();
+    }
+
     @Override
     public List<V> getNeighborVerticesOf(V v) {
         throw new UnsupportedOperationException();
+    }
+
+    public int getNbConnectedComponent() {
+        return roots.size();
+    }
+
+    public Set<V> componentView(V vertex) {
+        return vertexToTreeNode.get(vertex).componentView();
+    }
+
+    public void sortComponents() {
+        roots.sort(Comparator.<DTNode<V, E>>comparingInt(DTNode::size).reversed());
+        for (int i = 0; i < roots.size(); i++) {
+            roots.get(i).setIndex(i);
+        }
+    }
+
+    public List<Set<V>> allComponents() {
+        return components;
+    }
+
+    List<DTNode<V, E>> getRoots() {
+        return roots;
     }
 
     private final class AllComponentsView extends AbstractList<Set<V>> {
