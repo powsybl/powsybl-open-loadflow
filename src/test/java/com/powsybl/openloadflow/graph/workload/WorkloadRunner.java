@@ -39,7 +39,7 @@ public final class WorkloadRunner {
             .setWarmup(10)
             .setMeasurement(10)
             .setOutput("results/workload/${workload}/${class}.${ext}")
-            .setReplacement("results/workload/${workload}/${class}_${time}.${ext}");
+            .setReplacement("results/workload/${workload}/${class}_list_of_root.${ext}");
     private static final RunParameters VALIDATOR = new RunParameters.Validator();
     private static final RunParameters STATS_WRITER = new RunParameters.StatsWriter()
             .setOutput("graph_stats/data/${workload}/${class}/${operations}");

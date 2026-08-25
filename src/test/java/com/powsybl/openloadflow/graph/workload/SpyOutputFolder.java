@@ -50,8 +50,9 @@ public class SpyOutputFolder {
         substitutor.setEnableUndefinedVariableException(true);
 
         Path output = Path.of(substitutor.replace(outputFormat));
+        boolean exists = Files.exists(output);
 
-        if (Files.exists(output) && outputFormat != null) {
+        if (exists && replacementFormat != null) {
             Path destination = Path.of(substitutor.replace(replacementFormat));
 
             if (overwrite) {
@@ -63,7 +64,7 @@ public class SpyOutputFolder {
             if (Files.exists(output) && !overwrite) {
                 throw new IOException("Replacement file already exists: " + output);
             }
-        } else if (!overwrite) {
+        } else if (exists && !overwrite) {
             throw new IOException("File already exists: " + output);
         }
 

@@ -55,10 +55,10 @@ public class RandomConnectivityTest {
                         // new NewHolmGraphConnectivity<>(),
                         // new HolmStandalone<>(),
                         new DTreeGraphConnectivity<>(),
+                        new DTreeStandalone<>(),
                         new Delta2DTreeStandalone<>(),
                         new Delta2ReplaceWithBestDTreeStandalone<>(),
                         new ReplaceWithBestDTreeStandalone<>()
-                        // new DTreeStandalone<>(),
                         // new IDTreeStandalone<>(),
                         // new DnDTreeStandalone<>(),
                         //new OptDTreeStandalone<>()

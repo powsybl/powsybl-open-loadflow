@@ -41,7 +41,7 @@ public interface RunParameters {
         }
 
         public Performance setWarmup(int warmup) {
-            if (warmup <= 0) {
+            if (warmup < 0) {
                 throw new IllegalArgumentException("warmup must be >= 0");
             }
             this.warmup = warmup;
