@@ -8,6 +8,8 @@
 package com.powsybl.openloadflow.graph.dtree;
 
 /**
+ * A node with its depth in some unspecified spanning tree.
+ *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
 public record DTNodeWithDepth<V, E>(DTNode<V, E> node, int depth) {

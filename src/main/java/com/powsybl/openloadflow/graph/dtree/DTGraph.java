@@ -11,6 +11,12 @@ import com.powsybl.openloadflow.graph.GraphModel;
 
 import java.util.*;
 
+/**
+ * A graph maintaining a spanning forest over its connected component.
+ *
+ * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
+ * @see DTreeGraphConnectivity
+ */
 public class DTGraph<V, E> implements GraphModel<V, E> {
 
     /**

@@ -9,6 +9,15 @@ package com.powsybl.openloadflow.graph.dtree;
 
 import java.util.Iterator;
 
+/**
+ * A set view of a connected component in a graph. A component view is
+ * represented by a single {@link DTNode} in a spanning tree. The nodes in this
+ * tree are exactly the vertices of the connected component. A component view
+ * is guaranteed to contain {@link #node} and every {@link DTNode} connected to
+ * {@link #node}.
+ *
+ * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
+ */
 public class ComponentView<V, E> extends AbstractSetView<V> {
 
     private final DTNode<V, E> node;

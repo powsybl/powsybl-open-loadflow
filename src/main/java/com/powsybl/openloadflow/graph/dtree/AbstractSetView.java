@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.graph.dtree;
 
-import com.powsybl.openloadflow.graph.AbstractGraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 
 import java.util.AbstractSet;
@@ -17,9 +16,8 @@ import java.util.Iterator;
 /**
  * An unmodifiable view of a set why can be backed by any structure providing
  * iteration of distinct elements. It is used by {@link DTreeGraphConnectivity} to
- * avoid copies in {@link GraphConnectivity#getLargestConnectedComponent()},
- * {@link GraphConnectivity#getConnectedComponent(Object)} and
- * {@link AbstractGraphConnectivity#getVerticesNotInMainComponent(Object)}.
+ * avoid copies in {@link GraphConnectivity#getLargestConnectedComponent()} and
+ * {@link GraphConnectivity#getConnectedComponent(Object)}.
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */

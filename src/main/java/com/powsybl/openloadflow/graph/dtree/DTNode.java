@@ -57,6 +57,7 @@ import java.util.Set;
  * allocations by only following pointers. See {@link DFSIterator}
  * </p>
  *
+ * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
 public class DTNode<V, E> {
 
