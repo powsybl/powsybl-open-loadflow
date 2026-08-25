@@ -68,7 +68,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         boolean treeEdge;
         if (rootUdepth.node() == rootVdepth.node()) {
             // insert non tree edge
-            treeEdge = insertNonTreeEdge(rootUdepth.node(), nodeU, rootUdepth.depth(), nodeV, rootVdepth.depth(), edge);
+            treeEdge = insertEdgeInComponent(rootUdepth.node(), nodeU, rootUdepth.depth(), nodeV, rootVdepth.depth(), edge);
         } else {
             // insert tree edge
             treeEdge = true;
@@ -87,16 +87,18 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     }
 
     /**
-     * Insert a non tree edge between {@code nodeU} (whose depth is {@code depthU})
+     * Insert an edge between {@code nodeU} (whose depth is {@code depthU})
      * and {@code nodeV} (whose depth is {@code depthV}). The two nodes must be in the
-     * same tree rooted at {@code root}.
-     * <p>
-     * If the difference of depth, delta, is less than two, the edge is inserted
-     * as a non-tree edge. Otherwise, assuming depthU < depthV, the delta / 2 - 1 ancestor of
-     * {@code nodeU} is unlinked from the tree. Then {@code nodeU} and {@code nodeV} are
-     * linked with a tree edge. In this case, the inserted edge is in fact a tree edge
-     * and the method return {@code true}
-     * </p>
+     * same tree rooted at {@code root}. Depending on the difference of depth, delta, between
+     * the two nodes, the edge may be inserted as a non-tree edge or a tree edge.
+     *
+     * <ul>
+     *     <li>delta <= 1: the edge is inserted as a non-tree edge</li>
+     *     <li>delta >= 2: assuming depthU < depthV, the delta / 2 - 1 ancestor of
+     *     {@code nodeU} is unlinked from the tree. Then {@code nodeU} and {@code nodeV} are
+     *     linked with a tree edge. In this case, the inserted edge is in fact a tree edge
+     *     and the method return {@code true}</li>
+     * </ul>
      *
      * <p>
      * The original DTree paper uses delta - 2 instead of delta / 2 - 1. But a more recent
@@ -112,19 +114,14 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      * @param edge   edge linking {@code nodeU} and {@code nodeV}
      * @return {@code true} if the edge inserted is a tree edge. This is true if |depthU - depthV| >= 2.
      */
-    private boolean insertNonTreeEdge(DTNode<V, E> root, DTNode<V, E> nodeU, int depthU, DTNode<V, E> nodeV, int depthV, Edge<V, E> edge) {
-        DTNode<V, E> deep;
-        DTNode<V, E> shallow;
-        int delta;
+    private boolean insertEdgeInComponent(DTNode<V, E> root, DTNode<V, E> nodeU, int depthU, DTNode<V, E> nodeV, int depthV, Edge<V, E> edge) {
+        DTNode<V, E> shallow = nodeV;
+        DTNode<V, E> deep = nodeU;
+        int delta = Math.abs(depthU - depthV);
 
         if (depthU <= depthV) {
             shallow = nodeU;
             deep = nodeV;
-            delta = depthV - depthU;
-        } else {
-            shallow = nodeV;
-            deep = nodeU;
-            delta = depthU - depthV;
         }
 
         if (delta < 2) {
