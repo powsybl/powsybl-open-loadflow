@@ -39,16 +39,6 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
 
     private final AllComponentsView components = new AllComponentsView();
 
-    public long sumOfDistances() {
-        long sum = 0;
-
-        for (DTNode<V, E> node : vertexToTreeNode.values()) {
-            sum += node.findRootWithDepth().depth();
-        }
-
-        return sum;
-    }
-
     /**
      * Return the root of the tree in which {@code vertex} is and
      * eventually reroot the tree if a new centroid is found.
@@ -91,7 +81,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         check();
     }
 
-    private DTNode<V, E> getNodeThrowIfInexistent(V v) {
+    public DTNode<V, E> getNodeThrowIfInexistent(V v) {
         DTNode<V, E> node = vertexToTreeNode.get(v);
         if (node == null) {
             throw new IllegalArgumentException("no such vertex in graph: " + v);
@@ -416,10 +406,6 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     @Override
     public Set<V> getVertices() {
         return vertexToTreeNode.keySet();
-    }
-
-    public int getVertexCount() {
-        return vertexToTreeNode.size();
     }
 
     @Override
