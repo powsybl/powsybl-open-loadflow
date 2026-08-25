@@ -286,20 +286,41 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         edge.getNodeV().removeNonTreeEdge(edge);
     }
 
-    private void addRoot(DTNode<V, E> node) {
-        node.setIndex(roots.size());
-        roots.add(node);
+    /**
+     * Add {@code newRoot} at the end of the list of {@link #roots}.
+     * Its index will be the old number of components (old size
+     * of {@link #roots}).
+     *
+     * @param newRoot the root to add
+     */
+    private void addRoot(DTNode<V, E> newRoot) {
+        newRoot.setIndex(roots.size());
+        roots.add(newRoot);
     }
 
-    private void removeRoot(DTNode<V, E> node) {
-        // update roots, swapping 'node' and the last element of roots
+    /**
+     * Remove {@code root} from the list of root. This is done
+     * by swapping {@code root} with the last element of roots
+     * (if any and if it's not {@code root}). The index of the
+     * previously last element will be updated.
+     *
+     * @param root the root to remove
+     */
+    private void removeRoot(DTNode<V, E> root) {
+        // update roots, swapping 'root' and the last element of roots
         DTNode<V, E> last = roots.removeLast();
-        if (node != last) {
-            last.setIndex(node.getIndex());
+        if (root != last) {
+            last.setIndex(root.getIndex());
             roots.set(last.getIndex(), last);
         }
     }
 
+    /**
+     * Replace the root at index {@code oldRoot.getIndex()} with {@code newRoot}.
+     *
+     * @param oldRoot the old root to replace with {@code newRoot}
+     * @param newRoot the new root to add
+     */
     void replaceRoot(DTNode<V, E> oldRoot, DTNode<V, E> newRoot) {
         int index = oldRoot.getIndex();
         newRoot.setIndex(index);
@@ -398,6 +419,9 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         return vertexToTreeNode.get(vertex).componentView();
     }
 
+    /**
+     * Sorts components by size in reverse order and update index for every root.
+     */
     public void sortComponents() {
         roots.sort(Comparator.<DTNode<V, E>>comparingInt(DTNode::size).reversed());
         for (int i = 0; i < roots.size(); i++) {
