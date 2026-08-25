@@ -7,7 +7,13 @@
  */
 package com.powsybl.openloadflow.graph.dtree;
 
+/**
+ * An edge in a {@link DTGraph}.
+ *
+ * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
+ */
 public class Edge<V, E> {
+
     private final DTNode<V, E> nodeU;
     private final DTNode<V, E> nodeV;
     private final E edgeData;

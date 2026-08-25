@@ -10,9 +10,14 @@ package com.powsybl.openloadflow.graph.dtree;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-public class DFSIterator<V, E> implements Iterator<V> {
+/**
+ * A depth-first iterator of a connected component.
+ *
+ * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
+ */
+public class DFSIterator<V> implements Iterator<V> {
 
-    private DTNode<V, E> cursor;
+    private DTNode<V, ?> cursor;
 
     /**
      * Creates a new depth-first iterator starting at the specified root node
@@ -21,7 +26,7 @@ public class DFSIterator<V, E> implements Iterator<V> {
      * @param root the root of the tree to traverse. It must be a root otherwise,
      *             the iterator may visit nodes outside the subtree
      */
-    DFSIterator(DTNode<V, E> root) {
+    DFSIterator(DTNode<V, ?> root) {
         cursor = root;
     }
 
@@ -36,7 +41,7 @@ public class DFSIterator<V, E> implements Iterator<V> {
             throw new NoSuchElementException();
         }
 
-        DTNode<V, E> next = cursor;
+        DTNode<V, ?> next = cursor;
 
         // Advances to the next node for the next iteration.
         // The iterator try to:
