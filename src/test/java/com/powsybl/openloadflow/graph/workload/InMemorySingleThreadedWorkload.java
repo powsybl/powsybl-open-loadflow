@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.stream.Stream;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -19,17 +20,17 @@ import java.util.NoSuchElementException;
 public class InMemorySingleThreadedWorkload implements Workload {
 
     public static InMemorySingleThreadedWorkload create(Path file) throws IOException {
-        List<String> operations = Files.readAllLines(file);
-
-        return new InMemorySingleThreadedWorkload(operations, file);
+        try (Stream<String> lines = Files.lines(file)) {
+            return new InMemorySingleThreadedWorkload(lines.map(Operation::deserialize).toList(), file);
+        }
     }
 
     Workload parentWorkload;
-    private final List<String> operations;
+    private final List<Operation> operations;
     private final Type type;
     private final Path source;
 
-    private InMemorySingleThreadedWorkload(List<String> operations, Path source) {
+    private InMemorySingleThreadedWorkload(List<Operation> operations, Path source) {
         this.operations = operations;
         this.type = Type.fromOperationList(operations);
         this.source = source;
@@ -88,12 +89,12 @@ public class InMemorySingleThreadedWorkload implements Workload {
         }
 
         @Override
-        public String next() {
+        public Operation next() {
             if (!hasNext()) {
                 throw new NoSuchElementException();
             }
 
-            String op = operations.get(pos);
+            Operation op = operations.get(pos);
             pos++;
             return op;
         }

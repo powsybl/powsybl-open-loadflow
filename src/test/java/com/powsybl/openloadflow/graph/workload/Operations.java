@@ -14,7 +14,7 @@ import java.util.Iterator;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public interface Operations extends Closeable, Iterator<String> {
+public interface Operations extends Closeable, Iterator<Operation> {
 
     Workload workload();
 

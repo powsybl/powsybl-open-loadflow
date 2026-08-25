@@ -7,7 +7,9 @@
  */
 package com.powsybl.openloadflow.graph.workload;
 
-import com.powsybl.openloadflow.graph.*;
+import com.powsybl.openloadflow.graph.DTreeStandalone;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.dtree.DTNode;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
@@ -38,8 +40,8 @@ public final class WorkloadRunner {
     private static final RunParameters PERFORMANCE = new RunParameters.Performance()
             .setWarmup(10)
             .setMeasurement(10)
-            .setOutput("results/workload/${workload}/${class}.${ext}")
-            .setReplacement("results/workload/${workload}/${class}_list_of_root.${ext}");
+            .setOutput(null)//"results/workload/${workload}/${class}_no_tree_edge_boolean.${ext}")
+            ;//.setReplacement("results/workload/${workload}/${class}_list_of_root.${ext}");
     private static final RunParameters VALIDATOR = new RunParameters.Validator();
     private static final RunParameters STATS_WRITER = new RunParameters.StatsWriter()
             .setOutput("graph_stats/data/${workload}/${class}/${operations}");
@@ -269,7 +271,7 @@ public final class WorkloadRunner {
         int n = 0;
         while (operations.hasNext()) {
             spy.notifyOperation(n + 1);
-            WorkloadUtils.executeFromLine(spy, operations.next());
+            operations.next().execute(spy);
             n++;
 
             progress.newOperation(n, operations.size());

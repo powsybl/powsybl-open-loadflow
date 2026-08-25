@@ -7,8 +7,6 @@
  */
 package com.powsybl.openloadflow.graph.workload;
 
-import com.powsybl.openloadflow.graph.utils.GraphConnectivityMethod;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -56,12 +54,12 @@ public interface Workload {
         INCREMENTAL,
         FULLY_DYNAMIC;
 
-        public static Type fromOperationList(List<String> operations) {
+        public static Type fromOperationList(List<Operation> operations) {
             Type type = null;
             boolean start = false;
 
-            for (String operation : operations) {
-                if (operation.startsWith(GraphConnectivityMethod.START_TEMPORARY_CHANGES.shortName())) {
+            for (Operation operation : operations) {
+                if (operation instanceof Operation.StartTemporaryChanges) {
                     start = true;
                 }
 
@@ -77,14 +75,14 @@ public interface Workload {
             return type;
         }
 
-        public static Type update(Type type, String operation) {
-            if (operation.startsWith(GraphConnectivityMethod.REMOVE_EDGE.shortName())) {
+        public static Type update(Type type, Operation operation) {
+            if (operation instanceof Operation.RemoveEdge) {
                 if (type == null) {
                     return DECREMENTAL;
                 } else {
                     return type == INCREMENTAL ? FULLY_DYNAMIC : type;
                 }
-            } else if (operation.startsWith(GraphConnectivityMethod.ADD_EDGE.shortName())) {
+            } else if (operation instanceof Operation.AddEdge) {
                 if (type == null) {
                     return INCREMENTAL;
                 } else {
