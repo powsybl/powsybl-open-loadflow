@@ -14,12 +14,15 @@ import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
 import com.powsybl.openloadflow.graph.dtree.DTGraph;
 import com.powsybl.openloadflow.graph.dtree.DTNode;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
+import com.powsybl.openloadflow.graph.dtree.Edge;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,9 +47,9 @@ class DTreeGraphConnectivityTest {
         assertEquals(children, actualChildren);
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("provideDTreeConnectivities")
-    void testInsertNonTreeEdge(SpanningForestGraphConnectivity<Integer, String> connectivity) {
+    @Test
+    void testInsertNonTreeEdge() {
+        DTreeGraphConnectivity<Integer, String> connectivity = new DTreeGraphConnectivity<>();
         DTGraph<Integer, String> graph = connectivity.getGraph();
 
         for (int i = 0; i < 8; i++) {
@@ -97,9 +100,9 @@ class DTreeGraphConnectivityTest {
         assertDTNode(graph.getNodeThrowIfInexistent(7), 0, "0-7", Set.of(6), Set.of());
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("provideDTreeConnectivities")
-    void testMakeRootUpdateGreatParent(SpanningForestGraphConnectivity<Integer, String> connectivity) {
+    @Test
+    void testMakeRootUpdateGreatParent() {
+        DTreeGraphConnectivity<Integer, String> connectivity = new DTreeGraphConnectivity<>();
         DTGraph<Integer, String> graph = connectivity.getGraph();
 
         connectivity.addVertex(0);

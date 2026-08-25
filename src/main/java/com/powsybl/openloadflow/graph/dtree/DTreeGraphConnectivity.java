@@ -128,12 +128,18 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     @Override
     public long computeSumOfDistances() {
-        return getGraph().sumOfDistances();
+        long sum = 0;
+
+        for (V vertex : getGraph().getVertices()) {
+            sum += getGraph().getNodeThrowIfInexistent(vertex).findRootWithDepth().depth();
+        }
+
+        return sum;
     }
 
     @Override
     public int vertexCount() {
-        return getGraph().getVertexCount();
+        return getGraph().getVertices().size();
     }
 
     private final class VerticesNotInMainComponent extends AbstractSetView<V> {
