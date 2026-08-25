@@ -7,9 +7,6 @@
  */
 package com.powsybl.openloadflow.graph.dtree;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
-
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -83,7 +80,7 @@ public class DTNode<V, E> {
     private final Set<Edge<V, E>> nonTreeEdges = new HashSet<>();
 
     // index in the list of roots, valid only if this node is a root
-    int rootIndex;
+    private int rootIndex;
 
     private ComponentView<V, E> componentView = null;
 
@@ -396,5 +393,17 @@ public class DTNode<V, E> {
 
     public DTNode<V, E> getNextSibling() {
         return nextSibling;
+    }
+
+    public Set<Edge<V, E>> getNonTreeEdges() {
+        return nonTreeEdges;
+    }
+
+    void setIndex(int index) {
+        this.rootIndex = index;
+    }
+
+    public int getIndex() {
+        return rootIndex;
     }
 }

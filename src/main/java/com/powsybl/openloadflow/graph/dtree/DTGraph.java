@@ -287,7 +287,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     }
 
     private void addRoot(DTNode<V, E> node) {
-        node.rootIndex = roots.size();
+        node.setIndex(roots.size());
         roots.add(node);
     }
 
@@ -295,8 +295,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         // update roots, swapping 'node' and the last element of roots
         DTNode<V, E> last = roots.removeLast();
         if (node != last) {
-            last.rootIndex = node.rootIndex;
-            roots.set(last.rootIndex, last);
+            last.setIndex(node.getIndex());
+            roots.set(last.getIndex(), last);
         }
     }
 
