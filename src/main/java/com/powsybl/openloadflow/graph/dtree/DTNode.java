@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *     <li>its parent in the tree and the edge linking them,</li>
  *     <li>its children in the tree and the edges linking them,</li>
  *     <li>all non tree edges having at least one endpoint that is the DTNode</li>
- *     <li>if the node is a root, its index in the list of {@link DTGraph#roots}</li>
+ *     <li>if the node is a root, its index in the list of roots ({@link DTGraph#getRoots()})</li>
  * </ul>
  *
  * <p>
@@ -153,8 +153,7 @@ public class DTNode<V, E> {
 
         // update the list of roots
         if (updateRoots) {
-            rootIndex = oldRoot.rootIndex;
-            graph.roots.set(rootIndex, DTNode.this);
+            graph.replaceRoot(oldRoot, this);
         }
 
         // update size attributes, going from oldRoot to this DTNode
