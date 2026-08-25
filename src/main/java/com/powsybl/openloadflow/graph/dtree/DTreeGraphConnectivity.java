@@ -60,7 +60,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         // sorting roots will sort components as components is a wrapper around roots
         roots.sort(Comparator.<DTNode<V, E>>comparingInt(DTNode::size).reversed());
         for (int i = 0; i < graph.roots.size(); i++) {
-            roots.get(i).rootIndex = i;
+            roots.get(i).setIndex(i);
         }
 
         componentSets = graph.components;
@@ -68,7 +68,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     @Override
     protected int getQuickComponentNumber(V vertex) {
-        return getGraph().rootOf(vertex).rootIndex;
+        return getGraph().rootOf(vertex).getIndex();
     }
 
     @Override

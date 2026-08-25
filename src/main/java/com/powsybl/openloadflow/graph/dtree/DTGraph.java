@@ -81,6 +81,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
             insertTreeEdge(rootUdepth.node(), nodeU, rootVdepth.node(), nodeV, edge);
         }
         edge.setTreeEdge(treeEdge);
+
+        check();
     }
 
     private DTNode<V, E> getNodeThrowIfInexistent(V v) {
@@ -193,6 +195,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         } else {
             removeNonTreeEdge(edge);
         }
+
+        check();
     }
 
     /**
@@ -289,7 +293,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     }
 
     private void addRoot(DTNode<V, E> node) {
-        node.rootIndex = roots.size();
+        node.setIndex(roots.size());
         roots.add(node);
     }
 
@@ -297,8 +301,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         // update roots, swapping 'node' and the last element of roots
         DTNode<V, E> last = roots.removeLast();
         if (node != last) {
-            last.rootIndex = node.rootIndex;
-            roots.set(last.rootIndex, last);
+            last.setIndex(node.getIndex());
+            roots.set(last.getIndex(), last);
         }
     }
 
@@ -311,6 +315,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         DTNode<V, E> newNode = new DTNode<>(this, v);
         vertexToTreeNode.put(v, newNode);
         addRoot(newNode);
+
+        check();
     }
 
     @Override
@@ -324,6 +330,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         }
         DTNode<V, E> root = vertexToTreeNode.remove(v);
         removeRoot(root);
+
+        check();
     }
 
     @Override
@@ -402,6 +410,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
 
         checkEdges();
         checkParentChildRelation();
+        checkRoots();
     }
 
     private void checkEdges() {
@@ -448,6 +457,14 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
 
                 assert present;
             }
+        }
+    }
+
+    private void checkRoots() {
+        for (DTNode<V, E> node : vertexToTreeNode.values()) {
+            assert node != null;
+            assert node.getParent() == null;
+            assert node.getParentEdge() == null;
         }
     }
 }
