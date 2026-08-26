@@ -2441,7 +2441,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * on the DC side and makes it possible for power transfer to be always balanced.
      *
      * convVdc (V_DC) pins the DC voltage; convDroop (P_PCC_DROOP) enforces
-     * {@code P = refP + k*(U_dc - refVdc)} with a 3-band droop curve. Sweeping convVdc's
+     * {@code P = refP + (U_dc - refVdc)/k} with a 3-band droop curve. Sweeping convVdc's
      * {@code targetVdc} walks convDroop's solved {@code U_dc} through each band of the curve and past
      * the extremes (clamping). convDroop has no losses so the droop law applies directly to its AC power.
      */
