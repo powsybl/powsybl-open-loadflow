@@ -37,6 +37,7 @@ import java.io.UncheckedIOException;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -183,14 +184,30 @@ public class SecurityAnalysisRunner {
         Component mainSynchronous = getMainSynchronousComponent();
         Objects.requireNonNull(mainSynchronous);
 
+        // create contingencies
         List<String> linesInComponent = mainSynchronous.getBusStream()
                 .flatMap(b -> b.getConnectedTerminalStream()
                         .filter(t -> t.getConnectable() instanceof Line)
                         .map(t -> (Line) t.getConnectable()))
                 .map(Line::getId)
+                .filter(id -> !id.contains("."))
                 .distinct()
+                .sorted() // constant ordering
                 .collect(Collectors.toList());
 
+        AtomicInteger index = new AtomicInteger();
+        List<Contingency> contingencies = RandomUtils.distinctSubsets(random, linesInComponent, contingencyCount,
+                        linePerCt, linePerCt)
+                .stream()
+                .map(lines -> lines.stream()
+                        .map(line -> (ContingencyElement) new BranchContingency(line))
+                        .toList())
+                .map(lines -> new Contingency("ct-" + index.getAndIncrement(), lines))
+                .toList();
+
+        this.contingencies.addAll(contingencies);
+
+        // create actions
         List<String> disconnectedLines = network.getLineStream()
                 .filter(l -> l.getTerminal1() != null && !l.getTerminal1().isConnected())
                 .filter(l -> l.getTerminal2() != null && !l.getTerminal2().isConnected())
@@ -201,13 +218,8 @@ public class SecurityAnalysisRunner {
                 .map(Line::getId)
                 .collect(Collectors.toList());
 
-        for (int i = 0; i < contingencyCount; i++) {
-            List<ContingencyElement> contingencyLines = RandomUtils.sample(random, linesInComponent, linePerCt, linePerCt)
-                    .map(id -> (ContingencyElement) new BranchContingency(id))
-                    .toList();
-            Contingency ct = new Contingency("ct-" + i, contingencyLines);
-            contingencies.add(ct);
-
+        for (int i = 0; i < contingencies.size(); i++) {
+            Contingency ct = contingencies.get(i);
             if (actionPerOp > 0) {
                 List<String> ids = RandomUtils.sample(random, disconnectedLines, actionPerOp, actionPerOp).toList();
 
@@ -268,7 +280,7 @@ public class SecurityAnalysisRunner {
         OpenSecurityAnalysisProvider provider = new OpenSecurityAnalysisProvider(
                 new SparseMatrixFactory(), connectivity);
 
-        System.out.println(Instant.now());
+        System.out.println(Instant.now() + " - Contingency: " + contingencies.size() + " - OperatorStrategy: " + operatorStrategies.size());
         AverageStopWatch sa = new AverageStopWatch();
         sa.start();
         new SecurityAnalysis.Runner(provider).run(network, contingencies, runParameters);

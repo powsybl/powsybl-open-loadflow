@@ -63,10 +63,12 @@ public final class SAConnectivityBenchmark {
 
         Map<String, List<Parameters>> parameters = linkedMap(
                 "/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz", List.of(
-                        new Parameters(0, Integer.MAX_VALUE, 1, 0, 1, SecurityAnalysisRunner.Mode.DC),
-                        new Parameters(0, Integer.MAX_VALUE, 1, 1, 1, SecurityAnalysisRunner.Mode.DC)),
-                "/home/carrezval/networks/case_SyntheticUSA.mat", List.of(
-                        new Parameters(5000, 10000, 10, 0, 8, SecurityAnalysisRunner.Mode.DC))
+                        new Parameters("fr", 0, Integer.MAX_VALUE, 1, 0, 1, SecurityAnalysisRunner.Mode.DC),
+                        new Parameters("fr", 0, Integer.MAX_VALUE, 1, 0, 2, SecurityAnalysisRunner.Mode.DC),
+                        new Parameters("fr", 0, Integer.MAX_VALUE, 1, 1, 1, SecurityAnalysisRunner.Mode.DC),
+                        new Parameters("fr", 0, Integer.MAX_VALUE, 1, 1, 2, SecurityAnalysisRunner.Mode.DC))
+                //"/home/carrezval/networks/case_SyntheticUSA.mat", List.of(
+                //        new Parameters("usa", 5000, 10000, 10, 0, 8, SecurityAnalysisRunner.Mode.DC))
         );
 
         try (BufferedWriter bw = Files.newBufferedWriter(Path.of("sa_results.txt"))) {
@@ -142,7 +144,7 @@ public final class SAConnectivityBenchmark {
         return operatorStrategies;
     }
 
-    private record Parameters(int lineToDisconnect, int contingencyCount, int linePerContingency, int actionPerOp, int threadCount, SecurityAnalysisRunner.Mode mode) { }
+    private record Parameters(String name, int lineToDisconnect, int contingencyCount, int linePerContingency, int actionPerOp, int threadCount, SecurityAnalysisRunner.Mode mode) { }
 
     static <K, V> Map<K, V> linkedMap(K k1, V v1) {
         LinkedHashMap<K, V> map = new LinkedHashMap<>();
