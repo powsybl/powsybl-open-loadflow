@@ -462,21 +462,21 @@ $$
 I_{Conv} \cdot (V_1-V_2) + P_{AC} = IdleLoss + SwitchingLoss \cdot |I_{Conv}| + ResistiveLoss \cdot I_{Conv}^{2}
 $$
 
-#### Multi-segment Droop control
+#### Multi-segment droop control
 
 In `P_PCC_DROOP` control mode, the converter does not hold a fixed power or a fixed DC voltage.
 Instead it follows a **droop law** that ties its active power to its DC voltage, so that the
 converter naturally shares in regulating the DC voltage of the network:
 
-$$U_{dc} = V_{Ref} + k (U_{dc}) \cdot (P_{AC} - P_{Ref})$$
+$$U_{dc} = V_{Ref} + k(U_{dc}) \cdot (P_{AC} - P_{Ref})$$
 
 with:
 - $P_{AC}$ the active power injected by the AC network into the converter,
 - $U_{dc} = V_1 - V_2$ the pole-to-pole DC voltage of the converter,
 - $(V_{Ref}, P_{Ref})$ the reference point read from the droop curve,
-- $k (U_{dc})$ the droop coefficient, i.e. the slope of $U_{dc}$ versus $P_{AC}$.
+- $k(U_{dc})$ the droop coefficient, i.e. the slope of $U_{dc}$ versus $P_{AC}$.
 
-$U_{dc} \rightarrow k (U_{dc})$ is piecewise constant, which makes $U_{dc} \rightarrow P_{AC}$ piecewise linear.
+$U_{dc} \rightarrow k(U_{dc})$ is piecewise constant, which makes $U_{dc} \rightarrow P_{AC}$ piecewise linear.
 The droop curve passes through the converter setpoint $(targetVdc, targetP)$. This anchors its
 position in the $(U_{dc}, P)$ plane. A `P_PCC_DROOP` converter must therefore have a droop curve
 and both `targetP` and `targetVdc` defined. All $k$ coefficients across the curve's bands must share
