@@ -1094,8 +1094,15 @@ class AcDcLoadFlowTest {
 
         // Then check expected values on each segment.
         // We take midpoints to simplify computations.
-        checkDroopResult(network, 385., 30.);  // band [380,390], k=0.5: 380 + 0.5*(30-20) = 385
-        checkDroopResult(network, 415., 62.5); // band [410,420], k=2.0: 410 + 2.0*(62.5-60) = 415
+        checkDroopResult(network, 385., 30.);
+        checkDroopResult(network, 415., 62.5);
+
+        // Check exactly at the internal band boundaries, where the droop coefficient k is discontinuous
+        // (0.5 -> 1.0 at 390, 1.0 -> 2.0 at 410) and the Jacobian term in ConverterDroopEquationTerm#der
+        // does not account for that discontinuity. Both bands agree on P at their shared boundary, so the
+        // expected value is exact regardless of which side the solver lands on.
+        checkDroopResult(network, 390., 40.);
+        checkDroopResult(network, 410., 60.);
 
         // Finally check extrapolation (clamped to the nearest band).
         checkDroopResult(network, 370., 0.);   // clamp to [380,390], k=0.5: 380 + 0.5*(0-20) = 370
@@ -1112,6 +1119,42 @@ class AcDcLoadFlowTest {
 
         Terminal droopConverterAcTerminal = network.getVoltageSourceConverter("convDroop").getTerminal1();
         assertActivePowerEquals(expectedPac, droopConverterAcTerminal);
+    }
+
+    @Test
+    void testSwitchToDroopControlMidTest() {
+        // Run #1: convDroop is in plain P_PCC mode (its droop curve is attached by the factory but unused
+        // while the control mode is not P_PCC_DROOP) with a target power that is deliberately inconsistent
+        // with what the droop law would give at the DC voltage convVdc is pinning it to. This gives a
+        // converged, non-flat starting state that is not already on the droop curve.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        VoltageSourceConverter convVdc = network.getVoltageSourceConverter("convVdc");
+        VoltageSourceConverter convDroop = network.getVoltageSourceConverter("convDroop");
+        convDroop.setControlMode(ControlMode.P_PCC);
+        convVdc.setTargetVdc(415.); // band [410,420]: droop would require P=62.5, but P_PCC pins P=50 instead.
+
+        LoadFlowResult result1 = loadFlowRunner.run(network, parameters);
+        assertTrue(result1.isFullyConverged());
+        assertActivePowerEquals(50., convDroop.getTerminal1()); // P_PCC: P_AC pinned to targetP, unaffected by U_dc.
+        assertVoltageEquals(415., network.getDcNode("dn1"));    // V_DC: U_dc pinned to targetVdc.
+
+        // Switch convDroop to droop control mid-test (its curve and its own anchor, targetP=50 /
+        // targetVdc=400, are unchanged since creation) and move convVdc's target into the first band.
+        // Warm-started from run #1's state (PREVIOUS_VALUES instead of a flat start), the solver must move
+        // U_dc from 415 down to 385, crossing both the 410 and 390 band boundaries, while also correcting
+        // P_AC from the run #1 value (50, off the droop curve) to the value the droop law now requires.
+        convDroop.setControlMode(ControlMode.P_PCC_DROOP);
+        convVdc.setTargetVdc(385.);
+        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isFullyConverged(),
+                "did not converge after switching to droop control from a warm start in a different band");
+        // band [380,390], k=0.5: 380 + 0.5*(30-20) = 385
+        assertActivePowerEquals(30., convDroop.getTerminal1());
+        assertVoltageEquals(385., network.getDcNode("dn1"));
     }
 
     @Test
