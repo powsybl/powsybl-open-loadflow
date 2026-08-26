@@ -468,18 +468,22 @@ In `P_PCC_DROOP` control mode, the converter does not hold a fixed power or a fi
 Instead it follows a **droop law** that ties its active power to its DC voltage, so that the
 converter naturally shares in regulating the DC voltage of the network:
 
-$$P_{AC} = P_{Ref} + k (U_{dc}) \cdot (U_{dc} - V_{Ref})$$
+$$U_{dc} = V_{Ref} + k (U_{dc}) \cdot (P_{AC} - P_{Ref})$$
 
 with:
 - $P_{AC}$ the active power injected by the AC network into the converter,
 - $U_{dc} = V_1 - V_2$ the pole-to-pole DC voltage of the converter,
 - $(V_{Ref}, P_{Ref})$ the reference point read from the droop curve,
-- $k (U_{dc})$ the droop coefficient.
+- $k (U_{dc})$ the droop coefficient, i.e. the slope of $U_{dc}$ versus $P_{AC}$.
 
 $U_{dc} \rightarrow k (U_{dc})$ is piecewise constant, which makes $U_{dc} \rightarrow P_{AC}$ piecewise linear.
 The droop curve passes through the converter setpoint $(targetVdc, targetP)$. This anchors its
 position in the $(U_{dc}, P)$ plane. A `P_PCC_DROOP` converter must therefore have a droop curve
-and both `targetP` and `targetVdc` defined.
+and both `targetP` and `targetVdc` defined. All $k$ coefficients across the curve's bands must share
+the same strict sign (all positive or all negative): a $k=0$ band leaves its reference power undefined
+when positioning it on the curve, and a sign change would break the band lookup — two different
+$P_{AC}$ values could then land on the same $U_{dc}$, so a solved $U_{dc}$ would no longer point back
+to a single band.
 
 Note that if the solved $U_{dc}$ falls below the lowest band or above the highest band, the nearest
   band's coefficient is used (clamping), so $k$ is always defined.

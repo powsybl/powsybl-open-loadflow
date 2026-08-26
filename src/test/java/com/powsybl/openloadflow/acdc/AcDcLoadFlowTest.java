@@ -1059,19 +1059,20 @@ class AcDcLoadFlowTest {
 
     @Test
     void testDroopLaw() {
-        // A P_PCC_DROOP converter enforces P = refP + k*(U_dc - refVdc), where:
+        // A P_PCC_DROOP converter enforces U_dc = refVdc + k * (P_AC - refP), where:
         //   - k      = curve.getK(U_dc), the coefficient of the band containing the solved U_dc (clamped),
         //   - refVdc = the min voltage of that band.
         //   - refP   = the reference power, corresponding to the previous point in the curve.
+        // i.e. P_AC = refP + (U_dc - refVdc) / k: k is the slope of U_dc versus P_AC.
         // The paired V_DC converter (convVdc) pins the DC voltage, so sweeping its targetVdc walks the
         // droop converter's solved U_dc through each band and past the extremes. The assertion reads the
         // SOLVED U_dc, so it stays exact.
         //
         // Note that the droop curve has the following reference points:
-        // V = 380 kV => P = 35 MW
+        // V = 380 kV => P = 20 MW
         // V = 390 kV => P = 40 MW
         // V = 410 kV => P = 60 MW
-        // V = 420 kV => P = 80 MW
+        // V = 420 kV => P = 65 MW
         Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
 
@@ -1087,14 +1088,14 @@ class AcDcLoadFlowTest {
         // This is also right in the middle of the middle droop segment.
         checkDroopResult(network, targetVdc, targetP);
 
-        // Then check expected values on each segment.
+        // Then check expected values on each segment (P = refP + (Vdc-refVdc)/k).
         // We take midpoints to simplify computations.
-        checkDroopResult(network, 385., 37.5);
-        checkDroopResult(network, 415., 70.);
+        checkDroopResult(network, 385., 30.);  // band [380,390], k=0.5
+        checkDroopResult(network, 415., 62.5); // band [410,420], k=2.0
 
-        // Finally check extrapolation
-        checkDroopResult(network, 370., 30.);
-        checkDroopResult(network, 430., 100.);
+        // Finally check extrapolation (clamped to the nearest band).
+        checkDroopResult(network, 370., 0.);   // clamp to [380,390], k=0.5: 20 + (370-380)/0.5 = 0
+        checkDroopResult(network, 430., 70.);  // clamp to [410,420], k=2.0: 60 + (430-410)/2.0 = 70
     }
 
     private void checkDroopResult(Network network, double vdc, double expectedPac) {
@@ -1145,14 +1146,51 @@ class AcDcLoadFlowTest {
     }
 
     @Test
-    void testDroopCurveWithAllZeroCoefficientsThrows() {
-        // A P_PCC_DROOP converter whose droop curve is flat (all coefficients zero) is equivalent to constant-power
-        // P_PCC control and cannot settle the DC voltage. Such a curve makes no sense, so loading must fail fast.
+    void testDroopCurveWithOneZeroCoefficientAmongNonZeroThrows() {
+        // A k=0 band (here mixed among non-zero bands, but this also covers an all-zero curve) makes that
+        // band's reference power undefined: positioning it on the curve (see buildDroopBands) divides by k.
         Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
         network.getVoltageSourceConverter("convDroop").newDroopCurve()
-                .beginSegment().setK(0.).setMinV(380.).setMaxV(420.).endSegment()
+                .beginSegment().setK(0.5).setMinV(380.).setMaxV(400.).endSegment()
+                .beginSegment().setK(0.).setMinV(400.).setMaxV(420.).endSegment()
                 .add();
 
+        assertDroopCurveRejected(network);
+    }
+
+    @Test
+    void testDroopCurveWithMixedSignCoefficientsThrows() {
+        // All coefficients must have the same sign: a sign change would break the band lookup, since two
+        // different P values could then land on the same U_dc.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        network.getVoltageSourceConverter("convDroop").newDroopCurve()
+                .beginSegment().setK(0.5).setMinV(380.).setMaxV(400.).endSegment()
+                .beginSegment().setK(-1.0).setMinV(400.).setMaxV(420.).endSegment()
+                .add();
+
+        assertDroopCurveRejected(network);
+    }
+
+    @Test
+    void testDroopCurveWithAllNegativeCoefficientsIsAccepted() {
+        // Coefficients may be all negative as well as all positive, as long as they share the same sign.
+        // The anchor invariant (Pac = targetP when Vdc = targetVdc) holds regardless of sign, but away from the
+        // anchor the slope 1/k differs from the all-positive curve, so also check a non-anchor point.
+        // P = refP + (Vdc-refVdc)/k; with this curve's bands, refP at [410,420] (k=-2.0) works out to 40 MW,
+        // so at Vdc=415: Pac = 37.5.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        network.getVoltageSourceConverter("convDroop").newDroopCurve()
+                .beginSegment().setK(-0.5).setMinV(380.).setMaxV(390.).endSegment()
+                .beginSegment().setK(-1.0).setMinV(390.).setMaxV(410.).endSegment()
+                .beginSegment().setK(-2.0).setMinV(410.).setMaxV(420.).endSegment()
+                .add();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        checkDroopResult(network, 400., 50.);
+        checkDroopResult(network, 415., 37.5);
+    }
+
+    private void assertDroopCurveRejected(Network network) {
         LfNetworkParameters lfParameters = new LfNetworkParameters()
                 .setSlackBusSelector(new FirstSlackBusSelector())
                 .setAcDcNetwork(true);
@@ -1160,7 +1198,7 @@ class AcDcLoadFlowTest {
         LfNetworkLoader<Network> loader = new LfNetworkLoaderImpl();
         PowsyblException e = assertThrows(PowsyblException.class,
                 () -> LfNetwork.load(network, loader, lfParameters));
-        assertEquals("AC/DC converter 'convDroop' in P_PCC_DROOP control mode must have a droop curve with at least one non-zero coefficient",
+        assertEquals("AC/DC converter 'convDroop' in P_PCC_DROOP control mode must have a droop curve with all coefficients of the same strict sign (all positive or all negative)",
                 e.getMessage());
     }
 
