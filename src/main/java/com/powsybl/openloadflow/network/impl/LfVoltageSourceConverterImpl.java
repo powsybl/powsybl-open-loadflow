@@ -91,9 +91,7 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         // Convert everything to per unit first, then anchor and integrate refP in that same per-unit system:
         // the equation actually solved (see ConverterDroopEquationTerm) is
         // U_dc_pu = refVdc_pu + k_pu * (P_pu - refP_pu). k is in kV/MW (the slope of U_dc versus P), so
-        // k_pu = dU_dc_pu/dP_pu = (dU_dc/vBase) / (dP/SB) = k * SB / vBase. Integrating refP in raw units
-        // first and converting to per unit afterwards would not be equivalent, since a per-unit slope isn't
-        // simply the raw slope carried over unchanged.
+        // k_pu = dU_dc_pu/dP_pu = (dU_dc/vBase) / (dP/SB) = k * SB / vBase.
         double[] kPu = new double[n];
         double[] minVpu = new double[n];
         double[] maxVpu = new double[n];
