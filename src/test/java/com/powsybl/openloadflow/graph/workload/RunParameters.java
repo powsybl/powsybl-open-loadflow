@@ -9,11 +9,6 @@ package com.powsybl.openloadflow.graph.workload;
 
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
-import org.mockito.Spy;
-
-import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}

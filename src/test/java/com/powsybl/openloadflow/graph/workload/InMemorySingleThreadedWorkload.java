@@ -17,7 +17,7 @@ import java.util.stream.Stream;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class InMemorySingleThreadedWorkload implements Workload {
+public final class InMemorySingleThreadedWorkload implements Workload {
 
     public static InMemorySingleThreadedWorkload create(Path file) throws IOException {
         try (Stream<String> lines = Files.lines(file)) {

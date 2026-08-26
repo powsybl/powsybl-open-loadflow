@@ -24,7 +24,8 @@ public class ExecutorWithException extends ThreadPoolExecutor {
                 threadFactory);
     }
 
-    public static ExecutorService newFixedThreadPool(int nThreads, ThreadFactory threadFactory, int keepAlive, TimeUnit unit) {
+    public static ExecutorService newFixedThreadPool(int nThreads, ThreadFactory threadFactory, int keepAlive,
+                                                     TimeUnit unit) {
         return new ExecutorWithException(nThreads, nThreads,
                 keepAlive, unit,
                 new LinkedBlockingQueue<>(),
@@ -44,19 +45,24 @@ public class ExecutorWithException extends ThreadPoolExecutor {
                 threadFactory);
     }
 
-    public ExecutorWithException(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue) {
+    public ExecutorWithException(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit,
+                                 BlockingQueue<Runnable> workQueue) {
         super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue);
     }
 
-    public ExecutorWithException(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory) {
+    public ExecutorWithException(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit,
+                                 BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory) {
         super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory);
     }
 
-    public ExecutorWithException(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, RejectedExecutionHandler handler) {
+    public ExecutorWithException(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit,
+                                 BlockingQueue<Runnable> workQueue, RejectedExecutionHandler handler) {
         super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, handler);
     }
 
-    public ExecutorWithException(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory, RejectedExecutionHandler handler) {
+    public ExecutorWithException(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit,
+                                 BlockingQueue<Runnable> workQueue, ThreadFactory threadFactory,
+                                 RejectedExecutionHandler handler) {
         super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, handler);
     }
 

@@ -181,8 +181,8 @@ public class SecurityAnalysisRunner {
 
     public void generateContingenciesAndActions(int contingencyCount, int linePerCt, int actionPerOp) {
         Component mainSynchronous = getMainSynchronousComponent();
-
         Objects.requireNonNull(mainSynchronous);
+
         List<String> linesInComponent = mainSynchronous.getBusStream()
                 .flatMap(b -> b.getConnectedTerminalStream()
                         .filter(t -> t.getConnectable() instanceof Line)

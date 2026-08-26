@@ -12,7 +12,6 @@ import com.powsybl.openloadflow.graph.StateMap.State;
 import com.powsybl.openloadflow.graph.dtree.AbstractSetView;
 import org.jgrapht.util.AVLTree;
 
-import java.lang.reflect.Field;
 import java.util.*;
 
 /**

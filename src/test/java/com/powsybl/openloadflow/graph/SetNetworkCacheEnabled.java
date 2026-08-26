@@ -20,7 +20,9 @@ import java.nio.file.Path;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class SetNetworkCacheEnabled {
+public final class SetNetworkCacheEnabled {
+
+    private SetNetworkCacheEnabled() { }
 
     public static void main(String[] args) {
         LoadFlowParameters params = new LoadFlowParameters()

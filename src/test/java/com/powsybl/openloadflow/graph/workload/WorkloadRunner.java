@@ -38,10 +38,10 @@ public final class WorkloadRunner {
     }
 
     private static final RunParameters PERFORMANCE = new RunParameters.Performance()
-            .setWarmup(10)
+            .setWarmup(20)
             .setMeasurement(10)
-            .setOutput(null)//"results/workload/${workload}/${class}_no_tree_edge_boolean.${ext}")
-            ;//.setReplacement("results/workload/${workload}/${class}_list_of_root.${ext}");
+            .setOutput("results/workload/${workload}/${class}_no_tree_edge_boolean.${ext}")
+            .setOverwrite(true); //.setReplacement("results/workload/${workload}/${class}_list_of_root.${ext}");
     private static final RunParameters VALIDATOR = new RunParameters.Validator();
     private static final RunParameters STATS_WRITER = new RunParameters.StatsWriter()
             .setOutput("graph_stats/data/${workload}/${class}/${operations}");
