@@ -1061,9 +1061,13 @@ class AcDcLoadFlowTest {
     void testDroopLaw() {
         // A P_PCC_DROOP converter enforces U_dc = refVdc + k * (P_AC - refP), where:
         //   - k      = curve.getK(U_dc), the coefficient of the band containing the solved U_dc (clamped),
+        //             the slope of U_dc versus P_AC, in kV/MW.
         //   - refVdc = the min voltage of that band.
         //   - refP   = the reference power, corresponding to the previous point in the curve.
-        // i.e. P_AC = refP + (U_dc - refVdc) / k: k is the slope of U_dc versus P_AC.
+        // The equation is solved in per unit (k_pu = k * SB / vBase, vBase = 400 kV, SB = 100 MVA, so
+        // k_pu = k/4 here); refP is anchored and integrated in that same per-unit system (see
+        // buildDroopBands), but since the per-unit conversion is dimensionally consistent it reduces to
+        // exactly the plain kV/MW arithmetic of k below.
         // The paired V_DC converter (convVdc) pins the DC voltage, so sweeping its targetVdc walks the
         // droop converter's solved U_dc through each band and past the extremes. The assertion reads the
         // SOLVED U_dc, so it stays exact.
@@ -1088,14 +1092,14 @@ class AcDcLoadFlowTest {
         // This is also right in the middle of the middle droop segment.
         checkDroopResult(network, targetVdc, targetP);
 
-        // Then check expected values on each segment (P = refP + (Vdc-refVdc)/k).
+        // Then check expected values on each segment.
         // We take midpoints to simplify computations.
-        checkDroopResult(network, 385., 30.);  // band [380,390], k=0.5
-        checkDroopResult(network, 415., 62.5); // band [410,420], k=2.0
+        checkDroopResult(network, 385., 30.);  // band [380,390], k=0.5: 380 + 0.5*(30-20) = 385
+        checkDroopResult(network, 415., 62.5); // band [410,420], k=2.0: 410 + 2.0*(62.5-60) = 415
 
         // Finally check extrapolation (clamped to the nearest band).
-        checkDroopResult(network, 370., 0.);   // clamp to [380,390], k=0.5: 20 + (370-380)/0.5 = 0
-        checkDroopResult(network, 430., 70.);  // clamp to [410,420], k=2.0: 60 + (430-410)/2.0 = 70
+        checkDroopResult(network, 370., 0.);   // clamp to [380,390], k=0.5: 380 + 0.5*(0-20) = 370
+        checkDroopResult(network, 430., 70.);  // clamp to [410,420], k=2.0: 410 + 2.0*(70-60) = 430
     }
 
     private void checkDroopResult(Network network, double vdc, double expectedPac) {
@@ -1175,9 +1179,9 @@ class AcDcLoadFlowTest {
     void testDroopCurveWithAllNegativeCoefficientsIsAccepted() {
         // Coefficients may be all negative as well as all positive, as long as they share the same sign.
         // The anchor invariant (Pac = targetP when Vdc = targetVdc) holds regardless of sign, but away from the
-        // anchor the slope 1/k differs from the all-positive curve, so also check a non-anchor point.
-        // P = refP + (Vdc-refVdc)/k; with this curve's bands, refP at [410,420] (k=-2.0) works out to 40 MW,
-        // so at Vdc=415: Pac = 37.5.
+        // anchor the slope k differs from the all-positive curve, so also check a non-anchor point.
+        // U_dc = refVdc + k*(P-refP); with this curve's bands, refP at [410,420] (k=-2.0) works out to 40 MW,
+        // so checking P=37.5: 410 + (-2.0)*(37.5-40) = 415.
         Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
         network.getVoltageSourceConverter("convDroop").newDroopCurve()
                 .beginSegment().setK(-0.5).setMinV(380.).setMaxV(390.).endSegment()

@@ -57,9 +57,11 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
 
     /**
      * Precompute the per-band droop reference points in per unit. The droop curve gives, per DC-voltage band, a
-     * coefficient {@code k}; the piecewise-linear power {@code P(U_dc)} is anchored at {@code (targetVdc, targetP)}
-     * and made continuous by integrating {@code k} across bands. For each band we store {@code refP},
-     * the anchored power at the band's lower voltage bound {@code refVdc = minV}.
+     * coefficient {@code k} that is the slope of {@code U_dc} versus {@code P}
+     * (see {@link com.powsybl.openloadflow.ac.equations.dcnetwork.ConverterDroopEquationTerm}).
+     * The piecewise-linear curve is anchored at {@code (targetVdc, targetP)} and {@code refP} is propagated from
+     * band to band so the curve stays continuous at each band boundary. For each band we store {@code refP}, the
+     * anchored power at the band's lower voltage bound {@code refVdc = minV}.
      */
     private static List<DroopBand> buildDroopBands(VoltageSourceConverter converter, double vBase) {
         DroopCurve curve = converter.getDroopCurve();
@@ -68,11 +70,14 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
             throw new PowsyblException("AC/DC converter '" + converter.getId()
                     + "' in P_PCC_DROOP control mode must have a droop curve");
         }
-        // An all-zero droop curve is flat: the power no longer depends on the DC voltage, which makes it equivalent
-        // to P_PCC control and unable to settle the DC voltage. Reject it rather than silently degrade to P_PCC.
-        if (segments.stream().allMatch(segment -> segment.getK() == 0)) {
+        // All coefficients must share the same strict sign: a k=0 band leaves its reference power undefined
+        // (division by zero below), and a sign change would break the band lookup, since two different P values
+        // could then land on the same U_dc.
+        boolean allPositive = segments.stream().allMatch(segment -> segment.getK() > 0);
+        boolean allNegative = segments.stream().allMatch(segment -> segment.getK() < 0);
+        if (!allPositive && !allNegative) {
             throw new PowsyblException("AC/DC converter '" + converter.getId()
-                    + "' in P_PCC_DROOP control mode must have a droop curve with at least one non-zero coefficient");
+                    + "' in P_PCC_DROOP control mode must have a droop curve with all coefficients of the same strict sign (all positive or all negative)");
         }
         double targetVdc = converter.getTargetVdc();
         double targetP = converter.getTargetP();
@@ -83,28 +88,38 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         segments.sort(Comparator.comparingDouble(DroopCurve.Segment::getMinV));
         int n = segments.size();
 
-        // Anchored active power (MW) at each band's lower voltage bound.
-        double[] refP = new double[n];
+        // Convert everything to per unit first, then anchor and integrate refP in that same per-unit system:
+        // the equation actually solved (see ConverterDroopEquationTerm) is
+        // U_dc_pu = refVdc_pu + k_pu * (P_pu - refP_pu). k is in kV/MW (the slope of U_dc versus P), so
+        // k_pu = dU_dc_pu/dP_pu = (dU_dc/vBase) / (dP/SB) = k * SB / vBase. Integrating refP in raw units
+        // first and converting to per unit afterwards would not be equivalent, since a per-unit slope isn't
+        // simply the raw slope carried over unchanged.
+        double[] kPu = new double[n];
+        double[] minVpu = new double[n];
+        double[] maxVpu = new double[n];
+        for (int i = 0; i < n; i++) {
+            DroopCurve.Segment seg = segments.get(i);
+            kPu[i] = seg.getK() * PerUnit.SB / vBase;
+            minVpu[i] = seg.getMinV() / vBase;
+            maxVpu[i] = seg.getMaxV() / vBase;
+        }
+        double targetVdcPu = targetVdc / vBase;
+        double targetPpu = targetP / PerUnit.SB;
+
+        // Anchored active power (per unit) at each band's lower voltage bound.
+        double[] refPpu = new double[n];
         int anchor = clampedBandIndex(segments, targetVdc, DroopCurve.Segment::getMinV, DroopCurve.Segment::getMaxV);
-        DroopCurve.Segment anchorSeg = segments.get(anchor);
-        refP[anchor] = targetP - anchorSeg.getK() * (targetVdc - anchorSeg.getMinV());
+        refPpu[anchor] = targetPpu - (targetVdcPu - minVpu[anchor]) / kPu[anchor];
         for (int i = anchor + 1; i < n; i++) {
-            DroopCurve.Segment prev = segments.get(i - 1);
-            refP[i] = refP[i - 1] + prev.getK() * (prev.getMaxV() - prev.getMinV());
+            refPpu[i] = refPpu[i - 1] + (maxVpu[i - 1] - minVpu[i - 1]) / kPu[i - 1];
         }
         for (int i = anchor - 1; i >= 0; i--) {
-            DroopCurve.Segment seg = segments.get(i);
-            refP[i] = refP[i + 1] - seg.getK() * (seg.getMaxV() - seg.getMinV());
+            refPpu[i] = refPpu[i + 1] - (maxVpu[i] - minVpu[i]) / kPu[i];
         }
 
         List<DroopBand> bands = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
-            DroopCurve.Segment seg = segments.get(i);
-            // k is in MW/kV: k_pu = k * vBase / SB so that P_pu = k_pu * (U_dc_pu - refVdc_pu).
-            bands.add(new DroopBand(seg.getK() * vBase / PerUnit.SB,
-                    seg.getMinV() / vBase,
-                    seg.getMaxV() / vBase,
-                    refP[i] / PerUnit.SB));
+            bands.add(new DroopBand(kPu[i], minVpu[i], maxVpu[i], refPpu[i]));
         }
         return bands;
     }

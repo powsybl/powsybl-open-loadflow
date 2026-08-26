@@ -17,7 +17,11 @@ import java.util.Objects;
 
 /**
  * Droop-control equation of an AC/DC voltage source converter in {@code P_PCC_DROOP} mode:
- * {@code CONV_P_AC = refP + k*(U_dc - refVdc)}, i.e. the residual is {@code CONV_P_AC - refP - k*(U_dc - refVdc)}.
+ * {@code U_dc = refVdc + k*(CONV_P_AC - refP)}, i.e. the residual is
+ * {@code a*(CONV_P_AC - refP) - b*(U_dc - refVdc)}, with {@code a = k} and {@code b = 1} kept as separate
+ * coefficients (rather than folded into a single {@code k}) so that later work enforcing active-power limits
+ * can override them to switch this same term to a pure {@code CONV_P_AC = refP} constraint ({@code a=1},
+ * {@code b=0}) or a pure {@code U_dc = refVdc} constraint ({@code a=0}, {@code b=1}).
  * The reference point {@code (k, refVdc, refP)} is that of the droop-curve band containing the solved DC voltage
  * {@code U_dc = v1 - v2}, so it is refreshed at every evaluation; at convergence the coefficient is self-consistent
  * with the band the solution lands in. All quantities are per unit.
@@ -35,7 +39,9 @@ public class ConverterDroopEquationTerm extends AbstractConverterDcCurrentEquati
     public double eval() {
         double uDc = v1() - v2();
         LfVoltageSourceConverter.DroopReference ref = element.getDroopReference(uDc);
-        return pAc() - ref.refP() - ref.k() * (uDc - ref.refVdc());
+        double a = ref.k();
+        double b = 1;
+        return a * (pAc() - ref.refP()) - b * (uDc - ref.refVdc());
     }
 
     @Override
@@ -43,12 +49,13 @@ public class ConverterDroopEquationTerm extends AbstractConverterDcCurrentEquati
         Objects.requireNonNull(variable);
         // All DC buses of a DC component share the same nominal voltage (enforced at network loading), which is the
         // DC voltage base. So v1()/v2() are already in the equation base and dU_dc/dv1 = 1, dU_dc/dv2 = -1.
+        double b = 1;
         if (variable.equals(pAcVar)) {
-            return 1;
-        } else if (variable.equals(v1Var)) {
-            return -element.getDroopReference(v1() - v2()).k();
-        } else if (variable.equals(v2Var)) {
             return element.getDroopReference(v1() - v2()).k();
+        } else if (variable.equals(v1Var)) {
+            return -b;
+        } else if (variable.equals(v2Var)) {
+            return b;
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
