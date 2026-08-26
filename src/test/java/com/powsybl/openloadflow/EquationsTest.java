@@ -396,4 +396,45 @@ class EquationsTest {
         assertArrayEquals(new double[]{655.5332962269079, 222991.01420562976, -222991.01420562976, 340.16733473206085, Double.NaN, Double.NaN},
                 eval(new ConverterDcCurrentEquationTerm(converter, dcBus1, dcBus2, dcBus1.getNominalV(), variableSet), variables, sv));
     }
+
+    @Test
+    void converterDroopEquationTermTest() {
+        // Droop equation: a*(P_AC - refP) - b*(U_dc - refVdc) = 0, with a = k (from the droop curve) and b = 1,
+        // i.e. U_dc = refVdc + k*(P_AC - refP): k is the slope of U_dc versus P_AC.
+        var converter = Mockito.mock(LfVoltageSourceConverter.class, new RuntimeExceptionAnswer());
+        Mockito.doReturn(0).when(converter).getNum();
+        Mockito.doReturn(false).when(converter).isDisabled();
+        Mockito.doReturn(400.0).when(converter).getDcVoltageBase();
+        double k = 2.0;
+        double refVdc = 0.125;
+        double refP = 0.5;
+        Mockito.doReturn(new LfVoltageSourceConverter.DroopReference(k, refVdc, refP))
+                .when(converter).getDroopReference(Mockito.anyDouble());
+
+        VariableSet<AcVariableType> variableSet = new VariableSet<>();
+        Variable<AcVariableType> v1Var = variableSet.getVariable(0, AcVariableType.DC_BUS_V);
+        Variable<AcVariableType> v2Var = variableSet.getVariable(1, AcVariableType.DC_BUS_V);
+        Variable<AcVariableType> pAcVar = variableSet.getVariable(0, AcVariableType.CONV_P_AC);
+        Variable<AcVariableType> unknownVar = variableSet.getVariable(999, AcVariableType.DUMMY_P);
+
+        var variables = List.of(v1Var, v2Var, pAcVar, unknownVar);
+        v1Var.setRow(0);
+        v2Var.setRow(1);
+        pAcVar.setRow(2);
+        unknownVar.setRow(3);
+
+        ConverterDroopEquationTerm term = new ConverterDroopEquationTerm(converter, dcBus1, dcBus2, variableSet);
+        assertEquals("conv_p_droop", term.getName());
+
+        // U_dc = 1.0 - 0.75 = 0.25, P_AC = 0.25: an arbitrary (non-solution) point.
+        // eval = k*(P_AC - refP) - (U_dc - refVdc) = -0.625.
+        // der(pAc) = k = 2.0 ; der(v1) = -b = -1.0 ; der(v2) = +b = 1.0.
+        var sv = new StateVector(new double[]{1.0, 0.75, 0.25, 0});
+        assertArrayEquals(new double[]{-0.625, -1.0, 1.0, 2.0, Double.NaN, Double.NaN},
+                eval(term, variables, sv));
+
+        // At U_dc = refVdc (0.125) and P_AC = refP (0.5), the residual is exactly zero.
+        term.setStateVector(new StateVector(new double[]{1.0, 0.875, 0.5, 0}));
+        assertEquals(0.0, term.eval());
+    }
 }
