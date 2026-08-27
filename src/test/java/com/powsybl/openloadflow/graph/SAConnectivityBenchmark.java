@@ -16,15 +16,15 @@ import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.log.Log;
 import com.powsybl.openloadflow.graph.utils.AverageStopWatch;
-import com.powsybl.openloadflow.graph.workload.RunParameters;
-import com.powsybl.openloadflow.graph.workload.SpyPerformanceGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.workload.BenchmarkParameters;
+import com.powsybl.openloadflow.graph.workload.ISpyGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.workload.IterationType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -34,16 +34,18 @@ import java.util.stream.Collectors;
  */
 public final class SAConnectivityBenchmark {
 
-    private static final RunParameters PERFORMANCE = new RunParameters.Performance()
-            .setWarmup(20)
-            .setMeasurement(10)
-            .setOutput("results/sa/${workload}/${class}_no_tree_edge_boolean.${ext}")
-            .setOverwrite(true); //.setReplacement("results/sa/${workload}/${class}_list_of_root.${ext}");
-    private static final RunParameters VALIDATOR = new RunParameters.Validator();
-    private static final RunParameters STATS_WRITER = new RunParameters.StatsWriter()
-            .setOutput("graph_stats/data/${workload}/${class}/${operations}");
+    private static final BenchmarkParameters PERFORMANCE = new BenchmarkParameters.Performance()
+            .setWarmup(1)
+            .setMeasurement(1)
+            .setOutput("results/sa/${name}/${class}_no_tree_edge_boolean.${ext}")
+            .setOverwrite(true); //.setReplacement("results/sa/${name}/${class}_list_of_root.${ext}");
+    private static final BenchmarkParameters VALIDATOR = new BenchmarkParameters.Validator();
+    private static final BenchmarkParameters STATS_WRITER = new BenchmarkParameters.StatsWriter()
+            .setOutput("graph_stats/data_sa/${name}/${class}/${operations}");
 
-    private static final RunParameters WORKLOAD_PARAMS = PERFORMANCE;
+    private static final BenchmarkParameters WORKLOAD_PARAMS = PERFORMANCE;
+
+    private static final Log LOG = Log.init("sa_results.txt");
 
     private SAConnectivityBenchmark() { }
 
@@ -66,55 +68,61 @@ public final class SAConnectivityBenchmark {
                         new Parameters("fr", 0, Integer.MAX_VALUE, 1, 0, 1, SecurityAnalysisRunner.Mode.DC),
                         new Parameters("fr", 0, Integer.MAX_VALUE, 1, 0, 2, SecurityAnalysisRunner.Mode.DC),
                         new Parameters("fr", 0, Integer.MAX_VALUE, 1, 1, 1, SecurityAnalysisRunner.Mode.DC),
-                        new Parameters("fr", 0, Integer.MAX_VALUE, 1, 1, 2, SecurityAnalysisRunner.Mode.DC))
-                //"/home/carrezval/networks/case_SyntheticUSA.mat", List.of(
-                //        new Parameters("usa", 5000, 10000, 10, 0, 8, SecurityAnalysisRunner.Mode.DC))
+                        new Parameters("fr", 0, Integer.MAX_VALUE, 1, 1, 2, SecurityAnalysisRunner.Mode.DC)),
+                "/home/carrezval/networks/case_SyntheticUSA.mat", List.of(
+                        new Parameters("usa", 5000, 10000, 10, 0, 8, SecurityAnalysisRunner.Mode.DC),
+                        new Parameters("usa", 5000, 10000, 10, 10, 8, SecurityAnalysisRunner.Mode.DC))
         );
 
-        try (BufferedWriter bw = Files.newBufferedWriter(Path.of("sa_results.txt"))) {
-            for (Map.Entry<String, List<Parameters>> perNetwork : parameters.entrySet()) {
-                for (Parameters params : perNetwork.getValue()) {
-                    Network network = Network.read(Path.of(perNetwork.getKey()));
-                    SecurityAnalysisRunner sar = new SecurityAnalysisRunner(network);
+        for (Map.Entry<String, List<Parameters>> perNetwork : parameters.entrySet()) {
+            for (Parameters params : perNetwork.getValue()) {
+                LOG.log("Security Analysis parameters: %s", params);
 
-                    if (params.lineToDisconnect > 0) {
-                        sar.disconnectLinesPreserveConnectivity(params.lineToDisconnect);
+                Network network = Network.read(Path.of(perNetwork.getKey()));
+                SecurityAnalysisRunner sar = new SecurityAnalysisRunner(network);
+
+                if (params.lineToDisconnect > 0) {
+                    sar.disconnectLinesPreserveConnectivity(params.lineToDisconnect);
+                }
+                sar.generateContingenciesAndActions(params.contingencyCount, params.linePerContingency, params.actionPerOp);
+                sar.threadCount = params.threadCount;
+                sar.mode = params.mode;
+
+                for (GraphConnectivityFactory<LfBus, LfBranch> factory : factories) {
+                    LOG.log("Using %s", factory);
+
+                    if (factory instanceof EvenShiloachGraphDecrementalConnectivityFactory<LfBus, LfBranch> && !sar.operatorStrategies.isEmpty()) {
+                        LOG.log("skipping EvenShiloachGraphDecrementalConnectivity, because of security analysis with operator strategies");
+                        continue;
                     }
-                    sar.generateContingenciesAndActions(params.contingencyCount, params.linePerContingency, params.actionPerOp);
-                    sar.threadCount = params.threadCount;
-                    sar.mode = params.mode;
 
-                    for (GraphConnectivityFactory<LfBus, LfBranch> factory : factories) {
-                        SpyPerformanceGraphConnectivityFactory<LfBus, LfBranch> spy = new SpyPerformanceGraphConnectivityFactory<>(factory);
-                        AverageStopWatch asw = sar.run(spy);
-
-                        bw.write(spy.resultsToString(1));
-                        bw.write("Security analysis done in: %s%n%n%n".formatted(asw.toString()));
-                        bw.flush();
-                    }
+                    ISpyGraphConnectivityFactory<LfBus, LfBranch> spy = WORKLOAD_PARAMS.wrapIntoSpyFactory(params.toDirectoryName(), factory);
+                    String partialResults = run(sar, spy, WORKLOAD_PARAMS.warmup(), WORKLOAD_PARAMS.measurement());
+                    LOG.log(partialResults);
                 }
             }
         }
+    }
 
-        /*Network network = Network.read(Path.of("/home/carrezval/networks/case_SyntheticUSA.mat")); // 20240101T1200Z_20240101T1200Z_pf.xiidm.gz"));
-        SecurityAnalysisRunner sar = new SecurityAnalysisRunner(network);
-        sar.disconnectLinesPreserveConnectivity(5000);
-        sar.generateContingenciesAndActions(10000, 10, 0);
-        // sar.setContingenciesAllLines();
-        // sar.setDefaultActions();
-        sar.threadCount = Runtime.getRuntime().availableProcessors();
-        sar.mode = SecurityAnalysisRunner.Mode.DC;
-
-        try (BufferedWriter bw = Files.newBufferedWriter(Path.of("sa_results.txt"))) {
-            for (GraphConnectivityFactory<LfBus, LfBranch> factory : factories) {
-                SpyPerformanceGraphConnectivityFactory<LfBus, LfBranch> spy = new SpyPerformanceGraphConnectivityFactory<>(factory);
-                AverageStopWatch asw = sar.run(spy);
-
-                bw.write(spy.resultsToString(1));
-                bw.write("Security analysis done in: %s%n%n%n".formatted(asw.toString()));
-                bw.flush();
+    private static String run(SecurityAnalysisRunner sar, ISpyGraphConnectivityFactory<LfBus, LfBranch> spy, int warmup, int measurement) {
+        if (warmup > 0) {
+            spy.beginIterations(warmup, IterationType.WARMUP);
+            for (int i = 0; i < warmup; i++) {
+                sar.run(spy);
             }
-        }*/
+            spy.endIterations(warmup, IterationType.WARMUP);
+        }
+
+        AverageStopWatch asw = new AverageStopWatch();
+        if (measurement > 0) {
+            spy.beginIterations(measurement, IterationType.MEASURE);
+            for (int i = 0; i < warmup; i++) {
+                asw.merge(sar.run(spy));
+            }
+            spy.endIterations(measurement, IterationType.MEASURE);
+        }
+
+        return spy.resultsToString(measurement) + "Security analysis done in: %s%n%n%n".formatted(asw.toString());
     }
 
     public static List<Action> getCloseSwitchActions(Network network) {
@@ -144,7 +152,20 @@ public final class SAConnectivityBenchmark {
         return operatorStrategies;
     }
 
-    private record Parameters(String name, int lineToDisconnect, int contingencyCount, int linePerContingency, int actionPerOp, int threadCount, SecurityAnalysisRunner.Mode mode) { }
+    public record Parameters(String name, int lineToDisconnect, int contingencyCount, int linePerContingency, int actionPerOp, int threadCount, SecurityAnalysisRunner.Mode mode) {
+        public String toDirectoryName() {
+            StringBuilder sb = new StringBuilder();
+            sb.append(name).append("_").append(contingencyCount).append("_").append(linePerContingency);
+
+            if (actionPerOp > 0) {
+                sb.append("_1_").append(actionPerOp);
+            }
+
+            sb.append("/").append(mode.name().toLowerCase(Locale.ROOT)).append("_").append(threadCount);
+
+            return sb.toString();
+        }
+    }
 
     static <K, V> Map<K, V> linkedMap(K k1, V v1) {
         LinkedHashMap<K, V> map = new LinkedHashMap<>();

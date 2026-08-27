@@ -39,6 +39,11 @@ public class SpyPerformanceGraphConnectivityFactory<V, E> implements ISpyGraphCo
     }
 
     @Override
+    public void beginIterations(int iterations, IterationType type) {
+        spies.clear();
+    }
+
+    @Override
     public void endIterations(int iterations, IterationType type) {
         if (type == IterationType.MEASURE) {
             try {

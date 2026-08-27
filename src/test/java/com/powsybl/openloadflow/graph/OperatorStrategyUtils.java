@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
 @SuppressWarnings("checkstyle:HideUtilityClassConstructor")
+@Deprecated
 public class OperatorStrategyUtils {
 
     public static Pair<List<OperatorStrategy>, List<Action>> operatorStrategiesFor(Network network, List<Contingency> contingencies, Random random) {

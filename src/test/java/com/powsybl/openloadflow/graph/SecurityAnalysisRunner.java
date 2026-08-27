@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.action.Action;
+import com.powsybl.action.SwitchAction;
 import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.computation.local.LocalComputationManager;
@@ -129,55 +130,35 @@ public class SecurityAnalysisRunner {
     }
 
     public void setContingencies(int contingencyCount, int minLine, int maxLine) {
-        contingencies.addAll(createContingencies(network, random, contingencyCount, minLine, maxLine));
+        contingencies.addAll(createContingencies("ct", network, random, contingencyCount, minLine, maxLine));
     }
 
-    public static List<Contingency> createContingencies(Network network, Random random, int contingencyCount, int minLine, int maxLine) {
-        List<String> lines = network.getLineStream()
+    public static List<Contingency> createContingencies(String prefix, Network network, Random random, int contingencyCount, int minLine, int maxLine) {
+        List<String> lineIds = network.getLineStream()
                 .filter(l -> !l.getId().contains(".") && l.getTerminal1().isConnected() && l.getTerminal2().isConnected())
                 .map(Identifiable::getId)
                 .sorted() // force the initial ordering to be constant, such that shuffle will always lead the same result
                 .collect(Collectors.toList());
 
-        List<Contingency> contingencies = new ArrayList<>();
-        for (int i = 0; i < contingencyCount; i++) {
-            List<ContingencyElement> contingencyLine = RandomUtils.sample(random, lines, minLine, maxLine)
-                    .map(id -> (ContingencyElement) new BranchContingency(id))
-                    .toList();
-            contingencies.add(new Contingency("Contingency " + i, contingencyLine));
-        }
-
-        return contingencies;
+        return createContingencies(prefix, lineIds, random, contingencyCount, minLine, maxLine);
     }
 
+    public static List<Contingency> createContingencies(String prefix, List<String> lineIds, Random random, int contingencyCount, int minLine, int maxLine) {
+        AtomicInteger index = new AtomicInteger();
+        return RandomUtils.distinctSubsets(random, lineIds, contingencyCount, minLine, maxLine)
+                .stream()
+                .map(lines -> lines.stream()
+                        .map(line -> (ContingencyElement) new BranchContingency(line))
+                        .toList())
+                .map(lines -> new Contingency(prefix + "-" + index.getAndIncrement(), lines))
+                .toList();
+    }
+
+    @Deprecated
     public void setDefaultActions() {
         Pair<List<OperatorStrategy>, List<Action>> opAndActions = OperatorStrategyUtils.operatorStrategiesFor(network, contingencies, random);
         operatorStrategies.addAll(opAndActions.getLeft());
         actions.addAll(opAndActions.getRight());
-    }
-
-    public void generateActions() {
-        for (Contingency contingency : contingencies) {
-            List<ContingencyElement> elements = new ArrayList<>(contingency.getElements());
-            Collections.shuffle(elements, random);
-
-            List<String> strActions = new ArrayList<>();
-            for (int i = 0; i < elements.size() / 2; i++) {
-                ContingencyElement element = elements.get(i);
-                if (element instanceof BranchContingency branchContingency) {
-                    TerminalsConnectionAction tca = new TerminalsConnectionAction(branchContingency.getId(), branchContingency.getId(), false);
-
-                    if (actions.add(tca)) {
-                        strActions.add(tca.getId());
-                    }
-                }
-            }
-
-            operatorStrategies.add(new OperatorStrategy("op-" + contingency.getId(),
-                    ContingencyContext.specificContingency(contingency.getId()),
-                    new TrueCondition(),
-                    strActions));
-        }
     }
 
     public void generateContingenciesAndActions(int contingencyCount, int linePerCt, int actionPerOp) {
@@ -189,25 +170,26 @@ public class SecurityAnalysisRunner {
                 .flatMap(b -> b.getConnectedTerminalStream()
                         .filter(t -> t.getConnectable() instanceof Line)
                         .map(t -> (Line) t.getConnectable()))
+                .filter(line -> !line.getId().contains(".") && line.getTerminal1().isConnected() && line.getTerminal2().isConnected())
                 .map(Line::getId)
-                .filter(id -> !id.contains("."))
                 .distinct()
                 .sorted() // constant ordering
                 .collect(Collectors.toList());
 
-        AtomicInteger index = new AtomicInteger();
-        List<Contingency> contingencies = RandomUtils.distinctSubsets(random, linesInComponent, contingencyCount,
-                        linePerCt, linePerCt)
-                .stream()
-                .map(lines -> lines.stream()
-                        .map(line -> (ContingencyElement) new BranchContingency(line))
-                        .toList())
-                .map(lines -> new Contingency("ct-" + index.getAndIncrement(), lines))
-                .toList();
-
+        List<Contingency> contingencies = createContingencies("ct", linesInComponent, random, contingencyCount, linePerCt, linePerCt);
         this.contingencies.addAll(contingencies);
 
         // create actions
+        if (actionPerOp > 0) {
+            if (network.getSwitchCount() == 0) {
+                generateTerminalsConnectionActionsFor(contingencies, mainSynchronous, actionPerOp);
+            } else {
+                generateCloseSwitchActionsFor(contingencies, mainSynchronous, actionPerOp);
+            }
+        }
+    }
+
+    private void generateTerminalsConnectionActionsFor(List<Contingency> contingencies, Component mainSynchronous, int actionPerOp) {
         List<String> disconnectedLines = network.getLineStream()
                 .filter(l -> l.getTerminal1() != null && !l.getTerminal1().isConnected())
                 .filter(l -> l.getTerminal2() != null && !l.getTerminal2().isConnected())
@@ -218,20 +200,48 @@ public class SecurityAnalysisRunner {
                 .map(Line::getId)
                 .collect(Collectors.toList());
 
+        for (Contingency ct : contingencies) {
+            List<String> ids = RandomUtils.sample(random, disconnectedLines, actionPerOp, actionPerOp).toList();
+
+            for (String lineId : ids) {
+                actions.add(new TerminalsConnectionAction(lineId, lineId, false));
+            }
+
+            operatorStrategies.add(new OperatorStrategy("op-" + ct.getId(),
+                    ContingencyContext.specificContingency(ct.getId()),
+                    new TrueCondition(),
+                    ids));
+        }
+    }
+
+    private void generateCloseSwitchActionsFor(List<Contingency> contingencies, Component mainSynchronous, int actionPerOp) {
+        List<Switch> switches = network.getVoltageLevelStream()
+                .flatMap(vl -> vl.getBusBreakerView().getSwitchStream())
+                .filter(Switch::isOpen)
+                .filter(s -> {
+                    VoltageLevel.BusBreakerView bbv = s.getVoltageLevel().getBusBreakerView();
+                    Bus bus1 = bbv.getBus1(s.getId());
+                    Bus bus2 = bbv.getBus2(s.getId());
+
+                    return bus1.getSynchronousComponent() == mainSynchronous && bus1 != bus2;
+                })
+                .collect(Collectors.toList());
+        System.out.println(switches.size());
         for (int i = 0; i < contingencies.size(); i++) {
             Contingency ct = contingencies.get(i);
-            if (actionPerOp > 0) {
-                List<String> ids = RandomUtils.sample(random, disconnectedLines, actionPerOp, actionPerOp).toList();
 
-                for (String lineId : ids) {
-                    actions.add(new TerminalsConnectionAction(lineId, lineId, false));
-                }
+            List<String> ids = RandomUtils.sample(random, switches, actionPerOp, actionPerOp)
+                    .map(Switch::getId)
+                    .toList();
 
-                operatorStrategies.add(new OperatorStrategy("op-ct-" + i,
-                        ContingencyContext.specificContingency(ct.getId()),
-                        new TrueCondition(),
-                        ids));
+            for (String switchId : ids) {
+                actions.add(new SwitchAction(switchId, switchId, false));
             }
+
+            operatorStrategies.add(new OperatorStrategy("op-ct-" + i,
+                    ContingencyContext.specificContingency(ct.getId()),
+                    new TrueCondition(),
+                    ids));
         }
     }
 

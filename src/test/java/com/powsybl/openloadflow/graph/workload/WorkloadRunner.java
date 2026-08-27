@@ -37,16 +37,16 @@ public final class WorkloadRunner {
 
     }
 
-    private static final RunParameters PERFORMANCE = new RunParameters.Performance()
+    private static final BenchmarkParameters PERFORMANCE = new BenchmarkParameters.Performance()
             .setWarmup(20)
             .setMeasurement(10)
             .setOutput("results/workload/${workload}/${class}_no_tree_edge_boolean.${ext}")
             .setOverwrite(true); //.setReplacement("results/workload/${workload}/${class}_list_of_root.${ext}");
-    private static final RunParameters VALIDATOR = new RunParameters.Validator();
-    private static final RunParameters STATS_WRITER = new RunParameters.StatsWriter()
+    private static final BenchmarkParameters VALIDATOR = new BenchmarkParameters.Validator();
+    private static final BenchmarkParameters STATS_WRITER = new BenchmarkParameters.StatsWriter()
             .setOutput("graph_stats/data/${workload}/${class}/${operations}");
 
-    private static final RunParameters WORKLOAD_PARAMS = PERFORMANCE;
+    private static final BenchmarkParameters WORKLOAD_PARAMS = PERFORMANCE;
 
     private static final Log LOG = Log.init("results.txt");
     private static final MyProgressManager PROGRESS = new MyProgressManager();
@@ -95,7 +95,7 @@ public final class WorkloadRunner {
                     }
 
                     PROGRESS.advance(factory);
-                    ISpyGraphConnectivityFactory<Integer, Integer> spy = WORKLOAD_PARAMS.factoryFor(workload, factory);
+                    ISpyGraphConnectivityFactory<Integer, Integer> spy = WORKLOAD_PARAMS.wrapIntoSpyFactory(workload, factory);
                     String partialResults = run(executor, workload, spy, WORKLOAD_PARAMS.warmup(), WORKLOAD_PARAMS.measurement());
                     LOG.log(partialResults);
                 }
