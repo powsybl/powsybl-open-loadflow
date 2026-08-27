@@ -41,6 +41,7 @@ import java.io.UncheckedIOException;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -309,7 +310,9 @@ public class SingleSecurityAnalysisRunner {
         try {
             if (computationManager == null) {
                 try {
-                    ExecutorService executor = ExecutorWithException.newCachedThreadPool(); // let openloadflow use the appropriate number of threads
+                    ExecutorWithException executor = (ExecutorWithException) ExecutorWithException.newCachedThreadPool(); // let openloadflow use the appropriate number of threads
+                    executor.allowCoreThreadTimeOut(true);
+                    executor.setKeepAliveTime(250, TimeUnit.MILLISECONDS);
                     computationManager = new LocalComputationManager(executor);
                     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                         computationManager.close();

@@ -28,8 +28,8 @@ public final class MainSAR {
                 .setWarmup(1)
                 .setMeasurement(1);
         perf.output()
-                .setOutputFormat("results/sa/${name}/${class}_no_tree_edge_boolean.${ext}")
-                .setOverwrite(true); //.setReplacement("results/sa/${name}/${class}_list_of_root.${ext}");
+                .setOutputFormat("results/sa/${name}/${class}.${ext}")
+                .setOverwrite(false); //.setReplacement("results/sa/${name}/${class}.${ext}");
         return perf;
     }
 
@@ -52,18 +52,18 @@ public final class MainSAR {
                 .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
                 .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(0)
                 .setMode(DC).setThreadCount(1).createInput());
-        sar.addInput(new SARInputBuilder()
-                .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
-                .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(0).
-                setMode(DC).setThreadCount(2).createInput());
-        sar.addInput(new SARInputBuilder()
-                .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
-                .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(1)
-                .setMode(DC).setThreadCount(1).createInput());
-        sar.addInput(new SARInputBuilder()
-                .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
-                .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(1)
-                .setMode(DC).setThreadCount(2).createInput());
+        // sar.addInput(new SARInputBuilder()
+        //         .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
+        //         .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(0).
+        //         setMode(DC).setThreadCount(2).createInput());
+        // sar.addInput(new SARInputBuilder()
+        //         .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
+        //         .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(1)
+        //         .setMode(DC).setThreadCount(1).createInput());
+        // sar.addInput(new SARInputBuilder()
+        //         .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
+        //         .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(1)
+        //         .setMode(DC).setThreadCount(2).createInput());
         // sar.addInput(new SARInputBuilder()
         //         .setNetwork("/home/carrezval/networks/case_SyntheticUSA.mat").setName("usa")
         //         .setLineToDisconnect(5000).setContingencyCount(10000).setLinePerContingency(10).setActionPerOp(0)
