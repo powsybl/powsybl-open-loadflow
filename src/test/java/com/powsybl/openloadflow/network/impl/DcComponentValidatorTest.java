@@ -36,6 +36,48 @@ class DcComponentValidatorTest {
     }
 
     @Test
+    void droopModeIsAlsoConsideredAsControllingVoltage() {
+        // conv23 (P_PCC) and conv45 (V_DC) share the dn3/dn4 island: conv45 already settles its DC voltage
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+        network.getVoltageSourceConverter("conv45").setControlMode(AcDcConverter.ControlMode.P_PCC_DROOP);
+        List<AcDcConverter<?>> convertersToSetInVdcMode = DcComponentValidator.resolveDcComponent(
+                allDcBuses(network),
+                List.of(network.getVoltageSourceConverter("conv23"), network.getVoltageSourceConverter("conv45")),
+                NUM_DCC);
+
+        assertTrue(convertersToSetInVdcMode.isEmpty());
+    }
+
+    @Test
+    void disconnectedConvertersAreNotConsidered() {
+        // conv23 (P_PCC) and conv45 (V_DC) share the dn3/dn4 island: conv45 already settles its DC voltage but is
+        // disconnected. it cannot control DC voltage anymore
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+        VoltageSourceConverter conv45 = network.getVoltageSourceConverter("conv45");
+
+        // AC disconnection
+        conv45.disconnect();
+        List<AcDcConverter<?>> convertersToSetInVdcMode = DcComponentValidator.resolveDcComponent(
+                allDcBuses(network),
+                List.of(network.getVoltageSourceConverter("conv23"), network.getVoltageSourceConverter("conv45")),
+                NUM_DCC);
+
+        assertEquals(1, convertersToSetInVdcMode.size());
+        assertEquals(network.getVoltageSourceConverter("conv23"), convertersToSetInVdcMode.getFirst());
+
+        // DC disconnection
+        conv45.connect();
+        conv45.disconnectDc();
+        List<AcDcConverter<?>> convertersToSetInVdcMode2 = DcComponentValidator.resolveDcComponent(
+                allDcBuses(network),
+                List.of(network.getVoltageSourceConverter("conv23"), network.getVoltageSourceConverter("conv45")),
+                NUM_DCC);
+
+        assertEquals(1, convertersToSetInVdcMode2.size());
+        assertEquals(network.getVoltageSourceConverter("conv23"), convertersToSetInVdcMode2.getFirst());
+    }
+
+    @Test
     void allPccConverterArePromotedWhenTwoShareAnIsland() {
         Network network = AcDcNetworkFactory.createAcDcNetworkTwoPccConvertersWithoutVdcReference();
 

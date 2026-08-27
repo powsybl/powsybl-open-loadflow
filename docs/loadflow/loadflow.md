@@ -382,7 +382,8 @@ If a terminal of the converter is disconnected, the converter is not included in
 
 The converter can control either the power received by the AC network (`P_PCC` control mode) 
 or the voltage between its two DC buses (`V_DC` control mode).
-At least one of the voltage source converters of the DC network must be in `V_DC` mode. Otherwise, an exception will be thrown.
+At least one of the voltage source converters of the DC network must control the voltage (i.e. be in `V_DC` or `P_PCC_DROOP` mode).
+If a DC network has only converters in `P_PCC` mode, they will be automatically set in `V_DC` mode with the DC nominal voltage as target voltage.
 
 In addition to the control modes `P_PCC` and `V_DC`, the voltage source converter can be set in two modes :
 - Reactive power control mode, in which it imposes the reactive power received from AC to DC, which is 0 by default.

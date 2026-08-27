@@ -65,9 +65,9 @@ public final class DcComponentValidator {
      *
      * @throws PowsyblException If the island has no element imposing voltage and no converter can be promoted.
      */
-    private static void resolveIslandIfNeeded(DcIsland island, List<AcDcConverter<?>> resolvedTargetVdc, int numDcc) {
+    private static void resolveIslandIfNeeded(DcIsland island, List<AcDcConverter<?>> convertersToUpdate, int numDcc) {
         if (island.hasConnectedDcGround()
-            || island.hasConverterMatching(c -> controlsDcVoltage(c) || resolvedTargetVdc.contains(c))) {
+            || island.hasConverterMatching(c -> controlsDcVoltage(c) || convertersToUpdate.contains(c))) {
             return; // already has (or was just given, while resolving an adjacent island) an element imposing DC voltage
         }
         Set<AcDcConverter<?>> islandConverters = island.getConverters();
@@ -75,7 +75,7 @@ public final class DcComponentValidator {
             throw new PowsyblException("DC component " + numDcc + " has an island of DC buses with no DC ground"
                 + " and no AC-DC converter able to settle the DC voltage");
         }
-        resolvedTargetVdc.addAll(islandConverters);
+        convertersToUpdate.addAll(islandConverters);
     }
 
     /**
