@@ -13,12 +13,15 @@ import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 
 import java.io.IOException;
 
+import static com.powsybl.openloadflow.graph.runners.SingleSecurityAnalysisRunner.Mode.DC;
+
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
 public final class MainSAR {
 
-    private MainSAR() { }
+    private MainSAR() {
+    }
 
     private static RunParameters.Performance performance() {
         RunParameters.Performance perf = new RunParameters.Performance()
@@ -45,18 +48,30 @@ public final class MainSAR {
         SecurityAnalysisRunner sar = new SecurityAnalysisRunner();
         sar.setRunParameters(performance());
 
-        sar.addInput(new SecurityAnalysisRunner.Input("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz",
-                "fr", 0, -1, 1, 0, SingleSecurityAnalysisRunner.Mode.DC, 1));
-        // sar.addInput(new SecurityAnalysisRunner.Input("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz",
-        //         "fr", 0, -1, 1, 0, SingleSecurityAnalysisRunner.Mode.DC, 2));
-        // sar.addInput(new SecurityAnalysisRunner.Input("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz",
-        //         "fr", 0, -1, 1, 1, SingleSecurityAnalysisRunner.Mode.DC, 1));
-        // sar.addInput(new SecurityAnalysisRunner.Input("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz",
-        //         "fr", 0, -1, 1, 1, SingleSecurityAnalysisRunner.Mode.DC, 2));
-        // sar.addInput(new SecurityAnalysisRunner.Input("/home/carrezval/networks/case_SyntheticUSA.mat",
-        //         "usa", 5000, 10000, 10, 0, SingleSecurityAnalysisRunner.Mode.DC, 8));
-        // sar.addInput(new SecurityAnalysisRunner.Input("/home/carrezval/networks/case_SyntheticUSA.mat",
-        //         "usa", 5000, 10000, 10, 10, SingleSecurityAnalysisRunner.Mode.DC, 8));
+        sar.addInput(new SARInputBuilder()
+                .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
+                .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(0)
+                .setMode(DC).setThreadCount(1).createInput());
+        sar.addInput(new SARInputBuilder()
+                .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
+                .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(0).
+                setMode(DC).setThreadCount(2).createInput());
+        sar.addInput(new SARInputBuilder()
+                .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
+                .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(1)
+                .setMode(DC).setThreadCount(1).createInput());
+        sar.addInput(new SARInputBuilder()
+                .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
+                .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(1)
+                .setMode(DC).setThreadCount(2).createInput());
+        // sar.addInput(new SARInputBuilder()
+        //         .setNetwork("/home/carrezval/networks/case_SyntheticUSA.mat").setName("usa")
+        //         .setLineToDisconnect(5000).setContingencyCount(10000).setLinePerContingency(10).setActionPerOp(0)
+        //         .setMode(DC).setThreadCount(8).createInput());
+        // sar.addInput(new SARInputBuilder()
+        //         .setNetwork("/home/carrezval/networks/case_SyntheticUSA.mat").setName("usa")
+        //         .setLineToDisconnect(5000).setContingencyCount(10000).setLinePerContingency(10).setActionPerOp(10)
+        //         .setMode(DC).setThreadCount(8).createInput());
 
         // sar.addConnectivityFactory(new OldNaiveGraphConnectivity.Factory<>((Integer i) -> i));
         // sar.addConnectivityFactory(new NaiveGraphConnectivityFactory<>((Integer i) -> i));

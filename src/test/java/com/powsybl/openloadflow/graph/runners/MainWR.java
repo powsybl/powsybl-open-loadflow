@@ -27,7 +27,7 @@ public final class MainWR {
                 .setWarmup(10)
                 .setMeasurement(10);
         perf.output()
-                .setOutputFormat("results/workloadbis/${workload}/${class}_no_tree_edge_boolean.${ext}")
+                .setOutputFormat("results/workload/${workload}/${class}_no_tree_edge_boolean.${ext}")
                 .setOverwrite(true); //.setReplacement("results/workload/${workload}/${class}_list_of_root.${ext}");
         return perf;
     }
