@@ -15,7 +15,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
-import com.powsybl.openloadflow.graph.SecurityAnalysisRunner;
+import com.powsybl.openloadflow.graph.runners.SingleSecurityAnalysisRunner;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 
@@ -33,10 +33,10 @@ import static com.powsybl.openloadflow.graph.utils.GraphConnectivityMethod.*;
  */
 public class SpyWorkloadGenerator implements IGenerateWorkload {
 
-    public SecurityAnalysisRunner sar;
+    public SingleSecurityAnalysisRunner sar;
 
     public SpyWorkloadGenerator(Network network) {
-        sar = new SecurityAnalysisRunner(network);
+        sar = new SingleSecurityAnalysisRunner(network);
         sar.connectivity = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
     }
 

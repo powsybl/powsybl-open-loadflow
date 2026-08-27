@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.graph.workload;
 
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.utils.AverageStopWatch;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -16,11 +17,7 @@ public interface ISpyGraphConnectivityFactory<V, E> extends GraphConnectivityFac
 
     default void beginIterations(int iterations, IterationType type) { }
 
-    default void endIterations(int iterations, IterationType type) { }
-
-    default void beginIteration(int i, IterationType type) { }
-
-    default void endIteration(int i, IterationType type) { }
+    default void endIterations(int iterations, IterationType type, AverageStopWatch timePerIteration) { }
 
     @Override
     ISpyGraphConnectivity<V, E> create();

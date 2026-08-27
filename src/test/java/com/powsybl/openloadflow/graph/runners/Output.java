@@ -5,9 +5,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.graph.workload;
+package com.powsybl.openloadflow.graph.runners;
 
 import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
+import com.powsybl.openloadflow.graph.workload.ISpyGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.workload.Operations;
+import com.powsybl.openloadflow.graph.workload.Workload;
 import org.apache.commons.text.StringSubstitutor;
 
 import java.io.IOException;
@@ -19,20 +22,27 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * Standard variables:
+ * <ul>
+ *     <li>time</li>
+ *     <li>class: {@link com.powsybl.openloadflow.graph.GraphConnectivityFactory} class</li>
+ *     <li>spy: {@link com.powsybl.openloadflow.graph.workload.ISpyGraphConnectivityFactory} spy used to gather output</li>
+ * </ul>
+ *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class SpyOutputFolder {
+public class Output {
 
     private String outputFormat;
     private String replacementFormat = null;
     private boolean overwrite = false;
     private final Map<String, String> outputPathParameters;
 
-    public SpyOutputFolder() {
+    public Output() {
         this.outputPathParameters = new HashMap<>();
     }
 
-    public SpyOutputFolder(SpyOutputFolder other) {
+    public Output(Output other) {
         this.outputFormat = other.outputFormat;
         this.replacementFormat = other.replacementFormat;
         this.overwrite = other.overwrite;
@@ -70,35 +80,48 @@ public class SpyOutputFolder {
         return output;
     }
 
-    public void set(String key, String value) {
+    public Output set(String key, String value) {
         outputPathParameters.put(key, value);
+        return this;
     }
 
-    public void setOutputFormat(String outputFormat) {
+    public Output setOutputFormat(String outputFormat) {
         this.outputFormat = outputFormat;
+        return this;
     }
 
-    public void setReplacementFormat(String replacementFormat) {
+    public Output setReplacementFormat(String replacementFormat) {
         this.replacementFormat = replacementFormat;
+        return this;
     }
 
-    public void setOverwrite(boolean overwrite) {
+    public Output setOverwrite(boolean overwrite) {
         this.overwrite = overwrite;
+        return this;
     }
 
-    public void setGraphConnectivityFactory(Class<?> factory) {
+    public Output setGraphConnectivityFactory(Class<?> factory) {
         outputPathParameters.put("class", WorkloadUtils.getClassName(factory));
+        return this;
     }
 
-    public void setWorkload(Workload workload) {
+    public Output setSpyGraphConnectivityFactory(Class<?> factory) {
+        outputPathParameters.put("spy", WorkloadUtils.getClassName(factory));
+        return this;
+    }
+
+    public Output setWorkload(Workload workload) {
         outputPathParameters.put("workload", workload.source().getFileName().toString());
+        return this;
     }
 
-    public void setWorkloadName(String workloadName) {
+    public Output setWorkloadName(String workloadName) {
         outputPathParameters.put("workload", workloadName);
+        return this;
     }
 
-    public void setOperations(Operations operations) {
+    public Output setOperations(Operations operations) {
         outputPathParameters.put("operations", operations.source().toString());
+        return this;
     }
 }

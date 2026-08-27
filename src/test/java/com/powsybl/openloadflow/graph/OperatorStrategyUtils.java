@@ -34,9 +34,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
 @SuppressWarnings("checkstyle:HideUtilityClassConstructor")
-@Deprecated
 public class OperatorStrategyUtils {
 
+    @Deprecated
     public static Pair<List<OperatorStrategy>, List<Action>> operatorStrategiesFor(Network network, List<Contingency> contingencies, Random random) {
         // vertex = node in a voltage level node breaker view
         // edge = something between two nodes
@@ -232,5 +232,32 @@ public class OperatorStrategyUtils {
         }
 
         return new ArrayList<>(lines);
+    }
+
+    public static List<Action> getCloseSwitchActions(Network network) {
+        return network.getSwitchStream()
+                .filter(Switch::isOpen) // seulement les switchs ouverts dont l'action sera de les fermer
+                .filter(s -> !s.getId().contains("."))
+                .map(s -> {
+                    s.setRetained(true);
+                    return (Action) new SwitchAction(s.getId(), s.getId(), false);
+                })
+                .collect(Collectors.toList());
+    }
+
+    public static List<OperatorStrategy> createOperatorStrategies(List<Contingency> contingencies, List<Action> actions, Random random, int minAction, int maxAction) {
+        List<OperatorStrategy> operatorStrategies = new ArrayList<>();
+
+        for (int i = 0; i < contingencies.size(); i++) {
+            // take between 'minAction' and 'maxAction' actions for this contingency
+            List<String> opActions = RandomUtils.sample(random, actions, minAction, maxAction).map(Action::getId).toList();
+
+            operatorStrategies.add(new OperatorStrategy("OP" + i,
+                    ContingencyContext.specificContingency(contingencies.get(i).getId()),
+                    new TrueCondition(),
+                    opActions));
+        }
+
+        return operatorStrategies;
     }
 }

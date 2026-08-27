@@ -7,6 +7,9 @@
  */
 package com.powsybl.openloadflow.graph.utils;
 
+import com.fasterxml.jackson.core.JsonGenerator;
+
+import java.io.IOException;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -90,6 +93,11 @@ public class AverageStopWatch {
 
     public int count() {
         return n;
+    }
+
+    public void serialize(JsonGenerator g) throws IOException {
+        g.writeNumberField("total", totalElapsedNanos);
+        g.writeNumberField("count", n);
     }
 
     @Override

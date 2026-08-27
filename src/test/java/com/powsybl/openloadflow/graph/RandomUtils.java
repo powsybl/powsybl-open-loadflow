@@ -35,7 +35,7 @@ public final class RandomUtils {
         BigInteger count = sizeCumulative.getLast();
         System.out.println("Number of subsets: " + count);
 
-        if (count.compareTo(BigInteger.valueOf(subsetsCount)) <= 0) {
+        if (subsetsCount < 0 || count.compareTo(BigInteger.valueOf(subsetsCount)) <= 0) {
             // count < subsetsCount
             return allSubsets(random, list, subsetsCount, minSize, maxSize);
         } else {
@@ -76,7 +76,7 @@ public final class RandomUtils {
         BigInteger count = sizeCumulative.getLast();
         System.out.println("Number of subsets: " + count);
 
-        if (count.compareTo(BigInteger.valueOf(subsetsCount)) <= 0) {
+        if (subsetsCount < 0 || count.compareTo(BigInteger.valueOf(subsetsCount)) <= 0) {
             // count < subsetsCount
             return allSubsets(random, list, subsetsCount, minSize, maxSize);
         } else {

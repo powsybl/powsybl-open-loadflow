@@ -12,6 +12,8 @@ import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.generators.WorkloadUtils;
+import com.powsybl.openloadflow.graph.runners.Output;
+import com.powsybl.openloadflow.graph.utils.AverageStopWatch;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -26,16 +28,22 @@ import java.util.List;
 public class SpyPerformanceGraphConnectivityFactory<V, E> implements ISpyGraphConnectivityFactory<V, E> {
 
     private final GraphConnectivityFactory<V, E> delegateFactory;
-    private final SpyOutputFolder output;
+    private final Output output;
     private final List<SpyPerformanceGraphConnectivity<V, E>> spies = new ArrayList<>();
 
     public SpyPerformanceGraphConnectivityFactory(GraphConnectivityFactory<V, E> delegateFactory) {
         this(delegateFactory, null);
     }
 
-    public SpyPerformanceGraphConnectivityFactory(GraphConnectivityFactory<V, E> delegateFactory, SpyOutputFolder output) {
+    public SpyPerformanceGraphConnectivityFactory(GraphConnectivityFactory<V, E> delegateFactory, Output output) {
         this.delegateFactory = delegateFactory;
-        this.output = output;
+
+        if (output != null) {
+            this.output = new Output(output);
+            this.output.setSpyGraphConnectivityFactory(getClass());
+        } else {
+            this.output = null;
+        }
     }
 
     @Override
@@ -44,7 +52,7 @@ public class SpyPerformanceGraphConnectivityFactory<V, E> implements ISpyGraphCo
     }
 
     @Override
-    public void endIterations(int iterations, IterationType type) {
+    public void endIterations(int iterations, IterationType type, AverageStopWatch timePerIteration) {
         if (type == IterationType.MEASURE) {
             try {
                 output.set("ext", "json");
@@ -57,6 +65,11 @@ public class SpyPerformanceGraphConnectivityFactory<V, E> implements ISpyGraphCo
                         g.setPrettyPrinter(new DefaultPrettyPrinter());
                         g.writeStartObject();
                         serialize(g);
+
+                        g.writeObjectFieldStart("timePerIteration");
+                        timePerIteration.serialize(g);
+                        g.writeEndObject();
+
                         g.writeEndObject();
                     }
                 }
@@ -65,7 +78,8 @@ public class SpyPerformanceGraphConnectivityFactory<V, E> implements ISpyGraphCo
                 outputPath = this.output.getOutputPath();
 
                 if (outputPath != null) {
-                    Files.writeString(outputPath, resultsToString(iterations));
+                    String content = resultsToString(iterations) + "Time/iter: " + timePerIteration + System.lineSeparator();
+                    Files.writeString(outputPath, content);
                 }
             } catch (IOException e) {
                 throw new UncheckedIOException(e);

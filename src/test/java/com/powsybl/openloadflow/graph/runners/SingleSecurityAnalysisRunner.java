@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.graph;
+package com.powsybl.openloadflow.graph.runners;
 
 import com.powsybl.action.Action;
 import com.powsybl.action.SwitchAction;
@@ -21,6 +21,9 @@ import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.OperatorStrategyUtils;
+import com.powsybl.openloadflow.graph.RandomUtils;
 import com.powsybl.openloadflow.graph.ng.BusBreakerGraph;
 import com.powsybl.openloadflow.graph.utils.AverageStopWatch;
 import com.powsybl.openloadflow.graph.workload.ExecutorWithException;
@@ -47,7 +50,7 @@ import java.util.stream.Collectors;
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
 @SuppressWarnings("checkstyle:HideUtilityClassConstructor")
-public class SecurityAnalysisRunner {
+public class SingleSecurityAnalysisRunner {
 
     public Random random = new Random(0);
 
@@ -61,7 +64,7 @@ public class SecurityAnalysisRunner {
     public Mode mode;
     public int threadCount;
 
-    public SecurityAnalysisRunner(Network network) {
+    public SingleSecurityAnalysisRunner(Network network) {
         this.network = network;
         this.busBreakerGraph = new BusBreakerGraph(network);
     }

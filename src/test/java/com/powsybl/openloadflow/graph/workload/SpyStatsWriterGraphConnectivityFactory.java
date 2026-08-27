@@ -9,10 +9,12 @@ package com.powsybl.openloadflow.graph.workload;
 
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.log.Log;
+import com.powsybl.openloadflow.graph.runners.Output;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.util.Objects;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -20,11 +22,12 @@ import java.nio.file.Path;
 public class SpyStatsWriterGraphConnectivityFactory<V, E> implements ISpyGraphConnectivityFactory<V, E> {
 
     private final GraphConnectivityFactory<V, E> delegateFactory;
-    private final SpyOutputFolder output;
+    private final Output output;
 
-    public SpyStatsWriterGraphConnectivityFactory(GraphConnectivityFactory<V, E> delegateFactory, SpyOutputFolder output) {
+    public SpyStatsWriterGraphConnectivityFactory(GraphConnectivityFactory<V, E> delegateFactory, Output output) {
         this.delegateFactory = delegateFactory;
-        this.output = output;
+        this.output = new Output(Objects.requireNonNull(output));
+        this.output.setSpyGraphConnectivityFactory(getClass());
     }
 
     @Override
