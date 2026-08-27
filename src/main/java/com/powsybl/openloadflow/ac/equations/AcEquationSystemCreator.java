@@ -805,7 +805,7 @@ public class AcEquationSystemCreator {
         SingleEquationTerm<AcVariableType, AcEquationType> closedP2 = null;
         SingleEquationTerm<AcVariableType, AcEquationType> closedI2 = null;
 
-        // open equations, could be null because only necessary if already open and never closed, or open during simulation
+        // open equations, only created when the line is (or becomes) open; null while it stays closed
         SingleEquationTerm<AcVariableType, AcEquationType> openP1 = null;
         SingleEquationTerm<AcVariableType, AcEquationType> openI1 = null;
         SingleEquationTerm<AcVariableType, AcEquationType> openP2 = null;

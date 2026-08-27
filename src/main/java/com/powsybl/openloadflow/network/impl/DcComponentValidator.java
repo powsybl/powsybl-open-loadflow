@@ -14,7 +14,8 @@ import java.util.*;
 import java.util.function.Predicate;
 
 /**
- * Helper methods to validate a DcComponent configuration
+ * Helper methods to validate a DcComponent configuration and, when possible, automatically resolve an
+ * otherwise invalid one.
  *
  * @author Baptiste Perreyon {@literal <baptiste.perreyon at supergrid-institute.com>}
  */
@@ -24,20 +25,57 @@ public final class DcComponentValidator {
     }
 
     /**
-     * Check that a DC component is a configuration Open Load Flow can solve. Disconnected converters
-     * are ignored: only fully connected ones take part in the checks.
+     * Check that a DC component is a configuration Open Load Flow can solve, and resolve any island of DC
+     * buses (connected through DC lines only) that has no element imposing the DC voltage (no connected DC
+     * ground and no fully connected V_DC/P_PCC_DROOP converter), by selecting all fully connected P_PCC
+     * converters of that island to be promoted to V_DC control internally. Disconnected converters are
+     * ignored: only fully connected ones take part in the checks/resolution.
      *
+     * @param dcBuses        All DC buses found in the DC component.
      * @param acDcConverters All AC-DC converters found in the DC component.
      * @param numDcc         The DC component's id, used in error messages.
-     * @throws PowsyblException If the DC component configuration is invalid.
+     * @return A list of AC-DC converter promoted to V_DC control, to use instead of the converter's own IIDM value;
+     *         empty if no promotion was necessary.
+     * @throws PowsyblException If the DC component configuration is invalid and cannot be resolved automatically.
      */
-    static void checkDcComponentIsValid(Collection<AcDcConverter<?>> acDcConverters, int numDcc) {
+    static List<AcDcConverter<?>> resolveDcComponent(List<DcBus> dcBuses, Collection<AcDcConverter<?>> acDcConverters,
+                                                     int numDcc) {
         List<AcDcConverter<?>> connectedConverters = acDcConverters.stream()
             .filter(DcComponentValidator::isFullyConnected)
             .toList();
         checkAllConvertersAreIndirectlyConnectedToADcGround(connectedConverters);
-        checkAtLeastOneConverterControlsVdc(connectedConverters, numDcc);
-        checkPccConvertersAreIndirectlyConnectedToElementImposingVoltage(connectedConverters);
+
+        List<AcDcConverter<?>> convertersToUpdate = new ArrayList<>();
+        Set<String> visitedBusIds = new HashSet<>();
+        List<DcBus> sortedDcBuses = dcBuses.stream().sorted(Comparator.comparing(DcBus::getId)).toList();
+        for (DcBus dcBus : sortedDcBuses) {
+            if (visitedBusIds.contains(dcBus.getId())) {
+                continue;
+            }
+            DcIsland island = DcIsland.around(dcBus);
+            visitedBusIds.addAll(island.getVisitedBusIds());
+            resolveIslandIfNeeded(island, convertersToUpdate, numDcc);
+        }
+        return convertersToUpdate;
+    }
+
+    /**
+     * Add all converters of the island to V_DC control if the island has no element already imposing DC
+     * voltage; do nothing otherwise.
+     *
+     * @throws PowsyblException If the island has no element imposing voltage and no converter can be promoted.
+     */
+    private static void resolveIslandIfNeeded(DcIsland island, List<AcDcConverter<?>> resolvedTargetVdc, int numDcc) {
+        if (island.hasConnectedDcGround()
+            || island.hasConverterMatching(c -> controlsDcVoltage(c) || resolvedTargetVdc.contains(c))) {
+            return; // already has (or was just given, while resolving an adjacent island) an element imposing DC voltage
+        }
+        Set<AcDcConverter<?>> islandConverters = island.getConverters();
+        if (islandConverters.isEmpty()) {
+            throw new PowsyblException("DC component " + numDcc + " has an island of DC buses with no DC ground"
+                + " and no AC-DC converter able to settle the DC voltage");
+        }
+        resolvedTargetVdc.addAll(islandConverters);
     }
 
     /**
@@ -52,51 +90,6 @@ public final class DcComponentValidator {
             if (!isConnectedToGround(converter.getDcTerminal1()) && !isConnectedToGround(converter.getDcTerminal2())) {
                 throw new PowsyblException(String.format("Converter %s is not indirectly connected to a DC ground", converter.getId()));
             }
-        }
-    }
-
-    /**
-     * Check that at least one AC-DC converter controls the DC voltage.
-     *
-     * @param acDcConverters A list of AC-DC converters to check.
-     * @throws PowsyblException If no AC-DC converter control the DC voltage.
-     */
-    private static void checkAtLeastOneConverterControlsVdc(List<AcDcConverter<?>> acDcConverters, int numDcc) {
-        if (acDcConverters.stream().noneMatch(DcComponentValidator::controlsDcVoltage)) {
-            throw new PowsyblException("At least one AC/DC converter control mode must be V_DC or P_PCC_DROOP in each DC component, but DC component " + numDcc + " does not have any");
-        }
-    }
-
-    /**
-     * Check that both DC terminals of each AC-DC converter in P_PCC mode are indirectly connected (i.e. through DC
-     * lines) to an element imposing voltage (a non P_PCC AC-DC converter or a DC ground).
-     *
-     * @param acDcConverters A list of AC-DC converters to check.
-     * @throws PowsyblException If at least one terminal of one AC-DC converter is not indirectly connected to an
-     *                          element imposing voltage
-     */
-    private static void checkPccConvertersAreIndirectlyConnectedToElementImposingVoltage(List<AcDcConverter<?>> acDcConverters) {
-        for (AcDcConverter<?> converter : acDcConverters) {
-            if (converter.getControlMode() == AcDcConverter.ControlMode.P_PCC) {
-                checkDcTerminalVoltageIsImposed(converter, converter.getDcTerminal1(), "first");
-                checkDcTerminalVoltageIsImposed(converter, converter.getDcTerminal2(), "second");
-            }
-        }
-    }
-
-    /**
-     * Throw an Exception if the converter DC terminal is not connected to an element imposing voltage.
-     *
-     * @param converter    The AC-DC converter to check.
-     * @param dcTerminal   The DC terminal of the AC-DC converter to check.
-     * @param terminalName The name of the DC terminal to check.
-     * @throws PowsyblException If the DC terminal of the AC-DC converter is not indirectly connected to an element imposing voltage
-     */
-    private static void checkDcTerminalVoltageIsImposed(AcDcConverter<?> converter, DcTerminal dcTerminal, String terminalName) {
-        if (!isConnectedToVoltageImposingElement(dcTerminal)) {
-            throw new PowsyblException(String.format(
-                "Converter %s is in P_PCC control mode but its %s DC bus is not connected to an element imposing voltage",
-                converter.getId(), terminalName));
         }
     }
 
@@ -126,17 +119,7 @@ public final class DcComponentValidator {
     }
 
     /**
-     * Tells whether a DC terminal is indirectly connected, through DC lines, to an element imposing
-     * voltage: a connected DC ground, or a fully connected converter settling the DC voltage.
-     */
-    private static boolean isConnectedToVoltageImposingElement(DcTerminal startTerminal) {
-        DcIsland island = DcIsland.around(startTerminal);
-        return island.hasConnectedDcGround()
-            || island.hasConverterMatching(c -> controlsDcVoltage(c) && isFullyConnected(c));
-    }
-
-    /**
-     * The set of DC buses reachable from a DC terminal by following connected DC lines, together with
+     * The set of DC buses reachable from a DC bus by following connected DC lines, together with
      * the connected DC grounds and the AC-DC converters attached to them. Built by breadth-first search.
      */
     private static final class DcIsland implements DcTopologyVisitor {
@@ -144,18 +127,25 @@ public final class DcComponentValidator {
         private final Set<String> visitedBusIds = new HashSet<>();
         private final Deque<DcBus> busesToVisit = new ArrayDeque<>();
         private final List<DcGround> connectedGrounds = new ArrayList<>();
-        private final List<AcDcConverter<?>> converters = new ArrayList<>();
+        private final Set<AcDcConverter<?>> converters = new LinkedHashSet<>();
+
+        /**
+         * Explores the island around {@code startBus}; a null bus yields an empty island.
+         */
+        static DcIsland around(DcBus startBus) {
+            DcIsland island = new DcIsland();
+            island.enqueue(startBus);
+            while (!island.busesToVisit.isEmpty()) {
+                island.busesToVisit.poll().visitConnectedEquipments(island);
+            }
+            return island;
+        }
 
         /**
          * Explores the island around {@code startTerminal}; an unconnected terminal yields an empty island.
          */
         static DcIsland around(DcTerminal startTerminal) {
-            DcIsland island = new DcIsland();
-            island.enqueue(startTerminal.getDcBus());
-            while (!island.busesToVisit.isEmpty()) {
-                island.busesToVisit.poll().visitConnectedEquipments(island);
-            }
-            return island;
+            return around(startTerminal.getDcBus());
         }
 
         private void enqueue(DcBus dcBus) {
@@ -164,12 +154,20 @@ public final class DcComponentValidator {
             }
         }
 
+        Set<String> getVisitedBusIds() {
+            return visitedBusIds;
+        }
+
         boolean hasConnectedDcGround() {
             return !connectedGrounds.isEmpty();
         }
 
         boolean hasConverterMatching(Predicate<AcDcConverter<?>> predicate) {
             return converters.stream().anyMatch(predicate);
+        }
+
+        Set<AcDcConverter<?>> getConverters() {
+            return converters;
         }
 
         @Override
@@ -190,7 +188,9 @@ public final class DcComponentValidator {
 
         @Override
         public void visitAcDcConverter(AcDcConverter<?> converter, TerminalNumber terminalNumber) {
-            converters.add(converter);
+            if (isFullyConnected(converter)) {
+                converters.add(converter);
+            }
         }
     }
 }

@@ -630,13 +630,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createAcDcConverters(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkParameters parameters) {
+    private static void createAcDcConverters(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkParameters parameters,
+                                             List<AcDcConverter<?>> convertersToSetInVdcMode, double dcNominalV) {
         for (AcDcConverter<?> acDcConverter : loadingContext.acDcConverterSet) {
-            createAcDcConverter(acDcConverter, lfNetwork, parameters);
+            createAcDcConverter(acDcConverter, lfNetwork, parameters, convertersToSetInVdcMode.contains(acDcConverter) ? Optional.of(dcNominalV) : Optional.empty());
         }
     }
 
-    private static void createAcDcConverter(AcDcConverter<?> acDcConverter, LfNetwork lfNetwork, LfNetworkParameters parameters) {
+    private static void createAcDcConverter(AcDcConverter<?> acDcConverter, LfNetwork lfNetwork, LfNetworkParameters parameters,
+                                            Optional<Double> vdcOverride) {
 
         if (acDcConverter.getTerminal2().isPresent()) {
             throw new PowsyblException("Open Load Flow does not support AC/DC converters with two AC terminals");
@@ -647,7 +649,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         LfDcBus lfDcBus2 = getLfDcBus(acDcConverter.getDcTerminal2(), lfNetwork);
         if (lfBus1 != null && lfDcBus1 != null && lfDcBus2 != null) { // The converter is fully connected
             if (acDcConverter instanceof VoltageSourceConverter voltageSourceConverter) {
-                LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, lfDcBus1, lfDcBus2, lfBus1, parameters);
+                LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, lfDcBus1, lfDcBus2, lfBus1, parameters, vdcOverride);
 
                 if (voltageSourceConverterImpl.isVoltageRegulatorOn()) {
                     VoltageSourceConverterVoltageControl voltageControl = new VoltageSourceConverterVoltageControl(lfBus1,
@@ -1371,11 +1373,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     throw new PowsyblException("DcSwitch " + s.getId() + " has non zero resistance: not handled yet in AC DC load flow (R = " + s.getR() + ")");
                 });
 
-        // -- Sanity checks : detecting invalid DC configuration
-        DcComponentValidator.checkDcComponentIsValid(loadingContext.acDcConverterSet, numDcc);
+        // -- Sanity checks : detecting invalid DC configuration and automatically resolving reference-less islands
+        double dcNominalV = dcVoltages.iterator().next();
+        List<AcDcConverter<?>> convertersToSetInVdcMode =
+            DcComponentValidator.resolveDcComponent(dcBuses, loadingContext.acDcConverterSet, numDcc);
+        convertersToSetInVdcMode.forEach(converter -> {
+            LOGGER.info("Network {}: converter '{}' automatically set to V_DC control mode (target Vdc = {} kV) " +
+                    "to settle an otherwise unconstrained DC island in DC component {}",
+                lfNetwork, converter.getId(), dcNominalV, numDcc);
+            Reports.reportAutomaticVdcReferenceConverter(lfNetwork.getReportNode(), numDcc, converter.getId(), dcNominalV);
+        });
 
         // Add AC-DC converters to the LfNetwork
-        createAcDcConverters(lfNetwork, loadingContext, parameters);
+        createAcDcConverters(lfNetwork, loadingContext, parameters, convertersToSetInVdcMode, dcNominalV);
 
         postProcessors.forEach(pp -> pp.onLfNetworkLoaded(network, lfNetwork));
     }

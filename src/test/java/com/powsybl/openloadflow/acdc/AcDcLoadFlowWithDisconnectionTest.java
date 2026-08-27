@@ -22,8 +22,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import java.util.concurrent.CompletionException;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Baptiste Perreyon {@literal <baptiste.perreyon at supergrid-institute.com>}
@@ -45,6 +46,20 @@ class AcDcLoadFlowWithDisconnectionTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters).setAcDcNetwork(true);
+    }
+
+    /*
+     * DC ground disconnection
+     */
+    @Test
+    void testConverterNotIndirectlyConnectedToDcGround() {
+        /// conv23's DC ground (dg3) is disconnected. Neither of its DC terminals is indirectly connected to a DC ground
+        /// anymore. This should trigger an Exception
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+        network.getDcGround("dg3").disconnectDc();
+
+        CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("Converter conv23 is not indirectly connected to a DC ground", e.getCause().getMessage());
     }
 
     /*
@@ -83,7 +98,7 @@ class AcDcLoadFlowWithDisconnectionTest {
         assertEquals(expectedDcCurrent, network.getDcLine("dl34").getDcTerminal1().getI(), 1e-2);
         assertEquals(0., network.getDcLine("dl34_bis").getDcTerminal1().getI(), 0);
         // Check DC voltage, taking into account the voltage rise due to resistance of ONE DC line
-        assertEquals(400 + +expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn3").getV(), 1e-3);
+        assertEquals(400 + expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn3").getV(), 1e-3);
         assertEquals(400, network.getDcNode("dn4").getV());
     }
 
@@ -124,13 +139,11 @@ class AcDcLoadFlowWithDisconnectionTest {
 
     @Test
     void dcLineDisconnectionLeadsToZeroCurrentInConverter() {
-        /// In this study case, removing a DC line leads to zero current passing into the converter. Therefore, its only
-        ///  consumption on AC side corresponds to its idle loss
+        /// In this study case, removing a DC line leads to zero current passing into the converter conv23p. Therefore,
+        /// its only consumption on AC side corresponds to its idle loss. Additionally, Open Load Flow automatically
+        /// sets it in V_DC mode to control dn3p voltage
         Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModel();
         network.getDcLine("dl34p").disconnectDc();
-
-        // We also need to change conv23p control mode, otherwise the DC voltage of dn3p would not be imposed.
-        network.getVoltageSourceConverter("conv23p").setTargetVdc(200).setControlMode(AcDcConverter.ControlMode.V_DC);
 
         // Run load flow
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -144,6 +157,8 @@ class AcDcLoadFlowWithDisconnectionTest {
         assertEquals(0, conv45p.getDcTerminal1().getI(), 0);
         assertEquals(conv23p.getIdleLoss(), conv23p.getTerminal1().getP(), 1e-3);  // No other losses than idle loss
         assertEquals(conv45p.getIdleLoss(), conv45p.getTerminal1().getP(), 1e-3);  // No other losses than idle loss
+        // The automatic promotion is purely internal: conv23p's IIDM control mode is left untouched
+        assertEquals(AcDcConverter.ControlMode.P_PCC, conv23p.getControlMode());
 
         // Check DC current in the rest of the network
         double dcLineR = network.getDcLine("dl34n").getR(); // 0.1 Ohm. Same value everywhere
@@ -161,7 +176,9 @@ class AcDcLoadFlowWithDisconnectionTest {
         assertEquals(-expectedDcCurrent / 1000 * dcLineR - 200, network.getDcNode("dn4n").getV(), 1e-3);
         assertEquals(-expectedDcCurrent / 1000 * dcLineR * 2 - 200, network.getDcNode("dn3n").getV(), 1e-3);
         assertEquals(expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn3r").getV(), 1e-3);
-        assertEquals(expectedDcCurrent / 1000 * dcLineR + 200, network.getDcNode("dn3p").getV(), 1e-3);
+        // dn3p's own voltage is a gauge freedom (its island carries no current regardless of the value assigned to
+        // it): the automatic promotion uses the DC component's nominal voltage (400 kV) as the target Vdc
+        assertEquals(expectedDcCurrent / 1000 * dcLineR + 400, network.getDcNode("dn3p").getV(), 1e-3);
     }
 
     /*

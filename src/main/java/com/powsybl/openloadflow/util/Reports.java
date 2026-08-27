@@ -1144,6 +1144,16 @@ public final class Reports {
                 .add());
     }
 
+    public static void reportAutomaticVdcReferenceConverter(ReportNode reportNode, int dcComponentNum, String converterId, double targetVdc) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.automaticVdcReferenceConverter")
+                .withUntypedValue("dcComponentNum", dcComponentNum)
+                .withUntypedValue("converterId", converterId)
+                .withUntypedValue("targetVdc", targetVdc)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
     public static void reportAcEmulationDisabledInWoodburyDcSecurityAnalysis(ReportNode reportNode) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.acEmulationDisabledInWoodburyDcSecurityAnalysis")
