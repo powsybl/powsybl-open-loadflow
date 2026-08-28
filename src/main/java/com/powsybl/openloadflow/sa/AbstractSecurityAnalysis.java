@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
+/**
+ * Copyright (c) 2020-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -28,7 +28,9 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.equations.Quantity;
+import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.benchmark.workload.ISpyGraphConnectivity;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
@@ -180,7 +182,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             var parameters = createParameters(lfParameters, lfParametersExt, topoConfig.isBreaker(), isAreaInterchangeControl(lfParametersExt, contingencies));
 
             // create networks including all necessary switches
-            try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig, parameters.getNetworkParameters(), saReportNode)) {
+            try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig, parameters.getNetworkParameters(), saReportNode, 0)) {
                 finalResult = runSimulationsOnAllComponents(lfNetworks, propagatedContingencies, parameters,
                         securityAnalysisParameters, operatorStrategies, actions, limitReductions, lfParameters);
             }
@@ -241,7 +243,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         }
 
         // run simulation on first lfNetwork to initialize results structures
-        LfNetwork firstNetwork = networkToSimulate.removeFirst();
+        LfNetwork firstNetwork = networkToSimulate.getFirst();
         SecurityAnalysisResult result = runSimulations(firstNetwork, propagatedContingencies, parameters, securityAnalysisParameters,
                 operatorStrategies, actions, limitReductions, contingencyActivePowerLossDistribution);
         double preContingencyDistributedActivePower = result.getPreContingencyResult().getDistributedActivePower();
@@ -259,7 +261,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         // Ensure the lists are writable and can be extended
         preContingencyViolations = new ArrayList<>(preContingencyViolations);
 
-        for (LfNetwork n : networkToSimulate) {
+        for (LfNetwork n : networkToSimulate.subList(1, networkToSimulate.size())) {
             SecurityAnalysisResult resultOtherComponent = runSimulations(n, propagatedContingencies, parameters, securityAnalysisParameters,
                     operatorStrategies, actions, limitReductions, contingencyActivePowerLossDistribution);
 
@@ -272,6 +274,15 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             // PostContingency and OperatorStrategies results
             mergeSecurityAnalysisResult(resultOtherComponent, postContingencyResultMap, operatorStrategyResultMap, n.getNumCC());
         }
+
+        // call endOperations on all ISpyGraphConnectivity
+        networkToSimulate.forEach(network -> {
+            GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
+            if (connectivity instanceof ISpyGraphConnectivity<LfBus, LfBranch> spy) {
+                spy.endOperations(null);
+            }
+        });
+
         postContingencyResults = postContingencyResultMap.values().stream().toList();
         operatorStrategyResults = operatorStrategyResultMap.values().stream().toList();
 

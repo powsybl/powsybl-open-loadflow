@@ -279,7 +279,6 @@ public class DTNode<V, E> {
     public void replaceParentLinkByNonTreeEdge() {
         parent.nonTreeEdges.add(parentEdge);
         nonTreeEdges.add(parentEdge);
-        parentEdge.setTreeEdge(false);
         unlink();
     }
 
@@ -351,16 +350,16 @@ public class DTNode<V, E> {
         Set<E> neighbor = new HashSet<>();
 
         if (parentEdge != null) {
-            neighbor.add(parentEdge.getEdgeData());
+            neighbor.add(parentEdge.edgeData());
         }
 
         for (Edge<V, E> nte : nonTreeEdges) {
-            neighbor.add(nte.getEdgeData());
+            neighbor.add(nte.edgeData());
         }
 
         DTNode<V, E> child = firstChild;
         while (child != null) {
-            neighbor.add(child.parentEdge.getEdgeData());
+            neighbor.add(child.parentEdge.edgeData());
             child = child.nextSibling;
         }
 
@@ -431,10 +430,10 @@ public class DTNode<V, E> {
         sb.append("} -nte-> {");
 
         for (Edge<V, E> nte : nonTreeEdges) {
-            if (nte.getNodeU().vertex.equals(vertex)) {
-                sb.append(nte.getNodeV().vertex).append(", ");
-            } else if (nte.getNodeV().vertex.equals(vertex)) {
-                sb.append(nte.getNodeU().vertex).append(", ");
+            if (nte.nodeU().vertex.equals(vertex)) {
+                sb.append(nte.nodeV().vertex).append(", ");
+            } else if (nte.nodeV().vertex.equals(vertex)) {
+                sb.append(nte.nodeU().vertex).append(", ");
             } else {
                 sb.append("nte error, ");
             }

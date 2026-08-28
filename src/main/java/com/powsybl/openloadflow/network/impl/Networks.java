@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019, RTE (http://www.rte-france.com)
+ * Copyright (c) 2019-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -222,7 +222,18 @@ public final class Networks {
     }
 
     public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
+                                                              ReportNode reportNode, int partitionNum) {
+        return loadWithReconnectableElements(network, topoConfig, networkParameters, LfNetworkList.DefaultVariantCleaner::new, reportNode, partitionNum);
+    }
+
+    public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
                                                               LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode) {
+        return loadWithReconnectableElements(network, topoConfig, networkParameters, variantCleanerFactory, reportNode, 0);
+    }
+
+    public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
+                                                              LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode,
+                                                              int partitionNum) {
         LfTopoConfig modifiedTopoConfig;
         if (networkParameters.isSimulateAutomationSystems()) {
             modifiedTopoConfig = new LfTopoConfig(topoConfig);
@@ -251,6 +262,12 @@ public final class Networks {
             Set<String> closedBranchesOrSwitches = retainAndCloseNecessarySwitches(network, modifiedTopoConfig);
 
             List<LfNetwork> lfNetworks = load(network, modifiedTopoConfig, networkParameters, reportNode);
+
+            // initialize network thread id for ISpyGraphConnectivityFactory
+            for (int i = 0; i < lfNetworks.size(); i++) {
+                LfNetwork lfNetwork = lfNetworks.get(i);
+                lfNetwork.setIds(partitionNum, i);
+            }
 
             if (!closedBranchesOrSwitches.isEmpty()) {
                 for (LfNetwork lfNetwork : lfNetworks) {

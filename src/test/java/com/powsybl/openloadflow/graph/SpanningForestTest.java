@@ -447,25 +447,25 @@ public class SpanningForestTest {
         // and then remove it
         int iter = 0;
         for (int v1 : tree1.vertexSet()) {
-            /*if (iter % 100 == 0) {
-                System.out.println(iter);
+            /*if (iterationType % 100 == 0) {
+                System.out.println(iterationType);
             }*/
 
             for (int v2 : tree2.vertexSet()) {
                 DefaultEdge edge = new DefaultEdge();
-                assertFalse(forest.connected(v1, v2), "iter = " + iter);
+                assertFalse(forest.connected(v1, v2), "iterationType = " + iter);
 
-                assertTrue(forest.addEdge(v1, v2, edge), "iter = " + iter);
-                assertTrue(forest.connected(v1, v2), "iter = " + iter);
+                assertTrue(forest.addEdge(v1, v2, edge), "iterationType = " + iter);
+                assertTrue(forest.connected(v1, v2), "iterationType = " + iter);
 
-                assertFalse(forest.addEdge(v1, v2, edge), "iter = " + iter);
-                assertTrue(forest.connected(v1, v2), "iter = " + iter);
+                assertFalse(forest.addEdge(v1, v2, edge), "iterationType = " + iter);
+                assertTrue(forest.connected(v1, v2), "iterationType = " + iter);
 
-                assertTrue(forest.removeEdge(v1, v2, edge), "iter = " + iter);
-                assertFalse(forest.connected(v1, v2), "iter = " + iter);
+                assertTrue(forest.removeEdge(v1, v2, edge), "iterationType = " + iter);
+                assertFalse(forest.connected(v1, v2), "iterationType = " + iter);
 
-                assertFalse(forest.removeEdge(v1, v2, edge), "iter = " + iter);
-                assertFalse(forest.connected(v1, v2), "iter = " + iter);
+                assertFalse(forest.removeEdge(v1, v2, edge), "iterationType = " + iter);
+                assertFalse(forest.connected(v1, v2), "iterationType = " + iter);
 
                 iter++;
             }

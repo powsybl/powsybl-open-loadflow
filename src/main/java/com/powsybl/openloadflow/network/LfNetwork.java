@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
+/**
+ * Copyright (c) 2019-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -14,6 +14,8 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.benchmark.workload.ISpyGraphConnectivity;
+import com.powsybl.openloadflow.graph.benchmark.workload.ISpyGraphConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
@@ -93,6 +95,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
 
     private GraphConnectivity<LfBus, LfBranch> connectivity;
+
+    private int threadId = -1;
+
+    private int networkId = -1;
 
     private final Map<LoadFlowModel, Set<LfZeroImpedanceNetwork>> zeroImpedanceNetworksByModel = new EnumMap<>(LoadFlowModel.class);
 
@@ -777,7 +783,19 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     public GraphConnectivity<LfBus, LfBranch> getConnectivity() {
         if (connectivity == null) {
-            connectivity = Objects.requireNonNull(connectivityFactory.create());
+            if (connectivityFactory instanceof ISpyGraphConnectivityFactory<LfBus, LfBranch> spyFactory) {
+                if (threadId < 0 || networkId < 0) {
+                    throw new IllegalStateException("Ids not initialized");
+                }
+
+                ISpyGraphConnectivity<LfBus, LfBranch> spy = spyFactory.create(threadId, networkId);
+                spy.beginOperations(null);
+                connectivity = spy;
+            } else {
+                connectivity = connectivityFactory.create();
+            }
+            Objects.requireNonNull(connectivity);
+
             getBuses().forEach(connectivity::addVertex);
             getBranches().stream()
                     .filter(b -> b.getBus1() != null && b.getBus2() != null)
@@ -791,6 +809,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             }
         }
         return connectivity;
+    }
+
+    public void setIds(int threadId, int networkId) {
+        this.threadId = threadId;
+        this.networkId = networkId;
     }
 
     public void addListener(LfNetworkListener listener) {

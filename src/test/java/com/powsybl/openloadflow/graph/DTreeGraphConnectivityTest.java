@@ -34,8 +34,8 @@ class DTreeGraphConnectivityTest {
 
     private <V, E> void assertDTNode(DTNode<V, E> node, V parent, E parentEdge, Set<V> children, Set<E> nonTreeEdges) {
         assertEquals(parent, node.getParent() == null ? null : node.getParent().getVertex());
-        assertEquals(parentEdge, node.getParentEdge() == null ? null : node.getParentEdge().getEdgeData());
-        assertEquals(nonTreeEdges, node.getNonTreeEdges().stream().map(Edge::getEdgeData).collect(Collectors.toSet()));
+        assertEquals(parentEdge, node.getParentEdge() == null ? null : node.getParentEdge().edgeData());
+        assertEquals(nonTreeEdges, node.getNonTreeEdges().stream().map(Edge::edgeData).collect(Collectors.toSet()));
 
         Set<V> actualChildren = new HashSet<>();
         DTNode<V, E> child = node.getFirstChild();

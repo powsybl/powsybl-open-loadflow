@@ -5,24 +5,23 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.graph.dtree;
+package com.powsybl.openloadflow.graph.benchmark.log;
 
 /**
- * An edge in a {@link DTGraph}.
- *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public record Edge<V, E>(DTNode<V, E> nodeU, DTNode<V, E> nodeV, E edgeData) {
+@SuppressWarnings("checkstyle:ClassTypeParameterName")
+public class TProgress<THIS extends TProgress<THIS>> {
 
-    public DTNode<V, E> opposite(DTNode<V, E> node) {
-        if (nodeU == node) {
-            return nodeV;
-        } else {
-            return nodeU;
+    private ProgressManager<THIS> manager;
+
+    protected void notifyProgressManager() {
+        if (manager != null) {
+            manager.printProgress();
         }
     }
 
-    public boolean isTreeEdge() {
-        return !nodeU.getNonTreeEdges().contains(this);
+    void setManager(ProgressManager<THIS> manager) {
+        this.manager = manager;
     }
 }

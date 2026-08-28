@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2025, RTE (http://www.rte-france.com)
+/**
+ * Copyright (c) 2025-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -181,7 +181,7 @@ public final class ContingencyMultiThreadHelper {
             reportNodes.set(partitionNum, threadRootNode);
 
             // create networks including all necessary switches
-            lfNetworks = Networks.loadWithReconnectableElements(network, partitionTopoConfig, parameters.getNetworkParameters(), threadRootNode);
+            lfNetworks = Networks.loadWithReconnectableElements(network, partitionTopoConfig, parameters.getNetworkParameters(), threadRootNode, partitionNum);
             lfNetworksList.add(0, lfNetworks); // FIXME to workaround variant removal bug, to fix in core
         } finally {
             networkLock.unlock();
