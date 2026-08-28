@@ -58,23 +58,20 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         DTNode<V, E> nodeV = getNodeThrowIfInexistent(v);
 
         // update edges
-        Edge<V, E> edge = new Edge<>(nodeU, nodeV, e, false);
+        Edge<V, E> edge = new Edge<>(nodeU, nodeV, e);
         edges.put(e, edge);
 
         // update spanning trees
         DTNodeWithDepth<V, E> rootUdepth = nodeU.findRootWithDepth();
         DTNodeWithDepth<V, E> rootVdepth = nodeV.findRootWithDepth();
 
-        boolean treeEdge;
         if (rootUdepth.node() == rootVdepth.node()) {
             // insert non tree edge
-            treeEdge = insertEdgeInComponent(rootUdepth.node(), nodeU, rootUdepth.depth(), nodeV, rootVdepth.depth(), edge);
+            insertEdgeInComponent(rootUdepth.node(), nodeU, rootUdepth.depth(), nodeV, rootVdepth.depth(), edge);
         } else {
             // insert tree edge
-            treeEdge = true;
             insertTreeEdge(rootUdepth.node(), nodeU, rootVdepth.node(), nodeV, edge);
         }
-        edge.setTreeEdge(treeEdge);
     }
 
     public DTNode<V, E> getNodeThrowIfInexistent(V v) {
@@ -96,8 +93,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      *     <li>delta <= 1: the edge is inserted as a non-tree edge</li>
      *     <li>delta >= 2: assuming depthU < depthV, the delta / 2 - 1 ancestor of
      *     {@code nodeU} is unlinked from the tree. Then {@code nodeU} and {@code nodeV} are
-     *     linked with a tree edge. In this case, the inserted edge is in fact a tree edge
-     *     and the method return {@code true}</li>
+     *     linked with a tree edge.</li>
      * </ul>
      *
      * <p>
@@ -112,9 +108,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      * @param nodeV  the other endpoint of the edge to add.
      * @param depthV the depth of {@code nodeU}
      * @param edge   edge linking {@code nodeU} and {@code nodeV}
-     * @return {@code true} if the edge inserted is a tree edge. This is true if |depthU - depthV| >= 2.
      */
-    private boolean insertEdgeInComponent(DTNode<V, E> root, DTNode<V, E> nodeU, int depthU, DTNode<V, E> nodeV, int depthV, Edge<V, E> edge) {
+    private void insertEdgeInComponent(DTNode<V, E> root, DTNode<V, E> nodeU, int depthU, DTNode<V, E> nodeV, int depthV, Edge<V, E> edge) {
         DTNode<V, E> shallow = nodeV;
         DTNode<V, E> deep = nodeU;
         int delta = Math.abs(depthU - depthV);
@@ -128,7 +123,6 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
             // no changes in the BFS tree
             nodeU.addNonTreeEdge(edge);
             nodeV.addNonTreeEdge(edge);
-            return false;
         } else {
             // get the (delta / 2 - 1) DTNode.
             DTNode<V, E> ancestor = deep;
@@ -144,7 +138,6 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
             // because the tree created by the previous unlink isn't in 'roots'
             deep.makeRoot(false);
             deep.link(root, shallow, edge);
-            return true;
         }
     }
 
@@ -180,7 +173,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         }
 
         if (edge.isTreeEdge()) {
-            removeTreeEdge(edge.getNodeU(), edge.getNodeV());
+            removeTreeEdge(edge.nodeU(), edge.nodeV());
         } else {
             removeNonTreeEdge(edge);
         }
@@ -249,7 +242,6 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
                     // found a replacement edge
                     removeNonTreeEdge(nonTreeEdge);
                     insertTreeEdge(rootSmall, n, oppRoot, oppNode, nonTreeEdge);
-                    nonTreeEdge.setTreeEdge(true);
 
                     return;
                 }
@@ -275,8 +267,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      * @param edge the edge to remove.
      */
     private void removeNonTreeEdge(Edge<V, E> edge) {
-        edge.getNodeU().removeNonTreeEdge(edge);
-        edge.getNodeV().removeNonTreeEdge(edge);
+        edge.nodeU().removeNonTreeEdge(edge);
+        edge.nodeV().removeNonTreeEdge(edge);
     }
 
     /**
@@ -358,7 +350,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     public V getEdgeSource(E edge) {
         return switch (edges.get(edge)) {
             case null -> null;
-            case Edge<V, E> e -> e.getNodeU().getVertex();
+            case Edge<V, E> e -> e.nodeU().getVertex();
         };
     }
 
@@ -366,7 +358,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     public V getEdgeTarget(E edge) {
         return switch (edges.get(edge)) {
             case null -> null;
-            case Edge<V, E> e -> e.getNodeV().getVertex();
+            case Edge<V, E> e -> e.nodeV().getVertex();
         };
     }
 

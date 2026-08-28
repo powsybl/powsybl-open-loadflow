@@ -275,7 +275,6 @@ public class DTNode<V, E> {
     public void replaceParentLinkByNonTreeEdge() {
         parent.nonTreeEdges.add(parentEdge);
         nonTreeEdges.add(parentEdge);
-        parentEdge.setTreeEdge(false);
         unlink();
     }
 
@@ -347,16 +346,16 @@ public class DTNode<V, E> {
         Set<E> neighbor = new HashSet<>();
 
         if (parentEdge != null) {
-            neighbor.add(parentEdge.getEdgeData());
+            neighbor.add(parentEdge.edgeData());
         }
 
         for (Edge<V, E> nte : nonTreeEdges) {
-            neighbor.add(nte.getEdgeData());
+            neighbor.add(nte.edgeData());
         }
 
         DTNode<V, E> child = firstChild;
         while (child != null) {
-            neighbor.add(child.parentEdge.getEdgeData());
+            neighbor.add(child.parentEdge.edgeData());
             child = child.nextSibling;
         }
 

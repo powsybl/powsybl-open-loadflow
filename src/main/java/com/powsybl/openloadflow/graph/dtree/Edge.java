@@ -12,19 +12,7 @@ package com.powsybl.openloadflow.graph.dtree;
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class Edge<V, E> {
-
-    private final DTNode<V, E> nodeU;
-    private final DTNode<V, E> nodeV;
-    private final E edgeData;
-    private boolean treeEdge;
-
-    public Edge(DTNode<V, E> nodeU, DTNode<V, E> nodeV, E edgeData, boolean treeEdge) {
-        this.nodeU = nodeU;
-        this.nodeV = nodeV;
-        this.edgeData = edgeData;
-        this.treeEdge = treeEdge;
-    }
+public record Edge<V, E>(DTNode<V, E> nodeU, DTNode<V, E> nodeV, E edgeData) {
 
     public DTNode<V, E> opposite(DTNode<V, E> node) {
         if (nodeU == node) {
@@ -34,23 +22,7 @@ public class Edge<V, E> {
         }
     }
 
-    public DTNode<V, E> getNodeU() {
-        return nodeU;
-    }
-
-    public DTNode<V, E> getNodeV() {
-        return nodeV;
-    }
-
-    public E getEdgeData() {
-        return edgeData;
-    }
-
-    public void setTreeEdge(boolean treeEdge) {
-        this.treeEdge = treeEdge;
-    }
-
     public boolean isTreeEdge() {
-        return treeEdge;
+        return !nodeU.getNonTreeEdges().contains(this);
     }
 }
