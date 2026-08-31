@@ -85,10 +85,11 @@ public final class ContingencyMultiThreadHelper {
 
                 if (mainNetworkNode != null) {
                     // Add all POST_CONTINGENCY_SIMULATION_KEY nodes from this network's report
-                    networkReport.getChildren().stream()
+                    mainNetworkNode.addCopy(networkReport);
+                    /*networkReport.getChildren().stream()
                             .filter(n -> n.getMessageKey()
                                     .equals(Reports.POST_CONTINGENCY_SIMULATION_KEY))
-                            .forEach(mainNetworkNode::addCopy);
+                            .forEach(mainNetworkNode::addCopy);*/
                 }
             }
         }

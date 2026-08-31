@@ -208,7 +208,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 for (int i = 0; i < securityAnalysisParametersExt.getThreadCount(); i++) {
                     List<LfNetwork> networksCopy = new ArrayList<>();
                     for (LfNetwork lfNetwork : networkToSimulate) {
-                        networksCopy.add(LfNetworkCopier.copy(lfNetwork, lfParameters.isDc() ? LoadFlowModel.DC : LoadFlowModel.AC, ReportNode.NO_OP));
+                        networksCopy.add(LfNetworkCopier.copy(lfNetwork, lfParameters.isDc() ? LoadFlowModel.DC : LoadFlowModel.AC, Reports.createRootThreadReport(saReportNode)));
                     }
                     networksCopies.put(i, networksCopy);
                 }
