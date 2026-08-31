@@ -169,9 +169,9 @@ class AcDcLoadFlowWithDisconnectionTest {
      * AC-DC converter disconnection
      */
     @Test
-    void testAcDcConverterDisconnectionLeadsToZeroCurrentInNearbyIsolatedDcLines() {
-        /// When disconnecting the converter, the current in the DC line at the disconnected pole (positive) should be
-        /// null, but the current should still pass through the negative and neutral pole, due to the second converter.
+    void testAcDcConverterDisconnectionLeadsToZeroCurrentInConverterAndNearbyIsolatedDcLines() {
+        /// When disconnection a converter, either on AC or DC side, no DC current pass through it.
+        /// On a simple bipolar point-to-point connection, it implies that no current pass through one of the layer (e.g. the positive layer)
 
         Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModel();
         // -- Disconnection on AC side --
@@ -181,7 +181,8 @@ class AcDcLoadFlowWithDisconnectionTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
-        // Check current is 0 in the positive pole
+        // Check current is NaN in the disconnected converter and 0 in the positive pole
+        assertEquals(Double.NaN, network.getVoltageSourceConverter("conv23p").getDcTerminal1().getI());
         assertEquals(0., network.getDcLine("dl34p").getDcTerminal1().getI());
         // Check the current still flows in the negative and neutral pole
         double expectedDcCurrent = 121.8;  // (25MW - losses) / 200 kV
@@ -199,7 +200,8 @@ class AcDcLoadFlowWithDisconnectionTest {
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
 
-        // Check current is 0 in the positive pole
+        // Check current is NaN in the disconnected converter and 0 in the positive pole
+        assertEquals(Double.NaN, network.getVoltageSourceConverter("conv23p").getDcTerminal1().getI());
         assertEquals(0., network.getDcLine("dl34p").getDcTerminal1().getI());
         // Check the current still flows in the negative and neutral pole
         assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv23n").getDcTerminal1().getI(), tol);
