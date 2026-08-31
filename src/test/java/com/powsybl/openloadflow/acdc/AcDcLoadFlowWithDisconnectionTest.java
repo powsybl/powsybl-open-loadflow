@@ -17,7 +17,9 @@ import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteria;
 import com.powsybl.openloadflow.network.AcDcNetworkFactory;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +35,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class AcDcLoadFlowWithDisconnectionTest {
 
     private final CommonTestConfig commonTestConfig;
+
+    private final double TOL = NewtonRaphsonStoppingCriteria.DEFAULT_CONV_EPS_PER_EQ * PerUnit.SB;  // 10^-2
 
     AcDcLoadFlowWithDisconnectionTest(CommonTestConfig commonTestConfig) {
         this.commonTestConfig = commonTestConfig;
@@ -67,10 +71,11 @@ class AcDcLoadFlowWithDisconnectionTest {
      */
 
     @Test
-    void dcLinePartialDisconnection() {
+    void dcLineDisconnection() {
         /// The studied network has two parallel DC lines with the same resistance. Therefore, the current passing through
         /// it is half the one of the converters. When disconnecting a terminal of one of the DC line, its current drops
-        /// to zero and the current of the other DC line is now equal to the current in the converters
+        /// to zero and the current of the other DC line is now equal to the current in the converters. When
+        /// disconnecting both terminals of the DC line, it is not even included in the load flow.
         Network network = AcDcNetworkFactory.createAcDcNetworkTwoParallelDcLines();
 
         // Run load flow on the complete network
@@ -80,12 +85,12 @@ class AcDcLoadFlowWithDisconnectionTest {
         double dcLineR = network.getDcLine("dl34").getR(); // 0.1 Ohm
         double expectedDcCurrent = 125; // 50 MW/400kV = 125A
         // Check DC current
-        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv23").getDcTerminal1().getI(), 1e-2);
-        assertEquals(expectedDcCurrent, network.getVoltageSourceConverter("conv45").getDcTerminal1().getI(), 1e-2);
-        assertEquals(expectedDcCurrent / 2, network.getDcLine("dl34").getDcTerminal1().getI(), 1e-2);
-        assertEquals(expectedDcCurrent / 2, network.getDcLine("dl34_bis").getDcTerminal1().getI(), 1e-2);
+        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv23").getDcTerminal1().getI(), TOL);
+        assertEquals(expectedDcCurrent, network.getVoltageSourceConverter("conv45").getDcTerminal1().getI(), TOL);
+        assertEquals(expectedDcCurrent / 2, network.getDcLine("dl34").getDcTerminal1().getI(), TOL);
+        assertEquals(expectedDcCurrent / 2, network.getDcLine("dl34_bis").getDcTerminal1().getI(), TOL);
         // Check DC voltage, taking into account the voltage rise due to the equivalent resistance of the two DC lines
-        assertEquals(400 + expectedDcCurrent / 1000 * dcLineR / 2, network.getDcNode("dn3").getV(), 1e-3);
+        assertEquals(400 + expectedDcCurrent / 1000 * dcLineR / 2, network.getDcNode("dn3").getV(), TOL);
         assertEquals(400, network.getDcNode("dn4").getV());
 
         // Disconnect a DC line and run load flow. The current in the disconnected DC line should be zero, and doubled in the other DC line
@@ -93,47 +98,26 @@ class AcDcLoadFlowWithDisconnectionTest {
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
         // Check DC current
-        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv23").getDcTerminal1().getI(), 1e-2);
-        assertEquals(expectedDcCurrent, network.getVoltageSourceConverter("conv45").getDcTerminal1().getI(), 1e-2);
-        assertEquals(expectedDcCurrent, network.getDcLine("dl34").getDcTerminal1().getI(), 1e-2);
+        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv23").getDcTerminal1().getI(), TOL);
+        assertEquals(expectedDcCurrent, network.getVoltageSourceConverter("conv45").getDcTerminal1().getI(), TOL);
+        assertEquals(expectedDcCurrent, network.getDcLine("dl34").getDcTerminal1().getI(), TOL);
         assertEquals(0., network.getDcLine("dl34_bis").getDcTerminal1().getI(), 0);
         // Check DC voltage, taking into account the voltage rise due to resistance of ONE DC line
-        assertEquals(400 + expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn3").getV(), 1e-3);
-        assertEquals(400, network.getDcNode("dn4").getV());
-    }
-
-    @Test
-    void dcLineTotalDisconnection() {
-        /// Same case study as dcLinePartialDisconnection. However, both terminals of the DC line are disconnected.
-        /// Therefore, the DC line is not added to the LfNetwork and the DC current should be NaN
-        Network network = AcDcNetworkFactory.createAcDcNetworkTwoParallelDcLines();
-
-        // Run load flow on the complete network
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-
-        double dcLineR = network.getDcLine("dl34").getR(); // 0.1 Ohm
-        double expectedDcCurrent = 125; // 50 MW/400kV = 125A
-        // Check DC current
-        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv23").getDcTerminal1().getI(), 1e-2);
-        assertEquals(expectedDcCurrent, network.getVoltageSourceConverter("conv45").getDcTerminal1().getI(), 1e-2);
-        assertEquals(expectedDcCurrent / 2, network.getDcLine("dl34").getDcTerminal1().getI(), 1e-2);
-        assertEquals(expectedDcCurrent / 2, network.getDcLine("dl34_bis").getDcTerminal1().getI(), 1e-2);
-        // Check DC voltage, taking into account the voltage rise due to the equivalent resistance of the two DC lines
-        assertEquals(400 + expectedDcCurrent / 1000 * dcLineR / 2, network.getDcNode("dn3").getV(), 1e-3);
+        assertEquals(400 + expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn3").getV(), TOL);
         assertEquals(400, network.getDcNode("dn4").getV());
 
-        // Disconnect a DC line and run load flow. The current in the disconnected DC line should be zero, and doubled in the other DC line
+        // Disconnect fully the DC line and run load flow. The disconnected DC line should not appear in the load flow so its state variable should be NaN.
+        // The current in the second DC line should be doubled compared to the first case (without any disconnection)
         network.getDcLine("dl34_bis").disconnectDc();  // Disconnect both terminals
-        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
-        assertTrue(result2.isFullyConverged());
+        LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
+        assertTrue(result3.isFullyConverged());
         // Check DC current
-        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv23").getDcTerminal1().getI(), 1e-2);
-        assertEquals(expectedDcCurrent, network.getVoltageSourceConverter("conv45").getDcTerminal1().getI(), 1e-2);
-        assertEquals(expectedDcCurrent, network.getDcLine("dl34").getDcTerminal1().getI(), 1e-2);
+        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv23").getDcTerminal1().getI(), TOL);
+        assertEquals(expectedDcCurrent, network.getVoltageSourceConverter("conv45").getDcTerminal1().getI(), TOL);
+        assertEquals(expectedDcCurrent, network.getDcLine("dl34").getDcTerminal1().getI(), TOL);
         assertEquals(Double.NaN, network.getDcLine("dl34_bis").getDcTerminal1().getI());
         // Check DC voltage, taking into account the voltage rise due to resistance of ONE DC line
-        assertEquals(400 + +expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn3").getV(), 1e-3);
+        assertEquals(400 + expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn3").getV(), TOL);
         assertEquals(400, network.getDcNode("dn4").getV());
     }
 
@@ -155,30 +139,30 @@ class AcDcLoadFlowWithDisconnectionTest {
         assertEquals(Double.NaN, network.getDcLine("dl34p").getDcTerminal1().getI());
         assertEquals(0, conv23p.getDcTerminal1().getI(), 0);
         assertEquals(0, conv45p.getDcTerminal1().getI(), 0);
-        assertEquals(conv23p.getIdleLoss(), conv23p.getTerminal1().getP(), 1e-3);  // No other losses than idle loss
-        assertEquals(conv45p.getIdleLoss(), conv45p.getTerminal1().getP(), 1e-3);  // No other losses than idle loss
+        assertEquals(conv23p.getIdleLoss(), conv23p.getTerminal1().getP(), TOL);  // No other losses than idle loss
+        assertEquals(conv45p.getIdleLoss(), conv45p.getTerminal1().getP(), TOL);  // No other losses than idle loss
         // The automatic promotion is purely internal: conv23p's IIDM control mode is left untouched
         assertEquals(AcDcConverter.ControlMode.P_PCC, conv23p.getControlMode());
 
         // Check DC current in the rest of the network
         double dcLineR = network.getDcLine("dl34n").getR(); // 0.1 Ohm. Same value everywhere
         double expectedDcCurrent = 121.8;  // (25MW - losses) / 200 kV
-        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv23n").getDcTerminal1().getI(), 1e-2);
-        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv45n").getDcTerminal1().getI(), 1e-2);
-        assertEquals(-expectedDcCurrent, network.getDcLine("dl34n").getDcTerminal1().getI(), 1e-2);
-        assertEquals(expectedDcCurrent, network.getDcLine("dl3Gr").getDcTerminal1().getI(), 1e-2);
-        assertEquals(expectedDcCurrent, network.getDcLine("dlG4r").getDcTerminal1().getI(), 1e-2);
+        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv23n").getDcTerminal1().getI(),TOL);
+        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv45n").getDcTerminal1().getI(),TOL);
+        assertEquals(-expectedDcCurrent, network.getDcLine("dl34n").getDcTerminal1().getI(),TOL);
+        assertEquals(expectedDcCurrent, network.getDcLine("dl3Gr").getDcTerminal1().getI(),TOL);
+        assertEquals(expectedDcCurrent, network.getDcLine("dlG4r").getDcTerminal1().getI(),TOL);
 
         // Check DC node voltage, taking into account voltage drop due to DC line resistance
         assertEquals(0, network.getDcNode("dnGr").getV(), 0);
-        assertEquals(-expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn4r").getV(), 1e-3);
-        assertEquals(-expectedDcCurrent / 1000 * dcLineR + 200, network.getDcNode("dn4p").getV(), 1e-3);
-        assertEquals(-expectedDcCurrent / 1000 * dcLineR - 200, network.getDcNode("dn4n").getV(), 1e-3);
-        assertEquals(-expectedDcCurrent / 1000 * dcLineR * 2 - 200, network.getDcNode("dn3n").getV(), 1e-3);
-        assertEquals(expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn3r").getV(), 1e-3);
+        assertEquals(-expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn4r").getV(), TOL);
+        assertEquals(-expectedDcCurrent / 1000 * dcLineR + 200, network.getDcNode("dn4p").getV(), TOL);
+        assertEquals(-expectedDcCurrent / 1000 * dcLineR - 200, network.getDcNode("dn4n").getV(), TOL);
+        assertEquals(-expectedDcCurrent / 1000 * dcLineR * 2 - 200, network.getDcNode("dn3n").getV(), TOL);
+        assertEquals(expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn3r").getV(), TOL);
         // dn3p's own voltage is a gauge freedom (its island carries no current regardless of the value assigned to
         // it): the automatic promotion uses the DC component's nominal voltage (400 kV) as the target Vdc
-        assertEquals(expectedDcCurrent / 1000 * dcLineR + 400, network.getDcNode("dn3p").getV(), 1e-3);
+        assertEquals(expectedDcCurrent / 1000 * dcLineR + 400, network.getDcNode("dn3p").getV(), TOL);
     }
 
     /*
@@ -201,11 +185,11 @@ class AcDcLoadFlowWithDisconnectionTest {
         assertEquals(0., network.getDcLine("dl34p").getDcTerminal1().getI());
         // Check the current still flows in the negative and neutral pole
         double expectedDcCurrent = 121.8;  // (25MW - losses) / 200 kV
-        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv23n").getDcTerminal1().getI(), 1e-2);
-        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv45n").getDcTerminal1().getI(), 1e-2);
-        assertEquals(-expectedDcCurrent, network.getDcLine("dl34n").getDcTerminal1().getI(), 1e-2);
-        assertEquals(expectedDcCurrent, network.getDcLine("dl3Gr").getDcTerminal1().getI(), 1e-2);
-        assertEquals(expectedDcCurrent, network.getDcLine("dlG4r").getDcTerminal1().getI(), 1e-2);
+        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv23n").getDcTerminal1().getI(), TOL);
+        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv45n").getDcTerminal1().getI(), TOL);
+        assertEquals(-expectedDcCurrent, network.getDcLine("dl34n").getDcTerminal1().getI(), TOL);
+        assertEquals(expectedDcCurrent, network.getDcLine("dl3Gr").getDcTerminal1().getI(), TOL);
+        assertEquals(expectedDcCurrent, network.getDcLine("dlG4r").getDcTerminal1().getI(), TOL);
 
         // -- Disconnection on DC side --
         network.getVoltageSourceConverter("conv23p").connect();
@@ -218,10 +202,10 @@ class AcDcLoadFlowWithDisconnectionTest {
         // Check current is 0 in the positive pole
         assertEquals(0., network.getDcLine("dl34p").getDcTerminal1().getI());
         // Check the current still flows in the negative and neutral pole
-        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv23n").getDcTerminal1().getI(), 1e-2);
-        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv45n").getDcTerminal1().getI(), 1e-2);
-        assertEquals(-expectedDcCurrent, network.getDcLine("dl34n").getDcTerminal1().getI(), 1e-2);
-        assertEquals(expectedDcCurrent, network.getDcLine("dl3Gr").getDcTerminal1().getI(), 1e-2);
-        assertEquals(expectedDcCurrent, network.getDcLine("dlG4r").getDcTerminal1().getI(), 1e-2);
+        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv23n").getDcTerminal1().getI(), TOL);
+        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv45n").getDcTerminal1().getI(), TOL);
+        assertEquals(-expectedDcCurrent, network.getDcLine("dl34n").getDcTerminal1().getI(), TOL);
+        assertEquals(expectedDcCurrent, network.getDcLine("dl3Gr").getDcTerminal1().getI(), TOL);
+        assertEquals(expectedDcCurrent, network.getDcLine("dlG4r").getDcTerminal1().getI(), TOL);
     }
 }

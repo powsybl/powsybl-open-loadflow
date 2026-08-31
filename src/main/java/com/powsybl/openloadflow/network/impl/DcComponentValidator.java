@@ -19,7 +19,7 @@ import java.util.function.Predicate;
  *
  * @author Baptiste Perreyon {@literal <baptiste.perreyon at supergrid-institute.com>}
  */
-public final class DcComponentValidator {
+final class DcComponentValidator {
 
     private DcComponentValidator() {
     }
