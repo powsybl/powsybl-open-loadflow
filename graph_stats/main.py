@@ -177,6 +177,8 @@ class ConnectivityOperationsResultPlot(PlotItem):
         super().__init__(**kwargs)
         self.setTitle(res.operations_file)
         self.addLegend()
+        self.getAxis("left").setLabel("Sum of distances")
+        self.getAxis("bottom").setLabel("Operation")
 
         for i, (connectivity, op) in enumerate(res.per_connectivity.items()):
             pen = mkPen(color=(i, len(res.per_connectivity)))
