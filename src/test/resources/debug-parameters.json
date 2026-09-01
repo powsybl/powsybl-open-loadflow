@@ -54,7 +54,6 @@
         "lowImpedanceThreshold" : 1.0E-8,
         "reactiveRangeCheckMode" : "MAX",
         "networkCacheEnabled" : false,
-        "networkCacheScope" : null,
         "svcVoltageMonitoring" : true,
         "stateVectorScalingMode" : "NONE",
         "maxSlackBusCount" : 1,
@@ -103,7 +102,8 @@
         "fixVoltageTargets" : false,
         "acDcNetwork" : false,
         "allowNonLinearShuntZeroSection" : true,
-        "networkVariantPoolSize" : 20
+        "networkVariantPoolSize" : 20,
+        "networkCacheScope" : null
       }
     }
   },

@@ -72,8 +72,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE = true;
 
-    public static final String NETWORK_CACHE_SCOPE_DEFAULT_VALUE = null;
-
     public static final boolean VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_DEFAULT_VALUE = true;
 
     public static final boolean GENERATOR_REACTIVE_POWER_REMOTE_CONTROL_DEFAULT_VALUE = false;
@@ -136,6 +134,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final boolean START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE = false;
 
     private static final int NETWORK_VARIANT_POOL_SIZE_DEFAULT_VALUE = 20;
+
+    public static final String NETWORK_CACHE_SCOPE_DEFAULT_VALUE = null;
 
     public enum FictitiousGeneratorVoltageControlCheckMode {
         FORCED,
@@ -219,8 +219,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final String LOW_IMPEDANCE_THRESHOLD_PARAM_NAME = "lowImpedanceThreshold";
 
     public static final String NETWORK_CACHE_ENABLED_PARAM_NAME = "networkCacheEnabled";
-
-    public static final String NETWORK_CACHE_SCOPE_PARAM_NAME = "networkCacheScope";
 
     public static final String SVC_VOLTAGE_MONITORING_PARAM_NAME = "svcVoltageMonitoring";
 
@@ -319,6 +317,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final String ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME = "allowNonLinearShuntZeroSection";
 
     public static final String NETWORK_VARIANT_POOL_SIZE_PARAM_NAME = "networkVariantPoolSize";
+
+    public static final String NETWORK_CACHE_SCOPE_PARAM_NAME = "networkCacheScope";
 
     public static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
@@ -468,9 +468,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(NETWORK_CACHE_ENABLED_PARAM_NAME, ParameterType.BOOLEAN,
             "Network cache enabled",
             LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, FAST_RESTART_CATEGORY_KEY),
-        new Parameter(NETWORK_CACHE_SCOPE_PARAM_NAME, ParameterType.STRING,
-            "Network cache scope, to get several independent cache entries for a same network and variant (null means a single entry per network and variant)",
-            NETWORK_CACHE_SCOPE_DEFAULT_VALUE, null, ParameterScope.TECHNICAL, FAST_RESTART_CATEGORY_KEY),
         new Parameter(SVC_VOLTAGE_MONITORING_PARAM_NAME, ParameterType.BOOLEAN,
             "SVC voltage monitoring",
             SVC_VOLTAGE_MONITORING_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
@@ -645,7 +642,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             LfNetworkParameters.ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
         new Parameter(NETWORK_VARIANT_POOL_SIZE_PARAM_NAME, ParameterType.INTEGER,
                 "Network variant pool size",
-                NETWORK_VARIANT_POOL_SIZE_DEFAULT_VALUE, ParameterScope.TECHNICAL, FAST_RESTART_CATEGORY_KEY)
+                NETWORK_VARIANT_POOL_SIZE_DEFAULT_VALUE, ParameterScope.TECHNICAL, FAST_RESTART_CATEGORY_KEY),
+        new Parameter(NETWORK_CACHE_SCOPE_PARAM_NAME, ParameterType.STRING,
+                "Network cache scope, to get several independent cache entries for a same network and variant (null means a single entry per network and variant)",
+                NETWORK_CACHE_SCOPE_DEFAULT_VALUE, null, ParameterScope.TECHNICAL, FAST_RESTART_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {
@@ -756,8 +756,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private boolean networkCacheEnabled = LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE;
 
-    private String networkCacheScope = NETWORK_CACHE_SCOPE_DEFAULT_VALUE;
-
     private boolean svcVoltageMonitoring = SVC_VOLTAGE_MONITORING_DEFAULT_VALUE;
 
     private StateVectorScalingMode stateVectorScalingMode = NewtonRaphsonParameters.DEFAULT_STATE_VECTOR_SCALING_MODE;
@@ -855,6 +853,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean allowNonLinearShuntZeroSection = LfNetworkParameters.ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE;
 
     private int networkVariantPoolSize = NETWORK_VARIANT_POOL_SIZE_DEFAULT_VALUE;
+
+    private String networkCacheScope = NETWORK_CACHE_SCOPE_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1218,22 +1218,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public OpenLoadFlowParameters setNetworkCacheEnabled(boolean networkCacheEnabled) {
         this.networkCacheEnabled = networkCacheEnabled;
-        return this;
-    }
-
-    public String getNetworkCacheScope() {
-        return networkCacheScope;
-    }
-
-    /**
-     * Partitions the network cache: entries are looked up by network, working variant and scope. A null scope
-     * (the default) keeps the historical behaviour of a single entry per network and variant.
-     * <p>
-     * Callers running concurrent computations on a same network and variant must give each thread its own scope,
-     * otherwise they would share a single entry, hence a single mutable {@link com.powsybl.openloadflow.network.LfNetwork}.
-     */
-    public OpenLoadFlowParameters setNetworkCacheScope(String networkCacheScope) {
-        this.networkCacheScope = networkCacheScope;
         return this;
     }
 
@@ -1710,6 +1694,22 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public String getNetworkCacheScope() {
+        return networkCacheScope;
+    }
+
+    /**
+     * Partitions the network cache: entries are looked up by network, working variant and scope. A null scope
+     * (the default) keeps the historical behaviour of a single entry per network and variant.
+     * <p>
+     * Callers running concurrent computations on a same network and variant must give each thread its own scope,
+     * otherwise they would share a single entry, hence a single mutable {@link com.powsybl.openloadflow.network.LfNetwork}.
+     */
+    public OpenLoadFlowParameters setNetworkCacheScope(String networkCacheScope) {
+        this.networkCacheScope = networkCacheScope;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1785,7 +1785,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             .ifPresent(this::setReactiveRangeCheckMode);
         config.getOptionalDoubleProperty(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME).ifPresent(this::setLowImpedanceThreshold);
         config.getOptionalBooleanProperty(NETWORK_CACHE_ENABLED_PARAM_NAME).ifPresent(this::setNetworkCacheEnabled);
-        config.getOptionalStringProperty(NETWORK_CACHE_SCOPE_PARAM_NAME).ifPresent(this::setNetworkCacheScope);
         config.getOptionalBooleanProperty(SVC_VOLTAGE_MONITORING_PARAM_NAME).ifPresent(this::setSvcVoltageMonitoring);
         config.getOptionalEnumProperty(STATE_VECTOR_SCALING_MODE_PARAM_NAME, StateVectorScalingMode.class)
             .ifPresent(this::setStateVectorScalingMode);
@@ -1854,6 +1853,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         config.getOptionalBooleanProperty(AC_DC_NETWORK_PARAM_NAME).ifPresent(this::setAcDcNetwork);
         config.getOptionalBooleanProperty(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME).ifPresent(this::setAllowNonLinearShuntZeroSection);
         config.getOptionalIntProperty(NETWORK_VARIANT_POOL_SIZE_PARAM_NAME).ifPresent(this::setNetworkVariantPoolSize);
+        config.getOptionalStringProperty(NETWORK_CACHE_SCOPE_PARAM_NAME).ifPresent(this::setNetworkCacheScope);
     }
 
     public OpenLoadFlowParameters update(Map<String, String> properties) {
@@ -1921,10 +1921,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setLowImpedanceThreshold(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(NETWORK_CACHE_ENABLED_PARAM_NAME))
                 .ifPresent(prop -> this.setNetworkCacheEnabled(Boolean.parseBoolean(prop)));
-        // network cache scope is nullable
-        if (properties.containsKey(NETWORK_CACHE_SCOPE_PARAM_NAME)) {
-            setNetworkCacheScope(properties.get(NETWORK_CACHE_SCOPE_PARAM_NAME));
-        }
         Optional.ofNullable(properties.get(SVC_VOLTAGE_MONITORING_PARAM_NAME))
                 .ifPresent(prop -> this.setSvcVoltageMonitoring(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(STATE_VECTOR_SCALING_MODE_PARAM_NAME))
@@ -2036,6 +2032,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setAllowNonLinearShuntZeroSection(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(NETWORK_VARIANT_POOL_SIZE_PARAM_NAME))
                 .ifPresent(prop -> this.setNetworkVariantPoolSize(Integer.parseInt(prop)));
+        // network cache scope is nullable
+        if (properties.containsKey(NETWORK_CACHE_SCOPE_PARAM_NAME)) {
+            setNetworkCacheScope(properties.get(NETWORK_CACHE_SCOPE_PARAM_NAME));
+        }
         return this;
     }
 
@@ -2073,7 +2073,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, reactiveRangeCheckMode);
         map.put(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME, lowImpedanceThreshold);
         map.put(NETWORK_CACHE_ENABLED_PARAM_NAME, networkCacheEnabled);
-        map.put(NETWORK_CACHE_SCOPE_PARAM_NAME, networkCacheScope);
         map.put(SVC_VOLTAGE_MONITORING_PARAM_NAME, svcVoltageMonitoring);
         map.put(STATE_VECTOR_SCALING_MODE_PARAM_NAME, stateVectorScalingMode);
         map.put(MAX_SLACK_BUS_COUNT_PARAM_NAME, maxSlackBusCount);
@@ -2125,6 +2124,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(AC_DC_NETWORK_PARAM_NAME, acDcNetwork);
         map.put(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME, allowNonLinearShuntZeroSection);
         map.put(NETWORK_VARIANT_POOL_SIZE_PARAM_NAME, networkVariantPoolSize);
+        map.put(NETWORK_CACHE_SCOPE_PARAM_NAME, networkCacheScope);
         return map;
     }
 
@@ -2502,7 +2502,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getReactiveRangeCheckMode() == extension2.getReactiveRangeCheckMode() &&
                 extension1.getLowImpedanceThreshold() == extension2.getLowImpedanceThreshold() &&
                 extension1.isNetworkCacheEnabled() == extension2.isNetworkCacheEnabled() &&
-                Objects.equals(extension1.getNetworkCacheScope(), extension2.getNetworkCacheScope()) &&
                 extension1.isSvcVoltageMonitoring() == extension2.isSvcVoltageMonitoring() &&
                 extension1.getStateVectorScalingMode() == extension2.getStateVectorScalingMode() &&
                 extension1.getMaxSlackBusCount() == extension2.getMaxSlackBusCount() &&
@@ -2562,7 +2561,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isAcDcNetwork() == extension2.isAcDcNetwork() &&
                 extension1.isAllowNonLinearShuntZeroSection() == extension2.isAllowNonLinearShuntZeroSection() &&
                 extension1.isAcDcNetwork() == extension2.isAcDcNetwork() &&
-                extension1.getNetworkVariantPoolSize() == extension2.getNetworkVariantPoolSize();
+                extension1.getNetworkVariantPoolSize() == extension2.getNetworkVariantPoolSize() &&
+                Objects.equals(extension1.getNetworkCacheScope(), extension2.getNetworkCacheScope());
     }
 
     public static OpenLoadFlowParameters clone(OpenLoadFlowParameters extension) {
@@ -2592,7 +2592,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setReactiveRangeCheckMode(extension.getReactiveRangeCheckMode())
                 .setLowImpedanceThreshold(extension.getLowImpedanceThreshold())
                 .setNetworkCacheEnabled(extension.isNetworkCacheEnabled())
-                .setNetworkCacheScope(extension.getNetworkCacheScope())
                 .setSvcVoltageMonitoring(extension.isSvcVoltageMonitoring())
                 .setStateVectorScalingMode(extension.getStateVectorScalingMode())
                 .setMaxSlackBusCount(extension.getMaxSlackBusCount())
@@ -2650,7 +2649,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setFixVoltageTargets(extension.isFixVoltageTargets())
                 .setAcDcNetwork(extension.isAcDcNetwork())
                 .setAllowNonLinearShuntZeroSection(extension.isAllowNonLinearShuntZeroSection())
-                .setNetworkVariantPoolSize(extension.getNetworkVariantPoolSize());
+                .setNetworkVariantPoolSize(extension.getNetworkVariantPoolSize())
+                .setNetworkCacheScope(extension.getNetworkCacheScope());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {

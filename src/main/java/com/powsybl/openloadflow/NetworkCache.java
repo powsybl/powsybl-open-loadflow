@@ -968,9 +968,6 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         return OpenLoadFlowParameters.get(input.getLoadFlowParameters()).getNetworkCacheScope();
     }
 
-    /**
-     * Finds the unscoped entry, i.e. the one created by a caller that did not set a network cache scope.
-     */
     public Optional<Entry<I, V>> findEntry(Network network) {
         return findEntry(network, null);
     }
@@ -984,12 +981,6 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 .findFirst();
     }
 
-    /**
-     * Describes the entry a message is about. The scope is mentioned only when the caller has set one, so that the
-     * logs of the callers that do not partition the cache stay as they were.
-     * <p>
-     * Callers must guard their logging with {@code LOGGER.isInfoEnabled()}: this builds a string eagerly.
-     */
     private static String describeEntry(Network network, String cacheScope) {
         return "network '" + network.getId() + "' and variant '" + network.getVariantManager().getWorkingVariantId() + "'"
                 + describeScope(" and ", cacheScope);

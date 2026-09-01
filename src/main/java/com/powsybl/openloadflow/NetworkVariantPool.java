@@ -52,6 +52,7 @@ public final class NetworkVariantPool {
                 }
                 variantPool.put(network, variantIds);
             }
+            // TODO maybe to improve later by waiting until a variant is available
             if (variantIds.isEmpty()) {
                 throw new PowsyblException("No variant available in the pool for network " + network.getId());
             }
