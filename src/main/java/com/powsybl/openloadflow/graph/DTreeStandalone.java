@@ -14,7 +14,6 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -751,8 +750,6 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         }
     }
 
-    public static final AtomicInteger N = new AtomicInteger();
-
     /**
      * A DTNode (Dynamic Tree Node) is a node in a spanning tree.
      * Each DTNode maintains the following information:
@@ -847,8 +844,6 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
             if (parent == null) {
                 return;
             }
-
-            N.incrementAndGet();
 
             DTNode<V, E> child = this;
             DTNode<V, E> parent = child.parent;

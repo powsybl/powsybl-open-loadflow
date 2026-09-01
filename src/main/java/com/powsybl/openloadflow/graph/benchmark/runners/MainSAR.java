@@ -7,9 +7,6 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.runners;
 
-import com.powsybl.openloadflow.graph.DTreeStandalone;
-import com.powsybl.openloadflow.graph.dtree.DTNode;
-import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.dtreenooptreroot.DTreeNoOptRerootGraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.dtreerootset.DTreeSetRootGraphConnectivityFactory;
 
@@ -102,8 +99,5 @@ public final class MainSAR {
         // sar.addConnectivityFactory(new OptDTreeStandaloneFactory<>());
 
         sar.run();
-
-        System.out.println(DTNode.N.get());
-        System.out.println(DTreeStandalone.N.get());
     }
 }

@@ -10,7 +10,6 @@ package com.powsybl.openloadflow.graph.dtree;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A DTNode (Dynamic Tree Node) is a node in a spanning tree.
@@ -92,8 +91,6 @@ public class DTNode<V, E> {
         this.size = 1;
     }
 
-    public static final AtomicInteger N = new AtomicInteger();
-
     /**
      * Make this DTNode the root of the tree in which it is. This is a two steps process
      * with an intermediate optional operation:
@@ -109,7 +106,6 @@ public class DTNode<V, E> {
         if (parent == null) {
             return;
         }
-        N.incrementAndGet();
 
         DTNode<V, E> child = this;
         DTNode<V, E> oldParent = child.parent;

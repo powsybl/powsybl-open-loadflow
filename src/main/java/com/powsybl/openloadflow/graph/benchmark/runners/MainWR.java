@@ -7,10 +7,9 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.runners;
 
-import com.powsybl.openloadflow.graph.DTreeStandalone;
 import com.powsybl.openloadflow.graph.DTreeStandaloneFactory;
 import com.powsybl.openloadflow.graph.benchmark.workload.Workload;
-import com.powsybl.openloadflow.graph.dtree.DTNode;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -30,8 +29,8 @@ public final class MainWR {
                 .setWarmup(0)
                 .setMeasurement(10);
         perf.output()
-                .setOutputFormat(null) // "results/workload_roots/${workload}/${class}.${ext}")
-                .setOverwrite(false); //.setReplacement("results/workload/${workload}/${class}_list_of_root.${ext}");
+                .setOutputFormat("results/workload/${workload}/${class}.${ext}")
+                .setOverwrite(true); //.setReplacement("results/workload/${workload}/${class}_list_of_root.${ext}");
         return perf;
     }
 
@@ -41,14 +40,14 @@ public final class MainWR {
 
     private static RunParameters.StatsWriter statsWriter() {
         RunParameters.StatsWriter stats = new RunParameters.StatsWriter();
-        stats.output().setOutputFormat("graph_stats/data_roots/${workload}/${class}/${operations}");
+        stats.output().setOutputFormat("graph_stats/data/${workload}/${class}/${operations}");
 
         return stats;
     }
 
     public static void main(String[] args) throws IOException {
         WorkloadRunner wr = new WorkloadRunner();
-        wr.setRunParameters(validator());
+        wr.setRunParameters(performance());
 
         if (args.length >= 1) {
             switch (args[0]) {
@@ -58,17 +57,16 @@ public final class MainWR {
             }
         }
 
-        /*if (args.length >= 2) {
+        if (args.length >= 2) {
             for (int i = 1; i < args.length; i++) {
                 wr.addInput(Workload.inMemory(Path.of(args[i])));
             }
         } else {
-            addAllWorkloadInFolder(wr, Path.of("workload/temp"));
-        }*/
-
-        wr.addInput(Workload.inMemory(Path.of("workload/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt")));
-        wr.addInput(Workload.inMemory(Path.of("workload/spy_5541_1_1_5541_1_1_2026-07-03T11:50:06.510031405Z.txt")));
-        wr.addInput(Workload.inMemory(Path.of("workload/spy_10000_10_10_10000_10_10_2026-08-07T07:59:16.649371906Z.zip")));
+            // addAllWorkloadInFolder(wr, Path.of("workload/temp"));
+            // wr.addInput(Workload.inMemory(Path.of("workload/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt")));
+            // wr.addInput(Workload.inMemory(Path.of("workload/spy_5541_1_1_5541_1_1_2026-07-03T11:50:06.510031405Z.txt")));
+            wr.addInput(Workload.inMemory(Path.of("workload/spy_10000_10_10_10000_10_10_2026-08-07T07:59:16.649371906Z.zip")));
+        }
 
         // wr.addConnectivityFactory(new OldNaiveGraphConnectivity.Factory<>((Integer i) -> i));
         // wr.addConnectivityFactory(new NaiveGraphConnectivityFactory<>((Integer i) -> i));
@@ -80,7 +78,7 @@ public final class MainWR {
         //wr.addConnectivityFactory(new HolmStandaloneFactory<>());
         // wr.addConnectivityFactory(new DTreeSetRootGraphConnectivityFactory<>());
         // wr.addConnectivityFactory(new DTreeNoOptRerootGraphConnectivityFactory<>());
-        // wr.addConnectivityFactory(new DTreeGraphConnectivityFactory<>());
+        wr.addConnectivityFactory(new DTreeGraphConnectivityFactory<>());
         wr.addConnectivityFactory(new DTreeStandaloneFactory<>());
         // wr.addConnectivityFactory(new Delta2DTreeStandalone.Factory<>());
         // wr.addConnectivityFactory(new Delta2ReplaceWithBestDTreeStandalone.Factory<>());
@@ -91,9 +89,6 @@ public final class MainWR {
         // wr.addConnectivityFactory(new OptDTreeStandaloneFactory<>());
 
         wr.run();
-
-        System.out.println(DTNode.N.get());
-        System.out.println(DTreeStandalone.N.get());
     }
 
     private static void addAllWorkloadInFolder(WorkloadRunner wr, Path folder) throws IOException {
