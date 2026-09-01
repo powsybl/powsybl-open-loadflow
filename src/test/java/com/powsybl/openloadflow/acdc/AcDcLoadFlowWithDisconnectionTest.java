@@ -123,9 +123,9 @@ class AcDcLoadFlowWithDisconnectionTest {
 
     @Test
     void dcLineDisconnectionLeadsToZeroCurrentInConverter() {
-        /// In this study case, removing a DC line leads to zero current passing into the converter conv23p. Therefore,
-        /// its only consumption on AC side corresponds to its idle loss. Additionally, Open Load Flow automatically
-        /// sets it in V_DC mode to control dn3p voltage
+        /// In this test case, removing a DC line isolates the positive pole of conv23p. Therefore, no DC current pass
+        /// into it and its only consumption on AC side corresponds to its idle loss. Additionally, Open Load Flow
+        /// automatically sets it in V_DC mode to control dn3p voltage.
         Network network = AcDcNetworkFactory.createAcDcNetworkBipolarModel();
         network.getDcLine("dl34p").disconnectDc();
 
@@ -141,7 +141,7 @@ class AcDcLoadFlowWithDisconnectionTest {
         assertEquals(0, conv45p.getDcTerminal1().getI(), 0);
         assertEquals(conv23p.getIdleLoss(), conv23p.getTerminal1().getP(), tol);  // No other losses than idle loss
         assertEquals(conv45p.getIdleLoss(), conv45p.getTerminal1().getP(), tol);  // No other losses than idle loss
-        // The automatic promotion is purely internal: conv23p's IIDM control mode is left untouched
+        // The automatic promotion of conv23p to V_DC mode is purely internal: conv23p's IIDM control mode is left untouched
         assertEquals(AcDcConverter.ControlMode.P_PCC, conv23p.getControlMode());
 
         // Check DC current in the rest of the network
