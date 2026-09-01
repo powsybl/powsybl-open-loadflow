@@ -38,14 +38,13 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     private final AllComponentsView components = new AllComponentsView();
 
     /**
-     * Return the root of the tree in which {@code vertex} is and
-     * eventually reroot the tree if a new centroid is found.
+     * Return the root of the tree in which {@code vertex}.
      *
      * @param vertex the vertex whose tree root is to be returned.
      * @return the root of the tree in which {@code vertex} is.
      */
     DTNode<V, E> rootOf(V vertex) {
-        return vertexToTreeNode.get(vertex).findRootOptReroot();
+        return vertexToTreeNode.get(vertex).findRoot();
     }
 
     @Override

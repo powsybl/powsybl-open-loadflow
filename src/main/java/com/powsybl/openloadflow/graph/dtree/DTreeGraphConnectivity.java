@@ -23,15 +23,17 @@ import java.util.*;
  * <ul>
  *     <li>Instead of searching the best replacement edge, we select the first one encountered.
  *     It increases the sum of distances but improves performance of {@link #removeEdge(Object)}.</li>
- *     <li>TODO:findRootOptReroot</li>
+ *     <li>In queries, the centroid heuristic isn't used. It doesn't decrease the sum of distances that much
+ *     and deteriorate performances.</li>
  *     <li>When inserting a non-tree edge whose endpoints have a depth difference delta >= 2, we disconnect
  *     the ancestor at distance delta / 2 − 1 from the deeper endpoint from its parent, rather than disconnecting
  *     the ancestor at distance delta − 2 as in the original algorithm. It improves the sum of distances and
- *     performances. This was proposed by: <cite>Lantian Xu, Dong Wen, Lu Qin, Ronghua Li, Ying Zhang, and
- *     Xuemin Lin. 2024. Constant-time Connectivity Querying in Dynamic Graphs. Proc. ACM Manag. Data 2, 6
- *     (SIGMOD), Article 230 (December 2024), 23 pages.
- *     <a href="https://doi.org/10.1145/3698805">https://doi.org/10.1145/3698805</a></cite>.</li>
+ *     performances.</li>
  * </ul>
+ *
+ * The last two points were proposed by: <cite>Lantian Xu, Dong Wen, Lu Qin, Ronghua Li, Ying Zhang, and
+ * Xuemin Lin. 2024. Constant-time Connectivity Querying in Dynamic Graphs. Proc. ACM Manag. Data 2, 6
+ * (SIGMOD), Article 230 (December 2024), 23 pages. <a href="https://doi.org/10.1145/3698805">https://doi.org/10.1145/3698805</a></cite>.
  * </p>
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}

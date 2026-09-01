@@ -300,32 +300,6 @@ public class DTNode<V, E> {
         return new DTNodeWithDepth<>(node, depth);
     }
 
-    /**
-     * Returns the root of the tree containing this node
-     * and restores the centroid property by rerooting the
-     * tree. This helps reduce the height of the tree.
-     * <strong>Warning</strong>: rerooting the tree may
-     * break connectivity queries.
-     *
-     * @return the root of the tree
-     */
-    public DTNode<V, E> findRootOptReroot() {
-        DTNode<V, E> nodeRoot = this;
-        DTNode<V, E> nodeRootChild = null; // the child of nodeRoot in the path from nodeRoot to node
-
-        while (nodeRoot.parent != null) {
-            nodeRootChild = nodeRoot;
-            nodeRoot = nodeRoot.parent;
-        }
-
-        if (nodeRootChild != null && nodeRootChild.size > nodeRoot.size / 2) {
-            nodeRootChild.makeRoot(true);
-            nodeRoot = nodeRootChild;
-        }
-
-        return nodeRoot;
-    }
-
     public void addNonTreeEdge(Edge<V, E> edge) {
         nonTreeEdges.add(edge);
     }
