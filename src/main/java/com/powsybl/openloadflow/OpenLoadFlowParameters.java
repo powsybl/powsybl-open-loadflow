@@ -2560,7 +2560,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isFixVoltageTargets() == extension2.isFixVoltageTargets() &&
                 extension1.isAcDcNetwork() == extension2.isAcDcNetwork() &&
                 extension1.isAllowNonLinearShuntZeroSection() == extension2.isAllowNonLinearShuntZeroSection() &&
-                extension1.isAcDcNetwork() == extension2.isAcDcNetwork() &&
                 extension1.getNetworkVariantPoolSize() == extension2.getNetworkVariantPoolSize() &&
                 Objects.equals(extension1.getNetworkCacheScope(), extension2.getNetworkCacheScope());
     }
