@@ -200,7 +200,8 @@ class AcDcLoadFlowWithDisconnectionTest {
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
 
-        // Check current is NaN in the disconnected converter and 0 in the positive pole
+        // Check current is NaN in the disconnected converter and 0 in the positive pole.
+        // Note: jUnit considers Double.NaN == Double.NaN to be true
         assertEquals(Double.NaN, network.getVoltageSourceConverter("conv23p").getDcTerminal1().getI());
         assertEquals(0., network.getDcLine("dl34p").getDcTerminal1().getI());
         // Check the current still flows in the negative and neutral pole
