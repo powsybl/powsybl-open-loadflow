@@ -10,6 +10,8 @@ package com.powsybl.openloadflow.graph.benchmark.generators;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
+import com.powsybl.openloadflow.graph.benchmark.runners.SARInputBuilder;
+import com.powsybl.openloadflow.graph.benchmark.runners.SecurityAnalysisRunner;
 import com.powsybl.openloadflow.graph.benchmark.runners.SingleSecurityAnalysisRunner;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -25,7 +27,8 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+
+import static com.powsybl.openloadflow.graph.benchmark.runners.SingleSecurityAnalysisRunner.Mode.DC;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -35,10 +38,10 @@ public class GenerateWorkload {
 
     @SuppressWarnings("checkstyle:RegexpSingleline")
     public static void main(String[] args) throws IOException {
-        NetworkGraph graph = new NetworkGraph(args[0]);
+        /*NetworkGraph graph = new NetworkGraph(args[0]);
 
         Random random = new Random(0);
-        /*PowSyBlWorkload workload = new PowSyBlWorkload(random, graph.graph, graph.enabledBranches);
+        PowSyBlWorkload workload = new PowSyBlWorkload(random, graph.graph, graph.enabledBranches);
         workload.forceOneInitialComponent();
         workload.contingencyCount = 1000;
         workload.minEdgePerContingency = 1; //50;
@@ -59,16 +62,47 @@ public class GenerateWorkload {
         workload.remove = 10000;
         workload.computeSd = 10;*/
 
-        SpyWorkloadGenerator workload = new SpyWorkloadGenerator(graph.network);
-        workload.sar.disconnectLinesPreserveConnectivity(5000);
-        workload.sar.generateContingenciesAndActions(10000, 10, 10);
-        workload.sar.threadCount = Runtime.getRuntime().availableProcessors();
-        workload.sar.mode = SingleSecurityAnalysisRunner.Mode.DC;
+        // SpyWorkloadGenerator workload = new SpyWorkloadGenerator(graph.network);
+        // workload.sar.disconnectLinesPreserveConnectivity(5000);
+        // workload.sar.generateContingenciesAndActions(10000, 10, 10);
+        // workload.sar.threadCount = Runtime.getRuntime().availableProcessors();
+        // workload.sar.mode = SingleSecurityAnalysisRunner.Mode.DC;
 
-        System.out.println(Instant.now());
-        long start = System.currentTimeMillis();
-        workload.generate(Path.of("workload/temp/"));
-        System.out.println("Workload generation time: " + (System.currentTimeMillis() - start) + " ms");
+        List<SecurityAnalysisRunner.Input> inputs = new ArrayList<>();
+        inputs.add(new SARInputBuilder()
+                .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
+                .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(0)
+                .setMode(DC).setThreadCount(1).createInput());
+        inputs.add(new SARInputBuilder()
+                .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
+                .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(0)
+                .setMode(DC).setThreadCount(2).createInput());
+        inputs.add(new SARInputBuilder()
+                .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
+                .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(1).
+                setMode(DC).setThreadCount(1).createInput());
+        inputs.add(new SARInputBuilder()
+                .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
+                .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(1)
+                .setMode(DC).setThreadCount(2).createInput());
+        inputs.add(new SARInputBuilder()
+                .setNetwork("/home/carrezval/networks/case_SyntheticUSA.mat").setName("usa")
+                .setLineToDisconnect(5000).setContingencyCount(10000).setLinePerContingency(10).setActionPerOp(0)
+                .setMode(DC).setThreadCount(8).createInput());
+        inputs.add(new SARInputBuilder()
+                .setNetwork("/home/carrezval/networks/case_SyntheticUSA.mat").setName("usa")
+                .setLineToDisconnect(5000).setContingencyCount(10000).setLinePerContingency(10).setActionPerOp(10)
+                .setMode(DC).setThreadCount(8).createInput());
+
+        for (SecurityAnalysisRunner.Input input : inputs) {
+            System.out.println(Instant.now());
+            long start = System.currentTimeMillis();
+
+            SingleSecurityAnalysisRunner ssar = input.createSingleSecurityAnalysisRunner();
+            SpyWorkloadGenerator workload = new SpyWorkloadGenerator(ssar);
+            workload.generate(Path.of("workload/temp/"));
+            System.out.println("Workload generation time: " + (System.currentTimeMillis() - start) + " ms");
+        }
     }
 
     private static class NetworkGraph {

@@ -245,7 +245,12 @@ public final class Networks {
             modifiedTopoConfig = topoConfig;
         }
         if (!modifiedTopoConfig.isBreaker() && modifiedTopoConfig.getBranchIdsToClose().isEmpty()) {
-            return new LfNetworkList(load(network, topoConfig, networkParameters, reportNode));
+            LfNetworkList list = new LfNetworkList(load(network, topoConfig, networkParameters, reportNode));
+            for (int i = 0; i < list.getList().size(); i++) {
+                LfNetwork lfNetwork = list.getList().get(i);
+                lfNetwork.setIds(partitionNum, i);
+            }
+            return list;
         } else {
             if (!networkParameters.isBreakers() && modifiedTopoConfig.isBreaker()) {
                 throw new PowsyblException("LF networks have to be built from bus/breaker view");

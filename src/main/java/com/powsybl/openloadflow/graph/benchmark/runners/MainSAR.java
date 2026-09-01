@@ -10,6 +10,8 @@ package com.powsybl.openloadflow.graph.benchmark.runners;
 import com.powsybl.openloadflow.graph.DTreeStandalone;
 import com.powsybl.openloadflow.graph.dtree.DTNode;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtreenooptreroot.DTreeNoOptRerootGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtreerootset.DTreeSetRootGraphConnectivityFactory;
 
 import java.io.IOException;
 
@@ -26,9 +28,9 @@ public final class MainSAR {
     private static RunParameters.Performance performance() {
         RunParameters.Performance perf = new RunParameters.Performance()
                 .setWarmup(2)
-                .setMeasurement(2);
+                .setMeasurement(4);
         perf.output()
-                .setOutputFormat("results/sa/${name}/${class}_no_tree_edge_boolean.${ext}")
+                .setOutputFormat("results/sa_roots/${name}/${class}.${ext}")
                 .setOverwrite(false); //.setReplacement("results/sa/${name}/${class}.${ext}");
         return perf;
     }
@@ -49,6 +51,14 @@ public final class MainSAR {
         SecurityAnalysisRunner sar = new SecurityAnalysisRunner();
         sar.setRunParameters(performance());
 
+        if (args.length >= 1) {
+            switch (args[0]) {
+                case "perf" -> sar.setRunParameters(performance());
+                case "stats" -> sar.setRunParameters(statsWriter());
+                case "validator" -> sar.setRunParameters(validator());
+            }
+        }
+
         sar.addInput(new SARInputBuilder()
                 .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
                 .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(0)
@@ -65,14 +75,14 @@ public final class MainSAR {
                 .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
                 .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(1)
                 .setMode(DC).setThreadCount(2).createInput());
-        // sar.addInput(new SARInputBuilder()
-        //         .setNetwork("/home/carrezval/networks/case_SyntheticUSA.mat").setName("usa")
-        //         .setLineToDisconnect(5000).setContingencyCount(10000).setLinePerContingency(10).setActionPerOp(0)
-        //         .setMode(DC).setThreadCount(8).createInput());
-        // sar.addInput(new SARInputBuilder()
-        //         .setNetwork("/home/carrezval/networks/case_SyntheticUSA.mat").setName("usa")
-        //         .setLineToDisconnect(5000).setContingencyCount(10000).setLinePerContingency(10).setActionPerOp(10)
-        //         .setMode(DC).setThreadCount(8).createInput());
+        sar.addInput(new SARInputBuilder()
+                .setNetwork("/home/carrezval/networks/case_SyntheticUSA.mat").setName("usa")
+                .setLineToDisconnect(5000).setContingencyCount(10000).setLinePerContingency(10).setActionPerOp(0)
+                .setMode(DC).setThreadCount(8).createInput());
+        sar.addInput(new SARInputBuilder()
+                .setNetwork("/home/carrezval/networks/case_SyntheticUSA.mat").setName("usa")
+                .setLineToDisconnect(5000).setContingencyCount(10000).setLinePerContingency(10).setActionPerOp(10)
+                .setMode(DC).setThreadCount(8).createInput());
 
         // sar.addConnectivityFactory(new NaiveGraphConnectivityFactory<>((Integer i) -> i));
         // sar.addConnectivityFactory(new MinimumSpanningTreeGraphConnectivityFactory<>());
@@ -81,7 +91,8 @@ public final class MainSAR {
         // sar.addConnectivityFactory(new HolmEtAlWithoutLevelGraphConnectivityFactory<>());
         // sar.addConnectivityFactory(new NewHolmGraphConnectivityFactory<>());
         // sar.addConnectivityFactory(new HolmStandaloneFactory<>());
-        sar.addConnectivityFactory(new DTreeGraphConnectivityFactory<>());
+        sar.addConnectivityFactory(new DTreeSetRootGraphConnectivityFactory<>());
+        sar.addConnectivityFactory(new DTreeNoOptRerootGraphConnectivityFactory<>());
         // sar.addConnectivityFactory(new DTreeStandaloneFactory<>());
         // sar.addConnectivityFactory(new Delta2DTreeStandalone.Factory<>());
         // sar.addConnectivityFactory(new Delta2ReplaceWithBestDTreeStandalone.Factory<>());

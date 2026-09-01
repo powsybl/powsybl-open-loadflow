@@ -36,8 +36,12 @@ public class SpyWorkloadGenerator implements IGenerateWorkload {
     public SingleSecurityAnalysisRunner sar;
 
     public SpyWorkloadGenerator(Network network) {
-        sar = new SingleSecurityAnalysisRunner(network);
-        sar.connectivity = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+        this(new SingleSecurityAnalysisRunner(network));
+    }
+
+    public SpyWorkloadGenerator(SingleSecurityAnalysisRunner sar) {
+        this.sar = sar;
+        this.sar.connectivity = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
     }
 
     @Override

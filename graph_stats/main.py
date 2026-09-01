@@ -357,7 +357,7 @@ def get_data(path: Path) -> Results:
 
 
 if __name__ == '__main__':
-    workload = Path("data_sa/fr_5540_1/dc_2")
+    workload = Path("data_roots/spy_10000_10_10_10000_10_10_2026-08-07T07:59:16.649371906Z.zip")
     data = get_data(workload)
 
     pg.setConfigOptions(antialias=True)

@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.graph.benchmark.workload.IterationType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 
+import java.nio.file.Path;
 import java.util.Locale;
 
 /**
@@ -31,15 +32,7 @@ public class SecurityAnalysisRunner extends AbstractRunner<SecurityAnalysisRunne
         for (Input input : inputs) {
             LOG.log("Security Analysis parameters: %s", input);
 
-            Network network = Network.read(input.network);
-            SingleSecurityAnalysisRunner ssar = new SingleSecurityAnalysisRunner(network);
-
-            if (input.lineToDisconnect > 0) {
-                ssar.disconnectLinesPreserveConnectivity(input.lineToDisconnect);
-            }
-            ssar.generateContingenciesAndActions(input.contingencyCount, input.linePerContingency, input.actionPerOp);
-            ssar.threadCount = input.threadCount;
-            ssar.mode = input.mode;
+            SingleSecurityAnalysisRunner ssar = input.createSingleSecurityAnalysisRunner();
 
             for (GraphConnectivityFactory<LfBus, LfBranch> factory : factories) {
                 LOG.log("Using %s", factory);
@@ -103,6 +96,21 @@ public class SecurityAnalysisRunner extends AbstractRunner<SecurityAnalysisRunne
                         int actionPerOp,
                         SingleSecurityAnalysisRunner.Mode mode,
                         int threadCount) {
+
+        public SingleSecurityAnalysisRunner createSingleSecurityAnalysisRunner() {
+            Network network = Network.read(Path.of(this.network));
+            SingleSecurityAnalysisRunner ssar = new SingleSecurityAnalysisRunner(network);
+
+            if (lineToDisconnect > 0) {
+                ssar.disconnectLinesPreserveConnectivity(lineToDisconnect);
+            }
+            ssar.generateContingenciesAndActions(contingencyCount, linePerContingency, actionPerOp);
+            ssar.threadCount = threadCount;
+            ssar.mode = mode;
+
+            return ssar;
+        }
+
         public String toDirectoryName(SingleSecurityAnalysisRunner ssar) {
             StringBuilder sb = new StringBuilder();
             sb.append(name).append("_").append(contingencyCount < 0 ? ssar.contingencies.size() : contingencyCount).append("_").append(linePerContingency);
