@@ -20,9 +20,15 @@ public class ValidatorGraphConnectivity<V, E> extends AbstractSpyGraphConnectivi
 
     private final GraphConnectivityFactory<V, E> checkerFactory;
     private GraphConnectivity<V, E> checker;
+    private int step;
 
     public ValidatorGraphConnectivity(GraphConnectivityFactory<V, E> checkerFactory) {
         this.checkerFactory = checkerFactory;
+    }
+
+    @Override
+    public void notifyOperation(int operation) {
+        this.step = operation;
     }
 
     @Override
@@ -141,7 +147,7 @@ public class ValidatorGraphConnectivity<V, E> extends AbstractSpyGraphConnectivi
 
     private void assertEquals(Object obj1, Object obj2) {
         if (!Objects.equals(obj1, obj2)) {
-            throw new AssertionError(obj1 + " != " + obj2 + ": " + checker.getClass() + " and " + delegate.getClass() + " have inconsistent results");
+            throw new AssertionError("%s != %s: %s and %s have inconsistent results at step %d".formatted(obj1, obj2, checker.getClass(), delegate.getClass(), step));
         }
     }
 }

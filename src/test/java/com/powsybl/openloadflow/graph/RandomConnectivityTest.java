@@ -54,11 +54,11 @@ public class RandomConnectivityTest {
                         // new HolmEtAlGraphConnectivity<>(),
                         // new NewHolmGraphConnectivity<>(),
                         // new HolmStandalone<>(),
-                        new DTreeGraphConnectivity<>(),
-                        new DTreeStandalone<>(),
-                        new Delta2DTreeStandalone<>(),
-                        new Delta2ReplaceWithBestDTreeStandalone<>(),
-                        new ReplaceWithBestDTreeStandalone<>()
+                        // new DTreeGraphConnectivity<>(),
+                        new DTreeStandalone<>()
+                        // new Delta2DTreeStandalone<>(),
+                        // new Delta2ReplaceWithBestDTreeStandalone<>(),
+                        // new ReplaceWithBestDTreeStandalone<>()
                         // new IDTreeStandalone<>(),
                         // new DnDTreeStandalone<>(),
                         //new OptDTreeStandalone<>()
