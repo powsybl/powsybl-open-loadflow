@@ -35,9 +35,6 @@ public class ComponentView<V, E> extends AbstractSetView<V> {
     public boolean contains(Object o) {
         if (o != null) {
             // node might not be the root anymore, so need to use findRoot on node.
-            // However, don't use findRootOptReroot on node, it might change the root
-            // after we got the root of 'o'.
-
             return node.getGraph().rootOf((V) o) == node.findRoot();
         }
 
