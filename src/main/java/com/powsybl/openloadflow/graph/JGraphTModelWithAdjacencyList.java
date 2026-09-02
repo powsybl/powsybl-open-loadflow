@@ -9,7 +9,10 @@ package com.powsybl.openloadflow.graph;
 
 import gnu.trove.list.array.TIntArrayList;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.ToIntFunction;
 
 /**
@@ -76,33 +79,13 @@ public class JGraphTModelWithAdjacencyList<V, E> implements GraphModel<V, E> {
     }
 
     @Override
-    public Set<E> getEdgesBetween(V vertex1, V vertex2) {
-        return delegate.getEdgesBetween(vertex1, vertex2);
-    }
-
-    @Override
-    public Set<E> getEdges() {
-        return delegate.getEdges();
-    }
-
-    @Override
     public Set<E> getNeighborEdgesOf(V v) {
         return delegate.getNeighborEdgesOf(v);
     }
 
     @Override
-    public int getNeighborEdgeCountOf(V v) {
-        return delegate.getNeighborEdgeCountOf(v);
-    }
-
-    @Override
     public Set<V> getVertices() {
         return delegate.getVertices();
-    }
-
-    @Override
-    public List<V> getNeighborVerticesOf(V v) {
-        return delegate.getNeighborVerticesOf(v);
     }
 
     public Map<V, TIntArrayList> getAdjacencyList() {

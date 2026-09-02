@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+ * Copyright (c) 2020-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -93,7 +93,7 @@ public class MinimumSpanningTreeGraphConnectivity<V, E> extends AbstractGraphCon
 
         @Override
         public SpanningTrees getSpanningTree() {
-            GraphModel<V, E> graph = getGraph();
+            JGraphTModel<V, E> graph = getGraph();
             MyUnionFind forest = new MyUnionFind(graph.getVertices());
             Set<Object> edgeList = new HashSet<>();
             SpanningTrees spanningTree = new SpanningTrees(forest, edgeList, 0);
