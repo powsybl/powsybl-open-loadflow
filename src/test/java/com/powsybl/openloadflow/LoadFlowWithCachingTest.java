@@ -146,11 +146,35 @@ class LoadFlowWithCachingTest {
         assertActivePowerEquals(-170.0, g2.getTerminal()); // 200 -> 170
         assertActivePowerEquals(-60.0, g3.getTerminal()); // 90 -> 60
         assertActivePowerEquals(-60.0, g4.getTerminal()); // 90 -> 60
+    }
 
-        // test unsupported update
-        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
-        g1.setTargetQ(1);
-        assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because unsupported update
+    @Test
+    void testGeneratorTargetQ() {
+        var network = DistributedSlackNetworkFactory.create();
+        var g1 = network.getGenerator("g1");
+        var g2 = network.getGenerator("g2");
+        var g3 = network.getGenerator("g3");
+        var g4 = network.getGenerator("g4");
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertReactivePowerEquals(159.746, g1.getTerminal());
+        assertReactivePowerEquals(-300.0, g2.getTerminal());
+        assertReactivePowerEquals(-130.0, g3.getTerminal());
+        assertReactivePowerEquals(-130.0, g4.getTerminal());
+
+        g1.setTargetQ(170);
+        g2.setTargetQ(310);
+        g3.setTargetQ(140);
+        g4.setTargetQ(140);
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has not been invalidated
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(1, result.getComponentResults().get(0).getIterationCount());
+        assertReactivePowerEquals(159.741, g1.getTerminal()); // Change not taken into accound because voltage regulated
+        assertReactivePowerEquals(-310.0, g2.getTerminal());
+        assertReactivePowerEquals(-140.0, g3.getTerminal());
+        assertReactivePowerEquals(-140.0, g4.getTerminal());
     }
 
     @ParameterizedTest
@@ -175,11 +199,32 @@ class LoadFlowWithCachingTest {
         assertEquals(isDc ? 0 : 2, result.getComponentResults().get(0).getIterationCount());
         assertActivePowerEquals(-4.0, b1.getTerminal());
         assertActivePowerEquals(3.016, b2.getTerminal());
+    }
 
-        // test unsupported update
-        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
-        b1.setTargetQ(1);
-        assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because unsupported update
+    @Test
+    void testBatteryTargetQ() {
+        var network = DistributedSlackNetworkFactory.createWithBattery();
+        var b1 = network.getBattery("bat1");
+        var b2 = network.getBattery("bat2");
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(-2.0, b1.getTerminal());
+        assertActivePowerEquals(2.983, b2.getTerminal());
+        assertReactivePowerEquals(0.0, b1.getTerminal());
+        assertReactivePowerEquals(0, b2.getTerminal());
+
+        b1.setTargetQ(1.0);
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has not been invalidated
+
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(1, result.getComponentResults().get(0).getIterationCount());
+        assertActivePowerEquals(-2.0, b1.getTerminal());
+        assertActivePowerEquals(2.983, b2.getTerminal());
+        assertReactivePowerEquals(-1.0, b1.getTerminal());
+        assertReactivePowerEquals(0, b2.getTerminal());
     }
 
     @ParameterizedTest
@@ -202,11 +247,27 @@ class LoadFlowWithCachingTest {
         assertEquals(isDc ? 0 : 3, result.getComponentResults().get(0).getIterationCount());
         assertActivePowerEquals(620, load.getTerminal());
         assertActivePowerEquals(isDc ? -620 : -625.895, gen.getTerminal());
+    }
 
-        // test unsupported update
-        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
+    @Test
+    void testLoadQ() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        Load load = network.getLoad("LOAD");
+        Generator gen = network.getGenerator("GEN");
+
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
+        assertReactivePowerEquals(200, load.getTerminal());
+        assertReactivePowerEquals(-225.283, gen.getTerminal());
+
         load.setQ0(20);
-        assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because unsupported update
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertReactivePowerEquals(20, load.getTerminal());
+        assertReactivePowerEquals(-11.667, gen.getTerminal());
     }
 
     @ParameterizedTest
@@ -472,19 +533,6 @@ class LoadFlowWithCachingTest {
         parametersExt.setActionableSwitchesIds(Set.of("S1VL1_TWT_BREAKER"));
         loadFlowRunner.run(network, parameters);
         assertEquals(2, network.getVariantManager().getVariantIds().size());
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void testUnsupportedAttributeChange(boolean isDc) {
-        parameters.setDc(isDc);
-        var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        var gen = network.getGenerator("GEN");
-
-        loadFlowRunner.run(network, parameters);
-        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
-        gen.setTargetQ(10);
-        assertNull(findEntryFunction.apply(network, isDc).getValues());
     }
 
     @ParameterizedTest

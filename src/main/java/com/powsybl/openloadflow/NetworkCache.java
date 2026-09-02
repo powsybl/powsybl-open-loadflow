@@ -405,6 +405,12 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             return CacheUpdateResult.elementUpdated(value);
         }
 
+        private static <V extends Value> CacheUpdateResult<V> updateLfGeneratorTargetQ(V value, LfBus lfBus) {
+            // Reactive power of generator is directly read from IIDM, calling method only to recompute targetQ
+            lfBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(lfBus.isGeneratorVoltageControlEnabled());
+            return CacheUpdateResult.elementUpdated(value);
+        }
+
         private static <V extends Value> CacheUpdateResult<V> updateLfLoadTargetP(String id, double oldValue, double newValue, V value, LfBus lfBus) {
             // Load active power distribution is not handled
             double valueShift = newValue - oldValue;
@@ -455,6 +461,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 return CacheUpdateResult.elementUpdated(value);
             } else if ("targetP".equals(attribute)) {
                 return updateLfGeneratorTargetP(generator.getId(), (double) oldValue, (double) newValue, value, lfBus);
+            } else if ("targetQ".equals(attribute)) {
+                return updateLfGeneratorTargetQ(value, lfBus);
             }
             return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(generator, attribute));
         }
@@ -463,6 +471,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             return onInjectionUpdate(battery, (value, lfBus) -> {
                 if ("targetP".equals(attribute)) {
                     return updateLfGeneratorTargetP(battery.getId(), (double) oldValue, (double) newValue, value, lfBus);
+                } else if ("targetQ".equals(attribute)) {
+                    return updateLfGeneratorTargetQ(value, lfBus);
                 }
                 return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(battery, attribute));
             });
@@ -470,7 +480,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         private CacheUpdateResult<V> onLoadUpdate(Load load, String attribute, Object oldValue, Object newValue) {
             return onInjectionUpdate(load, (value, lfBus) -> {
-                if ("p0".equals(attribute)) {
+                if ("p0".equals(attribute) || "q0".equals(attribute)) {
                     LoadDetail loadDetail = load.getExtension(LoadDetail.class);
                     if (loadDetail != null) {
                         LOGGER.info("Load {} has a LoadDetail extension: not supported", load.getId());
@@ -482,7 +492,9 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                         LOGGER.info("Load active power distribution is enabled: not supported");
                         return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(load, attribute));
                     }
-                    return updateLfLoadTargetP(load.getId(), (double) oldValue, (double) newValue, value, lfBus);
+                    return "p0".equals(attribute) ?
+                            updateLfLoadTargetP(load.getId(), (double) oldValue, (double) newValue, value, lfBus)
+                            : updateLfLoadTargetQ(load.getId(), (double) oldValue, (double) newValue, value, lfBus);
                 }
                 return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(load, attribute));
             });
@@ -702,15 +714,15 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                      "q3" -> result = CacheUpdateResult.ignoreUpdate(); // ignore because it is related to state update and won't affect LF calculation
                 default -> {
                     if (identifiable.getType() == IdentifiableType.GENERATOR) {
-                        // supports attribute: "targetV" or "targetP"
+                        // supports attribute: "targetV", "targetP", "targetQ"
                         Generator generator = (Generator) identifiable;
                         result = onGeneratorUpdate(generator, attribute, oldValue, newValue);
                     } else if (identifiable.getType() == IdentifiableType.BATTERY) {
-                        // supports attribute: "targetP"
+                        // supports attribute: "targetP", "targetQ"
                         Battery battery = (Battery) identifiable;
                         result = onBatteryUpdate(battery, attribute, oldValue, newValue);
                     } else if (identifiable.getType() == IdentifiableType.LOAD) {
-                        // supports attribute: "p0"
+                        // supports attribute: "p0", "q0"
                         Load load = (Load) identifiable;
                         result = onLoadUpdate(load, attribute, oldValue, newValue);
                     } else if (identifiable.getType() == IdentifiableType.BOUNDARY_LINE) {
