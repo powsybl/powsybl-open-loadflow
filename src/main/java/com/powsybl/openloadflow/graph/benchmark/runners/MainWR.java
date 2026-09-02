@@ -29,10 +29,10 @@ public final class MainWR {
 
     private static RunParameters.Performance performance() {
         RunParameters.Performance perf = new RunParameters.Performance()
-                .setWarmup(0)
+                .setWarmup(10)
                 .setMeasurement(10);
         perf.output()
-                .setOutputFormat("results/workload_modifications/${workload}/${class}.${ext}")
+                .setOutputFormat(null) // "results/workload_multiedges/${workload}/${class}.${ext}")
                 .setOverwrite(true); //.setReplacement("results/workload/${workload}/${class}_list_of_root.${ext}");
         return perf;
     }
@@ -66,8 +66,8 @@ public final class MainWR {
             }
         } else {
             // addAllWorkloadInFolder(wr, Path.of("workload/temp"));
-            // wr.addInput(Workload.inMemory(Path.of("workload/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt")));
-            // wr.addInput(Workload.inMemory(Path.of("workload/spy_5541_1_1_5541_1_1_2026-07-03T11:50:06.510031405Z.txt")));
+            wr.addInput(Workload.inMemory(Path.of("workload/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt")));
+            wr.addInput(Workload.inMemory(Path.of("workload/spy_5541_1_1_5541_1_1_2026-07-03T11:50:06.510031405Z.txt")));
             wr.addInput(Workload.inMemory(Path.of("workload/spy_10000_10_10_10000_10_10_2026-08-07T07:59:16.649371906Z.zip")));
         }
 

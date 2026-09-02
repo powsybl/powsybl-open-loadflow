@@ -155,11 +155,13 @@ public class WorkloadRunner extends AbstractRunner<Workload, Integer, Integer> {
             if (threadId == 0) {
                 spyFactory.beginIterations(warmupContext);
             }
+            wait(barrier); // ensure beginIterations was called before a thread start runnning operations
             runOperationsMultipleTimes(progress, operations, spyFactory, barrier, warmupContext);
 
             if (threadId == 0) {
                 spyFactory.endIterations(warmupContext, null);
             }
+            wait(barrier);
         }
 
         if (measurementContext.iterations() > 0) {
@@ -168,10 +170,12 @@ public class WorkloadRunner extends AbstractRunner<Workload, Integer, Integer> {
             if (threadId == 0) {
                 spyFactory.beginIterations(measurementContext);
             }
+            wait(barrier);
             AverageStopWatch asw = runOperationsMultipleTimes(progress, operations, spyFactory, barrier, measurementContext);
             if (threadId == 0) {
                 spyFactory.endIterations(measurementContext, asw);
             }
+            wait(barrier);
         }
     }
 
@@ -192,14 +196,7 @@ public class WorkloadRunner extends AbstractRunner<Workload, Integer, Integer> {
 
             asw.start();
             runOperations(progress, operations, spyFactory);
-
-            if (barrier != null) {
-                try {
-                    barrier.await();
-                } catch (InterruptedException | BrokenBarrierException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+            wait(barrier);
 
             asw.stop();
         }
@@ -227,6 +224,16 @@ public class WorkloadRunner extends AbstractRunner<Workload, Integer, Integer> {
         }
 
         spy.endOperations(operations);
+    }
+
+    private void wait(CyclicBarrier barrier) {
+        if (barrier != null) {
+            try {
+                barrier.await();
+            } catch (InterruptedException | BrokenBarrierException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     private static final class MyProgressManager extends ProgressManager<Progress> implements ProgressFormatter<Progress> {
