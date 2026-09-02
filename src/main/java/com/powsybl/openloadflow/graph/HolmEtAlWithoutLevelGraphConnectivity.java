@@ -253,16 +253,6 @@ public class HolmEtAlWithoutLevelGraphConnectivity<V, E> extends AbstractGraphCo
         }
 
         @Override
-        public Set<E> getEdgesBetween(V vertex1, V vertex2) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Set<E> getEdges() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public Set<E> getNeighborEdgesOf(V v) {
             Set<E> set = new HashSet<>(adjacencyList.get(v).values());
 
@@ -274,18 +264,8 @@ public class HolmEtAlWithoutLevelGraphConnectivity<V, E> extends AbstractGraphCo
         }
 
         @Override
-        public int getNeighborEdgeCountOf(V v) {
-            return getNeighborEdgesOf(v).size();
-        }
-
-        @Override
         public Set<V> getVertices() {
             return adjacencyList.keySet();
-        }
-
-        @Override
-        public List<V> getNeighborVerticesOf(V v) {
-            throw new UnsupportedOperationException();
         }
     }
 

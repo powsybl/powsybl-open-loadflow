@@ -13,16 +13,16 @@ import java.util.function.ToIntFunction;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class NaiveGraphConnectivityFactory<V, E> implements GraphConnectivityFactory<V, E> {
+public class NoJGraphTNaiveGraphConnectivityFactory<V, E> implements GraphConnectivityFactory<V, E> {
 
     private final ToIntFunction<V> numGetter;
 
-    public NaiveGraphConnectivityFactory(ToIntFunction<V> numGetter) {
+    public NoJGraphTNaiveGraphConnectivityFactory(ToIntFunction<V> numGetter) {
         this.numGetter = Objects.requireNonNull(numGetter);
     }
 
     @Override
     public GraphConnectivity<V, E> create() {
-        return new NaiveGraphConnectivity<>(numGetter, new JGraphTModelWithAdjacencyList<>(numGetter));
+        return new NaiveGraphConnectivity<>(numGetter, new AdjacencyListGraphModel<>(numGetter));
     }
 }

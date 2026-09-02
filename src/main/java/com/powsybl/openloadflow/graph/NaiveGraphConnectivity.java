@@ -16,7 +16,7 @@ import java.util.function.ToIntFunction;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, AdjacencyListGraphModel<V, E>> {
+public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, IAdjacencyListGraphModel<V, E>> {
 
     private int[] components;
 
@@ -24,6 +24,11 @@ public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     public NaiveGraphConnectivity(ToIntFunction<V> vertexNumGetter) {
         super(new AdjacencyListGraphModel<>(vertexNumGetter));
+        this.numGetter = Objects.requireNonNull(vertexNumGetter);
+    }
+
+    public NaiveGraphConnectivity(ToIntFunction<V> vertexNumGetter, IAdjacencyListGraphModel<V, E> graphModel) {
+        super(graphModel);
         this.numGetter = Objects.requireNonNull(vertexNumGetter);
     }
 

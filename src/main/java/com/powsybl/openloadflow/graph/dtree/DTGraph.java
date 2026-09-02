@@ -372,33 +372,13 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     }
 
     @Override
-    public Set<E> getEdgesBetween(V vertex1, V vertex2) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Set<E> getEdges() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public Set<E> getNeighborEdgesOf(V v) {
         return vertexToTreeNode.get(v).getNeighborEdges();
     }
 
     @Override
-    public int getNeighborEdgeCountOf(V v) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public Set<V> getVertices() {
         return vertexToTreeNode.keySet();
-    }
-
-    @Override
-    public List<V> getNeighborVerticesOf(V v) {
-        throw new UnsupportedOperationException();
     }
 
     public int getNbConnectedComponent() {

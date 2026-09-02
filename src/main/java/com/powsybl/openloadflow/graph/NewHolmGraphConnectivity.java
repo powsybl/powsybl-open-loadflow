@@ -518,32 +518,12 @@ public class NewHolmGraphConnectivity<V, E> extends AbstractGraphConnectivity<V,
         }
 
         @Override
-        public Set<E> getEdgesBetween(V vertex1, V vertex2) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Set<E> getEdges() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public Set<E> getNeighborEdgesOf(V v) {
             return adjacencyList.get(v);
         }
 
         @Override
-        public int getNeighborEdgeCountOf(V v) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public Set<V> getVertices() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public List<V> getNeighborVerticesOf(V v) {
             throw new UnsupportedOperationException();
         }
 

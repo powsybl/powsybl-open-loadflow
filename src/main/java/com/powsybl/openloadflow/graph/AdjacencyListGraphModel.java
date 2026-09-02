@@ -15,7 +15,7 @@ import java.util.function.ToIntFunction;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class AdjacencyListGraphModel<V, E> implements GraphModel<V, E> {
+public class AdjacencyListGraphModel<V, E> implements IAdjacencyListGraphModel<V, E> {
 
     private final ToIntFunction<V> numGetter;
 
@@ -97,6 +97,7 @@ public class AdjacencyListGraphModel<V, E> implements GraphModel<V, E> {
         return adjacencyList.keySet();
     }
 
+    @Override
     public Map<V, TIntArrayList> getAdjacencyList() {
         return adjacencyList;
     }

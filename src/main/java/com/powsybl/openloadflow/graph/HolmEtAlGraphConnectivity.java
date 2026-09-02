@@ -372,20 +372,6 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
         }
 
         @Override
-        public Set<E> getEdgesBetween(V vertex1, V vertex2) {
-            throw new UnsupportedOperationException();
-        }
-
-        public Iterable<E> getEdgesBetween(V vertex1, V vertex2, int level) {
-            return adjacencyList.get(level).get(vertex1).get(vertex2);
-        }
-
-        @Override
-        public Set<E> getEdges() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public Set<E> getNeighborEdgesOf(V v) {
             Set<E> set = new HashSet<>();
 
@@ -401,18 +387,8 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
         }
 
         @Override
-        public int getNeighborEdgeCountOf(V v) {
-            return getNeighborEdgesOf(v).size();
-        }
-
-        @Override
         public Set<V> getVertices() {
             return adjacencyList.getFirst().keySet();
-        }
-
-        @Override
-        public List<V> getNeighborVerticesOf(V v) {
-            throw new UnsupportedOperationException();
         }
     }
 
