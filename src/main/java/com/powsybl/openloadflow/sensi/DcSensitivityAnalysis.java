@@ -625,7 +625,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(loadFlowContext, contingenciesWithFactors);
 
                 // the map is indexed by lf actions as different kind of actions can be given on the same branch
-                Map<LfAction, List<ComputedElement>> actionElementsIndexByLfAction = ComputedElement.createActionElementsIndexByLfAction(lfActionById, loadFlowContext.getEquationSystem());
+                Map<LfAction, List<ComputedElement>> actionElementsIndexByLfAction = ComputedElement.createActionElementsIndexByLfAction(lfActionById, loadFlowContext.getEquationSystem(),
+                        loadFlowContext.getParameters().getEquationSystemCreationParameters());
 
                 // compute states with +1 -1 to model the actions in Woodbury engine
                 // note that the number of columns in the matrix depends on the number of distinct branches affected by the action elements
