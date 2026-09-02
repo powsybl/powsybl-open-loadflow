@@ -206,8 +206,10 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
     }
 
     private void insertNonTreeEdgeRecordModifications(DTNode<V, E> root, E edge) {
-        if (isInMainComponent(root)) {
-            checkSavedContext().markEdgeAdded(edge);
+        Modifications modifications = modificationsStack.peek();
+
+        if (modifications != null && !modifications.undoing && modifications.isInMainComponent(root)) {
+            modifications.markEdgeAdded(edge);
         }
     }
 
@@ -273,12 +275,16 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
     }
 
     private void insertTreeEdgeRecordModifications(DTNode<V, E> rootU, DTNode<V, E> rootV, E edge) {
-        if (isInMainComponent(rootV)) {
-            checkSavedContext().markEdgeAdded(edge);
-            markAllAdded(rootU);
-        } else if (isInMainComponent(rootU)) {
-            checkSavedContext().markEdgeAdded(edge);
-            markAllAdded(rootV);
+        Modifications modifications = modificationsStack.peek();
+
+        if (modifications != null && !modifications.undoing) {
+            if (modifications.isInMainComponent(rootV)) {
+                modifications.markEdgeAdded(edge);
+                modifications.markAllAdded(rootU);
+            } else if (modifications.isInMainComponent(rootU)) {
+                modifications.markEdgeAdded(edge);
+                modifications.markAllAdded(rootV);
+            }
         }
     }
 
@@ -383,34 +389,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
             replaceResult = replace(small);
         }
 
-        if (replaceResult.replacementEdgeFound) {
-            if (isInMainComponent(replaceResult.root)) {
-                checkSavedContext().markEdgeRemoved(edge.edgeData);
-            }
-        } else {
-            // /!\ small and large can be both in the main component (when a replacement edge was found)
-            // However, in this case, we only need one of the two variables to be true to have
-            // the correct behavior (i.e. only the removedEdge is marked as removed).
-            // When there is no replacement edge, small and large cannot be simultaneously in the main
-            // component as there are in two distinct components.
-            boolean smallInMain = isInMainComponent(replaceResult.root);
-            boolean largeInMain = !smallInMain && isInMainComponent(large); // avoid computing isInMainComponent if we know that small is in the main component
-
-            if (smallInMain || largeInMain) {
-                checkSavedContext().markEdgeRemoved(edge.edgeData);
-            }
-
-            Modifications modifications = modificationsStack.peek();
-            if (modifications != null) {
-                modifications.notifyDisconnection();
-            }
-
-            if (largeInMain) {
-                markAllRemoved(replaceResult.root);
-            } else if (smallInMain) {
-                markAllRemoved(large);
-            }
-        }
+        removeTreeEdgeRecordModifications(replaceResult, edge, large);
     }
 
     // search a replacement edge by doing a BFS over the smaller tree between rootSmall and rooLarge
@@ -497,6 +476,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
             newRoot.makeRoot(true);
             return new ReplaceResult<>(false, newRoot);
         }
+
         return new ReplaceResult<>(false, rootSmall);
     }
 
@@ -506,9 +486,43 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         return false;
     }
 
+    private void removeTreeEdgeRecordModifications(ReplaceResult<V, E> replaceResult, Edge<V, E> edge, DTNode<V, E> large) {
+        Modifications modifications = modificationsStack.peek();
+        if (modifications == null || modifications.undoing) {
+            return;
+        }
+
+        if (replaceResult.replacementEdgeFound) {
+            if (modifications.isInMainComponent(replaceResult.root)) {
+                modifications.markEdgeRemoved(edge.edgeData);
+            }
+        } else {
+            // /!\ small and large can be both in the main component (when a replacement edge was found)
+            // However, in this case, we only need one of the two variables to be true to have
+            // the correct behavior (i.e. only the removedEdge is marked as removed).
+            // When there is no replacement edge, small and large cannot be simultaneously in the main
+            // component as there are in two distinct components.
+            boolean smallInMain = modifications.isInMainComponent(replaceResult.root);
+            boolean largeInMain = !smallInMain && modifications.isInMainComponent(large); // avoid computing isInMainComponent if we know that small is in the main component
+
+            if (smallInMain || largeInMain) {
+                modifications.markEdgeRemoved(edge.edgeData);
+            }
+
+            modifications.notifyDisconnection();
+
+            if (largeInMain) {
+                modifications.markAllRemoved(replaceResult.root);
+            } else if (smallInMain) {
+                modifications.markAllRemoved(large);
+            }
+        }
+    }
+
     private void removeNonTreeEdgeRecordModifications(DTNode<V, E> node, E edge) {
-        if (isInMainComponent(node)) {
-            checkSavedContext().markEdgeRemoved(edge);
+        Modifications modifications = modificationsStack.peek();
+        if (modifications != null && !modifications.undoing && modifications.isInMainComponent(node)) {
+            modifications.markEdgeRemoved(edge);
         }
     }
 
@@ -604,16 +618,6 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         defaultMainComponentVertex = mainComponentVertex;
     }
 
-    private boolean isInMainComponent(DTNode<V, E> node) {
-        Modifications modifications = modificationsStack.peek();
-
-        if (modifications == null) {
-            return false;
-        } else {
-            return modifications.mainComponentNode.findRoot() == node.findRoot();
-        }
-    }
-
     private DTNode<V, E> getBiggestRoot() {
         DTNode<V, E> biggestRoot = roots.getFirst();
 
@@ -646,28 +650,6 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         sortTrees();
 
         return roots.getFirst().componentView();
-    }
-
-    // =========================
-    // * MODIFICATIONS SUPPORT *
-    // =========================
-
-    private void markAllAdded(DTNode<V, E> root) {
-        Modifications modifications = modificationsStack.peek();
-        if (modifications == null) {
-            return;
-        }
-
-        modifications.markAllAdded(root);
-    }
-
-    private void markAllRemoved(DTNode<V, E> root) {
-        Modifications modifications = modificationsStack.peek();
-        if (modifications == null) {
-            return;
-        }
-
-        modifications.markAllRemoved(root);
     }
 
     @Override
@@ -1255,6 +1237,10 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
             }
 
             isMainComponentVertexFictitious = false;
+        }
+
+        public boolean isInMainComponent(DTNode<V, E> node) {
+            return mainComponentNode.findRoot() == node.findRoot();
         }
 
         public void markEdgeAdded(E edge) {

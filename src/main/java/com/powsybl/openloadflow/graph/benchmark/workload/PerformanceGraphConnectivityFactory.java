@@ -127,6 +127,8 @@ public class PerformanceGraphConnectivityFactory<V, E> implements ISpyGraphConne
 
     private void serialize(JsonGenerator g) throws IOException {
         PerformanceGraphConnectivity<V, E> merged = new PerformanceGraphConnectivity<>();
+        merged.setDelegateFactory(delegateFactory);
+        merged.setDelegate(delegateFactory.create());
 
         g.writeArrayFieldStart("operations");
         for (PerformanceGraphConnectivity<V, E> spy : spyMap.values()) {
@@ -150,6 +152,7 @@ public class PerformanceGraphConnectivityFactory<V, E> implements ISpyGraphConne
         }
 
         PerformanceGraphConnectivity<V, E> res = new PerformanceGraphConnectivity<>();
+        res.setDelegateFactory(delegateFactory);
         res.setDelegate(delegateFactory.create());
 
         StringBuilder sb = new StringBuilder();
