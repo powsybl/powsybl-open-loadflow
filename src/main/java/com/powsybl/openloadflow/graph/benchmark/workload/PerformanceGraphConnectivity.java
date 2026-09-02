@@ -242,7 +242,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
             sb.append("PerformanceGraphConnectivity: ").append(name).append("\n");
         }
 
-        sb.append(delegate.getClass().getSimpleName()).append(":").append(System.lineSeparator());
+        sb.append(delegateFactory.getClass().getSimpleName()).append(":").append(System.lineSeparator());
         sb.append("Total runtime: %.4f s = %.4f s + %.4f s%n".formatted(
                 sw.totalElapsed() / 1e9,
                 Aggregator.sum(initialGraphBuild) / 1e9,

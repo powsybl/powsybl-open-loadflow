@@ -90,7 +90,13 @@ public class JGraphTModelWithAdjacencyList<V, E> implements IAdjacencyListGraphM
     }
 
     @Override
-    public Map<V, TIntArrayList> getAdjacencyList() {
-        return adjacencyList;
+    public TIntArrayList[] getAdjacencyList() {
+        TIntArrayList[] adjacencyListArray = new TIntArrayList[adjacencyList.size()];
+        for (Map.Entry<V, TIntArrayList> entry : adjacencyList.entrySet()) {
+            V vertex = entry.getKey();
+            TIntArrayList adj = entry.getValue();
+            adjacencyListArray[numGetter.applyAsInt(vertex)] = adj;
+        }
+        return adjacencyListArray;
     }
 }

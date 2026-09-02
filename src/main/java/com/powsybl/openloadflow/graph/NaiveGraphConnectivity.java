@@ -23,7 +23,7 @@ public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     private final ToIntFunction<V> numGetter;
 
     public NaiveGraphConnectivity(ToIntFunction<V> vertexNumGetter) {
-        super(new AdjacencyListGraphModel<>(vertexNumGetter));
+        super(new NeighborGraphModel<>(vertexNumGetter));
         this.numGetter = Objects.requireNonNull(vertexNumGetter);
     }
 
@@ -38,20 +38,14 @@ public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     }
 
     private List<Set<V>> calculateConnectedSets() {
-        Map<V, TIntArrayList> adjacencyList = getGraph().getAdjacencyList();
-        TIntArrayList[] adjacencyListArray = new TIntArrayList[adjacencyList.size()];
-        for (Map.Entry<V, TIntArrayList> entry : adjacencyList.entrySet()) {
-            V vertex = entry.getKey();
-            TIntArrayList adj = entry.getValue();
-            adjacencyListArray[numGetter.applyAsInt(vertex)] = adj;
-        }
-        GraphUtil.ConnectedComponentsComputationResult result = GraphUtil.computeConnectedComponents(adjacencyListArray);
+        TIntArrayList[] adjacencyList = getGraph().getAdjacencyList();
+        GraphUtil.ConnectedComponentsComputationResult result = GraphUtil.computeConnectedComponents(adjacencyList);
         List<Set<V>> connectedSets = new ArrayList<>();
         for (int size : result.getComponentSize()) {
             connectedSets.add(HashSet.newHashSet(size));
         }
         int[] componentNum = result.getComponentNumber();
-        for (V vertex : adjacencyList.keySet()) {
+        for (V vertex : getGraph().getVertices()) {
             int v = numGetter.applyAsInt(vertex);
             connectedSets.get(componentNum[v]).add(vertex);
         }

@@ -9,12 +9,10 @@ package com.powsybl.openloadflow.graph;
 
 import gnu.trove.list.array.TIntArrayList;
 
-import java.util.Map;
-
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
 public interface IAdjacencyListGraphModel<V, E> extends GraphModel<V, E> {
 
-    Map<V, TIntArrayList> getAdjacencyList();
+    TIntArrayList[] getAdjacencyList();
 }

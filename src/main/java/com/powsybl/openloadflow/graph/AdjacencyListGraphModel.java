@@ -98,8 +98,14 @@ public class AdjacencyListGraphModel<V, E> implements IAdjacencyListGraphModel<V
     }
 
     @Override
-    public Map<V, TIntArrayList> getAdjacencyList() {
-        return adjacencyList;
+    public TIntArrayList[] getAdjacencyList() {
+        TIntArrayList[] adjacencyListArray = new TIntArrayList[adjacencyList.size()];
+        for (Map.Entry<V, TIntArrayList> entry : adjacencyList.entrySet()) {
+            V vertex = entry.getKey();
+            TIntArrayList adj = entry.getValue();
+            adjacencyListArray[numGetter.applyAsInt(vertex)] = adj;
+        }
+        return adjacencyListArray;
     }
 
     private record Edge<V>(V source, V target) { }

@@ -7,8 +7,9 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.runners;
 
+import com.powsybl.openloadflow.graph.AdjacencyListNaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
-import com.powsybl.openloadflow.graph.NoJGraphTNaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.NeighborNaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.benchmark.workload.Workload;
 
 import java.io.IOException;
@@ -27,7 +28,7 @@ public final class MainWR {
     private static RunParameters.Performance performance() {
         RunParameters.Performance perf = new RunParameters.Performance()
                 .setWarmup(0)
-                .setMeasurement(1);
+                .setMeasurement(10);
         perf.output()
                 .setOutputFormat("results/workload/${workload}/${class}.${ext}")
                 .setOverwrite(true); //.setReplacement("results/workload/${workload}/${class}_list_of_root.${ext}");
@@ -70,7 +71,8 @@ public final class MainWR {
 
         // wr.addConnectivityFactory(new OldNaiveGraphConnectivity.Factory<>((Integer i) -> i));
         wr.addConnectivityFactory(new NaiveGraphConnectivityFactory<>((Integer i) -> i));
-        wr.addConnectivityFactory(new NoJGraphTNaiveGraphConnectivityFactory<>((Integer i) -> i));
+        wr.addConnectivityFactory(new NeighborNaiveGraphConnectivityFactory<>((Integer i) -> i));
+        wr.addConnectivityFactory(new AdjacencyListNaiveGraphConnectivityFactory<>((Integer i) -> i));
         // wr.addConnectivityFactory(new MinimumSpanningTreeGraphConnectivityFactory<>());
         // wr.addConnectivityFactory(new EvenShiloachGraphDecrementalConnectivityFactory<>());
         // wr.addConnectivityFactory(new HolmEtAlGraphConnectivityFactory<>());
