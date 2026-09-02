@@ -40,7 +40,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.CompletionException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -142,7 +141,7 @@ class SecondaryVoltageControlTest {
         pilotPoint.setTargetV(13.5);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(13.5, b10);
         assertVoltageEquals(13.358, b6);
         assertVoltageEquals(25.621, b8);
@@ -184,13 +183,13 @@ class SecondaryVoltageControlTest {
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(7, result.getComponentResults().get(0).getIterationCount());
 
-        assertVoltageEquals(11.736, b10); // 11.5 kV was not feasible
-        assertVoltageEquals(11.924, b6);
-        assertVoltageEquals(19.537, b8);
+        assertVoltageEquals(11.817, b10); // 11.5 kV was not feasible
+        assertVoltageEquals(11.986, b6);
+        assertVoltageEquals(19.8, b8);
         assertReactivePowerEquals(6, g6.getTerminal()); // [-6, 24] => qmin
-        assertReactivePowerEquals(6, g8.getTerminal()); // [-6, 200] => qmin
+        assertReactivePowerEquals(3.150, g8.getTerminal()); // [-6, 200], not saturated after clipped correction
     }
 
     void modifyNetworkToUnblockGeneratorFromLimit() {
@@ -203,13 +202,13 @@ class SecondaryVoltageControlTest {
                 .add()
                 .add();
 
-        // to put g6 and g8 at q min
+        // Start g6 and g8 close to qmin so the SVC correction first interacts with reactive limit switching.
         g6.setTargetV(11.8);
         g8.setTargetV(19.5);
     }
 
     @Test
-    void testUnblockGeneratorFromLimit() throws IOException {
+    void testReEnableHelpfulControllerBusesFromReactiveLimit() throws IOException {
         modifyNetworkToUnblockGeneratorFromLimit();
         // This scenario works if the slack distribution fails and an injection is added at the slack bus
         parametersExt.setPlausibleActivePowerLimit(5000); // Remove large generators from slack distribution
@@ -222,11 +221,12 @@ class SecondaryVoltageControlTest {
                 .withMessageTemplate("test")
                 .build();
 
-        // try to put g6 and g8 at qmax to see if they are correctly unblock from qmin
+        // SVC must be able to re-enable a controller bus disabled by reactive limits when the zone still has another
+        // available controller. With the clipped correction, the controllers finally reach the opposite reactive limit.
         loadFlowRunParameters.setReportNode(node);
         var result = loadFlowRunner.run(network, loadFlowRunParameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(14, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(24, result.getComponentResults().get(0).getIterationCount());
 
         assertVoltageEquals(15, b10);
         assertVoltageEquals(14.604, b6);
@@ -249,29 +249,39 @@ class SecondaryVoltageControlTest {
                          Outer loop DistributedSlack
                          Outer loop SecondaryVoltageControl
                          + Outer loop ReactiveLimits
-                            + Outer loop iteration 3
-                               + 3 buses switched PV -> PQ (2 buses remain PV)
-                                  Switch bus 'VL3_0' PV -> PQ, q=-18.051176 < minQ=0
-                                  Switch bus 'VL6_0' PV -> PQ, q=25.327554 > maxQ=24
-                                  Switch bus 'VL8_0' PV -> PQ, q=209.071622 > maxQ=200
+                            + Outer loop iteration 2
+                               + 1 buses switched PV -> PQ (4 buses remain PV)
+                                  Switch bus 'VL6_0' PV -> PQ, q=59.989159 > maxQ=24
+                         Outer loop DistributedSlack
+                         Outer loop SecondaryVoltageControl
+                         + Outer loop ReactiveLimits
                             + Outer loop iteration 4
-                               + 1 buses switched PV -> PQ (1 buses remain PV)
-                                  Switch bus 'VL2_0' PV -> PQ, q=-46.582673 < minQ=-40
+                               + 2 buses switched PV -> PQ (3 buses remain PV)
+                                  Switch bus 'VL3_0' PV -> PQ, q=-0.477767 < minQ=0
+                                  Switch bus 'VL6_0' PV -> PQ, q=122.625173 > maxQ=24
                             + Outer loop iteration 5
                                + 1 buses switched PQ -> PV (0 buses blocked PQ due to the max number of switches)
-                                  Switch bus 'VL6_0' PQ -> PV, q=maxQ and v=14.604872kV > targetV=14.596348kV
-                         + Outer loop DistributedSlack
-                            + Outer loop iteration 6
-                               Failed to distribute slack bus active power mismatch, 3.011164 MW remains
+                                  Switch bus 'VL3_0' PQ -> PV, q=minQ and v=134.067233kV < targetV=136.35kV
+                         Outer loop DistributedSlack
                          Outer loop SecondaryVoltageControl
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 8
-                               + 2 buses switched PV -> PQ (1 buses remain PV)
-                                  Switch bus 'VL6_0' PV -> PQ, q=24.012062 > maxQ=24
-                                  Switch bus 'VL8_0' PV -> PQ, q=200.112821 > maxQ=200
+                               + 2 buses switched PV -> PQ (3 buses remain PV)
+                                  Switch bus 'VL3_0' PV -> PQ, q=-8.506687 < minQ=0
+                                  Switch bus 'VL6_0' PV -> PQ, q=59.686055 > maxQ=24
                          + Outer loop DistributedSlack
                             + Outer loop iteration 9
-                               Failed to distribute slack bus active power mismatch, 3.016519 MW remains
+                               Failed to distribute slack bus active power mismatch, 1.087632 MW remains
+                         Outer loop SecondaryVoltageControl
+                         + Outer loop ReactiveLimits
+                            + Outer loop iteration 11
+                               + 3 buses switched PV -> PQ (1 buses remain PV)
+                                  Switch bus 'VL2_0' PV -> PQ, q=-48.226659 < minQ=-40
+                                  Switch bus 'VL6_0' PV -> PQ, q=25.896434 > maxQ=24
+                                  Switch bus 'VL8_0' PV -> PQ, q=200.819982 > maxQ=200
+                         + Outer loop DistributedSlack
+                            + Outer loop iteration 12
+                               Failed to distribute slack bus active power mismatch, 3.012286 MW remains
                          Outer loop SecondaryVoltageControl
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
@@ -280,10 +290,10 @@ class SecondaryVoltageControlTest {
     }
 
     @Test
-    void testSecurityAnalysisWithUnblockedGenerator() {
+    void testSecurityAnalysisWithReEnabledControllerBus() {
         modifyNetworkToUnblockGeneratorFromLimit();
 
-        // Pilot point is set to test unblocking of generators without them turning back PQ
+        // Pilot point is set to test SVC re-enabling controller buses without them turning back PQ
         network.getExtension(SecondaryVoltageControl.class)
                 .getControlZone("z1").orElseThrow().getPilotPoint().setTargetV(14.95);
 
@@ -301,22 +311,23 @@ class SecondaryVoltageControlTest {
     }
 
     @Test
-    void testCannotUnblockGeneratorFromLimit() throws IOException {
+    void testBlockedReactiveLimitsPqPvSwitchDoesNotPreventSvcReEnable() throws IOException {
         modifyNetworkToUnblockGeneratorFromLimit();
 
         parametersExt.setSecondaryVoltageControl(true);
-        parametersExt.setReactiveLimitsMaxPqPvSwitch(0); // Will block PQ->PV move
+        // Blocks PQ->PV moves in ReactiveLimits. SVC may still re-enable helpful controller buses before computing its
+        // correction, which is the behavior this test protects.
+        parametersExt.setReactiveLimitsMaxPqPvSwitch(0);
 
         ReportNode node = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("test")
                 .build();
 
-        // try to put g6 and g8 at qmax to see if they are correctly unblock from qmin
         loadFlowRunParameters.setReportNode(node);
         var result = loadFlowRunner.run(network, loadFlowRunParameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(11, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(25, result.getComponentResults().get(0).getIterationCount());
 
         assertVoltageEquals(15, b10);
         assertVoltageEquals(14.604, b6);
@@ -337,25 +348,40 @@ class SecondaryVoltageControlTest {
                          Outer loop DistributedSlack
                          Outer loop SecondaryVoltageControl
                          + Outer loop ReactiveLimits
-                            + Outer loop iteration 3
-                               + 3 buses switched PV -> PQ (2 buses remain PV)
-                                  Switch bus 'VL3_0' PV -> PQ, q=-18.051176 < minQ=0
-                                  Switch bus 'VL6_0' PV -> PQ, q=25.327554 > maxQ=24
-                                  Switch bus 'VL8_0' PV -> PQ, q=209.071622 > maxQ=200
-                            + Outer loop iteration 4
-                               + 1 buses switched PV -> PQ (1 buses remain PV)
-                                  Switch bus 'VL2_0' PV -> PQ, q=-46.582673 < minQ=-40
-                            + Outer loop iteration 5
-                               + 0 buses switched PQ -> PV (1 buses blocked PQ due to the max number of switches)
-                                  Bus 'VL6_0' blocked PQ as it has reached its max number of PQ -> PV switch (1)
-                         + Outer loop DistributedSlack
-                            + Outer loop iteration 5
-                               Slack bus active power (3.013536 MW) distributed in 1 distribution iteration(s)
+                            + Outer loop iteration 2
+                               + 1 buses switched PV -> PQ (4 buses remain PV)
+                                  Switch bus 'VL6_0' PV -> PQ, q=59.989159 > maxQ=24
+                         Outer loop DistributedSlack
                          Outer loop SecondaryVoltageControl
                          + Outer loop ReactiveLimits
-                            + Outer loop iteration 6
+                            + Outer loop iteration 4
+                               + 2 buses switched PV -> PQ (3 buses remain PV)
+                                  Switch bus 'VL3_0' PV -> PQ, q=-0.477767 < minQ=0
+                                  Switch bus 'VL6_0' PV -> PQ, q=122.625173 > maxQ=24
+                            + Outer loop iteration 5
                                + 0 buses switched PQ -> PV (1 buses blocked PQ due to the max number of switches)
-                                  Bus 'VL6_0' blocked PQ as it has reached its max number of PQ -> PV switch (1)
+                                  Bus 'VL3_0' blocked PQ as it has reached its max number of PQ -> PV switch (1)
+                         Outer loop DistributedSlack
+                         Outer loop SecondaryVoltageControl
+                         + Outer loop ReactiveLimits
+                            + Outer loop iteration 7
+                               + 1 buses switched PV -> PQ (3 buses remain PV)
+                                  Switch bus 'VL6_0' PV -> PQ, q=59.183534 > maxQ=24
+                         + Outer loop DistributedSlack
+                            + Outer loop iteration 8
+                               Slack bus active power (1.087638 MW) distributed in 1 distribution iteration(s)
+                         Outer loop SecondaryVoltageControl
+                         + Outer loop ReactiveLimits
+                            + Outer loop iteration 11
+                               + 3 buses switched PV -> PQ (1 buses remain PV)
+                                  Switch bus 'VL2_0' PV -> PQ, q=-48.439612 < minQ=-40
+                                  Switch bus 'VL6_0' PV -> PQ, q=25.942836 > maxQ=24
+                                  Switch bus 'VL8_0' PV -> PQ, q=200.747667 > maxQ=200
+                         + Outer loop DistributedSlack
+                            + Outer loop iteration 12
+                               Slack bus active power (1.89492 MW) distributed in 1 distribution iteration(s)
+                         Outer loop SecondaryVoltageControl
+                         Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
 
@@ -384,7 +410,7 @@ class SecondaryVoltageControlTest {
         parametersExt.setSecondaryVoltageControl(true);
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
+        assertEquals(16, result.getComponentResults().get(0).getIterationCount());
         assertVoltageEquals(142, b4);
         assertVoltageEquals(14.5, b10);
     }
@@ -408,10 +434,12 @@ class SecondaryVoltageControlTest {
 
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
-        assertVoltageEquals(14.4, b10);
-        assertVoltageEquals(14.151, b6);
-        assertVoltageEquals(28.913, b8);
+        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
+        // This non-local topology issue still converges, but the clipped SVC correction no longer reaches the pilot
+        // target in one run.
+        assertVoltageEquals(13.503, b10);
+        assertVoltageEquals(14.093, b6);
+        assertVoltageEquals(23.8, b8);
     }
 
     @Test
@@ -450,7 +478,7 @@ class SecondaryVoltageControlTest {
     }
 
     @Test
-    void testOptionalNoValueIssue() {
+    void testUnsupportedControlUnitIsDiscarded() {
         network.newExtension(SecondaryVoltageControlAdder.class)
                 .newControlZone()
                 .withName("z1")
@@ -460,14 +488,19 @@ class SecondaryVoltageControlTest {
                 .add()
                 .add();
 
-        parametersExt.setSecondaryVoltageControl(true);
-
-        CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("Control unit 'B9-SH' of zone 'z1' is expected to be either a generator or a VSC converter station", e.getCause().getMessage());
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setSecondaryVoltageControl(true);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters);
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        List<LfSecondaryVoltageControl> secondaryVoltageControls = lfNetwork.getSecondaryVoltageControls();
+        assertEquals(1, secondaryVoltageControls.size());
+        assertEquals(1, secondaryVoltageControls.get(0).getControlUnits().size());
+        assertEquals("B6-G", secondaryVoltageControls.get(0).getControlUnits().get(0).getId());
     }
 
     @Test
-    void testAnotherOptionalNoValueIssue() {
+    void testControlUnitWithoutVoltageControlIsDiscarded() {
+        // reactive range is so small that B6-G is discarded from voltage control by the generic voltage control
+        // checks, so it cannot be a control unit of the zone at all
         Generator g6 = network.getGenerator("B6-G");
         g6.newMinMaxReactiveLimits()
                 .setMinQ(100)
@@ -480,11 +513,92 @@ class SecondaryVoltageControlTest {
                 .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
                 .newControlUnit().withId("B6-G").add()
                 .newControlUnit().withId("B8-G").add()
+                .add()
                 .add();
 
         parametersExt.setSecondaryVoltageControl(true);
 
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setSecondaryVoltageControl(true);
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters);
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        List<LfSecondaryVoltageControl> secondaryVoltageControls = lfNetwork.getSecondaryVoltageControls();
+        assertEquals(1, secondaryVoltageControls.size());
+        assertEquals(1, secondaryVoltageControls.get(0).getControlUnits().size());
+        assertEquals("B8-G", secondaryVoltageControls.get(0).getControlUnits().get(0).getId());
+
         assertDoesNotThrow(() -> loadFlowRunner.run(network, parameters));
+    }
+
+    @Test
+    void testLocalControlUnitParticipatesWithoutEquivalentLocalTargetV() {
+        // B6-G and B8-G control the voltage of their own bus: they already have a target voltage for it, so they do
+        // not need any equivalent local target voltage to participate to the secondary voltage control
+        assertTrue(Double.isNaN(g6.getEquivalentLocalTargetV()));
+        assertTrue(Double.isNaN(g8.getEquivalentLocalTargetV()));
+
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B6-G").add()
+                .newControlUnit().withId("B8-G").add()
+                .add()
+                .add();
+
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setSecondaryVoltageControl(true);
+        LfSecondaryVoltageControl svc = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters)
+                .get(0).getSecondaryVoltageControls().get(0);
+
+        assertEquals(2, svc.getControlUnits().size());
+        assertTrue(controlUnit(svc, "B6-G").isParticipate());
+        assertTrue(controlUnit(svc, "B8-G").isParticipate());
+    }
+
+    @Test
+    void testZoneWithoutAnyRemainingControlUnitIsNotCreated() {
+        // the only control unit of the zone is a shunt, which is not supported: no secondary voltage control is created
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B9-SH").add()
+                .add()
+                .add();
+
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setSecondaryVoltageControl(true);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters).get(0);
+        assertTrue(lfNetwork.getSecondaryVoltageControls().isEmpty());
+    }
+
+    @Test
+    void testControlUnitWithTooSmallSecondaryVoltageControlReactiveRangeDoesNotParticipate() {
+        Generator g6 = network.getGenerator("B6-G");
+        g6.newMinMaxReactiveLimits()
+                .setMinQ(100)
+                .setMaxQ(102)
+                .add();
+
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B6-G").withParticipate(true).add()
+                .newControlUnit().withId("B8-G").withParticipate(true).add()
+                .add()
+                .add();
+
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setSecondaryVoltageControl(true);
+        LfSecondaryVoltageControl secondaryVoltageControl = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters)
+                .get(0)
+                .getSecondaryVoltageControls()
+                .get(0);
+
+        assertEquals(2, secondaryVoltageControl.getControlUnits().size());
+        assertFalse(secondaryVoltageControl.getControlUnits().stream()
+                .filter(controlUnit -> controlUnit.getId().equals("B6-G"))
+                .findFirst()
+                .orElseThrow()
+                .isParticipate());
     }
 
     @Test
@@ -511,9 +625,9 @@ class SecondaryVoltageControlTest {
     }
 
     @Test
-    void testNotPlausibleTargetV() {
-        // g8 generator is very far from pilot point bus b12, there is no way for generators of the zone to control
-        // the pilot point voltage, this is detected by secondary voltage control outer loop which fails
+    void testFarPilotPointTargetVoltageChangeIsClipped() {
+        // g8 generator is very far from pilot point bus b12. The secondary voltage control target voltage change is
+        // clipped, so the load-flow converges instead of failing on an implausible target voltage.
         network.newExtension(SecondaryVoltageControlAdder.class)
                 .newControlZone()
                 .withName("z1")
@@ -525,7 +639,57 @@ class SecondaryVoltageControlTest {
         parametersExt.setSecondaryVoltageControl(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(8, result.getComponentResults().get(0).getIterationCount());
+    }
+
+    @Test
+    void testStalledZoneIsDetected() {
+        // Pilot point target is far out of reach of the only control unit of the zone: its controlled bus target
+        // voltage gets pinned to the plausible range bound, so the same ineffective correction would be requested at
+        // each outer loop iteration. The stalled zone has to be detected and ignored, otherwise the outer loop would
+        // run until max iteration is reached.
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(20).withBusbarSectionsOrBusesIds(List.of("B12")).add()
+                .newControlUnit().withId("B8-G").add()
+                .add()
+                .add();
+
+        parameters.setUseReactiveLimits(false);
+        parametersExt.setSecondaryVoltageControl(true)
+                .setMaxPlausibleTargetVoltage(1.1);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        // B8 target voltage is pinned to the 1.1 pu plausible bound and the pilot point target remains out of reach
+        assertVoltageEquals(22.0, b8);
+        // the zone has been given up quickly instead of being adjusted until max outer loop iteration
+        assertTrue(result.getComponentResults().get(0).getIterationCount() < 10,
+                "SVC outer loop should stop early on a stalled zone");
+    }
+
+    @Test
+    void testTargetVClippedToPlausibleRange() {
+        // Same far pilot point as above, but with a tighter plausibility range. The first clipped SVC correction would
+        // move B8 target voltage below 1.0 pu, so the SVC outer loop clips it to the plausible bound.
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(11.5).withBusbarSectionsOrBusesIds(List.of("B12")).add()
+                .newControlUnit().withId("B8-G").add()
+                .add()
+                .add();
+
+        parameters.setUseReactiveLimits(false);
+        parametersExt.setSecondaryVoltageControl(true)
+                .setMinPlausibleTargetVoltage(1.0);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(5, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(20.0, b8);
     }
 
     @Test
@@ -555,13 +719,87 @@ class SecondaryVoltageControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(9, result.getComponentResults().get(0).getIterationCount());
+        // B5-G has no equivalent local target voltage: it does not participate to the secondary voltage control and
+        // its remote voltage control is kept (B6 stays at its 12.8 kV target), so only B8-G is adjusted.
+        assertEquals(6, result.getComponentResults().get(0).getIterationCount());
 
         assertVoltageEquals(13, b10);
-        assertVoltageEquals(12.682, b6);
-        assertVoltageEquals(25.311, b8);
-        assertReactivePowerEquals(82.910, g5.getTerminal());
-        assertReactivePowerEquals(-97, g8.getTerminal());
+        assertVoltageEquals(12.8, b6);
+        assertVoltageEquals(24.622, b8);
+        assertReactivePowerEquals(40.875, g5.getTerminal());
+        assertReactivePowerEquals(-76.332, g8.getTerminal());
+
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setSecondaryVoltageControl(true);
+        LfSecondaryVoltageControl svc = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters)
+                .get(0).getSecondaryVoltageControls().get(0);
+        assertFalse(controlUnit(svc, "B5-G").isParticipate()); // remote control without equivalent local target voltage
+        assertTrue(controlUnit(svc, "B8-G").isParticipate());
+        assertEquals("VL6_0", controlledBusId(svc, "B5-G")); // remote voltage control has been kept
+    }
+
+    @Test
+    void testWithGeneratorRemoteVoltageAndPartialEquivalentLocalTargetV() {
+        // Two units of the same zone have a remote voltage control, but only one of them defines an equivalent local
+        // target voltage: only that one is shifted to local control, the other one keeps its remote control.
+        network.getGenerator("B6-G").remove();
+        network.getVoltageLevel("VL5").newGenerator()
+                .setId("B5-G") // remote voltage control of B6, without equivalent local target voltage
+                .setBus("B5")
+                .setTargetP(0)
+                .setMinP(-9999)
+                .setMaxP(9999)
+                .setTargetV(12.8)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(network.getLoad("B6-L").getTerminal())
+                .add();
+        var g7 = network.getVoltageLevel("VL7").newGenerator()
+                .setId("B7-G") // remote voltage control of B9, with an equivalent local target voltage
+                .setBus("B7")
+                .setTargetP(0)
+                .setMinP(-9999)
+                .setMaxP(9999)
+                .setTargetV(12.4)
+                .setVoltageRegulatorOn(true)
+                .setRegulatingTerminal(network.getLoad("B9-L").getTerminal())
+                .add();
+        g7.setTargetV(12.4, 14.2);
+
+        network.newExtension(SecondaryVoltageControlAdder.class)
+                .newControlZone()
+                .withName("z1")
+                .newPilotPoint().withTargetV(13).withBusbarSectionsOrBusesIds(List.of("B10")).add()
+                .newControlUnit().withId("B5-G").add()
+                .newControlUnit().withId("B7-G").add()
+                .add()
+                .add();
+
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setSecondaryVoltageControl(true);
+        LfSecondaryVoltageControl secondaryVoltageControl = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters)
+                .get(0)
+                .getSecondaryVoltageControls()
+                .get(0);
+
+        assertEquals(2, secondaryVoltageControl.getControlUnits().size());
+        // B5-G keeps its remote voltage control of B6
+        assertEquals("VL6_0", controlledBusId(secondaryVoltageControl, "B5-G"));
+        // B7-G has been shifted to a local voltage control of its own bus, using its equivalent local target voltage
+        assertEquals("VL7_0", controlledBusId(secondaryVoltageControl, "B7-G"));
+        assertEquals(14.2 / 14.0, targetV(secondaryVoltageControl, "B7-G"), DELTA_V);
+    }
+
+    private static LfSecondaryVoltageControl.ControlUnit controlUnit(LfSecondaryVoltageControl svc, String id) {
+        return svc.getControlUnits().stream()
+                .filter(controlUnit -> controlUnit.getId().equals(id))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private static String controlledBusId(LfSecondaryVoltageControl svc, String id) {
+        return controlUnit(svc, id).getGeneratorVoltageControl().getControlledBus().getId();
+    }
+
+    private static double targetV(LfSecondaryVoltageControl svc, String id) {
+        return controlUnit(svc, id).getGeneratorVoltageControl().getTargetValue();
     }
 
     @Test
@@ -669,13 +907,20 @@ class SecondaryVoltageControlTest {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
-        assertEquals(7, result.getComponentResults().get(0).getIterationCount());
+        // B99-G1 and B99-G2 share a remote voltage control of B6 and have no equivalent local target voltage, so they
+        // are discarded from the zone: the pilot bus is left at its natural voltage instead of its 12.5 kV target.
+        assertEquals(4, result.getComponentResults().get(0).getIterationCount());
 
-        assertVoltageEquals(12.5, b10);
-        assertVoltageEquals(5.548, b991);
-        assertVoltageEquals(4.93, b992);
-        assertReactivePowerEquals(-8.976, g991.getTerminal());
-        assertReactivePowerEquals(4.919, g992.getTerminal());
+        assertVoltageEquals(12.589, b10);
+        assertVoltageEquals(5.516, b991);
+        assertVoltageEquals(5.66, b992);
+        assertReactivePowerEquals(-5.715, g991.getTerminal());
+        assertReactivePowerEquals(-5.143, g992.getTerminal());
+
+        // the zone has no control unit left, so it is not created at all
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setSecondaryVoltageControl(true);
+        assertTrue(LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters)
+                .get(0).getSecondaryVoltageControls().isEmpty());
 
         // With secondary voltage set to false, check that the remote control remains active
         parametersExt.setSecondaryVoltageControl(false);

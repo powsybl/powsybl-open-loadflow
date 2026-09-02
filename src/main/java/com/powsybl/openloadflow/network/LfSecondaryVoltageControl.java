@@ -20,23 +20,49 @@ public class LfSecondaryVoltageControl {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfSecondaryVoltageControl.class);
 
+    public static final class ControlUnit {
+        private final String id;
+
+        private boolean participate;
+
+        private final GeneratorVoltageControl generatorVoltageControl;
+
+        public ControlUnit(String id, boolean participate, GeneratorVoltageControl generatorVoltageControl) {
+            this.id = Objects.requireNonNull(id);
+            this.participate = participate;
+            this.generatorVoltageControl = Objects.requireNonNull(generatorVoltageControl);
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public boolean isParticipate() {
+            return participate;
+        }
+
+        public void setParticipate(boolean participate) {
+            this.participate = participate;
+        }
+
+        public GeneratorVoltageControl getGeneratorVoltageControl() {
+            return generatorVoltageControl;
+        }
+    }
+
     private final String zoneName;
 
     private final LfBus pilotBus;
 
-    private final Set<String> participatingControlUnitIds;
-
-    private final Set<GeneratorVoltageControl> generatorVoltageControls;
+    private final List<ControlUnit> controlUnits;
 
     private double targetValue;
 
-    public LfSecondaryVoltageControl(String zoneName, LfBus pilotBus, double targetValue, Set<String> participatingControlUnitIds,
-                                     Set<GeneratorVoltageControl> generatorVoltageControls) {
+    public LfSecondaryVoltageControl(String zoneName, LfBus pilotBus, double targetValue, List<ControlUnit> controlUnits) {
         this.zoneName = Objects.requireNonNull(zoneName);
         this.pilotBus = Objects.requireNonNull(pilotBus);
         this.targetValue = targetValue;
-        this.participatingControlUnitIds = Objects.requireNonNull(participatingControlUnitIds);
-        this.generatorVoltageControls = Objects.requireNonNull(generatorVoltageControls);
+        this.controlUnits = List.copyOf(controlUnits);
     }
 
     public String getZoneName() {
@@ -59,32 +85,37 @@ public class LfSecondaryVoltageControl {
     }
 
     public void addParticipatingControlUnit(String id) {
-        if (participatingControlUnitIds.add(id)) {
+        if (setParticipatingControlUnit(id, true)) {
             tryToReEnableHelpfulControllerBuses();
         }
     }
 
     public void removeParticipatingControlUnit(String id) {
-        if (participatingControlUnitIds.remove(id)) {
+        if (setParticipatingControlUnit(id, false)) {
             tryToReEnableHelpfulControllerBuses();
         }
     }
 
-    public Set<GeneratorVoltageControl> getGeneratorVoltageControls() {
-        return generatorVoltageControls.stream()
-                .filter(this::hasAtLeastOneParticipatingControlUnit) // only keep voltage controls where there is at list one enabled control unit
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-    }
-
-    private boolean hasAtLeastOneParticipatingControlUnit(GeneratorVoltageControl vc) {
-        for (var controllerElement : vc.getMergedControllerElements()) {
-            for (LfGenerator generator : controllerElement.getGenerators()) {
-                if (participatingControlUnitIds.contains(generator.getId())) {
-                    return true;
-                }
+    private boolean setParticipatingControlUnit(String id, boolean participate) {
+        boolean changed = false;
+        for (ControlUnit controlUnit : controlUnits) {
+            if (controlUnit.getId().equals(id) && controlUnit.isParticipate() != participate) {
+                controlUnit.setParticipate(participate);
+                changed = true;
             }
         }
-        return false;
+        return changed;
+    }
+
+    public List<ControlUnit> getControlUnits() {
+        return controlUnits;
+    }
+
+    public Set<GeneratorVoltageControl> getGeneratorVoltageControls() {
+        return controlUnits.stream()
+                .filter(ControlUnit::isParticipate)
+                .map(ControlUnit::getGeneratorVoltageControl)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     private static List<LfBus> findControllerBuses(LfBus controlledBus) {
