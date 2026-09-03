@@ -61,12 +61,10 @@ public class JGraphTModel<V, E> implements GraphModel<V, E> {
         return graph.getEdgeTarget(edge);
     }
 
-    @Override
     public Set<E> getEdgesBetween(V vertex1, V vertex2) {
         return graph.getAllEdges(vertex1, vertex2);
     }
 
-    @Override
     public Set<E> getEdges() {
         return graph.edgeSet();
     }
@@ -76,17 +74,14 @@ public class JGraphTModel<V, E> implements GraphModel<V, E> {
         return graph.edgesOf(v);
     }
 
-    @Override
     public int getNeighborEdgeCountOf(V v) {
         return graph.degreeOf(v);
     }
 
-    @Override
     public Set<V> getVertices() {
         return graph.vertexSet();
     }
 
-    @Override
     public List<V> getNeighborVerticesOf(V v) {
         return Graphs.neighborListOf(graph, v);
     }
