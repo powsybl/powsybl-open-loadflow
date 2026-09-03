@@ -7,8 +7,8 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfStarBus;
 import com.powsybl.openloadflow.network.impl.Transformers;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
@@ -24,9 +24,7 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_1;
-import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_2;
-import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_3;
+import static com.powsybl.openloadflow.network.LfBranch.BranchType.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -34,8 +32,6 @@ import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG
 public abstract class AbstractNetworkResult {
 
     protected final LfNetwork network;
-
-    protected final Network iidmNetwork;
 
     protected final StateMonitorIndex monitorIndex;
 
@@ -56,9 +52,8 @@ public abstract class AbstractNetworkResult {
 
     protected final List<PhaseShifterResultsExtension.MovedPhaseShifterResult> movedPhaseShifterResults = new ArrayList<>();
 
-    protected AbstractNetworkResult(LfNetwork network, Network iidmNetwork, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
+    protected AbstractNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
         this.network = Objects.requireNonNull(network);
-        this.iidmNetwork = Objects.requireNonNull(iidmNetwork);
         this.monitorIndex = Objects.requireNonNull(monitorIndexes.monitorIndex);
         this.zeroImpedanceMonitorIndex = Objects.requireNonNull(monitorIndexes.zeroImpedanceMonitorIndex);
         this.createResultExtension = createResultExtension;
@@ -111,8 +106,9 @@ public abstract class AbstractNetworkResult {
     private boolean isContainingAMonitoredBranch(LfZeroImpedanceNetwork zeroImpedanceNetwork, StateMonitor monitor) {
         for (LfBranch lfBranch : zeroImpedanceNetwork.getGraph().edgeSet()) {
             if (isATransfo3WBranch(lfBranch)) {
-                LfLegBranch lfLegBranch = (LfLegBranch) lfBranch;
-                if (monitor.getThreeWindingsTransformerIds().contains(lfLegBranch.getTwt().getId())) {
+                if (lfBranch.getThreeWindingsTransformerId()
+                        .filter(monitor.getThreeWindingsTransformerIds()::contains)
+                        .isPresent()) {
                     return true;
                 }
             } else {
@@ -141,25 +137,7 @@ public abstract class AbstractNetworkResult {
     }
 
     private Optional<PhaseTapChanger> extractPhaseTapChanger(LfBranch branch) {
-        String originalId = branch.getMainOriginalId();
-        LfBranch.BranchType branchType = branch.getBranchType();
-        if (branchType == LfBranch.BranchType.TRANSFO_2) {
-            TwoWindingsTransformer twt = iidmNetwork.getTwoWindingsTransformer(originalId);
-            if (twt != null) {
-                return Optional.ofNullable(twt.getPhaseTapChanger());
-            }
-        } else if (branchType == LfBranch.BranchType.TRANSFO_3_LEG_1
-                || branchType == LfBranch.BranchType.TRANSFO_3_LEG_2
-                || branchType == LfBranch.BranchType.TRANSFO_3_LEG_3) {
-            ThreeWindingsTransformer t3wt = iidmNetwork.getThreeWindingsTransformer(originalId);
-            if (t3wt != null) {
-                Optional<ThreeSides> side = branch.getOriginalSide();
-                if (side.isPresent()) {
-                    return Optional.ofNullable(t3wt.getLeg(side.get()).getPhaseTapChanger());
-                }
-            }
-        }
-        return Optional.empty();
+        return branch.getPhaseTapChanger();
     }
 
     protected void storeInitialPhaseTapChangerInfo() {
