@@ -906,7 +906,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
                             ReportNode synchronousNetworkReport = Reports.createLfSynchronousNetworkReportNode(networkReport, lfScNetwork.getNumSC());
                             Reports.reportAngleReferenceBusAndSlackBuses(synchronousNetworkReport, lfScNetwork.getReferenceBus().getId(),
                                 lfScNetwork.getSlackBuses().stream().map(LfBus::getId).toList());
-                            networkReport.include(synchronousNetworkReport);
                         }
                     }
                     lfNetwork.setReportNode(Reports.includeLfNetworkReportNode(reportNode, lfNetwork.getReportNode()));
