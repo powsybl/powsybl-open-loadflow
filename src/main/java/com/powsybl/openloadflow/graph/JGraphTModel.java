@@ -69,6 +69,7 @@ public class JGraphTModel<V, E> implements GraphModel<V, E> {
         return graph.edgeSet();
     }
 
+    @Override
     public Set<E> getNeighborEdgesOf(V v) {
         return graph.edgesOf(v);
     }

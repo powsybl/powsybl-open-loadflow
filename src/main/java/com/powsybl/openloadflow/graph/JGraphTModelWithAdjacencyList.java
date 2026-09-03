@@ -83,7 +83,6 @@ public class JGraphTModelWithAdjacencyList<V, E> implements GraphModel<V, E> {
         return delegate.getNeighborEdgesOf(v);
     }
 
-    @Override
     public Set<V> getVertices() {
         return delegate.getVertices();
     }

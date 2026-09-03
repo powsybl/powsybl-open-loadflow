@@ -31,6 +31,4 @@ public interface GraphModel<V, E> {
     V getEdgeTarget(E edge);
 
     Set<E> getNeighborEdgesOf(V v);
-
-    Set<V> getVertices();
 }
