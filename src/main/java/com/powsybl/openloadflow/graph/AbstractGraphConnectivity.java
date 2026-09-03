@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+ * Copyright (c) 2022-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -190,7 +190,7 @@ public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>
         return checkSavedContext().getEdgesRemovedFromMainComponent(graph);
     }
 
-    private Set<V> getVerticesNotInMainComponent(V mainComponentVertex) {
+    protected Set<V> getVerticesNotInMainComponent(V mainComponentVertex) {
         if (mainComponentVertex != null) {
             return getNonConnectedVertices(mainComponentVertex);
         } else {
