@@ -14,7 +14,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class TransformerPhaseControl extends Control {
+public class TransformerPhaseControl extends Control implements LfCopyable<TransformerPhaseControl, LfNetwork> {
 
     public enum Mode {
         CONTROLLER,
@@ -42,6 +42,14 @@ public class TransformerPhaseControl extends Control {
         this.controlledSide = Objects.requireNonNull(controlledSide);
         this.mode = Objects.requireNonNull(mode);
         this.unit = Objects.requireNonNull(unit);
+    }
+
+    @Override
+    public TransformerPhaseControl copy(LfNetwork copyNetwork) {
+        LfBranch copiedController = copyNetwork.getBranchById(controlledBranch.getId());
+        LfBranch copiedControlled = copyNetwork.getBranchById(controlledBranch.getId());
+        return new TransformerPhaseControl(copiedController, copiedControlled,
+                controlledSide, mode, targetValue, targetDeadband, unit);
     }
 
     public TwoSides getControlledSide() {

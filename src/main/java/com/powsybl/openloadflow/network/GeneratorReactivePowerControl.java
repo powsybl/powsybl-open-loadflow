@@ -14,12 +14,22 @@ import java.util.*;
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
  */
-public class GeneratorReactivePowerControl extends ReactivePowerControl {
+public class GeneratorReactivePowerControl extends ReactivePowerControl implements LfCopyable<GeneratorReactivePowerControl, LfNetwork> {
 
     private final List<LfBus> controllerBuses = new ArrayList<>();
 
     public GeneratorReactivePowerControl(LfBranch controlledBranch, TwoSides controlledSide, double targetValue) {
         super(controlledBranch, controlledSide, targetValue);
+    }
+
+    @Override
+    public GeneratorReactivePowerControl copy(LfNetwork copyNetwork) {
+        LfBranch copiedControlled = copyNetwork.getBranchById(getControlledBranch().getId());
+        GeneratorReactivePowerControl copiedRc = new GeneratorReactivePowerControl(copiedControlled, getControlledSide(), getTargetValue());
+        for (LfBus controllerBus : getControllerBuses()) {
+            copiedRc.addControllerBus(copyNetwork.getBusById(controllerBus.getId()));
+        }
+        return copiedRc;
     }
 
     public List<LfBus> getControllerBuses() {

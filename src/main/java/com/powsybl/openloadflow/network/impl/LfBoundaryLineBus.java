@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.contingency.violations.ViolationLocation;
 import com.powsybl.iidm.network.BoundaryLine;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
@@ -34,6 +35,17 @@ public class LfBoundaryLineBus extends AbstractLfBus {
         if (generation != null) {
             add(LfBoundaryLineGenerator.create(boundaryLine, network, getId(), parameters, report));
         }
+    }
+
+    private LfBoundaryLineBus(LfBoundaryLineBus other, LfNetwork network) {
+        super(other, network); // loads and generators are copied generically by the super copy constructor
+        this.boundaryLineRef = other.boundaryLineRef;
+        this.nominalV = other.nominalV;
+    }
+
+    @Override
+    public LfBus copy(LfNetwork copyNetwork) {
+        return new LfBoundaryLineBus(this, copyNetwork);
     }
 
     private BoundaryLine getBoundaryLine() {

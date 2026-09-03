@@ -9,9 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.BoundaryLine;
 import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -40,6 +38,15 @@ public final class LfBoundaryLineGenerator extends AbstractLfGenerator {
                 this.generatorControlType = GeneratorControlType.VOLTAGE;
             }
         }
+    }
+
+    private LfBoundaryLineGenerator(LfBoundaryLineGenerator other, LfNetwork network) {
+        super(other, network);
+        this.boundaryLineRef = other.boundaryLineRef;
+    }
+
+    public LfGenerator copy(LfBus copyBus) {
+        return new LfBoundaryLineGenerator(this, copyBus.getNetwork());
     }
 
     public static LfBoundaryLineGenerator create(BoundaryLine boundaryLine, LfNetwork network, String controlledLfBusId, LfNetworkParameters parameters,

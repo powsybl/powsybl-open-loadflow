@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class LfSecondaryVoltageControl {
+public class LfSecondaryVoltageControl implements LfCopyable<LfSecondaryVoltageControl, LfNetwork> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfSecondaryVoltageControl.class);
 
@@ -39,6 +39,16 @@ public class LfSecondaryVoltageControl {
         this.generatorVoltageControls = Objects.requireNonNull(generatorVoltageControls);
     }
 
+    public LfSecondaryVoltageControl copy(LfNetwork copyNetwork) {
+        return new LfSecondaryVoltageControl(zoneName,
+                copyNetwork.getBusById(pilotBus.getId()),
+                targetValue,
+                new LinkedHashSet<>(participatingControlUnitIds),
+                generatorVoltageControls.stream()
+                        .map(vc -> copyNetwork.getBusById(vc.getControlledBus().getId()).getGeneratorVoltageControl().orElseThrow())
+                        .collect(Collectors.toSet()));
+    }
+
     public String getZoneName() {
         return zoneName;
     }
@@ -56,6 +66,10 @@ public class LfSecondaryVoltageControl {
 
     public LfBus getPilotBus() {
         return pilotBus;
+    }
+
+    public Set<String> getParticipatingControlUnitIds() {
+        return participatingControlUnitIds;
     }
 
     public void addParticipatingControlUnit(String id) {

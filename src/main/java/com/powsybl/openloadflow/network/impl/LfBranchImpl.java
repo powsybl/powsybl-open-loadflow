@@ -36,6 +36,19 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         this.branchRef = Ref.create(branch, parameters.isCacheEnabled());
     }
 
+    private LfBranchImpl(LfBranchImpl other, LfNetwork network, LfBus bus1, LfBus bus2) {
+        super(other, network, bus1, bus2);
+        this.branchRef = other.branchRef;
+    }
+
+    @Override
+    public LfBranch copy(LfNetwork copyNetwork) {
+        return new LfBranchImpl(this,
+                copyNetwork,
+                bus1 == null ? null : copyNetwork.getBusById(bus1.getId()),
+                bus2 == null ? null : copyNetwork.getBusById(bus2.getId()));
+    }
+
     private static void createLineAsym(Line line, double zb, PiModel piModel, LfBranchImpl lfBranch) {
         var extension = line.getExtension(LineFortescue.class);
         if (extension != null) {

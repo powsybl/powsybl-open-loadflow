@@ -11,10 +11,22 @@ package com.powsybl.openloadflow.network;
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
-public class ShuntVoltageControl extends DiscreteVoltageControl<LfShunt> {
+public class ShuntVoltageControl extends DiscreteVoltageControl<LfShunt> implements LfCopyable<ShuntVoltageControl, LfNetwork> {
 
     public ShuntVoltageControl(LfBus controlledBus, int targetPriority, double targetValue, Double targetDeadband) {
         super(controlledBus, Type.SHUNT, targetPriority, targetValue, targetDeadband);
+    }
+
+    @Override
+    public ShuntVoltageControl copy(LfNetwork copyNetwork) {
+        LfBus copiedBus = copyNetwork.getBusById(controlledBus.getId());
+        ShuntVoltageControl copiedVc = new ShuntVoltageControl(copiedBus, targetPriority, targetValue, getTargetDeadband().orElse(null));
+        for (LfShunt controllerShunt : controllerElements) {
+            LfShunt copiedController = copyNetwork.getShuntById(controllerShunt.getOriginalIds().get(0));
+            copiedVc.addControllerElement(copiedController);
+            copiedController.setVoltageControl(copiedVc);
+        }
+        return copiedVc;
     }
 
     @Override
