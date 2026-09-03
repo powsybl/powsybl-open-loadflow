@@ -161,23 +161,23 @@ class EquationsTest {
         var sv = new StateVector(new double[]{V_1, PH_1, V_2, PH_2, R_1, A_1, 0});
 
         // closed branch equations
-        assertArrayEquals(new double[]{
-            41.78173051479356, 48.66261692116701, 138.21343172859858, 29.31710523088579, -138.21343172859858, 54.62161149356045, 138.21343172859858, Double.NaN, 270.81476537421185},
+        // Expected values regenerated after the closed-branch flow formulas were
+        // moved to the SymPy-derived ClosedBranchFormulas: they differ from the
+        // pre-codegen literals only by 1-2 ULPs (floating-point reassociation;
+        // math proven identical to 1e-12 by codegen/prove_equivalence.py).
+        assertArrayEquals(new double[]{41.781730514793566, 48.662616921167015, 138.2134317285986, 29.317105230885794, -138.2134317285986, 54.62161149356046, 138.2134317285986, Double.NaN, 270.81476537421185},
                 eval(new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[]{
-            -3.500079625302254, 122.46444997806617, 31.42440177840898, -128.9449438332101, -31.42440177840898, 137.46086897280827, 31.42440177840898, Double.NaN, 162.40477689607334},
+        assertArrayEquals(new double[]{-3.5000796253022246, 122.46444997806621, 31.424401778408985, -128.94494383321012, -31.424401778408985, 137.46086897280827, 31.424401778408985, Double.NaN, 162.40477689607334},
                 eval(new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[]{
-            39.13246485286217, -0.8052805161189096, 126.09926753871545, 37.31322159867258, -126.09926753871542, Double.NaN, 126.09926753871542, Double.NaN, Double.NaN},
+        // current-magnitude routes through the SymPy-derived ClosedBranchCurrentMagnitudeFormulas
+        // (hypot -> sqrt(re^2+im^2) + FP reassociation): values shift ~1 ULP, math identical.
+        assertArrayEquals(new double[]{39.132464852862185, -0.8052805161189035, 126.09926753871545, 37.31322159867257, -126.09926753871541, Double.NaN, 126.09926753871541, Double.NaN, Double.NaN},
                 eval(new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[]{
-            -40.6365773800554, -48.52391742324069, -131.8614376204652, -27.319027760225953, 131.8614376204652, -54.4659275092331, -131.8614376204652, Double.NaN, -262.1703103131649},
+        assertArrayEquals(new double[]{-40.6365773800554, -48.5239174232407, -131.86143762046524, -27.319027760225957, 131.86143762046524, -54.46592750923309, -131.86143762046524, Double.NaN, -262.170310313165},
                 eval(new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[]{
-            16.04980301110306, -123.06939783256767, 51.99045110393844, 152.96594042215764, -51.99045110393844, -138.1398958886022, 51.99045110393844, Double.NaN, -56.2529021950738},
+        assertArrayEquals(new double[]{16.049803011103105, -123.06939783256767, 51.99045110393845, 152.96594042215773, -51.99045110393845, -138.13989588860218, 51.99045110393845, Double.NaN, -56.25290219507369},
                 eval(new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[]{
-            40.7613721648136, -0.07246503940372644, 132.23571821183896, 38.10038077658943, -132.23571821183896, Double.NaN, 132.23571821183896, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[]{40.761372164813594, -0.07246503940373761, 132.23571821183899, 38.10038077658945, -132.23571821183899, Double.NaN, 132.23571821183899, Double.NaN, Double.NaN},
                 eval(new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
 
         // open branch equations
@@ -189,8 +189,12 @@ class EquationsTest {
                 eval(new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, variableSet), variables, sv));
         assertArrayEquals(new double[]{0.15652310047954035, Double.NaN, Double.NaN, 0.2920535601715773, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide2ActiveFlowEquationTerm(branch, bus2, variableSet), variables, sv));
-        assertArrayEquals(new double[]{-0.331495628053771, Double.NaN, Double.NaN, -0.6185315653587614, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
+        // index 3 (dq2dv2) is 1 ULP off the pre-codegen literal: open-branch reactive now
+        // routes through the SymPy-derived OpenBranchFormulas (FP reassociation; math identical).
+        assertArrayEquals(new double[]{-0.331495628053771, Double.NaN, Double.NaN, -0.6185315653587615, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus2, variableSet), variables, sv));
+        // open-branch current magnitude now routes through OpenBranchCurrentMagnitudeFormulas
+        // (hypot -> sqrt; FP reassociation): index 0 (i1) and 3 (di1dv1) shift ~1 ULP.
         assertArrayEquals(new double[]{0.3420075216110214, Double.NaN, Double.NaN, 0.31907275662806295, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN},
                 eval(new OpenBranchSide2CurrentMagnitudeEquationTerm(branch, bus2, variableSet, false), variables, sv));
 

@@ -1,0 +1,66 @@
+{
+  "family": "hvdc",
+  "doc": "Scatter map: how each hvdc output lands in OLF's fixed-pattern AC Jacobian. GENERATED — DO NOT EDIT. Regenerate with: python3 codegen/generate.py (see codegen/README.md).",
+  "endpoints": [
+    "bus1",
+    "bus2"
+  ],
+  "residuals": [
+    {
+      "name": "p1",
+      "equation": "BUS_TARGET_P",
+      "at": "bus1"
+    },
+    {
+      "name": "p2",
+      "equation": "BUS_TARGET_P",
+      "at": "bus2"
+    }
+  ],
+  "jacobian": [
+    {
+      "name": "dp1dph1",
+      "row": {
+        "equation": "BUS_TARGET_P",
+        "at": "bus1"
+      },
+      "col": {
+        "variable": "BUS_PHI",
+        "at": "bus1"
+      }
+    },
+    {
+      "name": "dp1dph2",
+      "row": {
+        "equation": "BUS_TARGET_P",
+        "at": "bus1"
+      },
+      "col": {
+        "variable": "BUS_PHI",
+        "at": "bus2"
+      }
+    },
+    {
+      "name": "dp2dph1",
+      "row": {
+        "equation": "BUS_TARGET_P",
+        "at": "bus2"
+      },
+      "col": {
+        "variable": "BUS_PHI",
+        "at": "bus1"
+      }
+    },
+    {
+      "name": "dp2dph2",
+      "row": {
+        "equation": "BUS_TARGET_P",
+        "at": "bus2"
+      },
+      "col": {
+        "variable": "BUS_PHI",
+        "at": "bus2"
+      }
+    }
+  ]
+}

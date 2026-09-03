@@ -49,15 +49,15 @@ public class ShuntCompensatorReactiveFlowEquationTerm extends AbstractShuntCompe
     }
 
     public static double q(double v, double b) {
-        return -b * v * v;
+        return ShuntCompensatorFormulas.q(v, b);
     }
 
     public static double dqdv(double v, double b) {
-        return -2 * b * v;
+        return ShuntCompensatorFormulas.dqdv(v, b);
     }
 
     public static double dqdb(double v) {
-        return -v * v;
+        return ShuntCompensatorFormulas.dqdb(v);
     }
 
     @Override

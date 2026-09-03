@@ -1,0 +1,30 @@
+/**
+ * Copyright (c) 2026, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package {{ package }};
+
+{% if imports %}{{ imports }}
+
+{% endif %}/**
+ * {{ doc }}
+ *
+ * <p>GENERATED — DO NOT EDIT. {{ regen }}
+ *
+ * @author Powsybl codegen {@literal <see codegen/README.md>}
+ */
+@SuppressWarnings("squid:S00107")
+public final class {{ class_name }} {
+
+    private {{ class_name }}() {
+    }
+{% for m in methods %}
+
+    {{ m.vis }} static double {{ m.name }}({{ m.sig }}) {
+{% for line in m.prelude %}        {{ line }}
+{% endfor %}        return {{ m.body }};
+    }
+{% endfor %}}

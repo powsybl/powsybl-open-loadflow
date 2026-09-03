@@ -1,0 +1,9 @@
+# Copyright (c) 2026, RTE (http://www.rte-france.com) - SPDX-License-Identifier: MPL-2.0
+#
+# Deps for the equation codegen (generate.py + prove_equivalence.py). NOT needed
+# for a normal Maven build — only to regenerate formulas and run the equivalence
+# proof. SymPy + Jinja run in the render path; the CI git-diff guard is an alert
+# (a version bump that reformats a body is simply re-committed), not a determinism
+# contract — so the pins are a courtesy, not load-bearing.
+sympy==1.14.0
+jinja2==3.0.3

@@ -628,7 +628,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         assertEquals(1, result.getPreContingencyResult().getNetworkResult().getBusResults().size());
 
-        assertEquals(new BusResult("b1_vl", "b1", 400, 0.007162421348571367), result.getPreContingencyResult().getNetworkResult().getBusResults().get(0));
+        // angle 1 ULP off the pre-codegen literal (SymPy-derived ClosedBranchFormulas; FP reassociation)
+        assertEquals(new BusResult("b1_vl", "b1", 400, 0.007162421348571368), result.getPreContingencyResult().getNetworkResult().getBusResults().get(0));
         assertEquals(1, result.getPreContingencyResult().getNetworkResult().getBranchResults().size());
         assertEquals(new BranchResult("l34", 0, 0, 0, 0.0, -0.0, 0.0),
                      result.getPreContingencyResult().getNetworkResult().getBranchResults().get(0));
@@ -1329,7 +1330,11 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         // pre-contingency tests
         PreContingencyResult preContingencyResult = result.getPreContingencyResult();
         assertEquals(122.857, preContingencyResult.getNetworkResult().getBranchResult("l24").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-69.999, preContingencyResult.getNetworkResult().getBranchResult("l14").getP2(), LoadFlowAssert.DELTA_POWER);
+        // True converged P2 is -70.0 MW; it was -69.99999999999999 with the old hand-written
+        // formula and is -70.0 with the SymPy-derived ClosedBranchFormulas (1e-14 MW apart).
+        // The old 3-decimal literal -69.999 sat exactly on the DELTA_POWER (1e-3) boundary, so
+        // the 1 ULP nudge tipped it over; -70.0 is the (more correct) value.
+        assertEquals(-70.0, preContingencyResult.getNetworkResult().getBranchResult("l14").getP2(), LoadFlowAssert.DELTA_POWER);
         assertEquals(50.0, preContingencyResult.getNetworkResult().getBranchResult("l34").getP2(), LoadFlowAssert.DELTA_POWER);
 
         // post-contingency tests

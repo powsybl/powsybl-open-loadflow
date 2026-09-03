@@ -19,7 +19,12 @@
     <logger name="com.powsybl.openloadflow" level="DEBUG" additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
-    <logger name="com.powsybl.openloadflow.network.LfNetworkListenerTracer" level="TRACE" additivity="false">
+    <!-- TRACE makes the tracer wrap every registered LfNetwork listener and log every
+         network event to the console: with a long-lived listener (the GPU solver's
+         event-driven invalidation), a single 13k-bus slack distribution emits ~8000
+         synchronous log lines (~1.2 s), drowning benchmarks. Flip back to TRACE
+         locally when event tracing is actually needed. -->
+    <logger name="com.powsybl.openloadflow.network.LfNetworkListenerTracer" level="DEBUG" additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
 </configuration>

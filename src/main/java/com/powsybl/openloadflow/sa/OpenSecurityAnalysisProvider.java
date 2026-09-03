@@ -45,6 +45,9 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OpenSecurityAnalysisProvider.class);
 
+    /** Opt-in to the prototype GPU-batched AC security analysis ({@link GpuBatchedAcSecurityAnalysis}). */
+    public static final String GPU_BATCHED_AC_SA_PROPERTY = "olf.sa.gpuBatched";
+
     private final MatrixFactory matrixFactory;
 
     private final GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory;
@@ -90,6 +93,10 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
             } else {
                 securityAnalysis = new DcSecurityAnalysis(network, matrixFactory, selectedConnectivityFactory, runParameters.getMonitors(), runParameters.getReportNode());
             }
+        } else if (Boolean.getBoolean(GPU_BATCHED_AC_SA_PROPERTY)) {
+            // Prototype GPU-batched AC security analysis (single-branch N-1 solved on the
+            // device in one batch). Degrades to the standard AC path when no GPU is present.
+            securityAnalysis = new GpuBatchedAcSecurityAnalysis(network, matrixFactory, selectedConnectivityFactory, runParameters.getMonitors(), runParameters.getReportNode());
         } else {
             securityAnalysis = new AcSecurityAnalysis(network, matrixFactory, selectedConnectivityFactory, runParameters.getMonitors(), runParameters.getReportNode());
         }
