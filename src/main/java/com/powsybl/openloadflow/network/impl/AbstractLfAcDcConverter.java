@@ -12,6 +12,8 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
+import java.util.Optional;
+
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
@@ -43,16 +45,20 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected final LfBus bus1;
 
-    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
+    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1,
+                                      Optional<Double> vdcOverride) {
         super(network);
 
         this.dcBus1 = dcBus1;
         this.dcBus2 = dcBus2;
         this.bus1 = bus1;
         this.lossFactors = new LossFactors(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
-        this.controlMode = converter.getControlMode();
+        // vdcOverride is set when this converter has been automatically promoted to V_DC control because its DC
+        // island had no other element imposing the DC voltage (see DcComponentValidator.resolveDcComponent)
+        this.controlMode = vdcOverride.isPresent() ? AcDcConverter.ControlMode.V_DC : converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
-        targetVdc = dcBus1.isGrounded() ? converter.getTargetVdc() / dcBus2.getNominalV() : converter.getTargetVdc() / dcBus1.getNominalV();
+        double rawTargetVdc = vdcOverride.orElseGet(converter::getTargetVdc);
+        targetVdc = dcBus1.isGrounded() ? rawTargetVdc / dcBus2.getNominalV() : rawTargetVdc / dcBus1.getNominalV();
         this.pAc = converter.getTerminal1().getP();
         this.qAc = converter.getTerminal1().getQ();
     }

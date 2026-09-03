@@ -55,6 +55,17 @@ public class LfDcLineImpl extends AbstractLfDcLine {
     public void updateFlows(double i1, double i2, double p1, double p2) {
         var dcLine = getDcLine();
 
+        if (dcBus1 == null || dcBus2 == null) {
+            // Current and power should be zero for both sides
+            if (i1 != 0 || i2 != 0 || p1 != 0 || p2 != 0) {
+                throw new IllegalArgumentException("Current and power should be zero");
+            }
+            dcLine.getDcTerminal1().setI(0);
+            dcLine.getDcTerminal2().setI(0);
+            dcLine.getDcTerminal1().setP(0);
+            dcLine.getDcTerminal2().setP(0);
+            return;
+        }
         // If a DC bus is grounded, its current and power variable are NaN.
         // However, we can infer them from the other DC bus (power should be zero)
         dcLine.getDcTerminal1().setI((dcBus1.isGrounded() ? -i2 : i1) * PerUnit.ibDc(dcBus1.getNominalV()));

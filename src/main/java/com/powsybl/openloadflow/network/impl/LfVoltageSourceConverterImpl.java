@@ -12,6 +12,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
@@ -27,8 +28,8 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
     protected double targetVac; // In pu
 
     public LfVoltageSourceConverterImpl(VoltageSourceConverter converter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1,
-                                        LfNetworkParameters parameters) {
-        super(converter, network, dcBus1, dcBus2, bus1);
+                                        LfNetworkParameters parameters, Optional<Double> vdcOverride) {
+        super(converter, network, dcBus1, dcBus2, bus1, vdcOverride);
         bus1.addConverter(this);
         this.converterRef = Ref.create(converter, parameters.isCacheEnabled());
         this.isVoltageRegulatorOn = converter.isVoltageRegulatorOn();
@@ -39,14 +40,16 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         }
     }
 
-    public static LfVoltageSourceConverterImpl create(VoltageSourceConverter acDcConverter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1, LfNetworkParameters parameters) {
+    public static LfVoltageSourceConverterImpl create(VoltageSourceConverter acDcConverter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1,
+                                                      LfNetworkParameters parameters, Optional<Double> vdcOverride) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(acDcConverter);
         Objects.requireNonNull(dcBus1);
         Objects.requireNonNull(dcBus2);
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(parameters);
-        return new LfVoltageSourceConverterImpl(acDcConverter, network, dcBus1, dcBus2, bus1, parameters);
+        Objects.requireNonNull(vdcOverride);
+        return new LfVoltageSourceConverterImpl(acDcConverter, network, dcBus1, dcBus2, bus1, parameters, vdcOverride);
 
     }
 

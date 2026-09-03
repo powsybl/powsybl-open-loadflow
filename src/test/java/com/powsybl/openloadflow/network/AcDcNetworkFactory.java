@@ -334,6 +334,59 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     }
 
     /**
+     * ACDC test case, same topology as {@link #createAcDcNetwork1()} but with both converters left in P_PCC
+     * control mode. The DC island formed by dn3/dn4 (joined by dl34) then has no element imposing the DC
+     * voltage (the DC grounds are on the separate dnDummy3/dnDummy4 buses, reached only through the converters
+     * themselves, not through DC lines), so one of the two converters must be automatically promoted to V_DC
+     * control for the load flow to converge.
+     *
+     * <pre>
+     * g1       ld2                                 ld5
+     * |         |                                   |
+     * b1 -------b2conv23-dn3--------------dn4conv45-b5
+     * l12       |        dl34                       |
+     *           |                                   |
+     *           |                                   |
+     *           |l25--------------------------------
+     * </pre>
+     *
+     */
+    public static Network createAcDcNetworkTwoPccConvertersWithoutVdcReference() {
+        Network network = createBaseNetwork();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
+
+        vl2.newVoltageSourceConverter()
+                .setIdleLoss(0.5)
+                .setSwitchingLoss(0.001)
+                .setResistiveLoss(1)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(50.)
+                .setId("conv23")
+                .setBus1("b2")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+
+        vl5.newVoltageSourceConverter()
+                .setIdleLoss(0.5)
+                .setSwitchingLoss(0.001)
+                .setResistiveLoss(1)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(-50.)
+                .setId("conv45")
+                .setBus1("b5")
+                .setDcNode1("dn4")
+                .setDcNode2("dnDummy4")
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+        return network;
+    }
+
+    /**
      * ACDC test case.
      * <pre>
      * g1       ld2                                 ld5
@@ -381,6 +434,44 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setVoltageRegulatorOn(false)
                 .setReactivePowerSetpoint(0.0)
                 .add();
+        return network;
+    }
+
+    /**
+     * ACDC test case.
+     * <pre>
+     * g1       ld2                                 ld5
+     * |         |                                   |
+     * b1 -------b2conv23-dn3============dn4-conv45-b5
+     * l12       |          dl34 & dl34_bis          |
+     *           |                                   |
+     *           |                                   |
+     *           |l25--------------------------------
+     * </pre>
+     */
+    public static Network createAcDcNetworkTwoParallelDcLines() {
+        Network network = AcDcNetworkFactory.createBaseNetwork();
+        network.getVoltageSourceConverters().forEach(vsc -> vsc.setIdleLoss(0).setSwitchingLoss(0).setResistiveLoss(0));
+
+        createVoltageSourceConverterPccQac(
+            network.getBusBreakerView().getBus("b2"),
+            network.getDcNode("dn3"),
+            network.getDcNode("dnDummy3"),
+            "conv23",
+            50,
+            0
+        );
+        createVoltageSourceConverterVdcQac(
+            network.getBusBreakerView().getBus("b5"),
+            network.getDcNode("dn4"),
+            network.getDcNode("dnDummy4"),
+            "conv45",
+            400,
+            0
+        );
+
+        double r = network.getDcLine("dl34").getR();  // 0.1
+        createDcLine(network, network.getDcNode("dn3"), network.getDcNode("dn4"), "dl34_bis", r);
         return network;
     }
 
@@ -893,8 +984,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setTargetP(25)
                 .setId("conv23n")
                 .setBus1("b2")
-                .setDcNode1("dn3n")
-                .setDcNode2("dn3r")
+                .setDcNode1("dn3r")
+                .setDcNode2("dn3n")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
                 .setVoltageRegulatorOn(false)
@@ -2366,7 +2457,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *  |                                                    |
      *  |--------------l12-----------------------------------|
      * </pre>
-     * @param id: Name of the network test case
+     *
+     * @param id:        Name of the network test case
      * @param swapOrder1 : Whether converter conv1 DC nodes should be DC1 and DC2 or DC2 and DC1
      * @param swapOrder2 : Whether converter conv2 DC nodes should be DC2 and DC3 or DC3 and DC2
      * @param swapOrder3 : Whether converter conv3 DC nodes should be DC1 and DC2 or DC2 and DC1
