@@ -125,7 +125,7 @@ public abstract class AbstractClosedBranchDcFlowEquationTerm extends AbstractEle
     }
 
     protected double a1(StateVector sv) {
-        return a1Var != null ? sv.get(a1Var.getRow()) : element.getPiModel().getA1();
+        return a1Var != null && a1Var.getRow() != -1 ? sv.get(a1Var.getRow()) : element.getPiModel().getA1();
     }
 
     protected double a1() {
