@@ -37,13 +37,9 @@ import com.powsybl.openloadflow.network.action.Actions;
 import com.powsybl.openloadflow.network.action.LfAction;
 import com.powsybl.openloadflow.network.action.LfActionUtils;
 import com.powsybl.openloadflow.network.action.OperatorStrategies;
-import com.powsybl.openloadflow.network.impl.LfNetworkList;
-import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.network.impl.PropagatedContingency;
-import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
+import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.Indexed;
-import com.powsybl.openloadflow.util.Lists2;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.openloadflow.util.mt.ContingencyMultiThreadHelper;
@@ -52,15 +48,13 @@ import com.powsybl.security.limitreduction.LimitReduction;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.*;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -172,47 +166,69 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .setSlackDistributionOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
                 .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation());
 
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
+        Map<String, Action> actionsById = Actions.indexById(actions);
+
+        // In MT the operator strategy check is performed before running the simulations
+        //boolean checkOperatorStrategies = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters).getThreadCount() == 1;
+        Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId =
+                OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById, true);
+        Set<Action> neededActions = OperatorStrategies.getNeededActions(operatorStrategiesByContingencyId, actionsById);
+
+        P parameters = createParameters(lfParameters, lfParametersExt, topoConfig.isBreaker(), isAreaInterchangeControl(lfParametersExt, contingencies));
         SecurityAnalysisResult finalResult;
 
-        if (securityAnalysisParametersExt.getThreadCount() == 1) {
-            List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, topoConfig, creationParameters);
+        // create networks including all necessary switches for all the contingencies and operator strategies
+        try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig, parameters.getNetworkParameters(), saReportNode)) {
+            OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
+            ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution = ContingencyActivePowerLossDistribution.find(openSecurityAnalysisParameters.getContingencyActivePowerLossDistribution());
 
-            var parameters = createParameters(lfParameters, lfParametersExt, topoConfig.isBreaker(), isAreaInterchangeControl(lfParametersExt, contingencies));
-
-            // create networks including all necessary switches
-            try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig, parameters.getNetworkParameters(), saReportNode)) {
-                finalResult = runSimulationsOnAllComponents(lfNetworks, propagatedContingencies, parameters,
-                        securityAnalysisParameters, operatorStrategies, actions, limitReductions, lfParameters);
+            for (LfNetwork lfNetwork : lfNetworks.getList()) {
+                if (lfNetwork.getSynchronousNetworks().size() > 1) {
+                    throw new PowsyblException("Security analysis does not support AC-DC networks with multiple synchronous components");
+                }
+            }
+            List<LfNetwork> networkToSimulate = new ArrayList<>(getNetworksToSimulate(lfNetworks, lfParameters.getComponentMode()));
+            if (networkToSimulate.isEmpty()) {
+                return new SecurityAnalysisReport(createNoResult());
             }
 
-        } else {
-            var contingenciesPartitions = Lists2.partition(contingencies, securityAnalysisParametersExt.getThreadCount());
-
-            OperatorStrategies.check(operatorStrategies, contingencies, actions);
-
-            // we pre-allocate the results so that threads can set result in a stable order (using the partition number)
-            // so that we always get results in the same order whatever threads completion order is.
-            // init to no result in case of cancel
-            List<SecurityAnalysisResult> partitionResults = Collections.synchronizedList(new ArrayList<>(Collections.nCopies(contingenciesPartitions.size(), createNoResult())));
-
-            ContingencyMultiThreadHelper.ParameterProvider<P> parameterProvider = partitionTopoConfig ->
-                createParameters(lfParameters, lfParametersExt, partitionTopoConfig.isBreaker(), isAreaInterchangeControl(lfParametersExt, contingencies));
-            ContingencyMultiThreadHelper.ContingencyRunner<P> contingencyRunner = (partitionNum, lfNetworks, propagatedContingencies, parameters) ->
-                    partitionResults.set(partitionNum, runSimulationsOnAllComponents(
-                            lfNetworks, propagatedContingencies, parameters, securityAnalysisParameters, operatorStrategies,
-                            actions, limitReductions, lfParameters));
-            ContingencyMultiThreadHelper.ReportMerger reportMerger = ContingencyMultiThreadHelper::mergeReportThreadResults;
-            ContingencyMultiThreadHelper.createLFNetworksPerContingencyPartitionAndRunAnalysis(network, workingVariantId, contingenciesPartitions, creationParameters, topoConfig,
-                    parameterProvider, contingencyRunner, saReportNode, reportMerger, executor);
-
-            // we just need to merge post contingency and operator strategy results, all pre contingency are the same
-            List<PostContingencyResult> postContingencyResults = new ArrayList<>();
-            List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
-            for (var partitionResult : partitionResults) {
-                postContingencyResults.addAll(partitionResult.getPostContingencyResults());
-                operatorStrategyResults.addAll(partitionResult.getOperatorStrategyResults());
+            Map<Pair<Integer, Integer>, Queue<PropagatedContingency>> queueContingenciesByComponent = new ConcurrentHashMap<>();
+            for (LfNetwork lfNetwork : networkToSimulate) {
+                Pair<Integer, Integer> numComponent = Pair.of(lfNetwork.getNumCC(), lfNetwork.getSynchronousNetworks().getFirst().getNumSC());
+                queueContingenciesByComponent.put(numComponent, new ConcurrentLinkedQueue<>(propagatedContingencies));
             }
-            finalResult = new SecurityAnalysisResult(partitionResults.get(0).getPreContingencyResult(), postContingencyResults, operatorStrategyResults);
+
+            SecurityAnalysisContext<P> securityContext = new SecurityAnalysisContext<>(networkToSimulate, parameters, securityAnalysisParameters, queueContingenciesByComponent, operatorStrategiesByContingencyId, neededActions, limitReductions, contingencyActivePowerLossDistribution, lfParameters);
+
+            if (securityAnalysisParametersExt.getThreadCount() == 1) {
+                finalResult = runSimulationsOnAllComponents(securityContext);
+            } else {
+                Map<Integer, List<LfNetwork>> networksCopies = new HashMap<>();
+                for (int i = 0; i < securityAnalysisParametersExt.getThreadCount(); i++) {
+                    List<LfNetwork> networksCopy = new ArrayList<>();
+                    for (LfNetwork lfNetwork : networkToSimulate) {
+                        networksCopy.add(LfNetworkCopier.copy(lfNetwork, lfParameters.isDc() ? LoadFlowModel.DC : LoadFlowModel.AC, Reports.createRootThreadReport(saReportNode)));
+                    }
+                    networksCopies.put(i, networksCopy);
+                }
+                List<SecurityAnalysisResult> workerResults = Collections.synchronizedList(new ArrayList<>(Collections.nCopies(securityAnalysisParametersExt.getThreadCount(), createNoResult())));
+                ContingencyMultiThreadHelper.ContingencyRunner<P> contingencyRunner = (workerNum, xlfNetworks, xPropagatedContingencies, xparameters) ->
+                        workerResults.set(workerNum, runSimulationsOnAllComponents(new SecurityAnalysisContext<>(networksCopies.get(workerNum), parameters, securityAnalysisParameters, queueContingenciesByComponent, operatorStrategiesByContingencyId,
+                                neededActions, limitReductions,  contingencyActivePowerLossDistribution, lfParameters)));
+                ContingencyMultiThreadHelper.ReportMerger reportMerger = ContingencyMultiThreadHelper::mergeReportThreadResults;
+                ContingencyMultiThreadHelper.runAnalysisOnCopy(securityAnalysisParametersExt.getThreadCount(), contingencyRunner, reportNode, reportMerger, executor);
+                ContingencyMultiThreadHelper.buildFinalReport(saReportNode, networksCopies, contingencies);
+
+                // we just need to merge post contingency and operator strategy results, all pre contingency are the same
+                List<PostContingencyResult> postContingencyResults = new ArrayList<>();
+                List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
+                for (var workerResult : workerResults) {
+                    postContingencyResults.addAll(workerResult.getPostContingencyResults());
+                    operatorStrategyResults.addAll(workerResult.getOperatorStrategyResults());
+                }
+                finalResult = new SecurityAnalysisResult(workerResults.get(0).getPreContingencyResult(), postContingencyResults, operatorStrategyResults);
+            }
         }
 
         stopwatch.stop();
@@ -222,55 +238,33 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         return new SecurityAnalysisReport(finalResult);
     }
 
-    SecurityAnalysisResult runSimulationsOnAllComponents(LfNetworkList networks, List<PropagatedContingency> propagatedContingencies, P parameters,
-                                                         SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
-                                                         List<Action> actions, List<LimitReduction> limitReductions,
-                                                         LoadFlowParameters lfParameters) {
-        for (LfNetwork lfNetwork : networks.getList()) {
-            if (lfNetwork.getSynchronousNetworks().size() > 1) {
-                throw new PowsyblException("Security analysis does not support AC-DC networks with multiple synchronous components");
-            }
-        }
-        List<LfNetwork> networkToSimulate = new ArrayList<>(getNetworksToSimulate(networks, lfParameters.getComponentMode()));
-        OpenSecurityAnalysisParameters openSecurityAnalysisParameters = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters);
-        ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution = ContingencyActivePowerLossDistribution.find(
-            openSecurityAnalysisParameters.getContingencyActivePowerLossDistribution());
+    SecurityAnalysisResult runSimulationsOnAllComponents(SecurityAnalysisContext<P> securityContext) {
+        List<LfNetwork> networksToSimulate = securityContext.getNetworksToSimulate();
+        LoadFlowParameters lfParameters = securityContext.getLfParameters();
 
-        if (networkToSimulate.isEmpty()) {
-            return createNoResult();
-        }
+        SecurityAnalysisResult result = SecurityAnalysisResult.empty();
 
-        // run simulation on first lfNetwork to initialize results structures
-        LfNetwork firstNetwork = networkToSimulate.removeFirst();
-        SecurityAnalysisResult result = runSimulations(firstNetwork, propagatedContingencies, parameters, securityAnalysisParameters,
-                operatorStrategies, actions, limitReductions, contingencyActivePowerLossDistribution);
-        double preContingencyDistributedActivePower = result.getPreContingencyResult().getDistributedActivePower();
+        double preContingencyDistributedActivePower = 0;
 
-        List<PostContingencyResult> postContingencyResults = result.getPostContingencyResults();
-        List<OperatorStrategyResult> operatorStrategyResults = result.getOperatorStrategyResults();
-        NetworkResult mergedPreContingencyNetworkResult = result.getPreContingencyResult().getNetworkResult();
-        List<LimitViolation> preContingencyViolations = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations();
+        List<PostContingencyResult> postContingencyResults = new ArrayList<>();
+        List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();;
+        NetworkResult mergedPreContingencyNetworkResult = NetworkResult.empty();
+        List<LimitViolation> preContingencyViolations = new ArrayList<>();;
 
         Map<String, PostContingencyResult> postContingencyResultMap = new LinkedHashMap<>();
         Map<String, OperatorStrategyResult> operatorStrategyResultMap = new LinkedHashMap<>();
-        postContingencyResults.forEach(r -> postContingencyResultMap.put(r.getContingency().getId(), r));
-        operatorStrategyResults.forEach(r -> operatorStrategyResultMap.put(r.getOperatorStrategy().getId(), r));
 
-        // Ensure the lists are writable and can be extended
-        preContingencyViolations = new ArrayList<>(preContingencyViolations);
-
-        for (LfNetwork n : networkToSimulate) {
-            SecurityAnalysisResult resultOtherComponent = runSimulations(n, propagatedContingencies, parameters, securityAnalysisParameters,
-                    operatorStrategies, actions, limitReductions, contingencyActivePowerLossDistribution);
+        for (LfNetwork n : networksToSimulate) {
+            SecurityAnalysisResult resultOneComponent = runSimulations(n, securityContext);
 
             // Merge into first result
-            preContingencyDistributedActivePower += resultOtherComponent.getPreContingencyResult().getDistributedActivePower();
+            preContingencyDistributedActivePower += resultOneComponent.getPreContingencyResult().getDistributedActivePower();
             // PreContingency results first
-            preContingencyViolations.addAll(resultOtherComponent.getPreContingencyResult().getLimitViolationsResult().getLimitViolations());
-            mergedPreContingencyNetworkResult = mergeNetworkResult(mergedPreContingencyNetworkResult, resultOtherComponent.getPreContingencyResult().getNetworkResult());
+            preContingencyViolations.addAll(resultOneComponent.getPreContingencyResult().getLimitViolationsResult().getLimitViolations());
+            mergedPreContingencyNetworkResult = mergeNetworkResult(mergedPreContingencyNetworkResult, resultOneComponent.getPreContingencyResult().getNetworkResult());
 
             // PostContingency and OperatorStrategies results
-            mergeSecurityAnalysisResult(resultOtherComponent, postContingencyResultMap, operatorStrategyResultMap, n.getNumCC());
+            mergeSecurityAnalysisResult(resultOneComponent, postContingencyResultMap, operatorStrategyResultMap, n.getNumCC());
         }
         postContingencyResults = postContingencyResultMap.values().stream().toList();
         operatorStrategyResults = operatorStrategyResultMap.values().stream().toList();
@@ -495,18 +489,15 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     protected void afterPreContingencySimulation(P parameters) {
     }
 
-    protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, P acParameters,
-                                                    SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
-                                                    List<Action> actions, List<LimitReduction> limitReductions, ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution) {
-        Map<String, Action> actionsById = Actions.indexById(actions);
-
-        // In MT the operator strategy check is performed before running the simulations
-        boolean checkOperatorStrategies = OpenSecurityAnalysisParameters.getOrDefault(securityAnalysisParameters).getThreadCount() == 1;
-
-        Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId =
-                OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById,
-                        checkOperatorStrategies);
-        Set<Action> neededActions = OperatorStrategies.getNeededActions(operatorStrategiesByContingencyId, actionsById);
+    protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, SecurityAnalysisContext<P> securityContext) {
+        Pair<Integer, Integer> numComponent = Pair.of(lfNetwork.getNumCC(), lfNetwork.getSynchronousNetworks().getFirst().getNumSC());
+        Queue<PropagatedContingency> queueContingencies = securityContext.getQueueContingenciesByComponent().get(numComponent);
+        P acParameters = securityContext.getParameters();
+        SecurityAnalysisParameters securityAnalysisParameters = securityContext.getSecurityAnalysisParameters();
+        Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId = securityContext.getOperatorStrategiesById();
+        Set<Action> neededActions = securityContext.getNeededActions();
+        List<LimitReduction> limitReductions = securityContext.getLimitReductions();
+        ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution = securityContext.getContingencyActivePowerLossDistribution();
 
         Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network); // only convert needed actions
 
@@ -533,7 +524,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             List<StateMonitor> zeroImpedanceStateMonitors = extractZeroImpedanceStateMonitors(lfNetwork);
             this.zeroImpedanceMonitoredIndex = new StateMonitorIndex(zeroImpedanceStateMonitors);
             var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork,
-                new AbstractNetworkResult.StateMonitorIndexes(monitorIndex, zeroImpedanceMonitoredIndex), createResultExtension,
+                    new AbstractNetworkResult.StateMonitorIndexes(monitorIndex, zeroImpedanceMonitoredIndex), createResultExtension,
                     loadFlowModel, securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
             List<OperatorStrategyResult> operatorStrategyResults = new ArrayList<>();
 
@@ -560,19 +551,19 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 Consumer<P> contingencyParametersResetter = createParametersResetter(p);
 
                 // start a simulation for each of the contingency
-                Iterator<PropagatedContingency> contingencyIt = propagatedContingencies.iterator();
-                while (contingencyIt.hasNext() && !Thread.currentThread().isInterrupted()) {
-                    PropagatedContingency propagatedContingency = contingencyIt.next();
+                //Iterator<PropagatedContingency> contingencyIt = queueContingencies.iterator();
+                while (!queueContingencies.isEmpty() && !Thread.currentThread().isInterrupted()) {
+                    PropagatedContingency propagatedContingency = queueContingencies.poll();
                     propagatedContingency.toLfContingency(lfNetwork)
                             .ifPresent(lfContingency -> processContingency(lfNetwork, securityAnalysisParameters,
-                                limitReductions, contingencyActivePowerLossDistribution,
-                                networkReportNode, lfContingency, p, networkState,
-                                propagatedContingency, context, lfActionById,
-                                loadFlowParameters, contingencyOpenLoadFlowParameters,
-                                createResultExtension, preContingencyLimitViolationManager,
-                                preContingencyNetworkResult, postContingencyResults,
-                                contingencyParametersResetter, operatorStrategiesByContingencyId,
-                                operatorStrategyResults, contingencyIt));
+                                    limitReductions, contingencyActivePowerLossDistribution,
+                                    networkReportNode, lfContingency, p, networkState,
+                                    propagatedContingency, context, lfActionById,
+                                    loadFlowParameters, contingencyOpenLoadFlowParameters,
+                                    createResultExtension, preContingencyLimitViolationManager,
+                                    preContingencyNetworkResult, postContingencyResults,
+                                    contingencyParametersResetter, operatorStrategiesByContingencyId,
+                                    operatorStrategyResults, !queueContingencies.isEmpty()));
                 }
 
                 // Restore parameters in case they are used for another component
@@ -584,7 +575,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                             preContingencyLoadFlowResult.toComponentResultStatus().status(),
                             new LimitViolationsResult(preContingencyLimitViolationManager.getLimitViolations()),
                             new NetworkResult(preContingencyNetworkResult.getBranchResults(), preContingencyNetworkResult.getBusResults(),
-                            preContingencyNetworkResult.getThreeWindingsTransformerResults()),
+                                    preContingencyNetworkResult.getThreeWindingsTransformerResults()),
                             preContingencyLoadFlowResult.getDistributedActivePower() * PerUnit.SB),
                     postContingencyResults, operatorStrategyResults);
         }
@@ -756,7 +747,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                     boolean createResultExtension, LimitViolationManager preContingencyLimitViolationManager,
                                     PreContingencyNetworkResult preContingencyNetworkResult, List<PostContingencyResult> postContingencyResults,
                                     Consumer<P> contingencyParametersResetter, Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId,
-                                    List<OperatorStrategyResult> operatorStrategyResults, Iterator<PropagatedContingency> contingencyIt) {
+                                    List<OperatorStrategyResult> operatorStrategyResults, boolean hasNextContingency) {
         ReportNode postContSimReportNode = Reports.createPostContingencySimulation(networkReportNode, lfContingency.getId());
         lfNetwork.setReportNode(postContSimReportNode);
 
@@ -818,7 +809,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 }
             }
         }
-        if (contingencyIt.hasNext()) {
+        if (hasNextContingency) {
             // restore base state
             networkState.restore();
             if (contingencyLoadFlowParameters != null &&

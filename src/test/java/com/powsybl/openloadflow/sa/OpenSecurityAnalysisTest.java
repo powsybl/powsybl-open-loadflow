@@ -4158,7 +4158,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
 
         // Remove Windows EOL
         String reportString = TestUtil.normalizeLineSeparator(reportToString(testReport));
-
+        System.out.println(reportString);
         // The report should be the same with one or two threads
         // Let's just check the size here
         assertEquals(7318, reportString.length());
