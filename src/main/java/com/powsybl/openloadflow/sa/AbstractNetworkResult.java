@@ -17,7 +17,7 @@ import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResult;
-import com.powsybl.security.results.PhaseShifterResultsExtension;
+import com.powsybl.security.results.MovedPhaseShifterResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 
 import java.util.*;
@@ -50,7 +50,7 @@ public abstract class AbstractNetworkResult {
 
     protected List<PhaseTapChangerResult> phaseTapChangerResults = new ArrayList<>();
 
-    protected final List<PhaseShifterResultsExtension.MovedPhaseShifterResult> movedPhaseShifterResults = new ArrayList<>();
+    protected final Map<String, MovedPhaseShifterResult> movedPhaseShifterResults = new HashMap<>();
 
     protected AbstractNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
         this.network = Objects.requireNonNull(network);
@@ -144,15 +144,11 @@ public abstract class AbstractNetworkResult {
         phaseTapChangerResults = network.getBranches().stream()
                     .filter(b -> !b.isDisabled())
                     .filter(LfBranch::hasPhaseControllerCapability)
-                    .map(b -> {
-                        var ptc = extractPhaseTapChanger(b);
-                        return ptc.map(p -> new PhaseTapChangerResult(p,
+                    .map(b -> new PhaseTapChangerResult(b.getPhaseTapChanger().orElseThrow(),
                                 b.getMainOriginalId(),
                                 b.getPiModel(),
-                                p.getTapPosition()));
-                    })
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
+                                b.getPhaseTapChanger().orElseThrow().getTapPosition())
+                    )
                     .toList();
     }
 
@@ -160,17 +156,13 @@ public abstract class AbstractNetworkResult {
         for (PhaseTapChangerResult ptcResult : phaseTapChangerResults) {
             int newTapPosition = Transformers.findTapPosition(ptcResult.getPhaseTapChanger(), Math.toDegrees(ptcResult.getPiModel().getA1()));
             if (ptcResult.getCurrentTap() != newTapPosition) {
-                movedPhaseShifterResults.add(new PhaseShifterResultsExtension.MovedPhaseShifterResult(ptcResult.getTransformerId(), ptcResult.getCurrentTap(), newTapPosition));
+                movedPhaseShifterResults.put(ptcResult.getTransformerId(), new MovedPhaseShifterResult(ptcResult.getTransformerId(), ptcResult.getCurrentTap(), newTapPosition));
                 ptcResult.setCurrentTap(newTapPosition);
             }
         }
     }
 
-    protected List<PhaseTapChangerResult> getPhaseTapChangerResults() {
-        return phaseTapChangerResults;
-    }
-
-    public List<PhaseShifterResultsExtension.MovedPhaseShifterResult> getMovedPhaseShifterResults() {
+    public Map<String, MovedPhaseShifterResult> getMovedPhaseShifterResults() {
         return movedPhaseShifterResults;
     }
 }

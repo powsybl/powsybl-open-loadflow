@@ -5248,9 +5248,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters().setPhaseShifterRegulationOn(true);
         List<Contingency> contingencies = List.of(Contingency.line("L1"));
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), loadFlowParameters);
-        PhaseShifterResultsExtension postExt = result.getPostContingencyResults().getFirst().getExtension(PhaseShifterResultsExtension.class);
-        assertNotNull(postExt);
-        Map<String, PhaseShifterResultsExtension.MovedPhaseShifterResult> movedPhaseShifters = postExt.getPhaseShifterResults();
-        assertTrue(!movedPhaseShifters.isEmpty());
+        Map<String, MovedPhaseShifterResult> movedPhaseShifters = result.getPostContingencyResults().getFirst().getPhaseShifterResults();
+        assertFalse(movedPhaseShifters.isEmpty());
     }
 }

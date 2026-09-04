@@ -5,11 +5,11 @@ import com.powsybl.openloadflow.network.PiModel;
 
 public class PhaseTapChangerResult {
 
-    private PhaseTapChanger phaseTapChanger;
+    private final PhaseTapChanger phaseTapChanger;
 
     private int currentTap;
 
-    private String transformerId;
+    private final String transformerId;
 
     private PiModel piModel;
 
@@ -32,10 +32,6 @@ public class PhaseTapChangerResult {
         return phaseTapChanger;
     }
 
-    public void setPhaseTapChanger(PhaseTapChanger phaseTapChanger) {
-        this.phaseTapChanger = phaseTapChanger;
-    }
-
     public PiModel getPiModel() {
         return piModel;
     }
@@ -46,9 +42,5 @@ public class PhaseTapChangerResult {
 
     public String getTransformerId() {
         return transformerId;
-    }
-
-    public void setTransformerId(String transformerId) {
-        this.transformerId = transformerId;
     }
 }
