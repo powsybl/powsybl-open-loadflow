@@ -39,8 +39,7 @@
       "threadCount" : 3,
       "dcFastMode" : true,
       "contingencyActivePowerLossDistribution" : "Default",
-      "startWithFrozenACEmulation" : false,
-      "createPhaseTapChangerResults" : false
+      "startWithFrozenACEmulation" : false
     }
   }
 }
