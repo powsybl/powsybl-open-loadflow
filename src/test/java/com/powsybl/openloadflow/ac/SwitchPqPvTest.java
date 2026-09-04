@@ -11,7 +11,6 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
 import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -287,7 +286,11 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
         assertVoltageEquals(20, b3); // PV
 
         parametersExt.setVoltagePerReactivePowerControl(true);
-        svc3.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.00001).add();
+        svc3.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
+                .withRegulating(true)
+                .withSlope(0.00001)
+                .build();
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
         // bus 1 and 3 switch PQ at first outer loop, then at next outer loop bus 3 does not go back PV

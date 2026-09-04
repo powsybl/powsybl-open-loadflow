@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
-import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
 import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -133,10 +132,11 @@ class AcLoadFlowSvcTest {
 
     @Test
     void testSvcWithSlope() {
-        svc1.setVoltageSetpoint(385)
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .setRegulating(true);
-        svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
+                .withSlope(0.03)
+                .withRegulating(true)
+                .build();
 
         parametersExt.setVoltagePerReactivePowerControl(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -157,10 +157,11 @@ class AcLoadFlowSvcTest {
     @Test
     void testSvcWithSlope2() {
         // Test switch PV to PQ
-        svc1.setVoltageSetpoint(440)
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .setRegulating(true);
-        svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
+                .withSlope(0.03)
+                .withRegulating(true)
+                .build();
 
         parametersExt.setVoltagePerReactivePowerControl(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -215,18 +216,20 @@ class AcLoadFlowSvcTest {
                 .setId("svc2")
                 .setConnectableBus("b2")
                 .setBus("b2")
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .setRegulating(true)
-                .setVoltageSetpoint(385)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
+                    .withSlope(0.03)
+                    .withRegulating(true)
+                .add()
                 .setBmin(-0.008)
                 .setBmax(0.008)
                 .add();
 
-        svc1.setVoltageSetpoint(385)
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .setRegulating(true);
-        svc2.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
-        svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
+                .withSlope(0.03)
+                .withRegulating(true)
+                .build();
 
         parametersExt.setVoltagePerReactivePowerControl(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -243,10 +246,11 @@ class AcLoadFlowSvcTest {
     @Test
     void testSvcWithSlope5() {
         // With a generator at bus2 not controlling voltage
-        svc1.setVoltageSetpoint(385)
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .setRegulating(true);
-        svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
+                .withSlope(0.03)
+                .withRegulating(true)
+                .build();
 
         network.getVoltageLevel("vl2").newGenerator()
                 .setId("gen")
@@ -310,10 +314,11 @@ class AcLoadFlowSvcTest {
 
     @Test
     void testStandByAutomatonAndSlope() {
-        svc1.setVoltageSetpoint(385)
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .setRegulating(true);
-        svc1.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.03).add();
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
+                .withSlope(0.03)
+                .withRegulating(true)
+                .build();
         svc1.newExtension(StandbyAutomatonAdder.class)
                 .withHighVoltageThreshold(400)
                 .withLowVoltageThreshold(380)
