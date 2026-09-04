@@ -12,7 +12,7 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.ReactiveLimitsKind;
 import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.iidm.network.extensions.StandbyAutomaton;
-import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -128,9 +128,9 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     private void setupVoltageControl(StaticVarCompensator svc, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         setVoltageControl(svc.getVoltageSetpoint(), svc.getTerminal(), svc.getRegulatingTerminal(), parameters, report);
 
-        // slope model: check if to be applied based on 1/ option and 2/ this SVC extension
-        VoltagePerReactivePowerControl voltagePerReactivePowerControl = svc.getExtension(VoltagePerReactivePowerControl.class);
-        boolean svcWithVoltagePerReactivePowerControl = parameters.isVoltagePerReactivePowerControl() && voltagePerReactivePowerControl != null;
+        // slope model: check if to be applied based on 1/ option and 2/ the regulation mode
+        boolean svcWithVoltagePerReactivePowerControl = parameters.isVoltagePerReactivePowerControl()
+                && svc.getVoltageRegulation() != null && RegulationMode.VOLTAGE_PER_REACTIVE_POWER == svc.getVoltageRegulation().getMode();
 
         // standby automaton: same, check if to be applied based on 1/ option and 2/ this SVC extension
         StandbyAutomaton standbyAutomaton = svc.getExtension(StandbyAutomaton.class);
@@ -138,13 +138,13 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
         // we can't do both slope model & standby automaton. Keep only standby automaton if both present.
         if (svcWithStandbyAutomaton && svcWithVoltagePerReactivePowerControl) {
-            LOGGER.warn("Static var compensator {} has VoltagePerReactivePowerControl" +
-                    " and StandbyAutomaton extensions: VoltagePerReactivePowerControl extension ignored", svc.getId());
+            LOGGER.warn("Static var compensator {} has VOLTAGE_PER_REACTIVE_POWER regulation mode" +
+                    " and StandbyAutomaton extensions: VOLTAGE_PER_REACTIVE_POWER regulation mode ignored", svc.getId());
             svcWithVoltagePerReactivePowerControl = false;
         }
 
         if (svcWithVoltagePerReactivePowerControl) {
-            this.slope = voltagePerReactivePowerControl.getSlope() * PerUnit.SB / nominalV;
+            this.slope = svc.getVoltageRegulation().getSlope() * PerUnit.SB / nominalV;
         }
         if (svcWithStandbyAutomaton) {
             if (standbyAutomaton.getB0() != 0.0) {

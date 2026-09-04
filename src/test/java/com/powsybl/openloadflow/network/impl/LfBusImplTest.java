@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
 import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
@@ -64,43 +63,37 @@ class LfBusImplTest {
                 .setId("svc1")
                 .setConnectableBus("b1")
                 .setBus("b1")
-                .setRegulating(false)
-                .setRegulationMode(RegulationMode.VOLTAGE)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
+                    .withRegulating(true)
+                    .withSlope(0.01)
+                .add()
                 .setBmin(-0.006)
                 .setBmax(0.006)
-                .add();
-        svc1.setVoltageSetpoint(385)
-                .setRegulating(true)
-                .newExtension(VoltagePerReactivePowerControlAdder.class)
-                .withSlope(0.01)
                 .add();
         svc2 = vl1.newStaticVarCompensator()
                 .setId("svc2")
                 .setConnectableBus("b1")
                 .setBus("b1")
-                .setRegulating(false)
-                .setRegulationMode(RegulationMode.VOLTAGE)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
+                    .withRegulating(true)
+                    .withSlope(0.015)
+                .add()
                 .setBmin(-0.001)
                 .setBmax(0.001)
-                .add();
-        svc2.setVoltageSetpoint(385)
-                .setRegulating(true)
-                .newExtension(VoltagePerReactivePowerControlAdder.class)
-                .withSlope(0.015)
                 .add();
         svc3 = vl1.newStaticVarCompensator()
                 .setId("svc3")
                 .setConnectableBus("b1")
                 .setBus("b1")
-                .setRegulating(false)
-                .setRegulationMode(RegulationMode.VOLTAGE)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
+                    .withRegulating(true)
+                    .withSlope(0.02)
+                .add()
                 .setBmin(-0.00075)
                 .setBmax(0.00075)
-                .add();
-        svc3.setVoltageSetpoint(385)
-                .setRegulating(true)
-                .newExtension(VoltagePerReactivePowerControlAdder.class)
-                .withSlope(0.02)
                 .add();
         load = vl2.newLoad()
                 .setId("load")
