@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.LoadingLimits;
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.sa.LimitReductionManager;
@@ -305,6 +306,12 @@ public interface LfBranch extends LfElement {
     boolean isPhaseControlEnabled();
 
     void setPhaseControlEnabled(boolean phaseControlEnabled);
+
+    // Phase tap changer accessor (for results)
+    Optional<PhaseTapChanger> getPhaseTapChanger();
+
+    // Three-windings transformer ID accessor (for 3WT branches)
+    Optional<String> getThreeWindingsTransformerId();
 
     // transformer voltage control
 

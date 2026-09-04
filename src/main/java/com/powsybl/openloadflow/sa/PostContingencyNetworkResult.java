@@ -18,7 +18,10 @@ import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 /**
@@ -148,6 +151,8 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
             Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getAllStateMonitor(), network);
             addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
         }
+        storeInitialPhaseTapChangerInfo();
+        updateMovedPhaseShifters();
     }
 
     @Override

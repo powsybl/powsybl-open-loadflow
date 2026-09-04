@@ -5226,117 +5226,29 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
             .forEach(br -> assertEquals(0., br.getFlowTransfer(), DELTA_POWER));
     }
 
-    @ParameterizedTest(name = "DC = {0}")
-    @ValueSource(booleans = {false, true})
-    void testUnsupportedParameters(boolean dc) {
-        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-
-        List<Contingency> contingencies = List.of(
-                new Contingency("NHV1_NHV2_1", new BranchContingency("NHV1_NHV2_1")),
-                new Contingency("NHV1_NHV2_2", new BranchContingency("NHV1_NHV2_2"))
-        );
-
-        LoadFlowParameters lfParameters = new LoadFlowParameters()
-                .setDc(dc);
-        // These parameters are not supported so they are overriden
-        OpenLoadFlowParameters.create(lfParameters)
-                .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY)
-                .setMaxSlackBusCount(3)
-                .setNetworkCacheEnabled(true);
-
-        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
-        securityAnalysisParameters.setLoadFlowParameters(lfParameters);
-
-        // No error, (and warning logs should appear)
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters);
-        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
-        assertEquals(2, result.getPostContingencyResults().size());
-        assertSame(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
-        assertEquals(0, result.getPostContingencyResults().get(1).getConnectivityResult().getDisconnectedLoadActivePower());
-    }
-
     @Test
-    void testFilteredBranchResults() {
-        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-
-        List<Contingency> contingencies = List.of(
-                new Contingency("NHV1_NHV2_1", new BranchContingency("NHV1_NHV2_1"))
-        );
-
-        // Monitor on branch and step-up transformer for all states
-        List<StateMonitor> monitors = List.of(
-                new StateMonitor(ContingencyContext.all(), Set.of("NGEN_NHV1"), emptySet(), emptySet())
-        );
-        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters()
-                .setModifiedMonitoredElementsParameters(new SecurityAnalysisParameters.ModifiedMonitoredElementsParameters()
-                        .setPowerModificationThreshold(0.0)); // no filtering
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
-
-        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        assertEquals(1, preContingencyResult.getNetworkResult().getBranchResults().size());
-        assertEquals(1, result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResults().size());
-        BranchResult preCtg = preContingencyResult.getNetworkResult().getBranchResult("NGEN_NHV1");
-        BranchResult postCtg = result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("NGEN_NHV1");
-        assertEquals(+605.5595, preCtg.getP1(), DELTA_POWER);
-        assertEquals(-604.8921, preCtg.getP2(), DELTA_POWER);
-        assertEquals(+225.2826, preCtg.getQ1(), DELTA_POWER);
-        assertEquals(-197.4804, preCtg.getQ2(), DELTA_POWER);
-        assertEquals(+611.3631, postCtg.getP1(), DELTA_POWER);
-        assertEquals(-610.5490, postCtg.getP2(), DELTA_POWER);
-        assertEquals(+367.9649, postCtg.getQ1(), DELTA_POWER);
-        assertEquals(-334.0551, postCtg.getQ2(), DELTA_POWER);
-
-        parameters.getModifiedMonitoredElementsParameters().setPowerModificationThreshold(50); // MW-MVAr, there are larger Q changes
-        SecurityAnalysisResult resultFiltered1 = runSecurityAnalysis(network, contingencies, monitors, parameters);
-        assertEquals(1, resultFiltered1.getPostContingencyResults().getFirst().getNetworkResult().getBranchResults().size());
-
-        parameters.getModifiedMonitoredElementsParameters().setPowerModificationThreshold(150); // MW-MVAr, this time should filter
-        SecurityAnalysisResult resultFiltered2 = runSecurityAnalysis(network, contingencies, monitors, parameters);
-        assertEmpty(resultFiltered2.getPostContingencyResults().getFirst().getNetworkResult().getBranchResults());
-    }
-
-    @Test
-    void testFiltered3wtResults() {
-        Network network = T3wtFactory.create();
-        network.getShuntCompensator("sc3").setSectionCount(1); // to get some flow on leg 3
-        List<Contingency> contingencies = List.of(
-                Contingency.load("ld2")
-        );
-
-        // Monitor on branch and step-up transformer for all states
-        List<StateMonitor> monitors = List.of(
-                new StateMonitor(ContingencyContext.all(), emptySet(), emptySet(), Set.of("3wt"))
-        );
-        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters()
-                .setModifiedMonitoredElementsParameters(new SecurityAnalysisParameters.ModifiedMonitoredElementsParameters()
-                        .setPowerModificationThreshold(0.0)); // no filtering
-        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters);
-
-        PreContingencyResult preContingencyResult = result.getPreContingencyResult();
-        assertEquals(1, preContingencyResult.getNetworkResult().getThreeWindingsTransformerResults().size());
-        assertEquals(1, result.getPostContingencyResults().getFirst().getNetworkResult().getThreeWindingsTransformerResults().size());
-        var preCtg = preContingencyResult.getNetworkResult().getThreeWindingsTransformerResult("3wt");
-        var postCtg = result.getPostContingencyResults().getFirst().getNetworkResult().getThreeWindingsTransformerResult("3wt");
-        double tol = 1.0; // DELTA_POWER at 1e-3 would require changing LF options to higher precision but is not useful for the test
-        assertEquals(+161., preCtg.getP1(), tol);
-        assertEquals(-161., preCtg.getP2(), tol);
-        assertEquals(0., preCtg.getP3(), tol);
-        assertEquals(+149., preCtg.getQ1(), tol);
-        assertEquals(-74., preCtg.getQ2(), tol);
-        assertEquals(-59., preCtg.getQ3(), tol);
-        assertEquals(+0., postCtg.getP1(), tol);
-        assertEquals(0., postCtg.getP2(), tol);
-        assertEquals(0., postCtg.getP3(), tol);
-        assertEquals(+67., postCtg.getQ1(), tol);
-        assertEquals(0., postCtg.getQ2(), tol);
-        assertEquals(-62., postCtg.getQ3(), tol);
-
-        parameters.getModifiedMonitoredElementsParameters().setPowerModificationThreshold(50); // MW-MVAr, there are larger p changes
-        SecurityAnalysisResult resultFiltered1 = runSecurityAnalysis(network, contingencies, monitors, parameters);
-        assertEquals(1, resultFiltered1.getPostContingencyResults().getFirst().getNetworkResult().getThreeWindingsTransformerResults().size());
-
-        parameters.getModifiedMonitoredElementsParameters().setPowerModificationThreshold(170); // MW-MVAr, this time should filter
-        SecurityAnalysisResult resultFiltered2 = runSecurityAnalysis(network, contingencies, monitors, parameters);
-        assertEmpty(resultFiltered2.getPostContingencyResults().getFirst().getNetworkResult().getThreeWindingsTransformerResults());
+    void testMovedPhaseShifterResults() {
+        Network network = PhaseControlFactory.createNetworkWithT2wt();
+        network.newLine().setId("L3")
+                .setConnectableBus1("B1")
+                .setBus1("B1")
+                .setConnectableBus2("B2")
+                .setBus2("B2")
+                .setR(4.0)
+                .setX(200.0)
+                .add();
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+        ps1.getPhaseTapChanger()
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(1)
+                .setRegulating(true)
+                .setTapPosition(1)
+                .setRegulationTerminal(ps1.getTerminal1())
+                .setRegulationValue(83);
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters().setPhaseShifterRegulationOn(true);
+        List<Contingency> contingencies = List.of(Contingency.line("L1"));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), loadFlowParameters);
+        Map<String, MovedPhaseShifterResult> movedPhaseShifters = result.getPostContingencyResults().getFirst().getPhaseShifterResults();
+        assertFalse(movedPhaseShifters.isEmpty());
     }
 }

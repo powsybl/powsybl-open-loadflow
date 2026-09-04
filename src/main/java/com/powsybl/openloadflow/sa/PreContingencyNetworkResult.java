@@ -59,6 +59,8 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         zeroImpedanceFlows.clear();
         zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getAllStateMonitor(), network);
         addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
+        storeInitialPhaseTapChangerInfo();
+        updateMovedPhaseShifters();
     }
 
     public BranchResult getBranchResult(String branchId) {
