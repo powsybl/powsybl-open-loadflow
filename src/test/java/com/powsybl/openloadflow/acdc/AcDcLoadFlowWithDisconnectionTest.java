@@ -106,11 +106,25 @@ class AcDcLoadFlowWithDisconnectionTest {
         assertEquals(400 + expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn3").getV(), tol);
         assertEquals(400, network.getDcNode("dn4").getV());
 
+        // Disconnect the other side of the DC line and run load flow. The current in the disconnected DC line should be zero, and doubled in the other DC line
+        network.getDcLine("dl34_bis").getDcTerminal1().setConnected(true);  // Reconnect terminal 1
+        network.getDcLine("dl34_bis").getDcTerminal2().disconnect();  // Disconnect terminal 2
+        LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
+        assertTrue(result3.isFullyConverged());
+        // Check DC current
+        assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv23").getDcTerminal1().getI(), tol);
+        assertEquals(expectedDcCurrent, network.getVoltageSourceConverter("conv45").getDcTerminal1().getI(), tol);
+        assertEquals(expectedDcCurrent, network.getDcLine("dl34").getDcTerminal1().getI(), tol);
+        assertEquals(0., network.getDcLine("dl34_bis").getDcTerminal1().getI(), 0);
+        // Check DC voltage, taking into account the voltage rise due to resistance of ONE DC line
+        assertEquals(400 + expectedDcCurrent / 1000 * dcLineR, network.getDcNode("dn3").getV(), tol);
+        assertEquals(400, network.getDcNode("dn4").getV());
+
         // Disconnect fully the DC line and run load flow. The disconnected DC line should not appear in the load flow so its state variable should be NaN.
         // The current in the second DC line should be doubled compared to the first case (without any disconnection)
         network.getDcLine("dl34_bis").disconnectDc();  // Disconnect both terminals
-        LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
-        assertTrue(result3.isFullyConverged());
+        LoadFlowResult result4 = loadFlowRunner.run(network, parameters);
+        assertTrue(result4.isFullyConverged());
         // Check DC current
         assertEquals(-expectedDcCurrent, network.getVoltageSourceConverter("conv23").getDcTerminal1().getI(), tol);
         assertEquals(expectedDcCurrent, network.getVoltageSourceConverter("conv45").getDcTerminal1().getI(), tol);

@@ -126,8 +126,9 @@ class DcComponentValidatorTest {
             .add();
 
         List<AcDcConverter<?>> converters = List.of(network.getVoltageSourceConverter("conv"));
+        List<DcBus> dcBuses = allDcBuses(network);
         PowsyblException exception = assertThrows(PowsyblException.class,
-            () -> DcComponentValidator.resolveDcComponent(allDcBuses(network), converters, NUM_DCC));
+            () -> DcComponentValidator.resolveDcComponent(dcBuses, converters, NUM_DCC));
         assertTrue(exception.getMessage().contains("not indirectly connected to a DC ground"));
     }
 
