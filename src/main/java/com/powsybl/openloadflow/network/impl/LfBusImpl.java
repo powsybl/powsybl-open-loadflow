@@ -168,17 +168,19 @@ public class LfBusImpl extends AbstractLfBus {
     @Override
     public List<BusResult> createBusResults() {
         var bus = getBus();
+        double reportedV = isDisabled() ? Double.NaN : v;
+        double reportedAngle = isDisabled() ? Double.NaN : Math.toDegrees(angle);
         if (breakers) {
             if (bbsIds.isEmpty()) {
-                return List.of(new BusResult(getVoltageLevelId(), bus.getId(), v, Math.toDegrees(angle)));
+                return List.of(new BusResult(getVoltageLevelId(), bus.getId(), reportedV, reportedAngle));
             } else {
                 return bbsIds.stream()
-                        .map(bbsId -> new BusResult(getVoltageLevelId(), bbsId, v, Math.toDegrees(angle)))
+                        .map(bbsId -> new BusResult(getVoltageLevelId(), bbsId, reportedV, reportedAngle))
                         .collect(Collectors.toList());
             }
         } else {
             return bus.getVoltageLevel().getBusBreakerView().getBusesFromBusViewBusId(bus.getId())
-                    .stream().map(b -> new BusResult(getVoltageLevelId(), b.getId(), v, Math.toDegrees(angle))).collect(Collectors.toList());
+                    .stream().map(b -> new BusResult(getVoltageLevelId(), b.getId(), reportedV, reportedAngle)).collect(Collectors.toList());
         }
     }
 

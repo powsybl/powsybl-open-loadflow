@@ -81,6 +81,12 @@ public class LfBoundaryLineBranch extends AbstractImpedantLfBranch {
         return List.of(buildBranchResult(loadFlowModel, zeroImpedanceFlows, currentScale, currentScale, Double.NaN, Double.NaN));
     }
 
+    @Override
+    public List<BranchResult> createDisabledBranchResult(boolean createExtension) {
+        // no extension for boundary lines, same as the enabled-path createBranchResult above
+        return List.of(new BranchResult(getId(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN));
+    }
+
     private <T extends LoadingLimits> Supplier<Map<String, T>> toMapIndexedByOperationalLimitsGroupId(Function<OperationalLimitsGroup, Optional<T>> limitsGetter) {
         return () -> getBoundaryLine()
                 .getAllSelectedOperationalLimitsGroups()

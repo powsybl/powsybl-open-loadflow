@@ -103,6 +103,25 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
         return List.of(branchResult, half1Result, half2Result); // make sure to put the tie-line first in the list, used in post-contingency flow filtering
     }
 
+    @Override
+    public List<BranchResult> createDisabledBranchResult(boolean createExtension) {
+        double nominalV1 = getHalf1().getTerminal().getVoltageLevel().getNominalV();
+        double nominalV2 = getHalf2().getTerminal().getVoltageLevel().getNominalV();
+
+        var branchResult = new BranchResult(getId(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN);
+        var half1Result = new BranchResult(getHalf1().getId(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN);
+        var half2Result = new BranchResult(getHalf2().getId(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN);
+        if (createExtension) {
+            branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
+                    getV1() * nominalV1, getV2() * nominalV2, Math.toDegrees(getAngle1()), Math.toDegrees(getAngle2())));
+            half1Result.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
+                    getV1() * nominalV1, Double.NaN, Math.toDegrees(getAngle1()), Double.NaN));
+            half2Result.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
+                    Double.NaN, getV2() * nominalV2, Double.NaN, Math.toDegrees(getAngle2())));
+        }
+        return List.of(branchResult, half1Result, half2Result);
+    }
+
     private <T extends LoadingLimits> Supplier<Map<String, T>> toMapIndexedByOperationalLimitsGroupId(Function<OperationalLimitsGroup, Optional<T>> limitsGetter, TwoSides side) {
         return () -> (side == TwoSides.ONE ? getHalf1() : getHalf2())
                 .getAllSelectedOperationalLimitsGroups()
