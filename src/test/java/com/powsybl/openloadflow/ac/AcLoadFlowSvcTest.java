@@ -132,6 +132,7 @@ class AcLoadFlowSvcTest {
 
     @Test
     void testSvcWithSlope() {
+        svc1.setVoltageSetpoint(385);
         svc1.newVoltageRegulation()
                 .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
                 .withSlope(0.03)
@@ -157,6 +158,7 @@ class AcLoadFlowSvcTest {
     @Test
     void testSvcWithSlope2() {
         // Test switch PV to PQ
+        svc1.setVoltageSetpoint(440);
         svc1.newVoltageRegulation()
                 .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
                 .withSlope(0.03)
@@ -216,15 +218,18 @@ class AcLoadFlowSvcTest {
                 .setId("svc2")
                 .setConnectableBus("b2")
                 .setBus("b2")
+                // .setVoltageSetpoint(385) // TODO MSA use setVoltageSetpoint instead of setLocalTargetV
+                .setLocalTargetV(385)
                 .newVoltageRegulation()
                     .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
                     .withSlope(0.03)
                     .withRegulating(true)
-                .add()
+                    .add()
                 .setBmin(-0.008)
                 .setBmax(0.008)
                 .add();
 
+        svc1.setVoltageSetpoint(385);
         svc1.newVoltageRegulation()
                 .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
                 .withSlope(0.03)
@@ -246,6 +251,7 @@ class AcLoadFlowSvcTest {
     @Test
     void testSvcWithSlope5() {
         // With a generator at bus2 not controlling voltage
+        svc1.setVoltageSetpoint(385);
         svc1.newVoltageRegulation()
                 .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
                 .withSlope(0.03)
@@ -314,6 +320,7 @@ class AcLoadFlowSvcTest {
 
     @Test
     void testStandByAutomatonAndSlope() {
+        svc1.setVoltageSetpoint(385);
         svc1.newVoltageRegulation()
                 .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
                 .withSlope(0.03)

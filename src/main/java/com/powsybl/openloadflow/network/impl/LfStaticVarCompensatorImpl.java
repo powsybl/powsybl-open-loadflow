@@ -117,7 +117,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
         if (svc.isRegulating()) {
             switch (svc.getRegulationMode()) {
-                case VOLTAGE -> setupVoltageControl(svc, parameters, report);
+                case VOLTAGE, VOLTAGE_PER_REACTIVE_POWER -> setupVoltageControl(svc, parameters, report);
                 case REACTIVE_POWER -> targetQ = -svc.getReactivePowerSetpoint() / PerUnit.SB;
             }
         } else {
@@ -130,7 +130,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
         // slope model: check if to be applied based on 1/ option and 2/ the regulation mode
         boolean svcWithVoltagePerReactivePowerControl = parameters.isVoltagePerReactivePowerControl()
-                && svc.getVoltageRegulation() != null && RegulationMode.VOLTAGE_PER_REACTIVE_POWER == svc.getVoltageRegulation().getMode();
+            && svc.isWithMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER);
 
         // standby automaton: same, check if to be applied based on 1/ option and 2/ this SVC extension
         StandbyAutomaton standbyAutomaton = svc.getExtension(StandbyAutomaton.class);

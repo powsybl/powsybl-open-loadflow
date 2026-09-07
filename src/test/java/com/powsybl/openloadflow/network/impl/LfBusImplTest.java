@@ -63,6 +63,8 @@ class LfBusImplTest {
                 .setId("svc1")
                 .setConnectableBus("b1")
                 .setBus("b1")
+                // .setVoltageSetpoint(385) // TODO MSA use setVoltageSetpoint instead of setLocalTargetV
+                .setLocalTargetV(385)
                 .newVoltageRegulation()
                     .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
                     .withRegulating(true)
@@ -75,6 +77,8 @@ class LfBusImplTest {
                 .setId("svc2")
                 .setConnectableBus("b1")
                 .setBus("b1")
+                // .setVoltageSetpoint(385) // TODO MSA use setVoltageSetpoint instead of setLocalTargetV
+                .setLocalTargetV(385)
                 .newVoltageRegulation()
                     .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
                     .withRegulating(true)
@@ -87,6 +91,8 @@ class LfBusImplTest {
                 .setId("svc3")
                 .setConnectableBus("b1")
                 .setBus("b1")
+                // .setVoltageSetpoint(385) // TODO MSA use setVoltageSetpoint instead of setLocalTargetV
+                .setLocalTargetV(385)
                 .newVoltageRegulation()
                     .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
                     .withRegulating(true)
