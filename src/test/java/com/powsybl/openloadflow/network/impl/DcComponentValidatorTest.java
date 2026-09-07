@@ -24,8 +24,8 @@ class DcComponentValidatorTest {
     private static final int NUM_DCC = 1;
 
     @Test
-    void islandAlreadyResolvedByVDcConverterNeedsNoPromotion() {
-        // conv23 (P_PCC) and conv45 (V_DC) share the dn3/dn4 island: conv45 already settles its DC voltage
+    void dcSubComponentAlreadyResolvedByVDcConverterNeedsNoPromotion() {
+        // conv23 (P_PCC) and conv45 (V_DC) share the dn3/dn4 subcomponent: conv45 already settles its DC voltage
         Network network = AcDcNetworkFactory.createAcDcNetwork1();
         List<AcDcConverter<?>> convertersToSetInVdcMode = DcComponentValidator.resolveDcComponent(
             allDcBuses(network),
@@ -37,7 +37,7 @@ class DcComponentValidatorTest {
 
     @Test
     void droopModeIsAlsoConsideredAsControllingVoltage() {
-        // conv23 (P_PCC) and conv45 (V_DC) share the dn3/dn4 island: conv45 already settles its DC voltage
+        // conv23 (P_PCC) and conv45 (V_DC) share the dn3/dn4 subcomponent: conv45 already settles its DC voltage
         Network network = AcDcNetworkFactory.createAcDcNetwork1();
         network.getVoltageSourceConverter("conv45").setControlMode(AcDcConverter.ControlMode.P_PCC_DROOP);
         List<AcDcConverter<?>> convertersToSetInVdcMode = DcComponentValidator.resolveDcComponent(
@@ -50,7 +50,7 @@ class DcComponentValidatorTest {
 
     @Test
     void disconnectedConvertersAreNotConsidered() {
-        // conv23 (P_PCC) and conv45 (V_DC) share the dn3/dn4 island: conv45 already settles its DC voltage but is
+        // conv23 (P_PCC) and conv45 (V_DC) share the dn3/dn4 subcomponent: conv45 already settles its DC voltage but is
         // disconnected. it cannot control DC voltage anymore
         Network network = AcDcNetworkFactory.createAcDcNetwork1();
         VoltageSourceConverter conv45 = network.getVoltageSourceConverter("conv45");
@@ -78,7 +78,7 @@ class DcComponentValidatorTest {
     }
 
     @Test
-    void allPccConverterArePromotedWhenTwoShareAnIsland() {
+    void allPccConverterArePromotedWhenTwoShareAnDcSubComponent() {
         Network network = AcDcNetworkFactory.createAcDcNetworkTwoPccConvertersWithoutVdcReference();
 
         List<AcDcConverter<?>> convertersToSetInVdcMode = DcComponentValidator.resolveDcComponent(
@@ -90,14 +90,14 @@ class DcComponentValidatorTest {
     }
 
     @Test
-    void islandWithNoConverterAndNoGroundIsRejected() {
+    void dcSubComponentWithNoConverterAndNoGroundIsRejected() {
         // Restricting the resolution to dn3/dn4 only (ignoring the grounded dnDummy3/dnDummy4 buses) simulates a
         // pocket of DC buses reachable only through DC lines, with no converter and no ground at all
         Network network = AcDcNetworkFactory.createBaseNetwork();
-        List<DcBus> deadIsland = List.of(network.getDcNode("dn3").getDcBus(), network.getDcNode("dn4").getDcBus());
+        List<DcBus> deadSubComponent = List.of(network.getDcNode("dn3").getDcBus(), network.getDcNode("dn4").getDcBus());
 
         PowsyblException exception = assertThrows(PowsyblException.class,
-            () -> DcComponentValidator.resolveDcComponent(deadIsland, List.of(), NUM_DCC));
+            () -> DcComponentValidator.resolveDcComponent(deadSubComponent, List.of(), NUM_DCC));
         assertTrue(exception.getMessage().contains("no AC-DC converter able to settle the DC voltage"));
     }
 

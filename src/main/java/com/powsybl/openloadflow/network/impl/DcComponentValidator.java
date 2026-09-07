@@ -25,10 +25,10 @@ final class DcComponentValidator {
     }
 
     /**
-     * Check that a DC component is a configuration Open Load Flow can solve, and resolve any island of DC
-     * buses (connected through DC lines only) that has no element imposing the DC voltage (no connected DC
+     * Check that a DC component is a configuration Open Load Flow can solve, and resolve any DC subcomponent (i.e. set
+     * of DC buses connected through DC lines only) that has no element imposing the DC voltage (no connected DC
      * ground and no fully connected V_DC/P_PCC_DROOP converter), by selecting all fully connected P_PCC
-     * converters of that island to be promoted to V_DC control internally. Disconnected converters are
+     * converters of that subcomponent to be promoted to V_DC control internally. Disconnected converters are
      * ignored: only fully connected ones take part in the checks/resolution.
      *
      * @param dcBuses        All DC buses found in the DC component.
@@ -52,30 +52,30 @@ final class DcComponentValidator {
             if (visitedBusIds.contains(dcBus.getId())) {
                 continue;
             }
-            DcIsland island = DcIsland.around(dcBus);
-            visitedBusIds.addAll(island.getVisitedBusIds());
-            resolveIslandIfNeeded(island, convertersToUpdate, numDcc);
+            DcSubComponent dcSubComponent = DcSubComponent.around(dcBus);
+            visitedBusIds.addAll(dcSubComponent.getVisitedBusIds());
+            resolveDcSubComponentIfNeeded(dcSubComponent, convertersToUpdate, numDcc);
         }
         return convertersToUpdate;
     }
 
     /**
-     * Add all converters of the island to V_DC control if the island has no element already imposing DC
+     * Add all converters of the DC subcomponent to V_DC control if the subcomponent has no element already imposing DC
      * voltage; do nothing otherwise.
      *
-     * @throws PowsyblException If the island has no element imposing voltage and no converter can be promoted.
+     * @throws PowsyblException If the DC subcomponent has no element imposing voltage and no converter can be promoted.
      */
-    private static void resolveIslandIfNeeded(DcIsland island, List<AcDcConverter<?>> convertersToUpdate, int numDcc) {
-        if (island.hasConnectedDcGround()
-            || island.hasConverterMatching(c -> controlsDcVoltage(c) || convertersToUpdate.contains(c))) {
-            return; // already has (or was just given, while resolving an adjacent island) an element imposing DC voltage
+    private static void resolveDcSubComponentIfNeeded(DcSubComponent dcSubComponent, List<AcDcConverter<?>> convertersToUpdate, int numDcc) {
+        if (dcSubComponent.hasConnectedDcGround()
+            || dcSubComponent.hasConverterMatching(c -> controlsDcVoltage(c) || convertersToUpdate.contains(c))) {
+            return; // already has (or was just given, while resolving an adjacent dcSubComponent) an element imposing DC voltage
         }
-        Set<AcDcConverter<?>> islandConverters = island.getConverters();
-        if (islandConverters.isEmpty()) {
-            throw new PowsyblException("DC component " + numDcc + " has an island of DC buses with no DC ground"
-                + " and no AC-DC converter able to settle the DC voltage");
+        Set<AcDcConverter<?>> dcSubComponentConverters = dcSubComponent.getConverters();
+        if (dcSubComponentConverters.isEmpty()) {
+            throw new PowsyblException("DC component " + numDcc + " has a DC subcomponent with no DC ground "
+                + "and no AC-DC converter able to settle the DC voltage");
         }
-        convertersToUpdate.addAll(islandConverters);
+        convertersToUpdate.addAll(dcSubComponentConverters);
     }
 
     /**
@@ -115,14 +115,17 @@ final class DcComponentValidator {
      * Tells whether a DC terminal is indirectly connected, through DC lines, to a connected DC ground.
      */
     private static boolean isConnectedToGround(DcTerminal startTerminal) {
-        return DcIsland.around(startTerminal).hasConnectedDcGround();
+        return DcSubComponent.around(startTerminal).hasConnectedDcGround();
     }
 
     /**
-     * The set of DC buses reachable from a DC bus by following connected DC lines, together with
-     * the connected DC grounds and the AC-DC converters attached to them. Built by breadth-first search.
+     * The set of DC buses, connected DC grounds, and connected AC/DC converters reachable from a given DC bus by following
+     * **only** connected DC lines but not AC/DC converters.
+     * Each DcSubComponent shall contain at least one element imposing voltage to be valid. Built using a breadth-first search.
+     * <p>
+     * Note: When all DC lines of the DcComponent are connected, this corresponds to a DC pole.
      */
-    private static final class DcIsland implements DcTopologyVisitor {
+    private static final class DcSubComponent implements DcTopologyVisitor {
 
         private final Set<String> visitedBusIds = new HashSet<>();
         private final Deque<DcBus> busesToVisit = new ArrayDeque<>();
@@ -130,21 +133,21 @@ final class DcComponentValidator {
         private final Set<AcDcConverter<?>> converters = new LinkedHashSet<>();
 
         /**
-         * Explores the island around {@code startBus}; a null bus yields an empty island.
+         * Explores the DC subcomponent around {@code startBus}; a null bus yields an empty DC subcomponent.
          */
-        static DcIsland around(DcBus startBus) {
-            DcIsland island = new DcIsland();
-            island.enqueue(startBus);
-            while (!island.busesToVisit.isEmpty()) {
-                island.busesToVisit.poll().visitConnectedEquipments(island);
+        static DcSubComponent around(DcBus startBus) {
+            DcSubComponent dcSubComponent = new DcSubComponent();
+            dcSubComponent.enqueue(startBus);
+            while (!dcSubComponent.busesToVisit.isEmpty()) {
+                dcSubComponent.busesToVisit.poll().visitConnectedEquipments(dcSubComponent);
             }
-            return island;
+            return dcSubComponent;
         }
 
         /**
-         * Explores the island around {@code startTerminal}; an unconnected terminal yields an empty island.
+         * Explores the DC subcomponent around {@code startTerminal}; an unconnected terminal yields an empty DC DCsubcomponent.
          */
-        static DcIsland around(DcTerminal startTerminal) {
+        static DcSubComponent around(DcTerminal startTerminal) {
             return around(startTerminal.getDcBus());
         }
 
