@@ -33,7 +33,7 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
 
     protected double targetVac; // In pu
 
-    // Droop curve bands (only populated in P_PCC_DROOP control mode), sorted by DC voltage, all values in per unit.
+    // Droop curve bands (only populated in DC_DROOP control mode), sorted by DC voltage, all values in per unit.
     private final List<DroopBand> droopBands;
 
     private record DroopBand(double kPu, double minVpu, double maxVpu, double refPpu) {
@@ -50,7 +50,7 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         } else {
             this.targetQ = converter.getReactivePowerSetpoint() / PerUnit.SB;
         }
-        this.droopBands = getControlMode() == AcDcConverter.ControlMode.P_PCC_DROOP
+        this.droopBands = getControlMode() == AcDcConverter.ControlMode.DC_DROOP
                 ? buildDroopBands(converter, getDcVoltageBase())
                 : List.of();
     }
@@ -68,7 +68,7 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         List<DroopCurve.Segment> segments = new ArrayList<>(curve.getSegments());
         if (segments.isEmpty()) {
             throw new PowsyblException("AC/DC converter '" + converter.getId()
-                    + "' in P_PCC_DROOP control mode must have a droop curve");
+                    + "' in DC_DROOP control mode must have a droop curve");
         }
         // All coefficients must share the same strict sign: a k=0 band leaves its reference power undefined
         // (division by zero below), and a sign change would break the band lookup, since two different P values
@@ -77,13 +77,13 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         boolean allNegative = segments.stream().allMatch(segment -> segment.getK() < 0);
         if (!allPositive && !allNegative) {
             throw new PowsyblException("AC/DC converter '" + converter.getId()
-                    + "' in P_PCC_DROOP control mode must have a droop curve with all coefficients of the same strict sign (all positive or all negative)");
+                    + "' in DC_DROOP control mode must have a droop curve with all coefficients of the same strict sign (all positive or all negative)");
         }
         double targetVdc = converter.getTargetVdc();
         double targetP = converter.getTargetP();
         if (Double.isNaN(targetVdc) || Double.isNaN(targetP)) {
             throw new PowsyblException("AC/DC converter '" + converter.getId()
-                    + "' in P_PCC_DROOP control mode must have targetP and targetVdc defined");
+                    + "' in DC_DROOP control mode must have targetP and targetVdc defined");
         }
         segments.sort(Comparator.comparingDouble(DroopCurve.Segment::getMinV));
         int n = segments.size();
@@ -175,7 +175,7 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
     public DroopReference getDroopReference(double uDc) {
         if (droopBands.isEmpty()) {
             throw new PowsyblException("getDroopReference called on AC/DC converter '" + getId()
-                    + "' which is not in P_PCC_DROOP control mode");
+                    + "' which is not in DC_DROOP control mode");
         }
         // Band containing the solved DC voltage uDc (per unit), clamped to the nearest band outside the curve range.
         DroopBand band = droopBands.get(clampedBandIndex(droopBands, uDc, DroopBand::minVpu, DroopBand::maxVpu));

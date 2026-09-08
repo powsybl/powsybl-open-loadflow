@@ -999,7 +999,7 @@ class AcDcLoadFlowTest {
 
         // Run load flow
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("At least one AC/DC converter control mode must be V_DC or P_PCC_DROOP in each DC component, but DC component 1 does not have any", e5.getCause().getMessage());
+        assertEquals("At least one AC/DC converter control mode must be V_DC or DC_DROOP in each DC component, but DC component 1 does not have any", e5.getCause().getMessage());
     }
 
     @Test
@@ -1059,7 +1059,7 @@ class AcDcLoadFlowTest {
 
     @Test
     void testDroopLaw() {
-        // A P_PCC_DROOP converter enforces U_dc = refVdc + k * (P_AC - refP), where:
+        // A DC_DROOP converter enforces U_dc = refVdc + k * (P_AC - refP), where:
         //   - k      = curve.getK(U_dc), the coefficient of the band containing the solved U_dc (clamped),
         //             the slope of U_dc versus P_AC, in kV/MW.
         //   - refVdc = the min voltage of that band.
@@ -1124,7 +1124,7 @@ class AcDcLoadFlowTest {
     @Test
     void testSwitchToDroopControlMidTest() {
         // Run #1: convDroop is in plain P_PCC mode (its droop curve is attached by the factory but unused
-        // while the control mode is not P_PCC_DROOP) with a target power that is deliberately inconsistent
+        // while the control mode is not DC_DROOP) with a target power that is deliberately inconsistent
         // with what the droop law would give at the DC voltage convVdc is pinning it to. This gives a
         // converged, non-flat starting state that is not already on the droop curve.
         Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
@@ -1145,7 +1145,7 @@ class AcDcLoadFlowTest {
         // Warm-started from run #1's state (PREVIOUS_VALUES instead of a flat start), the solver must move
         // U_dc from 415 down to 385, crossing both the 410 and 390 band boundaries, while also correcting
         // P_AC from the run #1 value (50, off the droop curve) to the value the droop law now requires.
-        convDroop.setControlMode(ControlMode.P_PCC_DROOP);
+        convDroop.setControlMode(ControlMode.DC_DROOP);
         convVdc.setTargetVdc(385.);
         parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
 
@@ -1159,7 +1159,7 @@ class AcDcLoadFlowTest {
 
     @Test
     void testDroopCountsAsVdcControl() {
-        // Check a DC component whose only DC-voltage-controlling converter is in P_PCC_DROOP mode
+        // Check a DC component whose only DC-voltage-controlling converter is in DC_DROOP mode
         // is accepted.
         // This is the mirror of testNoVdcControl, which rejects a component with only P_PCC converters.
         Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
@@ -1174,7 +1174,7 @@ class AcDcLoadFlowTest {
 
     @Test
     void testGetDroopReferenceThrowsOnNonDroopConverter() {
-        // getDroopReference is only meaningful in P_PCC_DROOP mode. On any other converter the droop bands are
+        // getDroopReference is only meaningful in DC_DROOP mode. On any other converter the droop bands are
         // empty; the call must fail fast with a clear message.
         Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
         LfNetworkParameters lfParameters = new LfNetworkParameters()
@@ -1188,7 +1188,7 @@ class AcDcLoadFlowTest {
                 .findFirst().orElseThrow();
 
         PowsyblException e = assertThrows(PowsyblException.class, () -> vdcConverter.getDroopReference(1.0));
-        assertEquals("getDroopReference called on AC/DC converter 'convVdc' which is not in P_PCC_DROOP control mode",
+        assertEquals("getDroopReference called on AC/DC converter 'convVdc' which is not in DC_DROOP control mode",
                 e.getMessage());
     }
 
@@ -1245,7 +1245,7 @@ class AcDcLoadFlowTest {
         LfNetworkLoader<Network> loader = new LfNetworkLoaderImpl();
         PowsyblException e = assertThrows(PowsyblException.class,
                 () -> LfNetwork.load(network, loader, lfParameters));
-        assertEquals("AC/DC converter 'convDroop' in P_PCC_DROOP control mode must have a droop curve with all coefficients of the same strict sign (all positive or all negative)",
+        assertEquals("AC/DC converter 'convDroop' in DC_DROOP control mode must have a droop curve with all coefficients of the same strict sign (all positive or all negative)",
                 e.getMessage());
     }
 

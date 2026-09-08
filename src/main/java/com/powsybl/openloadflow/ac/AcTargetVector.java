@@ -149,7 +149,7 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                  BUS_TARGET_IY_NEGATIVE,
                  DC_BUS_TARGET_I,
                  DC_BUS_GROUND,
-                 AC_CONV_TARGET_P_DROOP:
+                 ACDC_CONV_DC_DROOP:
                 targets[column] = 0;
                 break;
 
