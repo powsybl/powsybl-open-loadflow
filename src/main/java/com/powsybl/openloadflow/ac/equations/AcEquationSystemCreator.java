@@ -1003,7 +1003,7 @@ public class AcEquationSystemCreator {
                 equationSystem.createEquation(converter, AcEquationType.AC_CONV_TARGET_P_DROOP)
                         .addTerm(new ConverterDroopEquationTerm(converter, dcBus1, dcBus2, equationSystem.getVariableSet()));
             case V_DC -> {
-                // in V mode, we add an equation to set V = v1 - v2 the tension of the two dc buses connected to the converter
+                // in V mode, we add an equation to set V = v1 - v2 the voltage between the two dc buses connected to the converter
                 EquationTerm<AcVariableType, AcEquationType> v1 = equationSystem.getVariable(dcBus1.getNum(), AcVariableType.DC_BUS_V)
                         .createTerm();
                 EquationTerm<AcVariableType, AcEquationType> v2 = equationSystem.getVariable(dcBus2.getNum(), AcVariableType.DC_BUS_V)
