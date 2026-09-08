@@ -371,7 +371,7 @@ Line commutated converters are not supported yet by Open Load Flow.
 ### Voltage source converters
 
 Voltage source converters are the links between AC and DC networks. They are linked to a single AC bus and two
-DC buses. Additional AC buses are not supported for load flow computations.
+DC buses. Please note that converters with a second optional AC terminal are not supported by Open Load Flow.
 
 #### Control modes
 
