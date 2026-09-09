@@ -278,7 +278,7 @@ public final class Networks {
     }
 
     public static DcBus getDcBus(DcTerminal terminal) {
-        return terminal.getDcNode().getDcBus();
+        return terminal.getDcBus();
     }
 
     public static boolean isIsolatedBusForHvdc(LfBus bus, GraphConnectivity<LfBus, LfBranch> connectivity) {
