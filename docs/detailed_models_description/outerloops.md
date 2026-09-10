@@ -56,7 +56,7 @@ $$
 Interchange Mismatch = Interchange - Interchange Target
 $$
 
-If the absolute value of this mismatch is below the [parameter `areaInterchangePMaxMismatch`](../loadflow/parameters.md#areainterchangepmaxmismatch) for all areas and the absolute value of slack bus active power mismatch is below the [parameter `slackBusPMaxMismatch`](parameters.md), then the outer loop declares a stable status, meaning that the interchanges are correct and the slack bus active power is distributed.
+If the absolute value of this mismatch is below the [parameter `areaInterchangePMaxMismatch`](../loadflow/parameters.md#areainterchangepmaxmismatch) for all areas and the absolute value of slack bus active power mismatch is below the [parameter `slackBusPMaxMismatch`](../loadflow/parameters.md#slackbuspmaxmismatch), then the outer loop declares a stable status, meaning that the interchanges are correct and the slack bus active power is distributed.
 
 If not, the remaining slack bus mismatch is first distributed over the buses that have no area.
 
@@ -93,7 +93,7 @@ This section covers the case where the "total mismatch" of all areas is in [-`ar
 This remaining slack bus active power mismatch will be distributed by all areas, each one will get a share of this mismatch to distribute.
 
 This distribution will affect each area's interchange and will not necessarily make it closer to its target.
-The distribution factor of each area will be computed in a way that minimizes chances of having the area increase its interchange mismatch up to more than [`areaInterchangePMaxMismatch`](parameters.md#areainterchangepmaxmismatch) in absolute value.<br>
+The distribution factor of each area will be computed in a way that minimizes chances of having the area increase its interchange mismatch up to more than [`areaInterchangePMaxMismatch`](../loadflow/parameters.md#areainterchangepmaxmismatch) in absolute value.<br>
 So the factor is proportional to the "margin" of active power that the area can distribute while keeping $-areaInterchangePMaxMismatch < Area Total Mismatch < areaInterchangePMaxMismatch$.<br>
 
 It is computed like this:<br>
