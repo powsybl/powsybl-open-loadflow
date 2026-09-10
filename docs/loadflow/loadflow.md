@@ -47,8 +47,6 @@ iteratively derivative of the equation function to get close to the solution. In
 
 We now have defined how the main core of the load flow works with the inner loops (by default Newton-Raphson iterations) to solve the equation system.
 
-![Inner loop description](inner-loop-figure.svg){width=50%}
-
 To simulate all the regulations, the load flow will tweak the equations through outer loops.
 
 ## Outer loops: Tweaking the equation system
