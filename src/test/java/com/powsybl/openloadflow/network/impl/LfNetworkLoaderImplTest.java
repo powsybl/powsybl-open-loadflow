@@ -20,6 +20,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -330,5 +332,57 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(LfGenerator.GeneratorControlType.OFF, generators.get(0).getGeneratorControlType());
         assertEquals(LfGenerator.GeneratorControlType.OFF, generators.get(1).getGeneratorControlType());
         assertEquals(LfGenerator.GeneratorControlType.VOLTAGE, generators.get(2).getGeneratorControlType());
+    }
+
+    @Test
+    void testDcBusWithDisconnectedDcGroundIsNotGrounded() {
+        network = AcDcNetworkFactory.createAcDcNetworkBipolarModel();
+        DcGround dcGround = network.newDcGround().setId("newGround").setDcNode("dn3r").add();
+        dcGround.disconnectDc();
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setAcDcNetwork(true);
+
+        // Load network
+        List<LfNetwork> lfNetworks = Networks.load(network, networkParameters);
+        LfNetwork lfNetwork = lfNetworks.getFirst();
+
+        assertTrue(lfNetwork.getDcBusById("dnGr_dcBus").isGrounded()); // This one is still grounded
+        assertFalse(lfNetwork.getDcBusById("dn3r_dcBus").isGrounded()); // This one is not grounded
+
+        // Disconnect the second DC ground. The DC network has no longer any DC ground, this should raise an error
+        network.getDcGround("Ground").disconnectDc();
+
+        PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, networkParameters));
+        assertEquals("Open Load Flow does not support DC components without a DC ground, but DC component 0 does not have any", e.getMessage());
+    }
+
+    @Test
+    void testPartiallyDisconnectedDcLineIsAddedToTheLfNetwork() {
+        network = AcDcNetworkFactory.createAcDcNetworkBipolarModel();
+        DcLine dcLine = network.newDcLine().setId("dl34p_bis").setDcNode1("dn3p").setDcNode2("dn4p").setR(0.1).add();
+        dcLine.getDcTerminal1().disconnect();
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setAcDcNetwork(true);
+
+        // Load network
+        List<LfNetwork> lfNetworks = Networks.load(network, networkParameters);
+        LfNetwork lfNetwork = lfNetworks.getFirst();
+
+        Optional<LfDcLine> dl34pBisOrEmpty = lfNetwork.getDcLines().stream().filter(lfDcLine -> Objects.equals(lfDcLine.getId(), "dl34p_bis")).findFirst();
+        assertTrue(dl34pBisOrEmpty.isPresent());
+    }
+
+    @Test
+    void testFullyDisconnectedDcLineIsNotAddedToTheLfNetwork() {
+        network = AcDcNetworkFactory.createAcDcNetworkBipolarModel();
+        DcLine dcLine = network.newDcLine().setId("dl34p_bis").setDcNode1("dn3p").setDcNode2("dn4p").setR(0.1).add();
+        dcLine.getDcTerminal1().disconnect();
+        dcLine.getDcTerminal2().disconnect();
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setAcDcNetwork(true);
+
+        // Load network
+        List<LfNetwork> lfNetworks = Networks.load(network, networkParameters);
+        LfNetwork lfNetwork = lfNetworks.getFirst();
+
+        Optional<LfDcLine> dl34pBisOrEmpty = lfNetwork.getDcLines().stream().filter(lfDcLine -> Objects.equals(lfDcLine.getId(), "dl34p_bis")).findFirst();
+        assertTrue(dl34pBisOrEmpty.isEmpty());
     }
 }

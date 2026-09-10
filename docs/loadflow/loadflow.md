@@ -365,6 +365,7 @@ $\sum_{i} I_i + \frac{V_1 - V_2}{R}= 0$ for dcBus1
 
 $\sum_{i} I_i - \frac{V_1 - V_2}{R}= 0$ for dcBus2
 
+If a DC line is disconnected on any side, no current can pass through it.
 
 ### Line Commutated Converter
 
@@ -376,6 +377,8 @@ Let consider a network that is composed of one AC network, and one DC network.
 The voltage source converter is the link between AC and DC networks, it is linked to **one** AC bus at one side, and two 
 DC buses at the other side.<br>
 Please note that converters with a second optional AC terminal are not supported by Open Load Flow.
+
+If a terminal of the converter is disconnected, the converter is not included in the load flow, and none of the equations below is added.
 
 The converter can control either the power received by the AC network (`P_PCC` control mode) 
 or the voltage between its two DC buses (`V_DC` control mode).

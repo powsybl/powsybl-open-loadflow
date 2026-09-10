@@ -40,8 +40,8 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         }
     }
 
-    public static LfVoltageSourceConverterImpl create(VoltageSourceConverter acDcConverter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1, LfNetworkParameters parameters,
-                                                      Optional<Double> vdcOverride) {
+    public static LfVoltageSourceConverterImpl create(VoltageSourceConverter acDcConverter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1,
+                                                      LfNetworkParameters parameters, Optional<Double> vdcOverride) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(acDcConverter);
         Objects.requireNonNull(dcBus1);

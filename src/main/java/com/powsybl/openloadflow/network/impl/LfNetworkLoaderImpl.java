@@ -637,16 +637,17 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createAcDcConverter(AcDcConverter<?> acDcConverter, LfNetwork lfNetwork, LfNetworkParameters parameters, Optional<Double> vdcOverride) {
+    private static void createAcDcConverter(AcDcConverter<?> acDcConverter, LfNetwork lfNetwork, LfNetworkParameters parameters,
+                                            Optional<Double> vdcOverride) {
 
         if (acDcConverter.getTerminal2().isPresent()) {
             throw new PowsyblException("Open Load Flow does not support AC/DC converters with two AC terminals");
         }
 
         LfBus lfBus1 = getLfBus(acDcConverter.getTerminal1(), lfNetwork, parameters.isBreakers());
-        if (lfBus1 != null) {
-            LfDcBus lfDcBus1 = getLfDcBus(acDcConverter.getDcTerminal1(), lfNetwork);
-            LfDcBus lfDcBus2 = getLfDcBus(acDcConverter.getDcTerminal2(), lfNetwork);
+        LfDcBus lfDcBus1 = getLfDcBus(acDcConverter.getDcTerminal1(), lfNetwork);
+        LfDcBus lfDcBus2 = getLfDcBus(acDcConverter.getDcTerminal2(), lfNetwork);
+        if (lfBus1 != null && lfDcBus1 != null && lfDcBus2 != null) { // The converter is fully connected
             if (acDcConverter instanceof VoltageSourceConverter voltageSourceConverter) {
                 LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, lfDcBus1, lfDcBus2, lfBus1, parameters, vdcOverride);
 
@@ -1375,11 +1376,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         // -- Sanity checks : detecting invalid DC configuration and automatically resolving reference-less islands
         double dcNominalV = dcVoltages.iterator().next();
         List<AcDcConverter<?>> convertersToSetInVdcMode =
-                DcComponentValidator.resolveDcComponent(dcBuses, loadingContext.acDcConverterSet, numDcc);
+            DcComponentValidator.resolveDcComponent(dcBuses, loadingContext.acDcConverterSet, numDcc);
         convertersToSetInVdcMode.forEach(converter -> {
             LOGGER.info("Network {}: converter '{}' automatically set to V_DC control mode (target Vdc = {} kV) " +
-                            "to settle an otherwise unconstrained DC island in DC component {}",
-                    lfNetwork, converter.getId(), dcNominalV, numDcc);
+                    "to settle an otherwise unconstrained DC island in DC component {}",
+                lfNetwork, converter.getId(), dcNominalV, numDcc);
             Reports.reportAutomaticVdcReferenceConverter(lfNetwork.getReportNode(), numDcc, converter.getId(), dcNominalV);
         });
 
