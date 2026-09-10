@@ -437,7 +437,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         private CacheUpdateResult<V> onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue,
                                                        V value, LfBus lfBus) {
-            if ("targetV".equals(attribute)) {
+            if ("localTargetV".equals(attribute)) {
                 double valueShift = (double) newValue - (double) oldValue;
                 GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
                 double nominalV = voltageControl.getControlledBus().getNominalV();
@@ -702,7 +702,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                      "q3" -> result = CacheUpdateResult.ignoreUpdate(); // ignore because it is related to state update and won't affect LF calculation
                 default -> {
                     if (identifiable.getType() == IdentifiableType.GENERATOR) {
-                        // supports attribute: "targetV" or "targetP"
+                        // supports attribute: "localTargetV" or "targetP"
                         Generator generator = (Generator) identifiable;
                         result = onGeneratorUpdate(generator, attribute, oldValue, newValue);
                     } else if (identifiable.getType() == IdentifiableType.BATTERY) {
@@ -728,14 +728,16 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                     } else if (identifiable.getType() == IdentifiableType.SWITCH && "open".equals(attribute)) {
                         result = onSwitchUpdate(identifiable.getId(), (boolean) newValue);
                     } else if (identifiable.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER) {
-                        if ("ratioTapChanger.regulationValue".equals(attribute)) {
+                        if ("ratioTapChanger.VoltageRegulation.TargetValue".equals(attribute) ||
+                                "ratioTapChanger.regulationValue".equals(attribute)) {
                             result = onTransformerTargetVoltageUpdate(identifiable.getId(), (double) newValue);
                         } else if ("ratioTapChanger.tapPosition".equals(attribute)) {
                             result = onTransformerTapPositionUpdate(identifiable.getId(), (int) newValue);
                         }
                     } else if (identifiable.getType() == IdentifiableType.THREE_WINDINGS_TRANSFORMER) {
                         for (ThreeSides side : ThreeSides.values()) {
-                            if (("ratioTapChanger" + side.getNum() + ".regulationValue").equals(attribute)) {
+                            if (("ratioTapChanger" + side.getNum() + ".VoltageRegulation.TargetValue").equals(attribute) ||
+                                    ("ratioTapChanger" + side.getNum() + ".regulationValue").equals(attribute)) {
                                 result = onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (double) newValue);
                                 break;
                             } else if (("ratioTapChanger" + side.getNum() + ".tapPosition").equals(attribute)) {
