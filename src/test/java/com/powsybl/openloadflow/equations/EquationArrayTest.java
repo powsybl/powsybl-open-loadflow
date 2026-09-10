@@ -9,6 +9,10 @@ package com.powsybl.openloadflow.equations;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.math.matrix.SparseMatrix;
+import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.openloadflow.ac.AcLoadFlowContext;
+import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.equations.vector.*;
 import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
@@ -17,8 +21,7 @@ import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -122,5 +125,28 @@ class EquationArrayTest {
 
         assertEquals(equationSystem.getEquation(1, AcEquationType.BUS_TARGET_P).orElseThrow().eval(),
                      equationSystem2.getEquationArray(AcEquationType.BUS_TARGET_P).orElseThrow().getElement(1).eval());
+    }
+
+    /**
+     * With SparseMatrixFactory, when calculating the Jacobian Matrix of an equation system with equation arrays,
+     * all the terms are added in some order depending on the EquationDerivativeVector order (rows and columns do
+     * not depend on it, but the order of stacking the values in the sparse structure is impacted). This test ensures
+     * the order is always the same. (If not, very small non-reproducible numerical errors (10^-12) can occur during
+     * Sparse LU decomposition)
+     */
+    @Test
+    void testSparseReproducibility() {
+        Network network = FourBusNetworkFactory.createWithTwoScs();
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+
+        try (var acContext = new AcLoadFlowContext(lfNetwork, new AcLoadFlowParameters().setMatrixFactory(new SparseMatrixFactory()))) {
+            acContext.getJacobianMatrix().initDer();
+            int[] expectedRowIndices = {0, 1, 6, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+            int[] rowIndices = ((SparseMatrix) acContext.getJacobianMatrix().matrix).getRowIndices();
+            int[] expectedColumnStarts = {0, 1, 2, 3, 9, 17, 23, 29, 37};
+            int[] columnStarts = ((SparseMatrix) acContext.getJacobianMatrix().matrix).getColumnStart();
+            assertArrayEquals(expectedRowIndices, rowIndices);
+            assertArrayEquals(expectedColumnStarts, columnStarts);
+        }
     }
 }

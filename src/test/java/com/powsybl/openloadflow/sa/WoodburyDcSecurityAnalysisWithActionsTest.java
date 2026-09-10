@@ -496,18 +496,41 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
             "SwitchAction, GeneratorAction and LoadAction are allowed in fast DC Security Analysis"));
     }
 
-    // Test on fast DC only. The limitation is specific to fast dc
-    @Test
-    void testFastDcSaWithTransformerEnabled() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testDcSaWithTransformerEnabled(boolean dcFastMode) {
+        // an operator strategy that closes (enables) the phase shifting transformer PS1, initially disconnected.
+        // PS1 tap 0 gives a strong phase shift (alpha = -5 deg) and a non-default impedance (X = 50).
         Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
+        network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(0);
+        network.getTwoWindingsTransformer("PS1").getTerminal1().disconnect();
+        network.getTwoWindingsTransformer("PS1").getTerminal2().disconnect();
+
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.specificContingency("L1"), Set.of("L2", "PS1"), Collections.emptySet(), Collections.emptySet()));
         List<Contingency> contingencies = List.of(new Contingency("L1", new BranchContingency("L1")));
         List<Action> actions = List.of(new TerminalsConnectionAction("closePS1", "PS1", false));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyClosePS1", ContingencyContext.specificContingency("L1"), new TrueCondition(), List.of("closePS1")));
-        List<StateMonitor> monitors = List.of();
 
-        CompletionException thrown = assertThrows(CompletionException.class,
-                () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP));
-        assertTrue(thrown.getCause().getMessage().contains("For now, TerminalsConnectionAction enabling a transformer is not allowed in WoodburyDcSecurityAnalysis"));
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class).setDcFastMode(dcFastMode);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, ReportNode.NO_OP);
+
+        OperatorStrategyResult strategyResult = getOperatorStrategyResult(result, "strategyClosePS1");
+        BranchResult l2Result = strategyResult.getNetworkResult().getBranchResult("L2");
+        BranchResult ps1Result = strategyResult.getNetworkResult().getBranchResult("PS1");
+        assertNotNull(l2Result);
+        assertNotNull(ps1Result);
+
+        // reference: apply the contingency (open L1) and the action (reconnect PS1), then run a dc load flow
+        network.getLine("L1").getTerminal1().disconnect();
+        network.getLine("L1").getTerminal2().disconnect();
+        network.getTwoWindingsTransformer("PS1").getTerminal1().connect();
+        network.getTwoWindingsTransformer("PS1").getTerminal2().connect();
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(network.getLine("L2").getTerminal1().getP(), l2Result.getP1(), DELTA_POWER);
+        assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal1().getP(), ps1Result.getP1(), DELTA_POWER);
     }
 
     @ParameterizedTest
