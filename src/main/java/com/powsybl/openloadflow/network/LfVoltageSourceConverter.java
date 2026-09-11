@@ -40,7 +40,7 @@ public interface LfVoltageSourceConverter extends LfAcDcConverter {
 
     /**
      * Look up the droop reference point for a given solved DC voltage. Only relevant when the converter is in
-     * {@code P_PCC_DROOP} control mode.
+     * {@code DC_DROOP} control mode.
      *
      * @param uDc the solved pole-to-pole DC voltage, in per unit of {@link #getDcVoltageBase()}.
      * @return the droop reference {@code (k, refVdc, refP)} of the band containing {@code uDc} (clamped to the
