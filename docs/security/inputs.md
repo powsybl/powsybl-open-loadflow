@@ -42,17 +42,17 @@ Note: Some limitations in the use of these actions exist, please read the docume
 
 See more details on [Powsybl Core security remedial actions](inv:powsyblcore:*:*#security-remedial-actions) documentation.
 
-## Supported limit reductions
+## Supported limit scalings
 
-Only following limit reduction definition is supported:
+Only following limit scaling definition is supported:
 - Current limit type only (`LimitType.CURRENT` as limit type)
 - Always applied to all contingencies and in the pre-contingency state (`ContingencyContextType.ALL`)
 - Not Monitoring only (`monitoringOnly=false`), it affects the reported violations and the conditions for applying remedial actions
 - Maximum two duration criteria can be provided, and they should be of the same type
 - No identifiable criterion class among the criteria
-- The limit reduction is applied on all the operational limits groups, so restriction to apply it on a specified list of operational limits groups will be rejected.
+- The limit scaling is applied on all the operational limits groups, so restriction to apply it on a specified list of operational limits groups will be rejected.
 
-So if you want to use limit reductions you can follow this kind of example:
+So if you want to use limit scalings you can follow this kind of example:
 ```
 double value = 0.95;
 List<NetworkElementCriterion> networkElementCriteria = List.of(
@@ -64,7 +64,7 @@ List<String> operationalLimitsGroupIdsSelection = Collections.emptyList();
 
 // Through the builder
     
-LimitReduction limitReduction = LimitReduction.builder(LimitType.CURRENT, value)
+LimitScaling limitScaling = LimitScaling.builder(LimitType.CURRENT, value)
     .withNetworkElementCriteria(durationCriteria)
     .withLimitDurationCriteria(operationalLimitsGroupIdsSelection)
     .withOperationalLimitsGroupIdSelection(Collections.emptyList())
@@ -72,7 +72,7 @@ LimitReduction limitReduction = LimitReduction.builder(LimitType.CURRENT, value)
 
 // Or through the constructor
 
-LimitReduction limitReduction = new LimitReduction(
+LimitScaling limitScaling = new LimitScaling(
     LimitType.CURRENT,
     value,
     false,
@@ -83,4 +83,4 @@ LimitReduction limitReduction = new LimitReduction(
 );
 ```
 
-See more details on [Powsybl Core security limit reductions](inv:powsyblcore:*:*#security-limit-reductions) documentation.
+See more details on [Powsybl Core security limit scalings](inv:powsyblcore:*:*#security-limit-scalings) documentation.
