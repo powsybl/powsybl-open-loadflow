@@ -478,23 +478,28 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             });
         }
 
+        private boolean checkIfSupportedLoadUpdate(Load load) {
+            LoadDetail loadDetail = load.getExtension(LoadDetail.class);
+            if (loadDetail != null) {
+                LOGGER.info("Load {} has a LoadDetail extension: not supported", load.getId());
+                return false;
+            }
+            if ((input.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
+                    || input.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                    && input.getLoadFlowParameters().isDistributedSlack()) {
+                LOGGER.info("Load active power distribution is enabled: not supported");
+                return false;
+            }
+            return true;
+        }
+
         private CacheUpdateResult<V> onLoadUpdate(Load load, String attribute, Object oldValue, Object newValue) {
             return onInjectionUpdate(load, (value, lfBus) -> {
-                if ("p0".equals(attribute) || "q0".equals(attribute)) {
-                    LoadDetail loadDetail = load.getExtension(LoadDetail.class);
-                    if (loadDetail != null) {
-                        LOGGER.info("Load {} has a LoadDetail extension: not supported", load.getId());
-                        return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(load, attribute));
-                    }
-                    if ((input.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
-                            || input.getLoadFlowParameters().getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
-                            && input.getLoadFlowParameters().isDistributedSlack()) {
-                        LOGGER.info("Load active power distribution is enabled: not supported");
-                        return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(load, attribute));
-                    }
-                    return "p0".equals(attribute) ?
-                            updateLfLoadTargetP(load.getId(), (double) oldValue, (double) newValue, value, lfBus)
-                            : updateLfLoadTargetQ(load.getId(), (double) oldValue, (double) newValue, value, lfBus);
+                if ("p0".equals(attribute) && checkIfSupportedLoadUpdate(load)) {
+                    return updateLfLoadTargetP(load.getId(), (double) oldValue, (double) newValue, value, lfBus);
+                }
+                if ("q0".equals(attribute) && checkIfSupportedLoadUpdate(load)) {
+                    return updateLfLoadTargetQ(load.getId(), (double) oldValue, (double) newValue, value, lfBus);
                 }
                 return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(load, attribute));
             });
