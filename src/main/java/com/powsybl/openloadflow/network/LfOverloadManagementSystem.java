@@ -16,7 +16,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class LfOverloadManagementSystem {
+public class LfOverloadManagementSystem implements LfCopyable<LfOverloadManagementSystem, LfNetwork> {
 
     private final LfBranch monitoredBranch;
 
@@ -29,6 +29,17 @@ public class LfOverloadManagementSystem {
     public LfOverloadManagementSystem(LfBranch monitoredBranch, TwoSides monitoredSide) {
         this.monitoredBranch = Objects.requireNonNull(monitoredBranch);
         this.monitoredSide = Objects.requireNonNull(monitoredSide);
+    }
+
+    @Override
+    public LfOverloadManagementSystem copy(LfNetwork copyNetwork) {
+        LfOverloadManagementSystem copiedSystem = new LfOverloadManagementSystem(
+                copyNetwork.getBranchById(monitoredBranch.getId()), monitoredSide);
+        for (LfOverloadManagementSystem.LfBranchTripping tripping : branchTrippingList) {
+            copiedSystem.addLfBranchTripping(copyNetwork.getBranchById(tripping.branchToOperate().getId()),
+                    tripping.branchOpen(), tripping.threshold());
+        }
+        return copiedSystem;
     }
 
     public LfBranch getMonitoredBranch() {

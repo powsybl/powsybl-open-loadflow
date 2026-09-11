@@ -15,7 +15,7 @@ import java.util.Optional;
 /**
  * @author Pierre Arvy {@literal <pierre.arvy at artelys.com>}
  */
-public class TransformerReactivePowerControl extends ReactivePowerControl {
+public class TransformerReactivePowerControl extends ReactivePowerControl implements LfCopyable<TransformerReactivePowerControl, LfNetwork> {
 
     private final LfBranch controllerBranch;
     private final Double targetDeadband;
@@ -24,6 +24,15 @@ public class TransformerReactivePowerControl extends ReactivePowerControl {
         super(controlledBranch, controlledSide, targetValue);
         this.targetDeadband = Objects.requireNonNull(targetDeadband);
         this.controllerBranch = Objects.requireNonNull(controllerBranch);
+    }
+
+    @Override
+    public TransformerReactivePowerControl copy(LfNetwork copyNetwork) {
+        LfBranch copiedController = copyNetwork.getBranchById(getControllerBranch().getId());
+        LfBranch copiedControlled = copyNetwork.getBranchById(getControlledBranch().getId());
+        return new TransformerReactivePowerControl(copiedControlled,
+                getControlledSide(), copiedController, getTargetValue(),
+                getTargetDeadband().orElseThrow());
     }
 
     public Optional<Double> getTargetDeadband() {

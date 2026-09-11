@@ -36,6 +36,20 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         this.legRef = Ref.create(leg, parameters.isCacheEnabled());
     }
 
+    private LfLegBranch(LfLegBranch other, LfNetwork network, LfBus bus1, LfBus bus0) {
+        super(other, network, bus1, bus0);
+        this.twtRef = other.twtRef;
+        this.legRef = other.legRef;
+    }
+
+    @Override
+    public LfBranch copy(LfNetwork copyNetwork) {
+        return new LfLegBranch(this,
+                copyNetwork,
+                bus1 == null ? null : copyNetwork.getBusById(bus1.getId()),
+                bus2 == null ? null : copyNetwork.getBusById(bus2.getId()));
+    }
+
     public ThreeWindingsTransformer getTwt() {
         return twtRef.get();
     }

@@ -11,10 +11,22 @@ package com.powsybl.openloadflow.network;
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
-public class TransformerVoltageControl extends DiscreteVoltageControl<LfBranch> {
+public class TransformerVoltageControl extends DiscreteVoltageControl<LfBranch> implements LfCopyable<TransformerVoltageControl, LfNetwork> {
 
     public TransformerVoltageControl(LfBus controlledBus, int targetPriority, double targetValue, Double targetDeadband) {
         super(controlledBus, Type.TRANSFORMER, targetPriority, targetValue, targetDeadband);
+    }
+
+    @Override
+    public TransformerVoltageControl copy(LfNetwork copyNetwork) {
+        LfBus copiedBus = copyNetwork.getBusById(controlledBus.getId());
+        TransformerVoltageControl copiedVc = new TransformerVoltageControl(copiedBus, targetPriority, targetValue, getTargetDeadband().orElse(null));
+        for (LfBranch controllerBranch : controllerElements) {
+            LfBranch copiedController = copyNetwork.getBranchById(controllerBranch.getId());
+            copiedVc.addControllerElement(copiedController);
+            copiedController.setVoltageControl(copiedVc);
+        }
+        return copiedVc;
     }
 
     @Override

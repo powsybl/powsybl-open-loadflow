@@ -2,14 +2,18 @@
   "buses" : [ {
     "id" : "VL1_0",
     "num" : 0,
+    "generatorVoltageControlEnabled" : true,
+    "generatorReactivePowerControlEnabled" : false,
     "targetV" : 1.0526315789473684,
     "v" : 1.0526315789473684,
     "angle" : 0.0,
     "generators" : [ {
       "id" : "G1",
       "targetP" : 1.0,
+      "initialTargetP" : 1.0,
       "targetQ" : 0.0,
-      "voltageControl" : true,
+      "controlType" : "VOLTAGE",
+      "participating" : true,
       "minP" : 0.5,
       "maxP" : 1.5,
       "minTargetP" : 0.5,
@@ -18,13 +22,22 @@
   }, {
     "id" : "VL2_0",
     "num" : 1,
+    "generatorVoltageControlEnabled" : false,
+    "generatorReactivePowerControlEnabled" : false,
     "loadTargetP" : 1.0,
     "loadTargetQ" : 0.5,
     "v" : 1.0149826315789474,
-    "angle" : -0.0642142655404475
+    "angle" : -0.0642142655404475,
+    "loads" : [ {
+      "targetP" : 1.0,
+      "targetQ" : 0.5,
+      "absVariableTargetP" : 1.0
+    } ]
   }, {
     "id" : "VL3_0",
     "num" : 2,
+    "generatorVoltageControlEnabled" : false,
+    "generatorReactivePowerControlEnabled" : false,
     "v" : 1.0332744736842105,
     "angle" : -0.031522295627160725
   } ],
@@ -49,6 +62,8 @@
     "num2" : 2,
     "r" : 0.0013850415512465374,
     "x" : 0.06925207756232687,
+    "tapPosition" : 1,
+    "phaseControlEnabled" : false,
     "discretePhaseControl" : {
       "controller" : "PS1",
       "controlled" : "PS1",
