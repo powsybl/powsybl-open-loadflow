@@ -2440,7 +2440,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      * a generator on one side and a load on the other side. This configuration gives a full control
      * on the DC side and makes it possible for power transfer to be always balanced.
      *
-     * convVdc (V_DC) pins the DC voltage; convDroop (P_PCC_DROOP) enforces
+     * convVdc (V_DC) pins the DC voltage; convDroop (DC_DROOP) enforces
      * {@code P = refP + (U_dc - refVdc)/k} with a 3-band droop curve. Sweeping convVdc's
      * {@code targetVdc} walks convDroop's solved {@code U_dc} through each band of the curve and past
      * the extremes (clamping). convDroop has no losses so the droop law applies directly to its AC power.
@@ -2502,7 +2502,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setIdleLoss(0)
                 .setSwitchingLoss(0)
                 .setResistiveLoss(0)
-                .setControlMode(AcDcConverter.ControlMode.P_PCC_DROOP)
+                .setControlMode(AcDcConverter.ControlMode.DC_DROOP)
                 .setTargetP(50.)
                 .setTargetVdc(400.)
                 .setId("convDroop")

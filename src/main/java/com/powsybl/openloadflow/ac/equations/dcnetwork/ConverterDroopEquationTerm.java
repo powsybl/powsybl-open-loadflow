@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import java.util.Objects;
 
 /**
- * Droop-control equation of an AC/DC voltage source converter in {@code P_PCC_DROOP} mode:
+ * Droop-control equation of an AC/DC voltage source converter in {@code DC_DROOP} mode:
  * {@code U_dc = refVdc + k*(CONV_P_AC - refP)}, i.e. the residual is
  * {@code a*(CONV_P_AC - refP) - b*(U_dc - refVdc)}, with {@code a = k} and {@code b = 1} kept as separate
  * coefficients (rather than folded into a single {@code k}) so that later work enforcing active-power limits
