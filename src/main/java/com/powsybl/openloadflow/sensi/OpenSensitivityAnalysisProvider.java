@@ -12,6 +12,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.auto.service.AutoService;
 import com.powsybl.action.Action;
+import com.powsybl.action.ActionList;
+import com.powsybl.action.json.ActionJsonModule;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.Extension;
@@ -24,6 +26,7 @@ import com.powsybl.contingency.json.ContingencyJsonModule;
 import com.powsybl.contingency.list.ContingencyList;
 import com.powsybl.contingency.list.DefaultContingencyList;
 import com.powsybl.contingency.strategy.OperatorStrategy;
+import com.powsybl.contingency.strategy.OperatorStrategyList;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.serde.NetworkSerDe;
@@ -57,10 +60,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import static com.powsybl.openloadflow.util.DebugUtil.DATE_TIME_FORMAT;
 
@@ -129,6 +135,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     private static ObjectMapper createObjectMapper() {
         return new ObjectMapper()
                 .registerModule(new ContingencyJsonModule())
+                .registerModule(new ActionJsonModule())
                 .registerModule(new LoadFlowParametersJsonModule())
                 .registerModule(new SensitivityJsonModule());
     }
@@ -193,6 +200,16 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
                     objectWriter.writeValue(writer, contingencyList);
                 }
 
+                try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("actions-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
+                    ActionList actionList = new ActionList(actions);
+                    objectWriter.writeValue(writer, actionList);
+                }
+
+                try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("operator-strategies-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
+                    OperatorStrategyList operatorStrategyList = new OperatorStrategyList(operatorStrategies);
+                    objectWriter.writeValue(writer, operatorStrategyList);
+                }
+
                 try (BufferedWriter writer = Files.newBufferedWriter(debugDir.resolve("variable-sets-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                     objectWriter.writeValue(writer, variableSets);
                 }
@@ -252,7 +269,9 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     public record ReplayResult<T extends SensitivityResultWriter>(T resultWriter, List<SensitivityFactor> factors, List<Contingency> contingencies) {
     }
 
-    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider, ReportNode reportNode) {
+    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir,
+                                                                      BiFunction<List<Contingency>, List<OperatorStrategy>, T> resultWriterProvider,
+                                                                      ReportNode reportNode) {
         Objects.requireNonNull(date);
         Objects.requireNonNull(debugDir);
         Objects.requireNonNull(resultWriterProvider);
@@ -265,6 +284,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         ObjectMapper objectMapper = createObjectMapper();
         List<SensitivityFactor> factors;
         List<Contingency> contingencies;
+        List<Action> actions;
+        List<OperatorStrategy> operatorStrategies;
         List<SensitivityVariableSet> variableSets;
         SensitivityAnalysisParameters sensitivityAnalysisParameters;
         try {
@@ -275,6 +296,14 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("contingencies-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                 ContingencyList contingencyList = objectMapper.readValue(reader, DefaultContingencyList.class);
                 contingencies = contingencyList.getContingencies(network);
+            }
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("actions-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
+                ActionList actionList = objectMapper.readValue(reader, ActionList.class);
+                actions = actionList.getActions();
+            }
+            try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("operator-strategies-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
+                OperatorStrategyList operatorStrategyList = objectMapper.readValue(reader, OperatorStrategyList.class);
+                operatorStrategies = operatorStrategyList.getOperatorStrategies();
             }
             try (BufferedReader reader = Files.newBufferedReader(debugDir.resolve("variable-sets-" + dateStr + JSON_EXTENSION), StandardCharsets.UTF_8)) {
                 variableSets = objectMapper.readValue(reader, new TypeReference<>() {
@@ -294,11 +323,13 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             sensiParametersExt.setDebugDir(null);
         }
 
-        var resultWriter = Objects.requireNonNull(resultWriterProvider.apply(contingencies));
+        var resultWriter = Objects.requireNonNull(resultWriterProvider.apply(contingencies, operatorStrategies));
 
         run(network, VariantManagerConstants.INITIAL_VARIANT_ID, new SensitivityFactorModelReader(factors, network), resultWriter,
                 new SensitivityAnalysisRunParameters()
                         .setContingencies(contingencies)
+                        .setActions(actions)
+                        .setOperatorStrategies(operatorStrategies)
                         .setVariableSets(variableSets)
                         .setParameters(sensitivityAnalysisParameters)
                         .setReportNode(reportNode))
@@ -307,11 +338,11 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         return new ReplayResult<>(resultWriter, factors, contingencies);
     }
 
-    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, Function<List<Contingency>, T> resultWriterProvider) {
+    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, BiFunction<List<Contingency>, List<OperatorStrategy>, T> resultWriterProvider) {
         return replay(date, debugDir, resultWriterProvider, ReportNode.NO_OP);
     }
 
     public ReplayResult<SensitivityResultModelWriter> replay(ZonedDateTime date, Path debugDir) {
-        return replay(date, debugDir, contingencies -> new SensitivityResultModelWriter(contingencies, Collections.emptyList()));
+        return replay(date, debugDir, SensitivityResultModelWriter::new);
     }
 }

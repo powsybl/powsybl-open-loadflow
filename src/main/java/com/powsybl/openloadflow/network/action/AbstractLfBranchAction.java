@@ -11,6 +11,7 @@ package com.powsybl.openloadflow.network.action;
 import com.powsybl.action.Action;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.Reports;
 
 import java.util.*;
 
@@ -63,6 +64,50 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
         if (!isValid()) {
             return false;
         }
+        getNetworkActivations(network, contingency, List.of(this)).apply();
+        return true;
+    }
+
+    public boolean updateConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
+        if (isValid()) {
+            disabledBranch.forEach(branch -> {
+                if (branch.getBus1() != null && branch.getBus2() != null) {
+                    connectivity.removeEdge(branch);
+                }
+            });
+            enabledBranch.forEach(branch -> connectivity.addEdge(branch.getBus1(), branch.getBus2(), branch));
+            return true;
+        }
+        return false;
+    }
+
+    public static NetworkActivations getNetworkActivations(GraphConnectivity<LfBus, LfBranch> connectivity) {
+        // disable buses and branches that won't be part of the main connected component
+        Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
+        Set<LfBranch> removedBranches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
+        // we should manage branches open at one side.
+        for (LfBus bus : removedBuses) {
+            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(removedBranches::add);
+        }
+        DisabledNetwork disabledNetwork = new DisabledNetwork(removedBuses, removedBranches);
+
+        // enable buses and branches that will be part of the main connected component
+        Set<LfBus> addedBuses = connectivity.getVerticesAddedToMainComponent();
+        Set<LfBranch> addedBranches = new HashSet<>(connectivity.getEdgesAddedToMainComponent());
+        // we should manage branches open at one side.
+        for (LfBus bus : addedBuses) {
+            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(addedBranches::add);
+        }
+        EnabledNetwork enabledNetwork = new EnabledNetwork(addedBuses, addedBranches);
+
+        return new NetworkActivations(disabledNetwork, enabledNetwork);
+    }
+
+    public static NetworkActivations getNetworkActivations(LfNetwork network, LfContingency contingency,
+                                                           List<AbstractLfBranchAction<?>> actions) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(actions);
+
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
 
         // re-update connectivity according to post contingency state (revert after LfContingency apply)
@@ -74,51 +119,18 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
         // update connectivity according to post action state
         connectivity.startTemporaryChanges();
 
-        updateConnectivity(connectivity);
-        updateBusesAndBranchStatus(connectivity);
+        for (AbstractLfBranchAction<?> action : actions) {
+            if (!action.updateConnectivity(connectivity)) {
+                Reports.reportActionApplicationFailure(action.getId(), contingency != null ? contingency.getId() : "", network.getReportNode());
+            }
+        }
+
+        NetworkActivations networkActivations = getNetworkActivations(connectivity);
 
         // reset connectivity to discard post contingency connectivity and post action connectivity
         connectivity.undoTemporaryChanges();
         connectivity.undoTemporaryChanges();
-        return true;
-    }
 
-    /**
-     * Optimized apply on an existing connectivity (to apply several branch actions at the same time)
-     */
-    public boolean applyOnConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
-        updateConnectivity(connectivity);
-        return isValid();
-    }
-
-    private void updateConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
-        disabledBranch.forEach(branch -> {
-            if (branch.getBus1() != null && branch.getBus2() != null) {
-                connectivity.removeEdge(branch);
-            }
-        });
-        enabledBranch.forEach(branch -> connectivity.addEdge(branch.getBus1(), branch.getBus2(), branch));
-    }
-
-    public static void updateBusesAndBranchStatus(GraphConnectivity<LfBus, LfBranch> connectivity) {
-        // disable buses and branches that won't be part of the main connected component
-        Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
-        removedBuses.forEach(bus -> bus.setDisabled(true));
-        Set<LfBranch> removedBranches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
-        // we should manage branches open at one side.
-        for (LfBus bus : removedBuses) {
-            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(removedBranches::add);
-        }
-        removedBranches.forEach(branch -> branch.setDisabled(true));
-
-        // enable buses and branches that will be part of the main connected component
-        Set<LfBus> addedBuses = connectivity.getVerticesAddedToMainComponent();
-        addedBuses.forEach(bus -> bus.setDisabled(false));
-        Set<LfBranch> addedBranches = new HashSet<>(connectivity.getEdgesAddedToMainComponent());
-        // we should manage branches open at one side.
-        for (LfBus bus : addedBuses) {
-            bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(addedBranches::add);
-        }
-        addedBranches.forEach(branch -> branch.setDisabled(false));
+        return networkActivations;
     }
 }
