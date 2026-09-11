@@ -998,9 +998,9 @@ public class AcEquationSystemCreator {
                 equationSystem.createEquation(converter, AcEquationType.AC_CONV_TARGET_P_REF)
                         .addTerm(equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_P_AC)
                                 .createTerm());
-            case P_PCC_DROOP ->
+            case DC_DROOP ->
                 // in droop mode, we add an equation enforcing U_dc = refVdc + k*(P - refP), coupling Pac and the DC voltage
-                equationSystem.createEquation(converter, AcEquationType.AC_CONV_TARGET_P_DROOP)
+                equationSystem.createEquation(converter, AcEquationType.ACDC_CONV_DC_DROOP)
                         .addTerm(new ConverterDroopEquationTerm(converter, dcBus1, dcBus2, equationSystem.getVariableSet()));
             case V_DC -> {
                 // in V mode, we add an equation to set V = v1 - v2 the voltage between the two dc buses connected to the converter

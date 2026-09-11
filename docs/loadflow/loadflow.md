@@ -380,7 +380,7 @@ the voltage between its two DC buses (`V_DC` control mode), or follow a DC-volta
 relating the two (`P_PCC_DROOP` control mode, detailed [below](#droop-control)).
 If a DC network has only converters in `P_PCC` mode, they will be automatically set in `V_DC` mode with the DC nominal voltage as target voltage.
 
-In addition to the control modes `P_PCC`, `V_DC` and `P_PCC_DROOP`, the voltage source converter can be set in two modes :
+In addition to the control modes `P_PCC`, `V_DC` and `DC_DROOP`, the voltage source converter can be set in two modes :
 - Reactive power control mode, in which it imposes the reactive power received from AC to DC, which is 0 by default.
   In this case, the AC voltage is not fixed.
 - Voltage regulator control mode, in which it imposes the voltage at its AC Bus. In this case the reactive power is not
@@ -395,9 +395,11 @@ If the converter is in `P_PCC` control mode, then $P_{AC}$ is set to $P_{Ref}$ :
 
 $$P_{AC} = P_{Ref}$$
 
-Else the converter is in `V_DC` control mode, so the voltage between its two DC buses is set :
+If the converter is in `V_DC` control mode, so the voltage between its two DC buses is set :
 
 $$V_{1} - V_{2} = V_{Ref}$$
+
+If the converter is in `DC_DROOP` control mode, then a relation `V_DC = f(P_AC)` is set (see [below](#droop-control))
 
 Similarly, if the converter controls reactive power, $Q_{AC}$ is set to $Q_{Ref}$:
 
@@ -414,7 +416,7 @@ $\sum_{i} I_i + I_{Conv} = 0$ for dcBus1
 
 $\sum_{i} I_i - I_{Conv}= 0$ for dcBus2
 
-#### Power Equations
+#### Power and loss equations
 
 The last equation of converters ensures the conservation of power between AC and DC.
 
@@ -463,7 +465,7 @@ $$
 
 #### Multi-segment droop control
 
-In `P_PCC_DROOP` control mode, the converter does not hold a fixed power or a fixed DC voltage.
+In `DC_DROOP` control mode, the converter does not hold a fixed power or a fixed DC voltage.
 Instead it follows a **droop law** that ties its active power to its DC voltage, so that the
 converter naturally shares in regulating the DC voltage of the network:
 
@@ -477,7 +479,7 @@ with:
 
 $U_{dc} \rightarrow k(U_{dc})$ is piecewise constant, which makes $U_{dc} \rightarrow P_{AC}$ piecewise linear.
 The droop curve passes through the converter setpoint $(targetVdc, targetP)$. This anchors its
-position in the $(U_{dc}, P)$ plane. A `P_PCC_DROOP` converter must therefore have a droop curve
+position in the $(U_{dc}, P)$ plane. A `DC_DROOP` converter must therefore have a droop curve
 and both `targetP` and `targetVdc` defined. All $k$ coefficients across the curve's bands must share
 the same strict sign (all positive or all negative): a $k=0$ band leaves its reference power undefined
 when positioning it on the curve, and a sign change would break the band lookup — two different
