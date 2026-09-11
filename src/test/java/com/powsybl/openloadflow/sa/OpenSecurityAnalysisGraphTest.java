@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+ * Copyright (c) 2020-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -14,7 +14,6 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
@@ -72,23 +71,11 @@ class OpenSecurityAnalysisGraphTest {
     }
 
     @Test
-    void testMst() {
-        LOGGER.info("Test Minimum Spanning Tree on test network containing {} branches", network.getBranchCount());
-        try (var testDataRef = computeReferenceLfContingencies();
-             var testData = computeLfContingencies(new MinimumSpanningTreeGraphConnectivityFactory<>())) {
-            printResult(testData.getListLfContingencies());
-            checkResult(testData.getListLfContingencies(), testDataRef.getListLfContingencies());
-        }
-    }
-
-    @Test
     void testNullVertices() {
         network.getSwitch("B3").setOpen(true);
         contingenciesProvider = n -> Collections.singletonList(new Contingency("L1", new BranchContingency("L1")));
         try (var testDataRef = computeReferenceLfContingencies();
-             var testData1 = computeLfContingencies(new MinimumSpanningTreeGraphConnectivityFactory<>());
              var testData2 = computeLfContingencies(new EvenShiloachGraphDecrementalConnectivityFactory<>())) {
-            checkResult(testData1.getListLfContingencies(), testDataRef.getListLfContingencies());
             checkResult(testData2.getListLfContingencies(), testDataRef.getListLfContingencies());
         }
 
@@ -96,9 +83,7 @@ class OpenSecurityAnalysisGraphTest {
         network.getSwitch("B3").setOpen(false);
         network.getSwitch("B1").setOpen(true);
         try (var testDataRef = computeReferenceLfContingencies();
-             var testData1 = computeLfContingencies(new MinimumSpanningTreeGraphConnectivityFactory<>());
              var testData2 = computeLfContingencies(new EvenShiloachGraphDecrementalConnectivityFactory<>())) {
-            checkResult(testData1.getListLfContingencies(), testDataRef.getListLfContingencies());
             checkResult(testData2.getListLfContingencies(), testDataRef.getListLfContingencies());
         }
     }
