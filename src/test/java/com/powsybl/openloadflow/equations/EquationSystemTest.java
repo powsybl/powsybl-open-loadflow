@@ -74,6 +74,11 @@ class EquationSystemTest {
             public void onEquationTermArrayChange(EquationTermArray<AcVariableType, AcEquationType> equationTermArray, int termNum, EquationTermEventType eventType) {
                 // nothing to do
             }
+
+            @Override
+            public void onEquationTermConstantsChange() {
+                // nothing to do
+            }
         });
         assertTrue(equations.isEmpty());
         assertTrue(equationEventTypes.isEmpty());

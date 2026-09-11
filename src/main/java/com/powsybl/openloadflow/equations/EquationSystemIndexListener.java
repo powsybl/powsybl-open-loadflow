@@ -40,4 +40,9 @@ public interface EquationSystemIndexListener<V extends Enum<V> & Quantity, E ext
      * Called when the order of variables or columns has been changed even without any change in equations (can happen when using Fast Decoupled)
      */
     void onEquationIndexOrderChanged();
+
+    /**
+     * Called when a constant has been modified in the equation terms (e.g. R or X of branches after tap position change)
+     */
+    void onEquationTermConstantsChanged();
 }
