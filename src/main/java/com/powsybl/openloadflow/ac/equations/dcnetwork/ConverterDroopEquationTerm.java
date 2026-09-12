@@ -7,12 +7,15 @@
  */
 package com.powsybl.openloadflow.ac.equations.dcnetwork;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -28,17 +31,24 @@ import java.util.Objects;
  *
  * @author Landry Huet {@literal <landry.huet at supergrid-institute.com>}
  */
-public class ConverterDroopEquationTerm extends AbstractConverterDcCurrentEquationTerm {
+public class ConverterDroopEquationTerm extends AbstractConverterDcFlowEquation {
+
+    private List<LfVoltageSourceConverter.LfDroopReference> droopBands;
 
     public ConverterDroopEquationTerm(LfVoltageSourceConverter converter, LfDcBus dcBus1, LfDcBus dcBus2, VariableSet<AcVariableType> variableSet) {
         // pass the DC voltage base as nominalV so that v1() - v2() is U_dc in per unit of that base
         super(converter, dcBus1, dcBus2, converter.getDcVoltageBase(), variableSet);
+        droopBands = new ArrayList<>(converter.getDroopCurve());
+        if (droopBands.isEmpty()) {
+            throw new PowsyblException("Cannot create a ConverterDroopEquationTerm for AC/DC converter '" + converter.getId()
+                    + "' which is not in DC_DROOP control mode");
+        }
     }
 
     @Override
     public double eval() {
         double uDc = v1() - v2();
-        LfVoltageSourceConverter.DroopReference ref = element.getDroopReference(uDc);
+        LfVoltageSourceConverter.LfDroopReference ref = getDroopReference(uDc);
         double a = ref.k();
         double b = 1;
         return a * (pAc() - ref.refP()) - b * (uDc - ref.refVdc());
@@ -51,7 +61,7 @@ public class ConverterDroopEquationTerm extends AbstractConverterDcCurrentEquati
         // DC voltage base. So v1()/v2() are already in the equation base and dU_dc/dv1 = 1, dU_dc/dv2 = -1.
         double b = 1;
         if (variable.equals(pAcVar)) {
-            return element.getDroopReference(v1() - v2()).k();
+            return getDroopReference(v1() - v2()).k();
         } else if (variable.equals(v1Var)) {
             return -b;
         } else if (variable.equals(v2Var)) {
@@ -64,5 +74,17 @@ public class ConverterDroopEquationTerm extends AbstractConverterDcCurrentEquati
     @Override
     public String getName() {
         return "conv_p_droop";
+    }
+
+    private LfVoltageSourceConverter.LfDroopReference getDroopReference(double uDc) {
+        // Note that the list is supposed to be sorted by refVdc.
+        // Linear search is faster for small lists.
+        int idx = 0; // default if uDc below min voltage.
+        for (idx = 0; idx < droopBands.size() - 1; idx++) {
+            if (uDc < droopBands.get(idx + 1).refVdc()) {
+                break;
+            }
+        } // if uDc is beyond voltage of last segment, idx stays clamped to droopBands.size() - 1
+        return droopBands.get(idx);
     }
 }
