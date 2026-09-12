@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.network;
 
+import java.util.List;
+
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
@@ -27,4 +29,21 @@ public interface LfVoltageSourceConverter extends LfAcDcConverter {
      * @return the target AC voltage magnitude at the converter AC bus. In per unit.
      */
     double getTargetVac();
+
+    /**
+     * Reference point of the droop law {@code P = refP + k*(U_dc - refVdc)} for a solved DC voltage, all in per unit.
+     *
+     * @param k      the droop coefficient of the band containing the solved DC voltage.
+     * @param refVdc the reference DC voltage of that band (its lower bound).
+     * @param refP   the reference active power of that band (the anchored power at {@code refVdc}).
+     */
+    record LfDroopReference(double k, double refVdc, double refP) {
+    }
+
+    /**
+     * Get the droop curve as a sorted list of segments, each with its min voltage,
+     * reference active power and droop coefficient.
+     * @return Droop curve as sorted list.
+     */
+    List<LfDroopReference> getDroopCurve();
 }

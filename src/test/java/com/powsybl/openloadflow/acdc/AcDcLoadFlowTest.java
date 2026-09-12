@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.acdc;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.AcDcConverter.ControlMode;
 import com.powsybl.iidm.network.test.DcDetailedNetworkFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -17,7 +18,12 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.AcDcNetworkFactory;
+import com.powsybl.openloadflow.network.FirstSlackBusSelector;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -991,7 +997,7 @@ class AcDcLoadFlowTest {
 
         // Run load flow
         CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("At least one AC/DC converter control mode must be V_DC in each DC component, but DC component 1 does not have any", e5.getCause().getMessage());
+        assertEquals("At least one AC/DC converter control mode must be V_DC or DC_DROOP in each DC component, but DC component 1 does not have any", e5.getCause().getMessage());
     }
 
     @Test
@@ -1048,4 +1054,186 @@ class AcDcLoadFlowTest {
         result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged()); // Load flow do not succeed but no exception is thrown because of open switch
     }
+
+    @Test
+    void testDroopLaw() {
+        // A DC_DROOP converter enforces U_dc = refVdc + k * (P_AC - refP), where:
+        //   - k      = curve.getK(U_dc), the coefficient of the band containing the solved U_dc (clamped),
+        //             the slope of U_dc versus P_AC, in kV/MW.
+        //   - refVdc = the min voltage of that band.
+        //   - refP   = the reference power, corresponding to the previous point in the curve.
+        // The equation is solved in per unit (k_pu = k * SB / vBase, vBase = 400 kV, SB = 100 MVA, so
+        // k_pu = k/4 here); refP is anchored and integrated in that same per-unit system (see
+        // buildDroopBands).
+        // The paired V_DC converter (convVdc) pins the DC voltage, so sweeping its targetVdc walks the
+        // droop converter's solved U_dc through each band and past the extremes. The assertion reads the
+        // SOLVED U_dc, so it stays exact.
+        //
+        // Note that the droop curve has the following reference points:
+        // V = 380 kV => P = 20 MW
+        // V = 390 kV => P = 40 MW
+        // V = 410 kV => P = 60 MW
+        // V = 420 kV => P = 65 MW
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        VoltageSourceConverter droopConverter = network.getVoltageSourceConverter("convDroop");
+        final double targetP = 50.0;
+        final double targetVdc = 400.0;
+
+        // Sanity check: let's make sure we have kept consistency.
+        assertEquals(targetP, droopConverter.getTargetP());
+        assertEquals(targetVdc, droopConverter.getTargetVdc());
+
+        // Basic check: when Vdc = targetVdc, then Pac must be equal to targetP.
+        // This is also right in the middle of the middle droop segment.
+        checkDroopResult(network, targetVdc, targetP);
+
+        // Then check expected values on each segment.
+        // We take midpoints to simplify computations.
+        checkDroopResult(network, 385., 30.);
+        checkDroopResult(network, 415., 62.5);
+
+        // Check exactly at the internal band boundaries, where the droop coefficient k is discontinuous
+        // (0.5 -> 1.0 at 390, 1.0 -> 2.0 at 410) and the Jacobian term in ConverterDroopEquationTerm#der
+        // does not account for that discontinuity. Both bands agree on P at their shared boundary, so the
+        // expected value is exact regardless of which side the solver lands on.
+        checkDroopResult(network, 390., 40.);
+        checkDroopResult(network, 410., 60.);
+
+        // Finally check extrapolation (clamped to the nearest band).
+        checkDroopResult(network, 370., 0.);   // clamp to [380,390], k=0.5: 380 + 0.5*(0-20) = 370
+        checkDroopResult(network, 430., 70.);  // clamp to [410,420], k=2.0: 410 + 2.0*(70-60) = 430
+    }
+
+    private void checkDroopResult(Network network, double vdc, double expectedPac) {
+        // The V_DC converter (convVdc) pins U_dc, so sweeping its targetVdc walks the droop converter's solved
+        // U_dc through the curve bands. The droop converter's own anchor (targetVdc, targetP) stays fixed.
+        network.getVoltageSourceConverter("convVdc").setTargetVdc(vdc);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged(), "load flow did not converge for targetVdc=" + vdc);
+
+        Terminal droopConverterAcTerminal = network.getVoltageSourceConverter("convDroop").getTerminal1();
+        assertActivePowerEquals(expectedPac, droopConverterAcTerminal);
+    }
+
+    @Test
+    void testSwitchToDroopControlMidTest() {
+        // Run #1: convDroop is in plain P_PCC mode (its droop curve is attached by the factory but unused
+        // while the control mode is not DC_DROOP) with a target power that is deliberately inconsistent
+        // with what the droop law would give at the DC voltage convVdc is pinning it to. This gives a
+        // converged, non-flat starting state that is not already on the droop curve.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        VoltageSourceConverter convVdc = network.getVoltageSourceConverter("convVdc");
+        VoltageSourceConverter convDroop = network.getVoltageSourceConverter("convDroop");
+        convDroop.setControlMode(ControlMode.P_PCC);
+        convVdc.setTargetVdc(415.); // band [410,420]: droop would require P=62.5, but P_PCC pins P=50 instead.
+
+        LoadFlowResult result1 = loadFlowRunner.run(network, parameters);
+        assertTrue(result1.isFullyConverged());
+        assertActivePowerEquals(50., convDroop.getTerminal1()); // P_PCC: P_AC pinned to targetP, unaffected by U_dc.
+        assertVoltageEquals(415., network.getDcNode("dn1"));    // V_DC: U_dc pinned to targetVdc.
+
+        // Switch convDroop to droop control mid-test (its curve and its own anchor, targetP=50 /
+        // targetVdc=400, are unchanged since creation) and move convVdc's target into the first band.
+        // Warm-started from run #1's state (PREVIOUS_VALUES instead of a flat start), the solver must move
+        // U_dc from 415 down to 385, crossing both the 410 and 390 band boundaries, while also correcting
+        // P_AC from the run #1 value (50, off the droop curve) to the value the droop law now requires.
+        convDroop.setControlMode(ControlMode.DC_DROOP);
+        convVdc.setTargetVdc(385.);
+        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isFullyConverged(),
+                "did not converge after switching to droop control from a warm start in a different band");
+        // band [380,390], k=0.5: 380 + 0.5*(30-20) = 385
+        assertActivePowerEquals(30., convDroop.getTerminal1());
+        assertVoltageEquals(385., network.getDcNode("dn1"));
+    }
+
+    @Test
+    void testDroopCountsAsVdcControl() {
+        // Check a DC component whose only DC-voltage-controlling converter is in DC_DROOP mode
+        // is accepted.
+        // This is the mirror of testNoVdcControl, which rejects a component with only P_PCC converters.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        network.getVoltageSourceConverter("convVdc").setId("convPAC")
+                .setTargetP(50.)
+                .setControlMode(ControlMode.P_PCC);
+
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+    }
+
+    @Test
+    void testGetDroopCurveEmptyOnNonDroopConverter() {
+        // getDroopCurve is only meaningful in DC_DROOP mode. On any other converter the droop bands are empty.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        LfNetworkParameters lfParameters = new LfNetworkParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector())
+                .setAcDcNetwork(true);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters).get(0);
+
+        // convVdc is in V_DC control mode, so it has no droop bands.
+        LfVoltageSourceConverter vdcConverter = lfNetwork.getVoltageSourceConverters().stream()
+                .filter(c -> "convVdc".equals(c.getId()))
+                .findFirst().orElseThrow();
+
+        assertEquals(List.of(), vdcConverter.getDroopCurve());
+    }
+
+    @Test
+    void testGetDroopCurve() {
+        // Expected values come from the factory's 3-band droop curve (see
+        // AcDcNetworkFactory#createAcDcNetworkWithDroopControl): V=380kV/P=20MW, V=390kV/P=40MW,
+        // V=410kV/P=60MW, converted to per unit with vBase = 400 kV (dn1's nominal voltage) and SB = 100 MVA:
+        // k_pu = k * SB / vBase, V_pu = V / vBase, P_pu = P / SB.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        LfNetworkParameters lfParameters = new LfNetworkParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector())
+                .setAcDcNetwork(true);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters).get(0);
+
+        LfVoltageSourceConverter droopConverter = lfNetwork.getVoltageSourceConverters().stream()
+                .filter(c -> "convDroop".equals(c.getId()))
+                .findFirst().orElseThrow();
+
+        List<LfVoltageSourceConverter.LfDroopReference> droopCurve = droopConverter.getDroopCurve();
+
+        assertEquals(3, droopCurve.size());
+        assertDroopReferenceEquals(0.125, 0.95, 0.2, droopCurve.get(0));
+        assertDroopReferenceEquals(0.25, 0.975, 0.4, droopCurve.get(1));
+        assertDroopReferenceEquals(0.5, 1.025, 0.6, droopCurve.get(2));
+    }
+
+    private void assertDroopReferenceEquals(double expectedK, double expectedRefVdc, double expectedRefP,
+                                             LfVoltageSourceConverter.LfDroopReference actual) {
+        assertEquals(expectedK, actual.k(), 1e-9);
+        assertEquals(expectedRefVdc, actual.refVdc(), 1e-9);
+        assertEquals(expectedRefP, actual.refP(), 1e-9);
+    }
+
+    @Test
+    void testDroopCurveWithAllNegativeCoefficientsIsAccepted() {
+        // Check that droop also works with a decreasing curve.
+        // The anchor invariant (Pac = targetP when Vdc = targetVdc) holds regardless of sign, but away from the
+        // anchor the slope k differs from the all-positive curve, so also check a non-anchor point.
+        // U_dc = refVdc + k*(P-refP); with this curve's bands, refP at [410,420] (k=-2.0) works out to 40 MW,
+        // so checking P=37.5: 410 + (-2.0)*(37.5-40) = 415.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        network.getVoltageSourceConverter("convDroop").newDroopCurve()
+                .beginSegment().setK(-0.5).setMinV(380.).setMaxV(390.).endSegment()
+                .beginSegment().setK(-1.0).setMinV(390.).setMaxV(410.).endSegment()
+                .beginSegment().setK(-2.0).setMinV(410.).setMaxV(420.).endSegment()
+                .add();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        checkDroopResult(network, 400., 50.);
+        checkDroopResult(network, 415., 37.5);
+    }
+
 }
