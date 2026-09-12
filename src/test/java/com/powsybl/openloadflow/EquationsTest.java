@@ -408,8 +408,8 @@ class EquationsTest {
         double k = 2.0;
         double refVdc = 0.125;
         double refP = 0.5;
-        Mockito.doReturn(new LfVoltageSourceConverter.DroopReference(k, refVdc, refP))
-                .when(converter).getDroopReference(Mockito.anyDouble());
+        Mockito.doReturn(List.of(new LfVoltageSourceConverter.LfDroopReference(k, refVdc, refP)))
+                .when(converter).getDroopCurve();
 
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         Variable<AcVariableType> v1Var = variableSet.getVariable(0, AcVariableType.DC_BUS_V);

@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.acdc;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.AcDcConverter.ControlMode;
 import com.powsybl.iidm.network.test.DcDetailedNetworkFactory;
@@ -21,7 +20,6 @@ import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.AcDcNetworkFactory;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkLoader;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
@@ -1066,8 +1064,7 @@ class AcDcLoadFlowTest {
         //   - refP   = the reference power, corresponding to the previous point in the curve.
         // The equation is solved in per unit (k_pu = k * SB / vBase, vBase = 400 kV, SB = 100 MVA, so
         // k_pu = k/4 here); refP is anchored and integrated in that same per-unit system (see
-        // buildDroopBands), but since the per-unit conversion is dimensionally consistent it reduces to
-        // exactly the plain kV/MW arithmetic of k below.
+        // buildDroopBands).
         // The paired V_DC converter (convVdc) pins the DC voltage, so sweeping its targetVdc walks the
         // droop converter's solved U_dc through each band and past the extremes. The assertion reads the
         // SOLVED U_dc, so it stays exact.
@@ -1173,9 +1170,8 @@ class AcDcLoadFlowTest {
     }
 
     @Test
-    void testGetDroopReferenceThrowsOnNonDroopConverter() {
-        // getDroopReference is only meaningful in DC_DROOP mode. On any other converter the droop bands are
-        // empty; the call must fail fast with a clear message.
+    void testGetDroopCurveEmptyOnNonDroopConverter() {
+        // getDroopCurve is only meaningful in DC_DROOP mode. On any other converter the droop bands are empty.
         Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
         LfNetworkParameters lfParameters = new LfNetworkParameters()
                 .setSlackBusSelector(new FirstSlackBusSelector())
@@ -1187,40 +1183,43 @@ class AcDcLoadFlowTest {
                 .filter(c -> "convVdc".equals(c.getId()))
                 .findFirst().orElseThrow();
 
-        PowsyblException e = assertThrows(PowsyblException.class, () -> vdcConverter.getDroopReference(1.0));
-        assertEquals("getDroopReference called on AC/DC converter 'convVdc' which is not in DC_DROOP control mode",
-                e.getMessage());
+        assertEquals(List.of(), vdcConverter.getDroopCurve());
     }
 
     @Test
-    void testDroopCurveWithOneZeroCoefficientAmongNonZeroThrows() {
-        // A k=0 band (here mixed among non-zero bands, but this also covers an all-zero curve) makes that
-        // band's reference power undefined: positioning it on the curve (see buildDroopBands) divides by k.
+    void testGetDroopCurve() {
+        // Expected values come from the factory's 3-band droop curve (see
+        // AcDcNetworkFactory#createAcDcNetworkWithDroopControl): V=380kV/P=20MW, V=390kV/P=40MW,
+        // V=410kV/P=60MW, converted to per unit with vBase = 400 kV (dn1's nominal voltage) and SB = 100 MVA:
+        // k_pu = k * SB / vBase, V_pu = V / vBase, P_pu = P / SB.
         Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
-        network.getVoltageSourceConverter("convDroop").newDroopCurve()
-                .beginSegment().setK(0.5).setMinV(380.).setMaxV(400.).endSegment()
-                .beginSegment().setK(0.).setMinV(400.).setMaxV(420.).endSegment()
-                .add();
+        LfNetworkParameters lfParameters = new LfNetworkParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector())
+                .setAcDcNetwork(true);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters).get(0);
 
-        assertDroopCurveRejected(network);
+        LfVoltageSourceConverter droopConverter = lfNetwork.getVoltageSourceConverters().stream()
+                .filter(c -> "convDroop".equals(c.getId()))
+                .findFirst().orElseThrow();
+
+        List<LfVoltageSourceConverter.LfDroopReference> droopCurve = droopConverter.getDroopCurve();
+
+        assertEquals(3, droopCurve.size());
+        assertDroopReferenceEquals(0.125, 0.95, 0.2, droopCurve.get(0));
+        assertDroopReferenceEquals(0.25, 0.975, 0.4, droopCurve.get(1));
+        assertDroopReferenceEquals(0.5, 1.025, 0.6, droopCurve.get(2));
     }
 
-    @Test
-    void testDroopCurveWithMixedSignCoefficientsThrows() {
-        // All coefficients must have the same sign: a sign change would break the band lookup, since two
-        // different P values could then land on the same U_dc.
-        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
-        network.getVoltageSourceConverter("convDroop").newDroopCurve()
-                .beginSegment().setK(0.5).setMinV(380.).setMaxV(400.).endSegment()
-                .beginSegment().setK(-1.0).setMinV(400.).setMaxV(420.).endSegment()
-                .add();
-
-        assertDroopCurveRejected(network);
+    private void assertDroopReferenceEquals(double expectedK, double expectedRefVdc, double expectedRefP,
+                                             LfVoltageSourceConverter.LfDroopReference actual) {
+        assertEquals(expectedK, actual.k(), 1e-9);
+        assertEquals(expectedRefVdc, actual.refVdc(), 1e-9);
+        assertEquals(expectedRefP, actual.refP(), 1e-9);
     }
 
     @Test
     void testDroopCurveWithAllNegativeCoefficientsIsAccepted() {
-        // Coefficients may be all negative as well as all positive, as long as they share the same sign.
+        // Check that droop also works with a decreasing curve.
         // The anchor invariant (Pac = targetP when Vdc = targetVdc) holds regardless of sign, but away from the
         // anchor the slope k differs from the all-positive curve, so also check a non-anchor point.
         // U_dc = refVdc + k*(P-refP); with this curve's bands, refP at [410,420] (k=-2.0) works out to 40 MW,
@@ -1235,18 +1234,6 @@ class AcDcLoadFlowTest {
 
         checkDroopResult(network, 400., 50.);
         checkDroopResult(network, 415., 37.5);
-    }
-
-    private void assertDroopCurveRejected(Network network) {
-        LfNetworkParameters lfParameters = new LfNetworkParameters()
-                .setSlackBusSelector(new FirstSlackBusSelector())
-                .setAcDcNetwork(true);
-
-        LfNetworkLoader<Network> loader = new LfNetworkLoaderImpl();
-        PowsyblException e = assertThrows(PowsyblException.class,
-                () -> LfNetwork.load(network, loader, lfParameters));
-        assertEquals("AC/DC converter 'convDroop' in DC_DROOP control mode must have a droop curve with all coefficients of the same strict sign (all positive or all negative)",
-                e.getMessage());
     }
 
 }

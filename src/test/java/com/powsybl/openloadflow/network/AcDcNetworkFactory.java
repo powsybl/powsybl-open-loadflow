@@ -2516,6 +2516,12 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .add();
 
         // 3-band droop curve: coefficient k (kV/MW) piecewise-constant over DC-voltage bands (kV).
+        // Note that the droop curve has the following reference points because it is anchored
+        // at targetVdc = 400 kV, targetP = 50 MW
+        // V = 380 kV => P = 20 MW
+        // V = 390 kV => P = 40 MW
+        // V = 410 kV => P = 60 MW
+        // V = 420 kV => P = 65 MW
         droopConverter.newDroopCurve()
                 .beginSegment().setK(0.5).setMinV(380.).setMaxV(390.).endSegment()
                 .beginSegment().setK(1.0).setMinV(390.).setMaxV(410.).endSegment()

@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.ToDoubleFunction;
 
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
@@ -34,10 +33,7 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
     protected double targetVac; // In pu
 
     // Droop curve bands (only populated in DC_DROOP control mode), sorted by DC voltage, all values in per unit.
-    private final List<DroopBand> droopBands;
-
-    private record DroopBand(double kPu, double minVpu, double maxVpu, double refPpu) {
-    }
+    private final List<LfDroopReference> droopBands;
 
     public LfVoltageSourceConverterImpl(VoltageSourceConverter converter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1,
                                         LfNetworkParameters parameters) {
@@ -63,22 +59,15 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
      * band to band so the curve stays continuous at each band boundary. For each band we store {@code refP}, the
      * anchored power at the band's lower voltage bound {@code refVdc = minV}.
      */
-    private static List<DroopBand> buildDroopBands(VoltageSourceConverter converter, double vBase) {
+    private static List<LfDroopReference> buildDroopBands(VoltageSourceConverter converter, double vBase) {
         DroopCurve curve = converter.getDroopCurve();
         List<DroopCurve.Segment> segments = new ArrayList<>(curve.getSegments());
         if (segments.isEmpty()) {
             throw new PowsyblException("AC/DC converter '" + converter.getId()
                     + "' in DC_DROOP control mode must have a droop curve");
         }
-        // All coefficients must share the same strict sign: a k=0 band leaves its reference power undefined
-        // (division by zero below), and a sign change would break the band lookup, since two different P values
-        // could then land on the same U_dc.
-        boolean allPositive = segments.stream().allMatch(segment -> segment.getK() > 0);
-        boolean allNegative = segments.stream().allMatch(segment -> segment.getK() < 0);
-        if (!allPositive && !allNegative) {
-            throw new PowsyblException("AC/DC converter '" + converter.getId()
-                    + "' in DC_DROOP control mode must have a droop curve with all coefficients of the same strict sign (all positive or all negative)");
-        }
+        // All coefficients must share the same strict sign, but this is already checked in IIDM.
+
         double targetVdc = converter.getTargetVdc();
         double targetP = converter.getTargetP();
         if (Double.isNaN(targetVdc) || Double.isNaN(targetP)) {
@@ -106,7 +95,7 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
 
         // Anchored active power (per unit) at each band's lower voltage bound.
         double[] refPpu = new double[n];
-        int anchor = clampedBandIndex(segments, targetVdc, DroopCurve.Segment::getMinV, DroopCurve.Segment::getMaxV);
+        int anchor = clampedBandIndex(segments, targetVdc);
         refPpu[anchor] = targetPpu - (targetVdcPu - minVpu[anchor]) / kPu[anchor];
         for (int i = anchor + 1; i < n; i++) {
             refPpu[i] = refPpu[i - 1] + (maxVpu[i - 1] - minVpu[i - 1]) / kPu[i - 1];
@@ -115,30 +104,28 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
             refPpu[i] = refPpu[i + 1] - (maxVpu[i] - minVpu[i]) / kPu[i];
         }
 
-        List<DroopBand> bands = new ArrayList<>(n);
+        List<LfDroopReference> bands = new ArrayList<>(n);
         for (int i = 0; i < n; i++) {
-            bands.add(new DroopBand(kPu[i], minVpu[i], maxVpu[i], refPpu[i]));
+            bands.add(new LfDroopReference(kPu[i], minVpu[i], refPpu[i]));
         }
         return bands;
     }
 
     /**
-     * Index of the band containing {@code v} in an ordered list of {@code [minV, maxV)} ranges, clamped to the nearest
-     * band when {@code v} falls below the first or on/above the last (mirrors {@code DroopCurveImpl#getK}). Used both at
-     * build time over {@link DroopCurve.Segment} (kV) and at solve time over {@link DroopBand} (per unit), hence the
-     * min/max accessors rather than a fixed element type.
+     * Index of the band containing {@code v} in the ordered list of {@code [minV, maxV)} segments, clamped to the
+     * nearest band when {@code v} falls below the first or on/above the last (mirrors {@code DroopCurveImpl#getK}).
      */
-    private static <T> int clampedBandIndex(List<T> bands, double v, ToDoubleFunction<T> minV, ToDoubleFunction<T> maxV) {
-        if (v <= minV.applyAsDouble(bands.getFirst())) {
+    private static int clampedBandIndex(List<DroopCurve.Segment> segments, double v) {
+        if (v <= segments.getFirst().getMinV()) {
             return 0;
         }
-        for (int i = 0; i < bands.size(); i++) {
-            T band = bands.get(i);
-            if (v >= minV.applyAsDouble(band) && v < maxV.applyAsDouble(band)) {
+        for (int i = 0; i < segments.size(); i++) {
+            DroopCurve.Segment segment = segments.get(i);
+            if (v >= segment.getMinV() && v < segment.getMaxV()) {
                 return i;
             }
         }
-        return bands.size() - 1;
+        return segments.size() - 1;
     }
 
     public static LfVoltageSourceConverterImpl create(VoltageSourceConverter acDcConverter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1, LfNetworkParameters parameters) {
@@ -172,17 +159,6 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
     }
 
     @Override
-    public DroopReference getDroopReference(double uDc) {
-        if (droopBands.isEmpty()) {
-            throw new PowsyblException("getDroopReference called on AC/DC converter '" + getId()
-                    + "' which is not in DC_DROOP control mode");
-        }
-        // Band containing the solved DC voltage uDc (per unit), clamped to the nearest band outside the curve range.
-        DroopBand band = droopBands.get(clampedBandIndex(droopBands, uDc, DroopBand::minVpu, DroopBand::maxVpu));
-        return new DroopReference(band.kPu(), band.minVpu(), band.refPpu());
-    }
-
-    @Override
     public String getId() {
         return getConverter().getId();
     }
@@ -210,5 +186,10 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         // Active and reactive power injected by the AC network in the converter
         converter.getTerminal1().setP(pAc * PerUnit.SB);
         converter.getTerminal1().setQ(qAc * PerUnit.SB);
+    }
+
+    @Override
+    public List<LfDroopReference> getDroopCurve() {
+        return droopBands;
     }
 }
