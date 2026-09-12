@@ -19,3 +19,15 @@ org.eclipse.jdt.groovy.core.prefs
 # Generated readthedocs pages
 /docs/_build
 build-docs/
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Python
+__pycache__/
+*.pyc
