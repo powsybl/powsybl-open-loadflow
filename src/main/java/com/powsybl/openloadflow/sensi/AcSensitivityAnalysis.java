@@ -11,11 +11,13 @@ import com.powsybl.action.Action;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
+import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
@@ -24,6 +26,8 @@ import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
+import com.powsybl.openloadflow.equations.EquationTerm;
+import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
@@ -40,6 +44,7 @@ import com.powsybl.openloadflow.util.Lists2;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.openloadflow.util.mt.ContingencyMultiThreadHelper;
 import com.powsybl.sensitivity.*;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -251,23 +256,358 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups,
             DenseMatrix factorsStates,
             AcLoadFlowContext context) {
-        Map<LfBus, Map<LfBus, Double>> weightsByPilot = new HashMap<>();
-        for (SensitivityFactorGroup<AcVariableType, AcEquationType> group : factorGroups.getList()) {
+        boolean hasSvcPilot = factorGroups.getList().stream().anyMatch(group -> {
             LfSensitivityFactor<AcVariableType, AcEquationType> probe = group.getFactors().isEmpty() ? null : group.getFactors().get(0);
-            if (probe == null || probe.getVariableType() != SensitivityVariableType.SVC_PILOT_POINT_TARGET_VOLTAGE) {
+            return probe != null && probe.getVariableType() == SensitivityVariableType.SVC_PILOT_POINT_TARGET_VOLTAGE;
+        });
+        if (!hasSvcPilot) {
+            return;
+        }
+        // Build + factorize the all-zones coordination matrix ONCE (it is pilot-independent) and reuse it for
+        // every queried pilot, instead of one full assembly + LU per pilot.
+        try (SvcPilotPointClosedLoopSensitivity.Coordination coordination =
+                     SvcPilotPointClosedLoopSensitivity.buildCoordination(context)) {
+            if (coordination == null) {
+                return; // no active SVC zone
+            }
+            Map<LfBus, Map<LfBus, Double>> weightsByPilot = new HashMap<>();
+            for (SensitivityFactorGroup<AcVariableType, AcEquationType> group : factorGroups.getList()) {
+                LfSensitivityFactor<AcVariableType, AcEquationType> probe = group.getFactors().isEmpty() ? null : group.getFactors().get(0);
+                if (probe == null || probe.getVariableType() != SensitivityVariableType.SVC_PILOT_POINT_TARGET_VOLTAGE) {
+                    continue;
+                }
+                LfBus pilotBus = (LfBus) ((SingleVariableLfSensitivityFactor<AcVariableType, AcEquationType>) probe).getVariableElement();
+                Map<LfBus, Double> weights = weightsByPilot.computeIfAbsent(pilotBus, coordination::weightsForPilot);
+                int col = group.getIndex();
+                for (var entry : weights.entrySet()) {
+                    LfBus controlled = entry.getKey();
+                    double w = entry.getValue();
+                    context.getEquationSystem()
+                            .getEquation(controlled.getNum(), AcEquationType.BUS_TARGET_V)
+                            .ifPresent(eq -> factorsStates.set(eq.getColumn(), col, w));
+                }
+            }
+        }
+    }
+
+    /**
+     * Reverse-mode (adjoint / VJP) dual of the forward AC sensitivity: given output cotangents {@code ȳ}
+     * over the declared functions, return {@code θ̄ = Sᵀ·ȳ} over the variable groups — WITHOUT
+     * materialising the sensitivity matrix {@code S}. A single transpose solve on the retained (e.g.
+     * networkCacheEnabled) factorization, reusing {@link #initFactorsRhs} (∂F/∂p),
+     * {@link #fillSvcPilotFactorsRhs} (SVC pilot closed-loop) and the function equation terms (∂f/∂x).
+     * Assumes a load flow already converged on {@code context} (its Jacobian is factorized), exactly as
+     * the forward path assumes.
+     *
+     * @param cotangents dL/dfunction, keyed by the base-network sensitivity factor.
+     * @return θ̄ indexed by factor-group index ({@link SensitivityFactorGroup#getIndex()}).
+     */
+    @SuppressWarnings("unchecked")
+    private double[] analyseAdjoint(AcLoadFlowContext context,
+                                   SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups,
+                                   Map<LfSensitivityFactor<AcVariableType, AcEquationType>, Double> cotangents,
+                                   Map<LfBus, Double> slackParticipationByBus) {
+        var equationSystem = context.getEquationSystem();
+        int equationCount = equationSystem.getIndex().getColumnCount();
+
+        // ∂F/∂p columns (one per variable group), including the SVC pilot closed-loop — identical to forward.
+        DenseMatrix parameterRhs = initFactorsRhs(equationSystem, factorGroups, slackParticipationByBus);
+        fillSvcPilotFactorsRhs(factorGroups, parameterRhs, context);
+
+        // x̄ = Σ_f ȳ_f · (∂f/∂x): transpose of calculateSensi — scatter der() into the equation rows.
+        // ȳ is per monitored FUNCTION, so add each function's ∂f/∂x exactly once even though a function
+        // paired with several variables produces several factors that share the same cotangent.
+        double[] xBar = new double[equationCount];
+        Set<Pair<SensitivityFunctionType, String>> seenFunctions = new HashSet<>();
+        for (var e : cotangents.entrySet()) {
+            double yBar = e.getValue();
+            if (yBar == 0.0) {
                 continue;
             }
-            LfBus pilotBus = (LfBus) ((SingleVariableLfSensitivityFactor<AcVariableType, AcEquationType>) probe).getVariableElement();
-            Map<LfBus, Double> weights = weightsByPilot.computeIfAbsent(pilotBus, pb ->
-                    SvcPilotPointClosedLoopSensitivity.computeControlledBusWeights(pb, context));
-            int col = group.getIndex();
-            for (var entry : weights.entrySet()) {
-                LfBus controlled = entry.getKey();
-                double w = entry.getValue();
-                context.getEquationSystem()
-                        .getEquation(controlled.getNum(), AcEquationType.BUS_TARGET_V)
-                        .ifPresent(eq -> factorsStates.set(eq.getColumn(), col, w));
+            var factor = e.getKey();
+            if (!seenFunctions.add(Pair.of(factor.getFunctionType(), factor.getFunctionId()))) {
+                continue;
             }
+            // getFunctionEquationTerm() is declared as Derivable; the in-scope AC function types are all
+            // EquationTerms, which expose getVariables()/der() needed to scatter (∂f/∂x)ᵀ into x̄.
+            if (!(factor.getFunctionEquationTerm() instanceof EquationTerm)) {
+                continue;
+            }
+            EquationTerm<AcVariableType, AcEquationType> functionTerm =
+                    (EquationTerm<AcVariableType, AcEquationType>) factor.getFunctionEquationTerm();
+            // scale by the function's per-unit base so θ̄ comes out UNSCALED (physical), the dual of the
+            // forward get_sensitivity_matrix: unscaleSensitivity = funcBase(f) / varBase(v), applied here as
+            // funcBase on the function (x̄) side and varBase on the variable (θ̄) side.
+            double functionBase = getFunctionBaseValue(factor);
+            for (Variable<AcVariableType> variable : functionTerm.getVariables()) {
+                int row = variable.getRow();
+                if (row >= 0) {
+                    xBar[row] += yBar * functionBase * functionTerm.der(variable);
+                }
+            }
+        }
+
+        // λ = J⁻ᵀ x̄: the stored matrix is M = Jᵀ, so plain solve() IS the adjoint solve. One solve.
+        double[] lambda = xBar; // solved in place
+        context.getJacobianMatrix().solve(lambda);
+
+        // θ̄_v = λᵀ·rhs_v per variable group, plus the direct ∂f/∂p term (branch parameters). rhs_v is the
+        // initFactorsRhs column, which already carries the forward's −∂F/∂p sign (it is what solveTransposed
+        // maps to the state sensitivity dx/dp), so this dot product is the exact transpose of the forward
+        // calculateSensi — no extra sign.
+        double[] thetaBar = new double[factorGroups.getList().size()];
+        for (var group : factorGroups.getList()) {
+            int col = group.getIndex();
+            double dot = 0.0;
+            for (int row = 0; row < equationCount; row++) {
+                dot += parameterRhs.get(row, col) * lambda[row];
+            }
+            double thetaG = dot;
+            for (var factor : group.getFactors()) {
+                Double yBar = cotangents.get(factor);
+                if (yBar != null && yBar != 0.0) {
+                    thetaG += yBar * getFunctionBaseValue(factor) * computeParameterDirectPartial(factor);
+                }
+            }
+            // divide by the variable's per-unit base to finish the unscale (see the x̄ scaling above): θ̄ then
+            // equals the forward's unscaled Sᵀ·ȳ in physical units, per variable.
+            thetaBar[col] = thetaG / getVariableBaseValue(group.getFactors().get(0));
+        }
+        return thetaBar;
+    }
+
+    /**
+     * Key for the {@code functionCotangentsById} map of {@link #runAdjoint}: a monitored function is a
+     * (functionType, functionId) pair, not just an id (a branch is monitored by several function types
+     * that share its id), so the cotangent must be keyed by both.
+     */
+    public static String functionCotangentKey(SensitivityFunctionType functionType, String functionId) {
+        return functionType.name() + ' ' + functionId;
+    }
+
+    /**
+     * Reverse-mode / VJP entry point — <b>the</b> adjoint API, and the only one: exactly one public entry
+     * per direction, this being the mirror of {@link #analyse} on the forward side. There is deliberately
+     * no factor-list overload to choose from, because the choice was the problem: assembling the O(F+V)
+     * set by hand depends on internals of this class (a variable with no factor gets no group from
+     * {@code createFactorGroups}, hence no θ̄ entry, hence a silent zero downstream), and getting it wrong
+     * returns a plausible gradient rather than an error — which is why {@link #buildAdjointFactors} owns
+     * that construction.
+     *
+     * <p>The caller passes its natural per-function-type {@link AdjointBlock}s (monitored functions +
+     * already type-resolved variables) and the cotangents beside them; OpenLoadFlow owns the factor-set
+     * construction and the pipeline.</p>
+     *
+     * <p>Reuses the AC load flow retained in the network cache ({@code networkCacheEnabled}): a cached AC
+     * load flow must have run on {@code network} first. Instead of materialising the sensitivity matrix
+     * {@code S}, it contracts an output cotangent to return {@code θ̄ = Sᵀ·ȳ}.</p>
+     *
+     * <p>The whole public adjoint surface is this method, {@link AdjointBlock} / {@link AdjointVariable}
+     * to shape the request, and {@link #functionCotangentKey} to key the cotangent map.</p>
+     *
+     * @param blocks                 per-function-type monitored functions + the variables to differentiate.
+     *                               Function and variable ids are resolved internally, so the cotangents
+     *                               and the returned map stay keyed by the ids the caller passed here.
+     * @param functionCotangentsById dL/dfunction keyed by {@link #functionCotangentKey}; the caller keeps
+     *                               this build since it depends on the caller's matrix column layout.
+     * @return dL/dvariable, keyed by variable id.
+     */
+    public Map<String, Double> runAdjoint(Network network, String workingVariantId,
+                                          List<SensitivityVariableSet> variableSets,
+                                          List<AdjointBlock> blocks,
+                                          Map<String, Double> functionCotangentsById) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(functionCotangentsById);
+        List<SensitivityFactor> factors = buildAdjointFactors(network, blocks);
+        network.getVariantManager().setWorkingVariant(workingVariantId);
+
+        NetworkCache.Entry<NetworkCache.LfInput, NetworkCache.AcLfValue> entry =
+                NetworkCache.AC_LF_INSTANCE.findEntry(network)
+                        .orElseThrow(() -> new PowsyblException("No cached AC load flow for this network "
+                                + "— run a load flow with networkCacheEnabled=true before runAdjoint."));
+        NetworkCache.AcLfValue value = entry.getValues().get(0); // main synchronous network
+        AcLoadFlowContext context = value.getContext();
+        LfNetwork lfNetwork = value.getNetwork();
+        boolean breakers = context.getParameters().getNetworkParameters().isBreakers();
+
+        Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream()
+                .collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
+        // A LfSensitivityFactor's getFunctionId()/getVariableId() are the RESOLVED LF element ids (a
+        // BUS_VOLTAGE function id is resolved to the bus-view bus id, an SVC pilot variable to its pilot
+        // bus), NOT the caller's ids — only getIndex() links back to the declared factor. So match the
+        // cotangent (in) and the θ̄ map (out) through `factors` by index, using the ids the caller passed.
+        SensitivityFactorHolder<AcVariableType, AcEquationType> allFactorHolder =
+                readAndCheckFactors(network, variableSetsById, new SensitivityFactorModelReader(factors, network), lfNetwork, breakers);
+        List<LfSensitivityFactor<AcVariableType, AcEquationType>> validLfFactors = allFactorHolder.getAllFactors().stream()
+                .filter(f -> f.getStatus() == LfSensitivityFactor.Status.VALID)
+                .collect(Collectors.toList());
+        SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups = createFactorGroups(validLfFactors);
+
+        LoadFlowParameters lfParameters = parameters.getLoadFlowParameters();
+        Map<LfBus, Double> slackParticipationByBus;
+        if (lfParameters.isDistributedSlack()) {
+            List<ParticipatingElement> participatingElements = getParticipatingElements(
+                    lfNetwork.getBuses(), lfParameters.getBalanceType(), OpenLoadFlowParameters.get(lfParameters));
+            slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
+                    ParticipatingElement::getLfBus, e -> -e.getFactor(), Double::sum));
+        } else {
+            slackParticipationByBus = Collections.singletonMap(
+                    lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst(), -1d);
+        }
+
+        // Guard the FUNCTION side of the boundary, the mirror of an absent variable on the output side:
+        // a cotangent whose (functionType, functionId) key matches NO emitted factor is silently dropped
+        // below, so its contribution to x̄ vanishes and θ̄ is wrong with no error. That is precisely the
+        // shape of the resolved-vs-caller id bug this class carried — caught here, unambiguously, because
+        // every block function produces a factor carrying the CALLER's id (buildAdjointFactors), so an
+        // unmatched cotangent means the caller keyed a function that is in no block. The out-of-component
+        // "legitimate zero" case does NOT trip this: that function still has an emitted factor (only its
+        // validity is dropped later), so its key is present here.
+        Set<String> declaredFunctionKeys = new HashSet<>();
+        for (SensitivityFactor f : factors) {
+            declaredFunctionKeys.add(functionCotangentKey(f.getFunctionType(), f.getFunctionId()));
+        }
+        List<String> orphanCotangents = functionCotangentsById.entrySet().stream()
+                .filter(e -> e.getValue() != null && e.getValue() != 0.0)
+                .map(Map.Entry::getKey)
+                .filter(k -> !declaredFunctionKeys.contains(k))
+                .sorted()
+                .toList();
+        if (!orphanCotangents.isEmpty()) {
+            throw new PowsyblException("runAdjoint: " + orphanCotangents.size() + " cotangent(s) key no "
+                    + "monitored function in any block, so they would be silently dropped and θ̄ would omit "
+                    + "their contribution. Check the function ids match the block's (same id convention on "
+                    + "both sides): " + orphanCotangents);
+        }
+
+        // cotangent per factor = the cotangent of its monitored function, matched by the caller's
+        // (functionType, functionId): a branch can be monitored by several function types (current and
+        // active power, on both sides) that share the same functionId, so the key must include the type.
+        Map<LfSensitivityFactor<AcVariableType, AcEquationType>, Double> cotangents = new HashMap<>();
+        for (var factor : validLfFactors) {
+            SensitivityFactor declared = factors.get(factor.getIndex());
+            Double yBar = functionCotangentsById.get(functionCotangentKey(declared.getFunctionType(), declared.getFunctionId()));
+            if (yBar != null && yBar != 0.0) {
+                cotangents.put(factor, yBar);
+            }
+        }
+
+        double[] thetaBar = analyseAdjoint(context, factorGroups, cotangents, slackParticipationByBus);
+
+        Map<String, Double> gradientByVariableId = new LinkedHashMap<>();
+        for (var group : factorGroups.getList()) {
+            gradientByVariableId.put(factors.get(group.getFactors().get(0).getIndex()).getVariableId(), thetaBar[group.getIndex()]);
+        }
+        return gradientByVariableId;
+    }
+
+    /**
+     * One monitored-function-type block of a {@link #runAdjoint} request: the functions monitored under
+     * {@code functionType}, and the variables to differentiate against (each carrying its resolved
+     * {@link SensitivityVariableType} and whether it is a {@link SensitivityVariableSet} id).
+     *
+     * <p>Blocks may carry DIFFERENT variable lists: one request can serve several lever families at once,
+     * since they all contract the same cotangent and differ only in the per-variable contraction. Every
+     * block's variables get a θ̄ group (gated by {@code runAdjointGivesEveryVariableSetItsOwnGradient}) —
+     * do not narrow that to the first block's, which silently zeroed every other family.</p>
+     */
+    public record AdjointBlock(SensitivityFunctionType functionType, List<String> functionIds,
+                               List<AdjointVariable> variables) {
+    }
+
+    /** A differentiation variable of an {@link AdjointBlock}: its id, resolved type, and set-ness. */
+    public record AdjointVariable(String id, SensitivityVariableType type, boolean variableSet) {
+    }
+
+    /**
+     * Build the O(functions + variables) reverse-mode factor set from the caller's {@link AdjointBlock}s —
+     * the minimal set that reproduces the full functions×variables cross product. Package-private rather
+     * than private so {@code AcSensitivityAnalysisAdjointTest} can assert the set it builds really is
+     * smaller than that cross product, whose θ̄ the equivalence gates check against the forward matrix.
+     * Not part of the API — the caller passes blocks, never factors.
+     * <ul>
+     *   <li>one factor per monitored function, paired with the first variable — feeds x̄ via the cotangent map;</li>
+     *   <li>the self-pair for a variable that is itself a monitored function — carries the direct term ∂f/∂p;</li>
+     *   <li>a group guarantee: any variable never appearing as a function still gets one factor (fixed
+     *       function, whose direct term is 0 for it) so it gets its own θ̄ group.</li>
+     * </ul>
+     * Deduplicated by (functionType, resolvedFunctionId, variableId). This is the construction that used
+     * to live in the pypowsybl caller; owning it here keeps it under the OLF equivalence gates.
+     */
+    static List<SensitivityFactor> buildAdjointFactors(Network network, List<AdjointBlock> blocks) {
+        // Reject an empty declaration rather than index into it. Each of these is a caller error with no
+        // meaningful answer — a VJP with no function has no cotangent to propagate, and one with no
+        // variable has no θ̄ to return — and the alternative to naming it is an IndexOutOfBoundsException
+        // thrown from the middle of this method (blocks.get(0) / functionIds().get(0) / variables().get(0)),
+        // which says nothing about which block was empty. An empty θ̄ returned quietly would be worse
+        // still: it reads exactly like "none of your levers can help".
+        if (blocks.isEmpty()) {
+            throw new PowsyblException("runAdjoint needs at least one AdjointBlock: with no monitored "
+                    + "function there is no cotangent to propagate and no gradient to return.");
+        }
+        for (AdjointBlock block : blocks) {
+            if (block.functionIds().isEmpty()) {
+                throw new PowsyblException("AdjointBlock for function type " + block.functionType()
+                        + " declares no monitored function; a block exists to say which functions to "
+                        + "differentiate, so an empty one cannot contribute to x̄ nor anchor a θ̄ group.");
+            }
+            if (block.variables().isEmpty()) {
+                throw new PowsyblException("AdjointBlock for function type " + block.functionType()
+                        + " declares no variable to differentiate against; θ̄ = Sᵀ·ȳ would be empty. "
+                        + "Skip the runAdjoint call instead when a lever family is empty.");
+            }
+        }
+
+        List<SensitivityFactor> factors = new ArrayList<>();
+        Set<String> emittedPairs = new HashSet<>();       // functionType|resolvedFunctionId|variableId
+        Set<String> variablesWithGroup = new HashSet<>();
+
+        for (AdjointBlock block : blocks) {
+            SensitivityFunctionType functionType = block.functionType();
+            Set<String> functionIdSet = new HashSet<>(block.functionIds());
+
+            // x̄: one factor per function, paired with the first variable (base case only — adjoint ignores contingencies)
+            AdjointVariable v0 = block.variables().get(0);
+            for (String functionId : block.functionIds()) {
+                addAdjointFactor(factors, emittedPairs, network, functionType, functionId, v0);
+            }
+            variablesWithGroup.add(v0.id());
+
+            // self-pair (direct term): a variable that is itself a monitored function in this block
+            for (AdjointVariable v : block.variables()) {
+                if (functionIdSet.contains(v.id())) {
+                    addAdjointFactor(factors, emittedPairs, network, functionType, v.id(), v);
+                    variablesWithGroup.add(v.id());
+                }
+            }
+        }
+
+        // group guarantee: every variable (across all blocks) needs a θ̄ group; give the ungrouped ones one
+        // factor with a fixed function whose direct term is 0 for them (safe — see the OLF test).
+        AdjointBlock b0 = blocks.get(0);
+        SensitivityFunctionType ft0 = b0.functionType();
+        String f0 = b0.functionIds().get(0);
+        for (AdjointBlock block : blocks) {
+            for (AdjointVariable v : block.variables()) {
+                if (variablesWithGroup.add(v.id())) {
+                    addAdjointFactor(factors, emittedPairs, network, ft0, f0, v);
+                }
+            }
+        }
+        return factors;
+    }
+
+    private static void addAdjointFactor(List<SensitivityFactor> factors, Set<String> emittedPairs, Network network,
+                                         SensitivityFunctionType functionType, String functionId, AdjointVariable v) {
+        // Dedup on the RESOLVED id so two caller ids for the same LF element (e.g. two bus-breaker ids on one
+        // bus-view bus) collapse to a single factor, but keep the caller's ORIGINAL functionId on the emitted
+        // factor: runAdjoint reads the cotangent by declared.getFunctionId() (see the id note there), so a
+        // resolved id here would miss the caller's cotangent key and return a silent zero θ̄ (a BUS_VOLTAGE
+        // function, whose bus-breaker id resolves to a different bus-view id, hit exactly this).
+        String resolvedFunctionId = SensitivityFactor.resolveBusId(functionId, functionType, network);
+        if (emittedPairs.add(functionType.name() + '|' + resolvedFunctionId + '|' + v.id())) {
+            factors.add(new SensitivityFactor(functionType, functionId, v.type(), v.id(),
+                    v.variableSet(), ContingencyContext.none()));
         }
     }
 

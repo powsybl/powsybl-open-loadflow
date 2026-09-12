@@ -249,6 +249,36 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             runParameters.getReportNode()), runParameters.getComputationManager().getExecutor());
     }
 
+    /**
+     * Reverse-mode (adjoint / VJP) sensitivity — the dual of {@link #run}: given output cotangents
+     * {@code ȳ} over the declared functions, returns {@code θ̄ = Sᵀ·ȳ} keyed by variable id, WITHOUT
+     * materialising the sensitivity matrix {@code S}. AC only. Reuses the AC load flow retained in the
+     * network cache ({@code networkCacheEnabled}): a plain cached {@code run_ac} must have run on
+     * {@code network} first. See {@link AcSensitivityAnalysis#runAdjoint}.
+     *
+     * @param blocks                 per-function-type monitored functions + the variables to differentiate
+     *                               (see {@link AcSensitivityAnalysis.AdjointBlock}) — the structured
+     *                               declaration replacing the SPI {@code List<SensitivityFactor>}.
+     * @param functionCotangentsById dL/dfunction, keyed by {@link AcSensitivityAnalysis#functionCotangentKey}.
+     * @return dL/dvariable, keyed by variable id.
+     */
+    public Map<String, Double> runAdjoint(Network network,
+                                          String workingVariantId,
+                                          List<AcSensitivityAnalysis.AdjointBlock> blocks,
+                                          Map<String, Double> functionCotangentsById,
+                                          List<SensitivityVariableSet> variableSets,
+                                          SensitivityAnalysisParameters sensitivityAnalysisParameters) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(blocks);
+        Objects.requireNonNull(functionCotangentsById);
+        Objects.requireNonNull(sensitivityAnalysisParameters);
+        if (sensitivityAnalysisParameters.getLoadFlowParameters().isDc()) {
+            throw new PowsyblException("Adjoint (VJP) sensitivity is only supported in AC");
+        }
+        AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
+        return analysis.runAdjoint(network, workingVariantId, variableSets, blocks, functionCotangentsById);
+    }
+
     public record ReplayResult<T extends SensitivityResultWriter>(T resultWriter, List<SensitivityFactor> factors, List<Contingency> contingencies) {
     }
 

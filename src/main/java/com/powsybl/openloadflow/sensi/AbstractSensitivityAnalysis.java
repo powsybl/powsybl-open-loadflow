@@ -1472,7 +1472,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     /**
      * Base value for per-uniting, depending on the function type
      */
-    private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getFunctionBaseValue(LfSensitivityFactor<V, E> factor) {
+    protected static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getFunctionBaseValue(LfSensitivityFactor<V, E> factor) {
         return switch (factor.getFunctionType()) {
             case BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2, BRANCH_ACTIVE_POWER_3,
                     BRANCH_REACTIVE_POWER_1, BRANCH_REACTIVE_POWER_2, BRANCH_REACTIVE_POWER_3, BUS_REACTIVE_POWER
@@ -1494,7 +1494,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     /**
      * Base value for per-uniting, depending on the variable type
      */
-    private static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getVariableBaseValue(LfSensitivityFactor<V, E> factor) {
+    protected static <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity> double getVariableBaseValue(LfSensitivityFactor<V, E> factor) {
         switch (factor.getVariableType()) {
             case HVDC_LINE_ACTIVE_POWER, INJECTION_ACTIVE_POWER, INJECTION_REACTIVE_POWER:
                 return PerUnit.SB;
