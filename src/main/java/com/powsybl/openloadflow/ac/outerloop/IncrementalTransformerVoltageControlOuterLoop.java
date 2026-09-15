@@ -167,7 +167,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     private List<LfBranch> adjustWithSeveralControllers(List<LfBranch> controllerBranches, LfBus controlledBus, IncrementalContextData contextData,
                                                  SensitivityContext sensitivityContext, double diffV, double halfTargetDeadband,
                                                  List<String> controlledBusesWithAllItsControllersToLimit) {
-        List<LfBranch> adjustedControllers = new ArrayList<>();
+        Set<LfBranch> adjustedControllers = new HashSet<>();
 
         List<Integer> previousTapPositions = controllerBranches.stream()
                 .map(controllerBranch -> controllerBranch.getPiModel().getTapPosition())
@@ -220,7 +220,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             controlledBusesWithAllItsControllersToLimit.add(controlledBus.getId());
         }
 
-        return adjustedControllers;
+        return adjustedControllers.stream().sorted(Comparator.comparing(LfBranch::getId)).toList();
     }
 
     private static double getDiffV(TransformerVoltageControl voltageControl) {
@@ -244,7 +244,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         return outOfDeadband;
     }
 
-    private record AdjustedBus(String busId, List<String> controllerIds) {
+    private record AdjustedBusDetail(String busId, List<String> controllerIds) {
     }
 
     @Override
@@ -274,7 +274,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
         // for synthetics logs
-        List<AdjustedBus> controlledBusesAdjusted = new ArrayList<>();
+        List<AdjustedBusDetail> controlledBusesAdjusted = new ArrayList<>();
         List<String> controlledBusesWithAllItsControllersToLimit = new ArrayList<>();
 
         controlledBusesOutOfDeadband.forEach(controlledBus -> checkAndAdjustControlledBus(controlledBus, contextData, sensitivityContext,
@@ -298,13 +298,13 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         if (!controlledBusesAdjusted.isEmpty()) {
             LOGGER.info("{} controlled bus voltages have been adjusted by changing at least one tap",
                     controlledBusesAdjusted.size());
-            ReportNode summary = Reports.reportTransformerControlChangedTaps(Objects.requireNonNull(iterationReportNode), controlledBusesAdjusted.size());
-            if (LOGGER.isTraceEnabled()) {
-                controlledBusesAdjusted.stream()
-                        .flatMap(b -> b.controllerIds().stream())
-                        .distinct()
-                        .forEach(controllerId -> Reports.reportTransformerControlChangedTapsDetail(summary, controllerId));
-            }
+            List<String> controllersAdjusted = controlledBusesAdjusted.stream()
+                    .flatMap(b -> b.controllerIds().stream())
+                    .distinct()
+                    .toList();
+            ReportNode summary = Reports.reportTransformerControlChangedTaps(Objects.requireNonNull(iterationReportNode), controllersAdjusted.size());
+            controllersAdjusted.forEach(controllerId -> Reports.reportTransformerControlChangedTapsDetail(summary, controllerId));
+
         }
         if (!controlledBusesWithAllItsControllersToLimit.isEmpty()) {
             LOGGER.info("{} controlled buses have all its controllers to a tap limit: {}",
@@ -316,7 +316,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     private void checkAndAdjustControlledBus(LfBus controlledBus, IncrementalContextData contextData, SensitivityContext sensitivityContext,
-                                             List<AdjustedBus> controlledBusesAdjusted, List<String> controlledBusesWithAllItsControllersToLimit,
+                                             List<AdjustedBusDetail> controlledBusesAdjusted, List<String> controlledBusesWithAllItsControllersToLimit,
                                              MutableObject<OuterLoopStatus> status) {
         TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
         double diffV = getDiffV(voltageControl);
@@ -333,7 +333,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                     adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV, halfTargetDeadband, controlledBusesWithAllItsControllersToLimit));
         }
         if (!adjustedControllers.isEmpty()) {
-            controlledBusesAdjusted.add(new AdjustedBus(controlledBus.getId(),
+            controlledBusesAdjusted.add(new AdjustedBusDetail(controlledBus.getId(),
                     adjustedControllers.stream().map(LfElement::getId).toList()));
             status.setValue(OuterLoopStatus.UNSTABLE);
         }
