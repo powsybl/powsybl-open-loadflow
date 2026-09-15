@@ -158,6 +158,9 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         }).isPresent();
     }
 
+    private record AdjustedBranchDetail(String controlledBranchId, String controllerBranchId) {
+    }
+
     @Override
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
@@ -178,7 +181,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
         // for synthetics logs
-        List<String> controlledBranchesAdjusted = new ArrayList<>();
+        List<AdjustedBranchDetail> adjustedBranches = new ArrayList<>();
         List<String> controlledBranchesWithAllItsControllersToLimit = new ArrayList<>();
 
         controlledBranchesOutOfDeadband.forEach(controlledBranch -> {
@@ -190,12 +193,12 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
             // TODO : add case with more controllers
             boolean adjusted = adjustWithController(controller, controlledBranch, controlledSide, contextData, diffQ, sensitivityContext, controlledBranchesWithAllItsControllersToLimit);
             if (adjusted) {
-                controlledBranchesAdjusted.add(controlledBranch.getId());
+                adjustedBranches.add(new AdjustedBranchDetail(controlledBranch.getId(), controller.getId()));
                 status.setValue(OuterLoopStatus.UNSTABLE);
             }
         });
 
-        ReportNode iterationReportNode = !controlledBranchesOutOfDeadband.isEmpty() || !controlledBranchesAdjusted.isEmpty() || !controlledBranchesWithAllItsControllersToLimit.isEmpty() ?
+        ReportNode iterationReportNode = !controlledBranchesOutOfDeadband.isEmpty() || !adjustedBranches.isEmpty() || !controlledBranchesWithAllItsControllersToLimit.isEmpty() ?
                 Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1) : null;
 
         if (!controlledBranchesOutOfDeadband.isEmpty()) {
@@ -210,10 +213,16 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
             }
             Reports.reportTransformerControlBranchesOutsideDeadband(Objects.requireNonNull(iterationReportNode), controlledBranchesOutOfDeadband.size());
         }
-        if (!controlledBranchesAdjusted.isEmpty()) {
+        if (!adjustedBranches.isEmpty()) {
+            List<String> ajustedControllers = adjustedBranches.stream()
+                    .map(bd -> bd.controllerBranchId())
+                    .distinct()
+                    .toList();
             LOGGER.info("{} controlled branch reactive power have been adjusted by changing at least one tap",
-                    controlledBranchesAdjusted.size());
-            Reports.reportTransformerControlChangedTaps(Objects.requireNonNull(iterationReportNode), controlledBranchesAdjusted.size());
+                    ajustedControllers.size());
+            ReportNode summary = Reports.reportTransformerControlChangedTaps(Objects.requireNonNull(iterationReportNode), ajustedControllers.size());
+            ajustedControllers.forEach(controllerId -> Reports.reportTransformerControlChangedTapsDetail(summary, controllerId));
+
         }
         if (!controlledBranchesWithAllItsControllersToLimit.isEmpty()) {
             LOGGER.info("{} controlled branches have all its controllers to a tap limit: {}",

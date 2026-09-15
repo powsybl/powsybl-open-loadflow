@@ -172,7 +172,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
                          + Outer loop IncrementalTransformerReactivePowerControl
                             + Outer loop iteration 2
                                1 reactive power-controlled branches are outside of their target deadbands
-                               1 transformers changed tap position
+                               + 1 transformers changed tap position
+                                  Transformer l34 changed tap position
                                1 transformers reached their tap maximum position
                             + Outer loop iteration 3
                                1 reactive power-controlled branches are outside of their target deadbands
