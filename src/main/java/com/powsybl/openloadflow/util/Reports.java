@@ -644,11 +644,19 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportTransformerControlChangedTaps(ReportNode reportNode, int numTransformerControlAdjusted) {
-        reportNode.newReportNode()
+    public static ReportNode reportTransformerControlChangedTaps(ReportNode reportNode, int numTransformerControlAdjusted) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.transformerControlChangedTaps")
                 .withUntypedValue("numTransformerControlAdjusted", numTransformerControlAdjusted)
                 .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportTransformerControlChangedTapsDetail(ReportNode reportNode, String transformerId) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.transformerControlChangedTapsDetail")
+                .withUntypedValue("transformerId", transformerId)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }
 
