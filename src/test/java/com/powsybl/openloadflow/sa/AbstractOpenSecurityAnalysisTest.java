@@ -35,7 +35,7 @@ import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisReport;
 import com.powsybl.security.SecurityAnalysisResult;
 import com.powsybl.security.SecurityAnalysisRunParameters;
-import com.powsybl.security.limitreduction.LimitReduction;
+import com.powsybl.security.limitscaling.LimitScaling;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -158,14 +158,14 @@ public abstract class AbstractOpenSecurityAnalysisTest {
     }
 
     protected SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
-                                                         List<LimitReduction> limitReductions, SecurityAnalysisParameters saParameters) {
+                                                         List<LimitScaling> limitScalings, SecurityAnalysisParameters saParameters) {
         ContingenciesProvider provider = n -> contingencies;
         SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
                 .setFilter(new LimitViolationFilter())
                 .setComputationManager(computationManager)
                 .setSecurityAnalysisParameters(saParameters)
                 .setMonitors(monitors)
-                .setLimitReductions(limitReductions);
+                .setLimitScalings(limitScalings);
         SecurityAnalysisReport report = securityAnalysisProvider.run(network,
                         network.getVariantManager().getWorkingVariantId(),
                         provider,
