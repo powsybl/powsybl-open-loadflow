@@ -11,11 +11,10 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfElement;
-import gnu.trove.impl.Constants;
-import gnu.trove.list.array.TByteArrayList;
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.map.TIntIntMap;
-import gnu.trove.map.hash.TIntIntHashMap;
+import it.unimi.dsi.fastutil.Hash;
+import it.unimi.dsi.fastutil.bytes.ByteArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -56,21 +55,21 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     private final Evaluator<V> evaluator;
 
     // for each equation element number, term numbers
-    private TIntArrayList[] termNumsByEquationElementNum;
-    private TIntArrayList termNumsConcatenated;
+    private IntArrayList[] termNumsByEquationElementNum;
+    private IntArrayList termNumsConcatenated;
     private int[] termNumsConcatenatedStartIndices;
 
     // for each term element number, corresponding term number
-    private TIntIntMap termNumByTermElementNum = new TIntIntHashMap(3, Constants.DEFAULT_LOAD_FACTOR, -1, -1);
+    private Int2IntOpenHashMap termNumByTermElementNum = new Int2IntOpenHashMap(3, Hash.DEFAULT_LOAD_FACTOR);
 
     // for each term number, corresponding equation element number
-    private final TIntArrayList equationElementNums = new TIntArrayList();
+    private final IntArrayList equationElementNums = new IntArrayList();
 
     // for each term number, corresponding term element number
-    private final TIntArrayList termElementNums = new TIntArrayList();
+    private final IntArrayList termElementNums = new IntArrayList();
 
     // for each term number, activity status
-    private final TByteArrayList termActive = new TByteArrayList();
+    private final ByteArrayList termActive = new ByteArrayList();
 
     // for each term number, list of derivative variables
     private final List<List<Derivative<V>>> termDerivatives = new ArrayList<>();
@@ -78,6 +77,9 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     public EquationTermArray(ElementType elementType, Evaluator<V> evaluator) {
         this.elementType = Objects.requireNonNull(elementType);
         this.evaluator = Objects.requireNonNull(evaluator);
+
+        // Set the default return value for termNumByTermElementNum
+        termNumByTermElementNum.defaultReturnValue(-1);
     }
 
     public ElementType getElementType() {
@@ -94,13 +96,13 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         }
         this.equationArray = Objects.requireNonNull(equationArray);
         termNumsConcatenatedStartIndices = new int[equationArray.getElementCount() + 1];
-        termNumsByEquationElementNum = new TIntArrayList[equationArray.getElementCount()];
+        termNumsByEquationElementNum = new IntArrayList[equationArray.getElementCount()];
         for (int elementNum = 0; elementNum < equationArray.getElementCount(); elementNum++) {
-            termNumsByEquationElementNum[elementNum] = new TIntArrayList(10);
+            termNumsByEquationElementNum[elementNum] = new IntArrayList(10);
         }
     }
 
-    public TIntArrayList getTermNumsForEquationElementNum(int equationElementNum) {
+    public IntArrayList getTermNumsForEquationElementNum(int equationElementNum) {
         return termNumsByEquationElementNum[equationElementNum];
     }
 
@@ -108,20 +110,20 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         return termNumsConcatenatedStartIndices;
     }
 
-    public TIntArrayList getTermNumsConcatenated() {
+    public IntArrayList getTermNumsConcatenated() {
         return termNumsConcatenated;
     }
 
     public boolean isTermActive(int termNum) {
-        return termActive.getQuick(termNum) == 1;
+        return termActive.getByte(termNum) == 1;
     }
 
     public int getEquationElementNum(int termNum) {
-        return equationElementNums.getQuick(termNum);
+        return equationElementNums.getInt(termNum);
     }
 
     public int getTermElementNum(int termNum) {
-        return termElementNums.getQuick(termNum);
+        return termElementNums.getInt(termNum);
     }
 
     public List<Derivative<V>> getTermDerivatives(int termNum) {
@@ -148,7 +150,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     }
 
     public void compress() {
-        termNumsConcatenated = new TIntArrayList(equationArray.getElementCount() * 2);
+        termNumsConcatenated = new IntArrayList(equationArray.getElementCount() * 2);
         for (int i = 0; i < termNumsByEquationElementNum.length; i++) {
             int iStart = termNumsConcatenated.size();
             termNumsConcatenated.addAll(termNumsByEquationElementNum[i]);
@@ -156,7 +158,8 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         }
         termNumsConcatenatedStartIndices[termNumsByEquationElementNum.length] = termNumsConcatenated.size();
 
-        this.termNumByTermElementNum = new TIntIntHashMap(this.termNumByTermElementNum);
+        this.termNumByTermElementNum = new Int2IntOpenHashMap(this.termNumByTermElementNum);
+        termNumByTermElementNum.defaultReturnValue(-1);
     }
 
     public double[] eval() {
@@ -180,7 +183,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         if (termNum == -1) {
             throw new PowsyblException("Array term element num not found");
         }
-        return termActive.getQuick(termNum) == 1;
+        return termActive.getByte(termNum) == 1;
     }
 
     public void setTermElementActive(int termElementNum, boolean active) {
@@ -188,9 +191,9 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         if (termNum == -1) {
             throw new PowsyblException("Array term element num not found");
         }
-        boolean oldActive = termActive.getQuick(termNum) == 1;
+        boolean oldActive = termActive.getByte(termNum) == 1;
         if (active != oldActive) {
-            termActive.setQuick(termNum, (byte) (active ? 1 : 0));
+            termActive.set(termNum, (byte) (active ? 1 : 0));
             equationArray.getEquationSystem().notifyEquationTermArrayChange(this, termNum, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED : EquationTermEventType.EQUATION_TERM_DEACTIVATED);
         }
     }
@@ -298,12 +301,12 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         int iEnd = termNumsConcatenatedStartIndices[elementNum + 1];
         boolean isFirst = first;
         for (int i = iStart; i < iEnd; i++) {
-            int termNum = termNumsConcatenated.getQuick(i);
-            if (writeInactiveTerms || termActive.getQuick(termNum) == 1) {
+            int termNum = termNumsConcatenated.getInt(i);
+            if (writeInactiveTerms || termActive.getByte(termNum) == 1) {
                 if (!isFirst) {
                     writer.append(" + ");
                 }
-                if (termActive.getQuick(termNum) == 0) {
+                if (termActive.getByte(termNum) == 0) {
                     writer.write("[ ");
                 }
                 writer.append(evaluator.getName());
@@ -316,7 +319,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
                     }
                 }
                 writer.write(")");
-                if (termActive.getQuick(termNum) == 0) {
+                if (termActive.getByte(termNum) == 0) {
                     writer.write(" ]");
                 }
                 isFirst = false;
