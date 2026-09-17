@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.LoadingLimits;
 import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -331,6 +332,25 @@ public interface LfBranch extends LfElement {
     List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
                                           boolean createExtension, Map<String, LfBranchResults> zeroImpedanceFlows,
                                           LoadFlowModel loadFlowModel);
+
+    /**
+     * Builds the branch result to report when this branch is disabled (by a contingency, or already at N-state):
+     * P1/Q1/I1/P2/Q2/I2/flowTransfer are all NaN.
+     */
+    default List<BranchResult> createDisabledBranchResult(boolean createExtension) {
+        BranchResult result = new BranchResult(getId(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN);
+        if (createExtension) {
+            LfBus bus1 = getBus1();
+            LfBus bus2 = getBus2();
+            PiModel piModel = getPiModel();
+            result.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
+                    bus1 != null ? bus1.getV() * bus1.getNominalV() : Double.NaN,
+                    bus2 != null ? bus2.getV() * bus2.getNominalV() : Double.NaN,
+                    bus1 != null ? Math.toDegrees(bus1.getAngle()) : Double.NaN,
+                    bus2 != null ? Math.toDegrees(bus2.getAngle()) : Double.NaN));
+        }
+        return List.of(result);
+    }
 
     double computeApparentPower1();
 
