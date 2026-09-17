@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.LoadingLimits;
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.*;
@@ -23,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -57,6 +59,16 @@ public class LfSwitch extends AbstractLfBranch {
     @Override
     public boolean hasPhaseControllerCapability() {
         return false;
+    }
+
+    @Override
+    public Optional<PhaseTapChanger> getPhaseTapChanger() {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<String> getThreeWindingsTransformerId() {
+        return Optional.empty();
     }
 
     @Override

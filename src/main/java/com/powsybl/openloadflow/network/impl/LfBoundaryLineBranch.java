@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sa.LimitReductionManager;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -69,6 +70,16 @@ public class LfBoundaryLineBranch extends AbstractImpedantLfBranch {
     @Override
     public boolean hasPhaseControllerCapability() {
         return false;
+    }
+
+    @Override
+    public Optional<PhaseTapChanger> getPhaseTapChanger() {
+        return Optional.empty();
+    }
+
+    @Override
+    public Optional<String> getThreeWindingsTransformerId() {
+        return Optional.empty();
     }
 
     @Override

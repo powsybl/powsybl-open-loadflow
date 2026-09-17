@@ -7,23 +7,25 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfStarBus;
+import com.powsybl.openloadflow.network.impl.Transformers;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
+import com.powsybl.openloadflow.sa.extensions.PhaseTapChangerResult;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResult;
+import com.powsybl.security.results.MovedPhaseShifterResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
+import org.jgrapht.util.ArrayUnenforcedSet;
 
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_1;
-import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_2;
-import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_3;
+import static com.powsybl.openloadflow.network.LfBranch.BranchType.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -46,6 +48,10 @@ public abstract class AbstractNetworkResult {
 
     public record StateMonitorIndexes(StateMonitorIndex monitorIndex, StateMonitorIndex zeroImpedanceMonitorIndex) {
     }
+
+    protected List<PhaseTapChangerResult> phaseTapChangerResults = new ArrayList<>();
+
+    protected final List<MovedPhaseShifterResult> movedPhaseShifterResults = new ArrayList<>();
 
     protected AbstractNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
         this.network = Objects.requireNonNull(network);
@@ -101,8 +107,9 @@ public abstract class AbstractNetworkResult {
     private boolean isContainingAMonitoredBranch(LfZeroImpedanceNetwork zeroImpedanceNetwork, StateMonitor monitor) {
         for (LfBranch lfBranch : zeroImpedanceNetwork.getGraph().edgeSet()) {
             if (isATransfo3WBranch(lfBranch)) {
-                LfLegBranch lfLegBranch = (LfLegBranch) lfBranch;
-                if (monitor.getThreeWindingsTransformerIds().contains(lfLegBranch.getTwt().getId())) {
+                if (lfBranch.getThreeWindingsTransformerId()
+                        .filter(monitor.getThreeWindingsTransformerIds()::contains)
+                        .isPresent()) {
                     return true;
                 }
             } else {
@@ -128,5 +135,36 @@ public abstract class AbstractNetworkResult {
             }
         }
         return zeroImpedanceFlows;
+    }
+
+    private Optional<PhaseTapChanger> extractPhaseTapChanger(LfBranch branch) {
+        return branch.getPhaseTapChanger();
+    }
+
+    protected void storeInitialPhaseTapChangerInfo() {
+        phaseTapChangerResults = network.getBranches().stream()
+                    .filter(b -> !b.isDisabled())
+                    .filter(LfBranch::hasPhaseControllerCapability)
+                    .map(b -> new PhaseTapChangerResult(b.getPhaseTapChanger().orElseThrow(),
+                                b.getMainOriginalId(),
+                                b.getOriginalSide().orElse(null),
+                                b.getPiModel(),
+                                b.getPhaseTapChanger().orElseThrow().getTapPosition())
+                    )
+                    .toList();
+    }
+
+    protected void updateMovedPhaseShifters() {
+        for (PhaseTapChangerResult ptcResult : phaseTapChangerResults) {
+            int newTapPosition = Transformers.findTapPosition(ptcResult.getPhaseTapChanger(), Math.toDegrees(ptcResult.getPiModel().getA1()));
+            if (ptcResult.getCurrentTap() != newTapPosition) {
+                movedPhaseShifterResults.add(new MovedPhaseShifterResult(ptcResult.getTransformerId(), ptcResult.getSide().orElse(null), ptcResult.getCurrentTap(), newTapPosition));
+                ptcResult.setCurrentTap(newTapPosition);
+            }
+        }
+    }
+
+    public List<MovedPhaseShifterResult> getMovedPhaseShifterResults() {
+        return movedPhaseShifterResults;
     }
 }
