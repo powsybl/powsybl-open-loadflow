@@ -244,9 +244,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         return outOfDeadband;
     }
 
-    private record AdjustedBusDetail(String busId, List<String> controllerIds) {
-    }
-
     @Override
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
@@ -277,8 +274,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         List<AdjustedBusDetail> controlledBusesAdjusted = new ArrayList<>();
         List<String> controlledBusesWithAllItsControllersToLimit = new ArrayList<>();
 
-        controlledBusesOutOfDeadband.forEach(controlledBus -> checkAndAdjustControlledBus(controlledBus, contextData, sensitivityContext,
-                controlledBusesAdjusted, controlledBusesWithAllItsControllersToLimit, status));
+        controlledBusesOutOfDeadband.forEach(controlledBus -> checkAndAdjustControlledBus(controlledBus, contextData,
+                sensitivityContext, controlledBusesAdjusted, controlledBusesWithAllItsControllersToLimit, status));
 
         ReportNode iterationReportNode = !controlledBusesOutOfDeadband.isEmpty() || !controlledBusesAdjusted.isEmpty() || !controlledBusesWithAllItsControllersToLimit.isEmpty() ?
                 Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1) : null;
@@ -303,7 +300,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                     .distinct()
                     .toList();
             ReportNode summary = Reports.reportTransformerControlChangedTaps(Objects.requireNonNull(iterationReportNode), controllersAdjusted.size());
-            controllersAdjusted.forEach(controllerId -> Reports.reportTransformerControlChangedTapsDetail(summary, controllerId));
+            controllersAdjusted
+                    .forEach(controllerId -> Reports.reportTransformerControlChangedTapsDetail(summary, controllerId));
 
         }
         if (!controlledBusesWithAllItsControllersToLimit.isEmpty()) {
@@ -338,5 +336,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                     adjustedControllers.stream().map(LfElement::getId).toList()));
             status.setValue(OuterLoopStatus.UNSTABLE);
         }
+    }
+
+    private record AdjustedBusDetail(String busId, List<String> controllerIds) {
     }
 }
