@@ -19,6 +19,7 @@ import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResult;
 import com.powsybl.security.results.MovedPhaseShifterResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
+import org.jgrapht.util.ArrayUnenforcedSet;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -50,7 +51,7 @@ public abstract class AbstractNetworkResult {
 
     protected List<PhaseTapChangerResult> phaseTapChangerResults = new ArrayList<>();
 
-    protected final Map<String, MovedPhaseShifterResult> movedPhaseShifterResults = new HashMap<>();
+    protected final List<MovedPhaseShifterResult> movedPhaseShifterResults = new ArrayList<>();
 
     protected AbstractNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
         this.network = Objects.requireNonNull(network);
@@ -146,6 +147,7 @@ public abstract class AbstractNetworkResult {
                     .filter(LfBranch::hasPhaseControllerCapability)
                     .map(b -> new PhaseTapChangerResult(b.getPhaseTapChanger().orElseThrow(),
                                 b.getMainOriginalId(),
+                                b.getOriginalSide().orElse(null),
                                 b.getPiModel(),
                                 b.getPhaseTapChanger().orElseThrow().getTapPosition())
                     )
@@ -156,13 +158,13 @@ public abstract class AbstractNetworkResult {
         for (PhaseTapChangerResult ptcResult : phaseTapChangerResults) {
             int newTapPosition = Transformers.findTapPosition(ptcResult.getPhaseTapChanger(), Math.toDegrees(ptcResult.getPiModel().getA1()));
             if (ptcResult.getCurrentTap() != newTapPosition) {
-                movedPhaseShifterResults.put(ptcResult.getTransformerId(), new MovedPhaseShifterResult(ptcResult.getTransformerId(), ptcResult.getCurrentTap(), newTapPosition));
+                movedPhaseShifterResults.add(new MovedPhaseShifterResult(ptcResult.getTransformerId(), ptcResult.getSide().orElse(null), ptcResult.getCurrentTap(), newTapPosition));
                 ptcResult.setCurrentTap(newTapPosition);
             }
         }
     }
 
-    public Map<String, MovedPhaseShifterResult> getMovedPhaseShifterResults() {
+    public List<MovedPhaseShifterResult> getMovedPhaseShifterResults() {
         return movedPhaseShifterResults;
     }
 }

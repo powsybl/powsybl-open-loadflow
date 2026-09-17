@@ -1,7 +1,10 @@
 package com.powsybl.openloadflow.sa.extensions;
 
 import com.powsybl.iidm.network.PhaseTapChanger;
+import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.openloadflow.network.PiModel;
+
+import java.util.Optional;
 
 public class PhaseTapChangerResult {
 
@@ -11,10 +14,13 @@ public class PhaseTapChangerResult {
 
     private final String transformerId;
 
+    private final ThreeSides side;
+
     private PiModel piModel;
 
-    public PhaseTapChangerResult(PhaseTapChanger phaseTapChanger, String transformerId, PiModel piModel, int currentTap) {
+    public PhaseTapChangerResult(PhaseTapChanger phaseTapChanger, String transformerId, ThreeSides side, PiModel piModel, int currentTap) {
         this.phaseTapChanger = phaseTapChanger;
+        this.side = side;
         this.currentTap = currentTap;
         this.transformerId = transformerId;
         this.piModel = piModel;
@@ -42,5 +48,9 @@ public class PhaseTapChangerResult {
 
     public String getTransformerId() {
         return transformerId;
+    }
+
+    public Optional<ThreeSides> getSide() {
+        return Optional.ofNullable(side);
     }
 }

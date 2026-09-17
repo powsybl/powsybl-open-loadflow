@@ -1577,6 +1577,10 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertSame(PostContingencyComputationStatus.CONVERGED, l1ContingencyResult.getStatus());
         assertEquals(100.3689, l1ContingencyResult.getNetworkResult().getBranchResult("PS1").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-100.1844, l1ContingencyResult.getNetworkResult().getBranchResult("PS1").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1, l1ContingencyResult.getPhaseShifterResults().size());
+        MovedPhaseShifterResult movedPhaseShifterResult = l1ContingencyResult.getPhaseShifterResults().stream().findFirst().orElseThrow();
+        assertEquals("PS1", movedPhaseShifterResult.transformerId());
+        assertNull(movedPhaseShifterResult.side());
     }
 
     @Test
@@ -3020,6 +3024,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
         assertEquals(100.369, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("PS1").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(100.184, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1, result.getPostContingencyResults().get(0).getPhaseShifterResults().size());
+        MovedPhaseShifterResult movedPhaseShifterResult = result.getPostContingencyResults().get(0).getPhaseShifterResults().stream().findFirst().orElseThrow();
+        assertEquals("PS1", movedPhaseShifterResult.transformerId());
+        assertNull(movedPhaseShifterResult.side());
+        assertEquals(2, movedPhaseShifterResult.initialTap());
+        assertEquals(0, movedPhaseShifterResult.newTap());
     }
 
     @ParameterizedTest
@@ -5248,7 +5258,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters().setPhaseShifterRegulationOn(true);
         List<Contingency> contingencies = List.of(Contingency.line("L1"));
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), loadFlowParameters);
-        Map<String, MovedPhaseShifterResult> movedPhaseShifters = result.getPostContingencyResults().getFirst().getPhaseShifterResults();
+        Collection<MovedPhaseShifterResult> movedPhaseShifters = result.getPostContingencyResults().getFirst().getPhaseShifterResults();
         assertFalse(movedPhaseShifters.isEmpty());
     }
 }
