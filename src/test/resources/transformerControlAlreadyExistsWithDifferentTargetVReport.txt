@@ -105,8 +105,8 @@
             + Outer loop iteration 2
                1 voltage-controlled buses are outside of their target deadbands
                + 2 transformers changed tap position
-                  Transformer T2wT changed tap position
-                  Transformer T2wT2 changed tap position
+                  Transformer T2wT changed tap position from 0 to 2
+                  Transformer T2wT2 changed tap position from 0 to 1
          + Newton-Raphson on Network CC0 SC0
             Newton-Raphson of outer loop iteration 2 of type IncrementalTransformerVoltageControl
             + Initial mismatch

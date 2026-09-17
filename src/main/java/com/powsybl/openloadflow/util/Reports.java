@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.util;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
+import com.powsybl.openloadflow.ac.outerloop.IncrementalChangeDetails;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
@@ -584,16 +585,16 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportCurrentLimiterPstsChangedTaps(ReportNode reportNode, int numOfCurrentLimiterPstsThatChangedTap) {
-        reportNode.newReportNode()
+    public static ReportNode reportCurrentLimiterPstsChangedTaps(ReportNode reportNode, int numOfCurrentLimiterPstsThatChangedTap) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.currentLimiterPstsChangedTaps")
                 .withUntypedValue("numOfCurrentLimiterPstsThatChangedTap", numOfCurrentLimiterPstsThatChangedTap)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
 
-    public static void reportActivePowerControlPstsChangedTaps(ReportNode reportNode, int numOfActivePowerControlPstsThatChangedTap) {
-        reportNode.newReportNode()
+    public static ReportNode reportActivePowerControlPstsChangedTaps(ReportNode reportNode, int numOfActivePowerControlPstsThatChangedTap) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.activePowerControlPstsChangedTaps")
                 .withUntypedValue("numOfActivePowerControlPstsThatChangedTap", numOfActivePowerControlPstsThatChangedTap)
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -652,10 +653,12 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportTransformerControlChangedTapsDetail(ReportNode reportNode, String transformerId) {
+    public static void reportTransformerControlChangedTapsDetail(ReportNode reportNode, IncrementalChangeDetails changeDetails) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.transformerControlChangedTapsDetail")
-                .withUntypedValue("transformerId", transformerId)
+                .withUntypedValue("transformerId", changeDetails.elementId())
+                .withUntypedValue("oldTapPosition", changeDetails.oldPosition())
+                .withUntypedValue("newTapPosition", changeDetails.newPosition())
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }

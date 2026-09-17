@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.ac.outerloop.IncrementalChangeDetails;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -80,9 +81,10 @@ public class DcIncrementalPhaseControlOuterLoop
                     context.getLoadFlowContext().getEquationSystem(),
                     context.getLoadFlowContext().getJacobianMatrix());
 
-            if (checkActivePowerControlPhaseControls(sensitivityContext,
-                    contextData,
-                    activePowerControlPhaseControls) != 0) {
+            final List<IncrementalChangeDetails> activePowerControlPstsThatChangedTap = new ArrayList<>();
+            checkActivePowerControlPhaseControls(sensitivityContext, contextData,
+                    activePowerControlPhaseControls, activePowerControlPstsThatChangedTap);
+            if (!activePowerControlPstsThatChangedTap.isEmpty()) {
                 status = OuterLoopStatus.UNSTABLE;
             }
         }
