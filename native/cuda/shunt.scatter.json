@@ -1,0 +1,55 @@
+{
+  "family": "shunt",
+  "doc": "Scatter map: how each shunt output lands in OLF's fixed-pattern AC Jacobian. GENERATED — DO NOT EDIT. Regenerate with: python3 codegen/generate.py (see codegen/README.md).",
+  "endpoints": [
+    "bus",
+    "shunt"
+  ],
+  "residuals": [
+    {
+      "name": "p",
+      "equation": "BUS_TARGET_P",
+      "at": "bus"
+    },
+    {
+      "name": "q",
+      "equation": "BUS_TARGET_Q",
+      "at": "bus"
+    }
+  ],
+  "jacobian": [
+    {
+      "name": "dpdv",
+      "row": {
+        "equation": "BUS_TARGET_P",
+        "at": "bus"
+      },
+      "col": {
+        "variable": "BUS_V",
+        "at": "bus"
+      }
+    },
+    {
+      "name": "dqdv",
+      "row": {
+        "equation": "BUS_TARGET_Q",
+        "at": "bus"
+      },
+      "col": {
+        "variable": "BUS_V",
+        "at": "bus"
+      }
+    },
+    {
+      "name": "dqdb",
+      "row": {
+        "equation": "BUS_TARGET_Q",
+        "at": "bus"
+      },
+      "col": {
+        "variable": "SHUNT_B",
+        "at": "shunt"
+      }
+    }
+  ]
+}

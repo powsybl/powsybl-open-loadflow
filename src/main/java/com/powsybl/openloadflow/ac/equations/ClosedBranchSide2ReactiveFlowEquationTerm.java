@@ -16,8 +16,6 @@ import net.jafama.FastMath;
 
 import java.util.Objects;
 
-import static com.powsybl.openloadflow.network.PiModel.R2;
-
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -54,31 +52,31 @@ public class ClosedBranchSide2ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     public static double q2(double y, double cosKsi, double b2, double v1, double r1, double v2, double cosTheta) {
-        return R2 * v2 * (-b2 * R2 * v2 - y * r1 * v1 * cosTheta + y * R2 * v2 * cosKsi);
+        return ClosedBranchFormulas.q2(y, cosKsi, b2, v1, r1, v2, cosTheta);
     }
 
     public static double dq2dv1(double y, double r1, double v2, double cosTheta) {
-        return -y * r1 * R2 * v2 * cosTheta;
+        return ClosedBranchFormulas.dq2dv1(y, r1, v2, cosTheta);
     }
 
     public static double dq2dv2(double y, double cosKsi, double b2, double v1, double r1, double v2, double cosTheta) {
-        return R2 * (-2 * b2 * R2 * v2 - y * r1 * v1 * cosTheta + 2 * y * R2 * v2 * cosKsi);
+        return ClosedBranchFormulas.dq2dv2(y, cosKsi, b2, v1, r1, v2, cosTheta);
     }
 
     public static double dq2dph1(double y, double v1, double r1, double v2, double sinTheta) {
-        return y * r1 * R2 * v1 * v2 * sinTheta;
+        return ClosedBranchFormulas.dq2dph1(y, v1, r1, v2, sinTheta);
     }
 
     public static double dq2dph2(double y, double v1, double r1, double v2, double sinTheta) {
-        return -dq2dph1(y, v1, r1, v2, sinTheta);
+        return ClosedBranchFormulas.dq2dph2(y, v1, r1, v2, sinTheta);
     }
 
     public static double dq2da1(double y, double v1, double r1, double v2, double sinTheta) {
-        return dq2dph1(y, v1, r1, v2, sinTheta);
+        return ClosedBranchFormulas.dq2da1(y, v1, r1, v2, sinTheta);
     }
 
     public static double dq2dr1(double y, double v1, double v2, double cosTheta) {
-        return -y * R2 * v1 * v2 * cosTheta;
+        return ClosedBranchFormulas.dq2dr1(y, v1, v2, cosTheta);
     }
 
     public static double dq2dy(double r1, double v1, double v2, double cosKsi, double cosTheta) {

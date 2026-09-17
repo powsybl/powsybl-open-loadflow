@@ -16,8 +16,6 @@ import net.jafama.FastMath;
 
 import java.util.Objects;
 
-import static com.powsybl.openloadflow.network.PiModel.R2;
-
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -54,31 +52,31 @@ public class ClosedBranchSide2ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     public static double p2(double y, double sinKsi, double g2, double v1, double r1, double v2, double sinTheta) {
-        return R2 * v2 * (g2 * R2 * v2 - y * r1 * v1 * sinTheta + y * R2 * v2 * sinKsi);
+        return ClosedBranchFormulas.p2(y, sinKsi, g2, v1, r1, v2, sinTheta);
     }
 
     public static double dp2dv1(double y, double r1, double v2, double sinTheta) {
-        return -y * r1 * R2 * v2 * sinTheta;
+        return ClosedBranchFormulas.dp2dv1(y, r1, v2, sinTheta);
     }
 
     public static double dp2dv2(double y, double sinKsi, double g2, double v1, double r1, double v2, double sinTheta) {
-        return R2 * (2 * g2 * R2 * v2 - y * r1 * v1 * sinTheta + 2 * y * R2 * v2 * sinKsi);
+        return ClosedBranchFormulas.dp2dv2(y, sinKsi, g2, v1, r1, v2, sinTheta);
     }
 
     public static double dp2dph1(double y, double v1, double r1, double v2, double cosTheta) {
-        return -y * r1 * R2 * v1 * v2 * cosTheta;
+        return ClosedBranchFormulas.dp2dph1(y, v1, r1, v2, cosTheta);
     }
 
     public static double dp2dph2(double y, double v1, double r1, double v2, double cosTheta) {
-        return -dp2dph1(y, v1, r1, v2, cosTheta);
+        return ClosedBranchFormulas.dp2dph2(y, v1, r1, v2, cosTheta);
     }
 
     public static double dp2da1(double y, double v1, double r1, double v2, double cosTheta) {
-        return dp2dph1(y, v1, r1, v2, cosTheta);
+        return ClosedBranchFormulas.dp2da1(y, v1, r1, v2, cosTheta);
     }
 
     public static double dp2dr1(double y, double v1, double v2, double sinTheta) {
-        return -y * R2 * v1 * v2 * sinTheta;
+        return ClosedBranchFormulas.dp2dr1(y, v1, v2, sinTheta);
     }
 
     public static double dp2dy(double r1, double v1, double v2, double sinKsi, double sinTheta) {

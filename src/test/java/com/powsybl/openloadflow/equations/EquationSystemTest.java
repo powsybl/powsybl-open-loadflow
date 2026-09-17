@@ -271,7 +271,9 @@ class EquationSystemTest {
             assertEquals(3, largestMismatches.size());
             assertEquals(-7.397518453004565, largestMismatches.get(0).getValue(), 0);
             assertEquals(5.999135514403292, largestMismatches.get(1).getValue(), 0);
-            assertEquals(1.9259062775721603, largestMismatches.get(2).getValue(), 0);
+            // 1 ULP off the pre-codegen literal: closed-branch flows now route through
+            // the SymPy-derived ClosedBranchFormulas (FP reassociation; math identical).
+            assertEquals(1.9259062775721532, largestMismatches.get(2).getValue(), 0);
         }
     }
 

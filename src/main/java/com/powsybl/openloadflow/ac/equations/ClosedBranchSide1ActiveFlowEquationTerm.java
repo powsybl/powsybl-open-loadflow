@@ -16,8 +16,6 @@ import net.jafama.FastMath;
 
 import java.util.Objects;
 
-import static com.powsybl.openloadflow.network.PiModel.R2;
-
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -54,31 +52,31 @@ public class ClosedBranchSide1ActiveFlowEquationTerm extends AbstractClosedBranc
     }
 
     public static double p1(double y, double sinKsi, double g1, double v1, double r1, double v2, double sinTheta) {
-        return r1 * v1 * (g1 * r1 * v1 + y * r1 * v1 * sinKsi - y * R2 * v2 * sinTheta);
+        return ClosedBranchFormulas.p1(y, sinKsi, g1, v1, r1, v2, sinTheta);
     }
 
     public static double dp1dv1(double y, double sinKsi, double g1, double v1, double r1, double v2, double sinTheta) {
-        return r1 * (2 * g1 * r1 * v1 + 2 * y * r1 * v1 * sinKsi - y * R2 * v2 * sinTheta);
+        return ClosedBranchFormulas.dp1dv1(y, sinKsi, g1, v1, r1, v2, sinTheta);
     }
 
     public static double dp1dv2(double y, double v1, double r1, double sinTheta) {
-        return -y * r1 * R2 * v1 * sinTheta;
+        return ClosedBranchFormulas.dp1dv2(y, v1, r1, sinTheta);
     }
 
     public static double dp1dph1(double y, double v1, double r1, double v2, double cosTheta) {
-        return y * r1 * R2 * v1 * v2 * cosTheta;
+        return ClosedBranchFormulas.dp1dph1(y, v1, r1, v2, cosTheta);
     }
 
     public static double dp1dph2(double y, double v1, double r1, double v2, double cosTheta) {
-        return -dp1dph1(y, v1, r1, v2, cosTheta);
+        return ClosedBranchFormulas.dp1dph2(y, v1, r1, v2, cosTheta);
     }
 
     public static double dp1da1(double y, double v1, double r1, double v2, double cosTheta) {
-        return dp1dph1(y, v1, r1, v2, cosTheta);
+        return ClosedBranchFormulas.dp1da1(y, v1, r1, v2, cosTheta);
     }
 
     public static double dp1dr1(double y, double sinKsi, double g1, double v1, double r1, double v2, double sinTheta) {
-        return v1 * (2 * r1 * v1 * (g1 + y * sinKsi) - y * R2 * v2 * sinTheta);
+        return ClosedBranchFormulas.dp1dr1(y, sinKsi, g1, v1, r1, v2, sinTheta);
     }
 
     public static double dp1dy(double r1, double v1, double v2, double sinKsi, double sinTheta) {
