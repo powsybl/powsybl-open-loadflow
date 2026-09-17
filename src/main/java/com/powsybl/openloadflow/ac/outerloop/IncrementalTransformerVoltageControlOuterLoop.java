@@ -327,7 +327,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             .toList();
         List<LfBranch> adjustedControllers = new ArrayList<>();
         if (controllers.size() == 1) {
-            adjustedControllers.addAll(adjustWithOneController(controllers.getFirst(), controlledBus, contextData, sensitivityContext, diffV, controlledBusesWithAllItsControllersToLimit));
+            adjustedControllers.addAll(
+                    adjustWithOneController(controllers.getFirst(), controlledBus, contextData, sensitivityContext, diffV, controlledBusesWithAllItsControllersToLimit));
         } else if (controllers.size() > 1) {
             adjustedControllers.addAll(
                     adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV, halfTargetDeadband, controlledBusesWithAllItsControllersToLimit));

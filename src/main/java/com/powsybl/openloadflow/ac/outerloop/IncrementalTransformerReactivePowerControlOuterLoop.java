@@ -220,8 +220,10 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
                     .toList();
             LOGGER.info("{} controlled branch reactive power have been adjusted by changing at least one tap",
                     ajustedControllers.size());
-            ReportNode summary = Reports.reportTransformerControlChangedTaps(Objects.requireNonNull(iterationReportNode), ajustedControllers.size());
-            ajustedControllers.forEach(controllerId -> Reports.reportTransformerControlChangedTapsDetail(summary, controllerId));
+            ReportNode summary = Reports.reportTransformerControlChangedTaps(
+                    Objects.requireNonNull(iterationReportNode), ajustedControllers.size());
+            ajustedControllers.forEach(
+                    controllerId -> Reports.reportTransformerControlChangedTapsDetail(summary, controllerId));
 
         }
         if (!controlledBranchesWithAllItsControllersToLimit.isEmpty()) {
