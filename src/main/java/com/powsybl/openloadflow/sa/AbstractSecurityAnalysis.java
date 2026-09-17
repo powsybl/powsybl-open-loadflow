@@ -313,7 +313,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 PostContingencyResult mergedPostContingencyResult =
                         new PostContingencyResult(originalResult.getContingency(), originalResult.getStatus(),
                                 new LimitViolationsResult(violations), mergedNetworkResult, originalResult.getConnectivityResult(),
-                                originalResult.getDistributedActivePower() + postContingencyResult.getDistributedActivePower());
+                                originalResult.getDistributedActivePower() + postContingencyResult.getDistributedActivePower(),
+                                Collections.emptyList());
                 postContingencyResults.put(contingencyId, mergedPostContingencyResult);
             } else {
                 postContingencyResults.put(contingencyId, postContingencyResult);
@@ -671,7 +672,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 postContingencyNetworkResult.getBusResults(),
                 postContingencyNetworkResult.getThreeWindingsTransformerResults()),
                 connectivityResult,
-                (preDistributedActivePower + result.getDistributedActivePower()) * PerUnit.SB);
+                (preDistributedActivePower + result.getDistributedActivePower()) * PerUnit.SB,
+                Collections.emptyList());
     }
 
     protected void logPostContingencyStart(LfNetwork network, LfContingency lfContingency) {
