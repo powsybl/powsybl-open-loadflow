@@ -57,6 +57,11 @@ public abstract class AbstractVector<V extends Enum<V> & Quantity, E extends Enu
         public void onEquationIndexOrderChanged() {
             invalidateVector();
         }
+
+        @Override
+        public void onEquationTermConstantsChanged() {
+            // nothing to do
+        }
     };
 
     protected AbstractVector(EquationSystem<V, E> equationSystem) {

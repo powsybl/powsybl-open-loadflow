@@ -35,6 +35,8 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     protected final MatrixFactory matrixFactory;
 
+    private final boolean invalidateValuesWhenStateUpdate; // in DC mode, there is no need to recompute derivatives after state update
+
     protected Matrix matrix;
 
     private LUDecomposition lu;
@@ -48,11 +50,16 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private Status status = Status.STRUCTURE_INVALID;
 
-    public JacobianMatrix(EquationSystem<V, E> equationSystem, MatrixFactory matrixFactory) {
+    public JacobianMatrix(EquationSystem<V, E> equationSystem, MatrixFactory matrixFactory, boolean invalidateValuesWhenStateUpdate) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
+        this.invalidateValuesWhenStateUpdate = invalidateValuesWhenStateUpdate;
         equationSystem.getIndex().addListener(this);
         equationSystem.getStateVector().addListener(this);
+    }
+
+    public JacobianMatrix(EquationSystem<V, E> equationSystem, MatrixFactory matrixFactory) {
+        this(equationSystem, matrixFactory, true);
     }
 
     public MatrixFactory getMatrixFactory() {
@@ -96,8 +103,15 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     @Override
-    public void onStateUpdate() {
+    public void onEquationTermConstantsChanged() {
         updateStatus(Status.VALUES_INVALID);
+    }
+
+    @Override
+    public void onStateUpdate() {
+        if (invalidateValuesWhenStateUpdate) {
+            updateStatus(Status.VALUES_INVALID);
+        }
     }
 
     protected void initDer() {
