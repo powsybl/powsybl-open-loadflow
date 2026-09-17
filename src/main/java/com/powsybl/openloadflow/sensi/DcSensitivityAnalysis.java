@@ -100,17 +100,20 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
      */
     private DenseMatrix calculateFlowStates(DcLoadFlowContext loadFlowContext, List<ParticipatingElement> participatingElements,
                                             DisabledNetwork disabledNetwork, List<LfAction> actions, ReportNode reportNode) {
-        List<BusState> busStates = Collections.emptyList();
         DcLoadFlowParameters parameters = loadFlowContext.getParameters();
+        // the load flow modifies the network: the slack distribution mutates the participating buses, and the generator/
+        // load actions mutate their target P. Save those buses so the base network is restored for the next state.
+        Set<LfBus> busesToSave = new LinkedHashSet<>();
         if (parameters.isDistributedSlack()) {
-            busStates = ElementState.save(participatingElements.stream()
-                    .map(ParticipatingElement::getLfBus)
-                    .collect(Collectors.toSet()), BusState::save);
+            participatingElements.forEach(participatingElement -> busesToSave.add(participatingElement.getLfBus()));
         }
+        actions.stream().filter(LfGeneratorAction.class::isInstance).map(action -> ((LfGeneratorAction) action).getGenerator().getBus()).filter(Objects::nonNull).forEach(busesToSave::add);
+        actions.stream().filter(LfLoadAction.class::isInstance).map(action -> ((LfLoadAction) action).getLfLoad().getBus()).filter(Objects::nonNull).forEach(busesToSave::add);
+        List<BusState> busStates = busesToSave.isEmpty() ? Collections.emptyList() : ElementState.save(busesToSave, BusState::save);
 
         double[] dx = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, actions, reportNode);
 
-        if (parameters.isDistributedSlack()) {
+        if (!busStates.isEmpty()) {
             ElementState.restore(busStates);
         }
 
