@@ -28,9 +28,9 @@ class DcComponentValidatorTest {
         // conv23 (P_PCC) and conv45 (V_DC) share the dn3/dn4 subcomponent: conv45 already settles its DC voltage
         Network network = AcDcNetworkFactory.createAcDcNetwork1();
         List<AcDcConverter<?>> convertersToSetInVdcMode = DcComponentValidator.resolveDcComponent(
-                allDcBuses(network),
-                List.of(network.getVoltageSourceConverter("conv23"), network.getVoltageSourceConverter("conv45")),
-                NUM_DCC);
+            allDcBuses(network),
+            List.of(network.getVoltageSourceConverter("conv23"), network.getVoltageSourceConverter("conv45")),
+            NUM_DCC);
 
         assertTrue(convertersToSetInVdcMode.isEmpty());
     }
@@ -82,9 +82,9 @@ class DcComponentValidatorTest {
         Network network = AcDcNetworkFactory.createAcDcNetworkTwoPccConvertersWithoutVdcReference();
 
         List<AcDcConverter<?>> convertersToSetInVdcMode = DcComponentValidator.resolveDcComponent(
-                allDcBuses(network),
-                List.of(network.getVoltageSourceConverter("conv23"), network.getVoltageSourceConverter("conv45")),
-                NUM_DCC);
+            allDcBuses(network),
+            List.of(network.getVoltageSourceConverter("conv23"), network.getVoltageSourceConverter("conv45")),
+            NUM_DCC);
 
         assertEquals(2, convertersToSetInVdcMode.size());
     }
@@ -97,7 +97,7 @@ class DcComponentValidatorTest {
         List<DcBus> deadSubComponent = List.of(network.getDcNode("dn3").getDcBus(), network.getDcNode("dn4").getDcBus());
 
         PowsyblException exception = assertThrows(PowsyblException.class,
-                () -> DcComponentValidator.resolveDcComponent(deadSubComponent, List.of(), NUM_DCC));
+            () -> DcComponentValidator.resolveDcComponent(deadSubComponent, List.of(), NUM_DCC));
         assertTrue(exception.getMessage().contains("no AC-DC converter able to settle the DC voltage"));
     }
 
@@ -112,23 +112,23 @@ class DcComponentValidatorTest {
         network.newDcNode().setId("dnA").setNominalV(400.).add();
         network.newDcNode().setId("dnB").setNominalV(400.).add();
         vl.newVoltageSourceConverter()
-                .setIdleLoss(0.5)
-                .setSwitchingLoss(0.001)
-                .setResistiveLoss(1)
-                .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(10.)
-                .setId("conv")
-                .setBus1("b")
-                .setDcNode1("dnA")
-                .setDcNode2("dnB")
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
-                .add();
+            .setIdleLoss(0.5)
+            .setSwitchingLoss(0.001)
+            .setResistiveLoss(1)
+            .setControlMode(AcDcConverter.ControlMode.P_PCC)
+            .setTargetP(10.)
+            .setId("conv")
+            .setBus1("b")
+            .setDcNode1("dnA")
+            .setDcNode2("dnB")
+            .setVoltageRegulatorOn(false)
+            .setReactivePowerSetpoint(0.0)
+            .add();
 
         List<AcDcConverter<?>> converters = List.of(network.getVoltageSourceConverter("conv"));
         List<DcBus> dcBuses = allDcBuses(network);
         PowsyblException exception = assertThrows(PowsyblException.class,
-                () -> DcComponentValidator.resolveDcComponent(dcBuses, converters, NUM_DCC));
+            () -> DcComponentValidator.resolveDcComponent(dcBuses, converters, NUM_DCC));
         assertTrue(exception.getMessage().contains("not indirectly connected to a DC ground"));
     }
 

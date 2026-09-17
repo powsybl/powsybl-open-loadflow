@@ -41,8 +41,8 @@ final class DcComponentValidator {
     static List<AcDcConverter<?>> resolveDcComponent(List<DcBus> dcBuses, Collection<AcDcConverter<?>> acDcConverters,
                                                      int numDcc) {
         List<AcDcConverter<?>> connectedConverters = acDcConverters.stream()
-                .filter(DcComponentValidator::isFullyConnected)
-                .toList();
+            .filter(DcComponentValidator::isFullyConnected)
+            .toList();
         checkAllConvertersAreIndirectlyConnectedToADcGround(connectedConverters);
 
         List<AcDcConverter<?>> convertersToUpdate = new ArrayList<>();
@@ -67,13 +67,13 @@ final class DcComponentValidator {
      */
     private static void resolveDcSubComponentIfNeeded(DcSubComponent dcSubComponent, List<AcDcConverter<?>> convertersToUpdate, int numDcc) {
         if (dcSubComponent.hasConnectedDcGround()
-                || dcSubComponent.hasConverterMatching(c -> controlsDcVoltage(c) || convertersToUpdate.contains(c))) {
+            || dcSubComponent.hasConverterMatching(c -> controlsDcVoltage(c) || convertersToUpdate.contains(c))) {
             return; // already has (or was just given, while resolving an adjacent dcSubComponent) an element imposing DC voltage
         }
         Set<AcDcConverter<?>> dcSubComponentConverters = dcSubComponent.getConverters();
         if (dcSubComponentConverters.isEmpty()) {
             throw new PowsyblException("DC component " + numDcc + " has a DC subcomponent with no DC ground "
-                    + "and no AC-DC converter able to settle the DC voltage");
+                + "and no AC-DC converter able to settle the DC voltage");
         }
         convertersToUpdate.addAll(dcSubComponentConverters);
     }
@@ -99,7 +99,7 @@ final class DcComponentValidator {
      */
     private static boolean controlsDcVoltage(AcDcConverter<?> converter) {
         return converter.getControlMode() == AcDcConverter.ControlMode.V_DC
-                || converter.getControlMode() == AcDcConverter.ControlMode.P_PCC_DROOP;
+            || converter.getControlMode() == AcDcConverter.ControlMode.P_PCC_DROOP;
     }
 
     /**
@@ -107,8 +107,8 @@ final class DcComponentValidator {
      */
     private static boolean isFullyConnected(AcDcConverter<?> converter) {
         return converter.getTerminal1().isConnected()
-                && converter.getDcTerminal1().isConnected()
-                && converter.getDcTerminal2().isConnected();
+            && converter.getDcTerminal1().isConnected()
+            && converter.getDcTerminal2().isConnected();
     }
 
     /**
