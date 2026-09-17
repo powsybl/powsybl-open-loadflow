@@ -158,9 +158,6 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         }).isPresent();
     }
 
-    private record AdjustedBranchDetail(String controlledBranchId, String controllerBranchId) {
-    }
-
     @Override
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         MutableObject<OuterLoopStatus> status = new MutableObject<>(OuterLoopStatus.STABLE);
@@ -248,5 +245,8 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
                 .orElseGet(() -> controlledBranch.getTransformerReactivePowerControl()
                         .orElseThrow()
                         .getTargetValue());
+    }
+
+    private record AdjustedBranchDetail(String controlledBranchId, String controllerBranchId) {
     }
 }
