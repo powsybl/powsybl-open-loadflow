@@ -103,11 +103,11 @@
             + Outer loop iteration 2
                1 reactive power-controlled branches are outside of their target deadbands
                + 1 transformers changed tap position
-                  Transformer T2wT changed tap position
+                  Transformer T2wT changed tap position from 0 to 2
             + Outer loop iteration 3
                1 reactive power-controlled branches are outside of their target deadbands
                + 1 transformers changed tap position
-                  Transformer T2wT changed tap position
+                  Transformer T2wT changed tap position from 2 to 3
                1 transformers reached their tap maximum position
             + Outer loop iteration 4
                1 reactive power-controlled branches are outside of their target deadbands
