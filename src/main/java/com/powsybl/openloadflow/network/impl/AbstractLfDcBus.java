@@ -27,6 +27,16 @@ public abstract class AbstractLfDcBus extends AbstractElement implements LfDcBus
         this.v = v;
     }
 
+    /**
+     * Deep copy constructor (see {@link LfNetworkCopier}).
+     */
+    protected AbstractLfDcBus(AbstractLfDcBus other, LfNetwork network) {
+        super(network);
+        this.nominalV = other.nominalV;
+        this.v = other.v;
+        this.disabled = other.disabled;
+    }
+
     @Override
     public ElementType getType() {
         return ElementType.DC_BUS;

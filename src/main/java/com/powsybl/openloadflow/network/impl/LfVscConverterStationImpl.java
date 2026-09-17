@@ -42,6 +42,19 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         }
     }
 
+    private LfVscConverterStationImpl(LfVscConverterStationImpl other, LfNetwork network) {
+        super(other, network);
+        this.stationRef = other.stationRef;
+        this.lossFactor = other.lossFactor;
+        this.hvdcDanglingInIidm = other.hvdcDanglingInIidm;
+        // hvdc reference is wired when the copied LfHvdc is created
+    }
+
+    @Override
+    public LfGenerator copy(LfBus copyBus) {
+        return new LfVscConverterStationImpl(this, copyBus.getNetwork());
+    }
+
     public static LfVscConverterStationImpl create(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         Objects.requireNonNull(station);
         Objects.requireNonNull(network);
