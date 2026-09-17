@@ -262,6 +262,64 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         assertEquals(3d, result.getFunctionReferenceValue(contAndOpStratState, "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
     }
 
+    /**
+     * A generator (or load, or pure phase-shift) action produces no Woodbury computed element, so it is absent from the
+     * action-element map. When such an action is combined in an operator strategy with a branch action that breaks
+     * connectivity, {@code ConnectivityBreakAnalysis.computeConnectivityAnalysisResult} used to look every strategy
+     * action up in that map and dereference the resulting {@code null} list, throwing a {@link NullPointerException}.
+     * The fix keeps only branch actions as connectivity-modifying candidates. Result checked against a plain DC sensi.
+     */
+    @Test
+    void testConnectivityBreakingOperatorStrategyWithGeneratorAction() {
+        Network network = NodeBreakerNetworkFactory.create();
+        // add a radial load stub in VL2, in the base connected to BBS3 through the closed retained breaker STUB
+        network.getVoltageLevel("VL2").getNodeBreakerView().newBreaker().setId("STUB").setNode1(0).setNode2(10).setRetained(true).add();
+        network.getVoltageLevel("VL2").getNodeBreakerView().newInternalConnection().setNode1(10).setNode2(11).add();
+        network.getVoltageLevel("VL2").newLoad().setId("LD_STUB").setNode(11).setP0(50).setQ0(0).add();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL1_0", true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+
+        String monitored = "L2";
+        List<Contingency> contingencies = List.of(new Contingency("L1", new BranchContingency("L1")));
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("G")), network.getBranchStream().toList());
+        // operator strategy combines a connectivity-breaking branch action (open STUB isolates the load stub) with a
+        // generator action (which has no associated Woodbury element): this used to throw a NullPointerException
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("OS", ContingencyContext.all(),
+                new TrueCondition(), List.of("openStub", "genG")));
+        List<Action> actions = List.of(
+                new SwitchAction("openStub", "STUB", true),
+                new GeneratorActionBuilder().withId("genG").withGeneratorId("G").withActivePowerRelativeValue(false).withActivePowerValue(500).build());
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies).setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies).setActions(actions));
+
+        SensitivityState osState = new SensitivityState("L1", "OS");
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(osState));
+
+        // reference: physically apply the contingency and both actions on a cloned variant, then a plain DC sensi
+        String refVariant = "ref";
+        network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, refVariant);
+        network.getVariantManager().setWorkingVariant(refVariant);
+        network.getLine("L1").getTerminal1().disconnect();
+        network.getLine("L1").getTerminal2().disconnect();
+        network.getSwitch("STUB").setOpen(true);
+        network.getGenerator("G").setTargetP(500);
+        SensitivityAnalysisResult refResult = sensiRunner.run(network, refVariant, factors,
+                new SensitivityAnalysisRunParameters().setParameters(createParameters(true, "VL1_0", true)));
+        network.getVariantManager().setWorkingVariant(VariantManagerConstants.INITIAL_VARIANT_ID);
+        network.getVariantManager().removeVariant(refVariant);
+
+        assertEquals(refResult.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, monitored, SensitivityFunctionType.BRANCH_ACTIVE_POWER_1),
+                result.getFunctionReferenceValue(osState, monitored, SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        double refSensi = refResult.getSensitivityValue(SensitivityState.PRE_CONTINGENCY, "G", monitored,
+                SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, SensitivityVariableType.INJECTION_ACTIVE_POWER);
+        double osSensi = result.getSensitivityValue(osState, "G", monitored,
+                SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, SensitivityVariableType.INJECTION_ACTIVE_POWER);
+        assertEquals(refSensi, osSensi, LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+    }
+
     @Test
     void testReconnectContingencyLine() {
         Network network = FourBusNetworkFactory.create();
