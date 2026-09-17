@@ -19,7 +19,6 @@ import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResult;
 import com.powsybl.security.results.MovedPhaseShifterResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
-import org.jgrapht.util.ArrayUnenforcedSet;
 
 import java.util.*;
 import java.util.function.Consumer;

@@ -1581,6 +1581,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         MovedPhaseShifterResult movedPhaseShifterResult = l1ContingencyResult.getPhaseShifterResults().stream().findFirst().orElseThrow();
         assertEquals("PS1", movedPhaseShifterResult.transformerId());
         assertNull(movedPhaseShifterResult.side());
+        assertEquals(1, movedPhaseShifterResult.initialTap());
+        assertEquals(0, movedPhaseShifterResult.newTap());
     }
 
     @Test
