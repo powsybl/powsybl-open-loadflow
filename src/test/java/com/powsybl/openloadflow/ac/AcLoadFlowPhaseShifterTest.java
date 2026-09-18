@@ -9,7 +9,6 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.commons.report.TypedValue;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
@@ -25,7 +24,6 @@ import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +32,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
 
