@@ -52,6 +52,8 @@ public final class LfActionUtils {
                 new LfShuntCompensatorPositionAction((ShuntCompensatorPositionAction) action, lfNetwork);
             case AreaInterchangeTargetAction.NAME ->
                 new LfAreaInterchangeTargetAction((AreaInterchangeTargetAction) action, lfNetwork);
+            case BoundaryLineAction.NAME ->
+                new LfBoundaryLineAction((BoundaryLineAction) action, lfNetwork);
             default -> throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
         };
     }
