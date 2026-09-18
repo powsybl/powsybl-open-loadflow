@@ -138,7 +138,7 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
                     int oldTapPosition = piModel.getTapPosition();
                     Range<Integer> tapPositionRange = piModel.getTapPositionRange();
                     piModel.updateTapPositionToReachNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection())
-                            .ifPresent(direction -> controllerContext.updateAllowedDirection(direction));
+                            .ifPresent(controllerContext::updateAllowedDirection);
 
                     if (piModel.getTapPosition() != oldTapPosition) {
                         logger.debug("Controller branch '{}' change tap from {} to {} to reach active power target (full range: {})", controllerBranch.getId(),

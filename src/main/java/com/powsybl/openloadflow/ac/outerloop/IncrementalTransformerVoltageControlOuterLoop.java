@@ -181,24 +181,31 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         while (hasChanged.booleanValue()) {
             hasChanged.setValue(false);
             for (LfBranch controllerBranch : controllerBranches) {
-                if (Math.abs(remainingDiffV.doubleValue()) > halfTargetDeadband) {
-                    var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
-                    double sensitivity = sensitivityContext.calculateSensitivityFromRToV(controllerBranch, controlledBus);
-                    if (isInsensitive(contextData, controllerBranch, controlledBus, sensitivity)) {
-                        continue;
-                    }
-                    PiModel piModel = controllerBranch.getPiModel();
-                    double previousR1 = piModel.getR1();
-                    double deltaR1 = remainingDiffV.doubleValue() / sensitivity;
-                    piModel.updateTapPositionToReachNewR1(deltaR1, 1, controllerContext.getAllowedDirection()).ifPresent(direction -> {
-                        controllerContext.updateAllowedDirection(direction);
-                        remainingDiffV.add(-(piModel.getR1() - previousR1) * sensitivity);
-                        hasChanged.setValue(true);
-                    });
-                }
+                adjustController(controlledBus, contextData, sensitivityContext, halfTargetDeadband, controllerBranch, remainingDiffV, hasChanged);
             }
         }
+        reportAdjustments(controlledBus, controllerBranches, previousTapPositions, controllerBranchesAdjusted, controlledBusesWithAllItsControllersToLimit);
+    }
 
+    private static void adjustController(LfBus controlledBus, IncrementalContextData contextData, SensitivityContext sensitivityContext, double halfTargetDeadband, LfBranch controllerBranch, MutableDouble remainingDiffV, MutableBoolean hasChanged) {
+        if (Math.abs(remainingDiffV.doubleValue()) > halfTargetDeadband) {
+            var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
+            double sensitivity = sensitivityContext.calculateSensitivityFromRToV(controllerBranch, controlledBus);
+            if (isInsensitive(contextData, controllerBranch, controlledBus, sensitivity)) {
+                return;
+            }
+            PiModel piModel = controllerBranch.getPiModel();
+            double previousR1 = piModel.getR1();
+            double deltaR1 = remainingDiffV.doubleValue() / sensitivity;
+            piModel.updateTapPositionToReachNewR1(deltaR1, 1, controllerContext.getAllowedDirection()).ifPresent(direction -> {
+                controllerContext.updateAllowedDirection(direction);
+                remainingDiffV.add(-(piModel.getR1() - previousR1) * sensitivity);
+                hasChanged.setValue(true);
+            });
+        }
+    }
+
+    private static void reportAdjustments(LfBus controlledBus, List<LfBranch> controllerBranches, List<Integer> previousTapPositions, List<IncrementalChangeDetails> controllerBranchesAdjusted, List<String> controlledBusesWithAllItsControllersToLimit) {
         boolean allControllersToLimit = true;
         for (int i = 0; i < controllerBranches.size(); i++) {
             LfBranch controllerBranch = controllerBranches.get(i);
