@@ -66,11 +66,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_POWER;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_V;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -1768,14 +1767,14 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     private void createNetworkBoundaryLine(Network network, boolean withGeneration, boolean withVoltageRegulation) {
-        String BoundaryLineId = "DL";
+        String boundaryLineId = "DL";
 
         // BoundaryLine power values for the tests
         double initialDLLoadActivePowerValue = 50.0;
         double initialDLLoadReactivePowerValue = 10.0;
 
         if (withGeneration) {
-            BoundaryLine BoundaryLine = ((BoundaryLineAdder) ((BoundaryLineAdder) network.getVoltageLevel("VL").newBoundaryLine().setId(BoundaryLineId)).setBus("BUS"))
+            BoundaryLine boundaryLine = ((BoundaryLineAdder) ((BoundaryLineAdder) network.getVoltageLevel("VL").newBoundaryLine().setId(boundaryLineId)).setBus("BUS"))
                     .setR(0.00001)
                     .setX(3)
                     .setP0(initialDLLoadActivePowerValue)
@@ -1789,12 +1788,12 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                     .setVoltageRegulationOn(withVoltageRegulation)
                     .add()
                     .add();
-            BoundaryLine.getGeneration().newReactiveCapabilityCurve()
+            boundaryLine.getGeneration().newReactiveCapabilityCurve()
                     .beginPoint().setP(0.0).setMinQ(-59.3).setMaxQ(60.0).endPoint()
                     .beginPoint().setP(70.0).setMinQ(-54.55).setMaxQ(46.25).endPoint()
                     .add();
         } else {
-            ((BoundaryLineAdder) ((BoundaryLineAdder) network.getVoltageLevel("VL").newBoundaryLine().setId(BoundaryLineId)).setBus("BUS"))
+            ((BoundaryLineAdder) ((BoundaryLineAdder) network.getVoltageLevel("VL").newBoundaryLine().setId(boundaryLineId)).setBus("BUS"))
                     .setR(0.00001)
                     .setX(3)
                     .setP0(initialDLLoadActivePowerValue)
@@ -1849,7 +1848,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         return network;
     }
 
-    static Stream<Arguments> BoundaryLineActionProvider() {
+    static Stream<Arguments> boundaryLineActionProvider() {
         return Stream.of(
                 Arguments.of(true, true, 180.182),
                 Arguments.of(true, false, 209.613),
@@ -1858,28 +1857,28 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @ParameterizedTest
-    @MethodSource("BoundaryLineActionProvider")
+    @MethodSource("boundaryLineActionProvider")
     void testBoundaryLineAction(boolean withGeneration, boolean withVoltageRegulation, double lineCurrentAfterContingency) {
         // current values expected on LINE_12 (on both sides) after disconnection of generator G and a LF
-        double BoundaryLineActionP0 = 25.0;
-        double BoundaryLineActionQ0 = 10.0;
+        double boundaryLineActionP0 = 25.0;
+        double boundaryLineActionQ0 = 10.0;
 
         Network network = createBoundaryLineNetwork(withGeneration, withVoltageRegulation, lineCurrentAfterContingency);
 
         // Set contingency, action and operator strategy and parameters for the security analysis
-        BoundaryLineAction BoundaryLineAction = new BoundaryLineActionBuilder()
+        BoundaryLineAction boundaryLineAction = new BoundaryLineActionBuilder()
                 .withId("dangling_line_action")
                 .withBoundaryLineId("DL")
-                .withActivePowerValue(BoundaryLineActionP0)
-                .withReactivePowerValue(BoundaryLineActionQ0)
+                .withActivePowerValue(boundaryLineActionP0)
+                .withReactivePowerValue(boundaryLineActionQ0)
                 .withRelativeValue(false)
                 .build();
 
-        List<Action> actions = List.of(BoundaryLineAction);
+        List<Action> actions = List.of(boundaryLineAction);
         Contingency generatorContingency = new Contingency("G", new GeneratorContingency("G"));
         List<Contingency> contingencies = List.of(generatorContingency);
         List<OperatorStrategy> operatorStrategies = List.of(
-                new OperatorStrategy("strategy1", ContingencyContext.specificContingency(generatorContingency.getId()), new TrueCondition(), List.of(BoundaryLineAction.getId())));
+                new OperatorStrategy("strategy1", ContingencyContext.specificContingency(generatorContingency.getId()), new TrueCondition(), List.of(boundaryLineAction.getId())));
 
         SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
         OpenLoadFlowParameters.create(parameters.getLoadFlowParameters())
@@ -1887,7 +1886,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 .setSlackBusPMaxMismatch(1e-3);
 
         // StateMonitor
-//        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        // List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<StateMonitor> monitors = new ArrayList<>();
         Set<String> allBranchIds = network.getBranchStream().map(Identifiable::getId).collect(Collectors.toSet());
         monitors.add(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
@@ -1925,13 +1924,16 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         // Compare with network modification (Contingency=disconnect G / action = set dangling line P0 and Q0) + loadflow
         network.getGenerator("G").disconnect();
-        network.getBoundaryLine("DL").setP0(BoundaryLineActionP0);
-        network.getBoundaryLine("DL").setQ0(BoundaryLineActionQ0);
+        network.getBoundaryLine("DL").setP0(boundaryLineActionP0);
+        network.getBoundaryLine("DL").setQ0(boundaryLineActionQ0);
         loadFlowRunner.run(network);
 
-        assertEquals(network.getLine("LINE_12").getTerminal1().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("LINE_12").getP1(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(network.getLine("LINE_12").getTerminal2().getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("LINE_12").getP2(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(network.getBoundaryLine("DL").getTerminals().get(0).getP(), getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("DL").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("LINE_12").getTerminal1().getP(),
+                getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("LINE_12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("LINE_12").getTerminal2().getP(),
+                getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("LINE_12").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getBoundaryLine("DL").getTerminals().get(0).getP(),
+                getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("DL").getP1(), LoadFlowAssert.DELTA_POWER);
 
     }
 

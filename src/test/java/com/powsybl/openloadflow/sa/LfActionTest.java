@@ -13,10 +13,10 @@ import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.LoadContingency;
 import com.powsybl.iidm.network.*;
-import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.BoundaryLineNetworkFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ServiceParameterResolver;
@@ -39,7 +39,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.List;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -250,7 +249,6 @@ class LfActionTest extends AbstractSerDeTest {
         );
     }
 
-
     /**
      * Check that the boundary line action only change load P and Q parts, regardless of the generation part
      * @param network
@@ -301,7 +299,7 @@ class LfActionTest extends AbstractSerDeTest {
     @Test
     void testBoundaryActionActionNotFound() {
         Network network = BoundaryLineNetworkFactory.create();
-        BoundaryLineAction BoundaryActionAction = new BoundaryLineActionBuilder()
+        BoundaryLineAction boundaryActionAction = new BoundaryLineActionBuilder()
                 .withId("action")
                 .withBoundaryLineId("UnexistingLine")
                 .withActivePowerValue(10)
@@ -314,7 +312,7 @@ class LfActionTest extends AbstractSerDeTest {
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
-            LfAction lfAction = LfActionUtils.createLfAction(BoundaryActionAction, network, lfNetwork);
+            LfAction lfAction = LfActionUtils.createLfAction(boundaryActionAction, network, lfNetwork);
             assertFalse(lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
         }
     }
@@ -322,7 +320,7 @@ class LfActionTest extends AbstractSerDeTest {
     @Test
     void testBoundaryActionActionNotBoundaryActionBranch() {
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
-        BoundaryLineAction BoundaryActionAction = new BoundaryLineActionBuilder()
+        BoundaryLineAction boundaryActionAction = new BoundaryLineActionBuilder()
                 .withId("action")
                 .withBoundaryLineId("l12")
                 .withActivePowerValue(10)
@@ -335,7 +333,7 @@ class LfActionTest extends AbstractSerDeTest {
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
-            LfAction lfAction = LfActionUtils.createLfAction(BoundaryActionAction, network, lfNetwork);
+            LfAction lfAction = LfActionUtils.createLfAction(boundaryActionAction, network, lfNetwork);
             assertFalse(lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
         }
     }
