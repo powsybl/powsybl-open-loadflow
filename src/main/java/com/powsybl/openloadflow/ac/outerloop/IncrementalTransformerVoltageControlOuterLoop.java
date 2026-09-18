@@ -150,7 +150,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         if (isInsensitive(contextData, controllerBranch, controlledBus, sensitivity)) {
             return;
         }
-        piModel.updateTapPositionToReachNewR1(deltaR1, maxTapShift, controllerContext.getAllowedDirection()).map(direction -> {
+        piModel.updateTapPositionToReachNewR1(deltaR1, maxTapShift, controllerContext.getAllowedDirection()).ifPresent(direction -> {
             controllerContext.updateAllowedDirection(direction);
             Range<Integer> tapPositionRange = piModel.getTapPositionRange();
             LOGGER.debug("Controller branch '{}' change tap from {} to {} (full range: {})", controllerBranch.getId(),
@@ -160,7 +160,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                     || piModel.getTapPosition() == tapPositionRange.getMaximum()) {
                 controlledBusesWithAllItsControllersToLimit.add(controlledBus.getId());
             }
-            return direction;
         });
 
     }
