@@ -187,7 +187,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         reportAdjustments(controlledBus, controllerBranches, previousTapPositions, controllerBranchesAdjusted, controlledBusesWithAllItsControllersToLimit);
     }
 
-    private static void adjustController(LfBus controlledBus, IncrementalContextData contextData, SensitivityContext sensitivityContext, double halfTargetDeadband, LfBranch controllerBranch, MutableDouble remainingDiffV, MutableBoolean hasChanged) {
+    private static void adjustController(LfBus controlledBus, IncrementalContextData contextData, SensitivityContext sensitivityContext, double halfTargetDeadband,
+                                         LfBranch controllerBranch, MutableDouble remainingDiffV, MutableBoolean hasChanged) {
         if (Math.abs(remainingDiffV.doubleValue()) > halfTargetDeadband) {
             var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
             double sensitivity = sensitivityContext.calculateSensitivityFromRToV(controllerBranch, controlledBus);
@@ -205,7 +206,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         }
     }
 
-    private static void reportAdjustments(LfBus controlledBus, List<LfBranch> controllerBranches, List<Integer> previousTapPositions, List<IncrementalChangeDetails> controllerBranchesAdjusted, List<String> controlledBusesWithAllItsControllersToLimit) {
+    private static void reportAdjustments(LfBus controlledBus, List<LfBranch> controllerBranches, List<Integer> previousTapPositions,
+                                          List<IncrementalChangeDetails> controllerBranchesAdjusted, List<String> controlledBusesWithAllItsControllersToLimit) {
         boolean allControllersToLimit = true;
         for (int i = 0; i < controllerBranches.size(); i++) {
             LfBranch controllerBranch = controllerBranches.get(i);
