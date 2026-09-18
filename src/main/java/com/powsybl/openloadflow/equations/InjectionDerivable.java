@@ -12,6 +12,7 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.util.Derivable;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
@@ -36,8 +37,21 @@ public class InjectionDerivable<V extends Enum<V> & Quantity> implements Derivab
     public double der(Variable<V> variable) {
         // The variable part of the equation is   injectionPart+branchPart
         // Thus Variable injectionPart = - branchPart
-        // And the derivative of the injection is the opposite of the derivative of the branch terms
-        return -getBranchTermStream().mapToDouble(t -> t.der(variable)).sum();
+        // And the derivative of the injection is the opposite of the derivative of the branch terms.
+        // Only the terms that depend on the variable contribute (a branch term throws on a variable it does
+        // not carry, and its derivative there is zero anyway).
+        return -getBranchTermStream()
+                .filter(t -> t.getVariables().contains(variable))
+                .mapToDouble(t -> t.der(variable))
+                .sum();
+    }
+
+    @Override
+    public List<Variable<V>> getVariables() {
+        return getBranchTermStream()
+                .flatMap(t -> t.getVariables().stream())
+                .distinct()
+                .toList();
     }
 
     @Override

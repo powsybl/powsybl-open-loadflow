@@ -11,6 +11,8 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.equations.Variable;
 
+import java.util.List;
+
 /**
  * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
  */
@@ -21,5 +23,12 @@ public interface Derivable<V extends Enum<V> & Quantity> extends Evaluable {
     double calculateSensi(DenseMatrix x, int column);
 
     boolean isActive();
+
+    /**
+     * The variables this quantity depends on: the domain of {@link #der(Variable)}. Together they let a caller
+     * scatter the whole gradient (for instance into an adjoint right-hand side) without knowing whether the
+     * quantity is a single equation term or a combination of terms.
+     */
+    List<Variable<V>> getVariables();
 
 }
