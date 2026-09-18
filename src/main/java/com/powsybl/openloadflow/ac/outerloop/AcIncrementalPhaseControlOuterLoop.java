@@ -112,9 +112,8 @@ public class AcIncrementalPhaseControlOuterLoop
                     int oldTapPosition = piModel.getTapPosition();
                     double oldA1 = piModel.getA1();
                     Range<Integer> tapPositionRange = piModel.getTapPositionRange();
-                    piModel.updateTapPositionToExceedNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
-                        controllerContext.updateAllowedDirection(direction);
-                    });
+                    piModel.updateTapPositionToExceedNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection())
+                            .ifPresent(controllerContext::updateAllowedDirection);
 
                     if (piModel.getTapPosition() != oldTapPosition) {
                         logger.debug("Controller branch '{}' changed tap from {} to {} to limit current (full range: {})", controllerBranch.getId(),
