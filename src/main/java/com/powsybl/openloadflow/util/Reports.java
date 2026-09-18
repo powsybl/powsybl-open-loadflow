@@ -678,11 +678,21 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportShuntVoltageControlChangedSection(ReportNode reportNode, int numShuntVoltageControlAdjusted) {
-        reportNode.newReportNode()
+    public static ReportNode reportShuntVoltageControlChangedSection(ReportNode reportNode, int numShuntVoltageControlAdjusted) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.shuntVoltageControlChangedSection")
                 .withUntypedValue("numShuntVoltageControlAdjusted", numShuntVoltageControlAdjusted)
                 .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportShuntVoltageControlChangedSectionDetail(ReportNode reportNode, IncrementalChangeDetails changeDetails) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.shuntVoltageControlChangedSectionDetail")
+                .withUntypedValue("shuntId", changeDetails.elementId())
+                .withUntypedValue("oldPosition", changeDetails.oldPosition())
+                .withUntypedValue("newPosition", changeDetails.newPosition())
+                .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }
 
