@@ -139,8 +139,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         return false;
     }
 
-    private boolean adjustWithOneController(LfBranch controllerBranch, LfBus controlledBus, IncrementalContextData contextData, SensitivityContext sensitivities,
-                                            double diffV, List<String> controlledBusesWithAllItsControllersToLimit) {
+    private void adjustWithOneController(LfBranch controllerBranch, LfBus controlledBus, IncrementalContextData contextData, SensitivityContext sensitivities,
+                                            double diffV, List<IncrementalChangeDetails> controllerBranchesAdjusted, List<String> controlledBusesWithAllItsControllersToLimit) {
         // only one transformer controls a bus
         var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
         double sensitivity = sensitivities.calculateSensitivityFromRToV(controllerBranch, controlledBus);
@@ -148,25 +148,26 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         int previousTapPosition = piModel.getTapPosition();
         double deltaR1 = diffV / sensitivity;
         if (isInsensitive(contextData, controllerBranch, controlledBus, sensitivity)) {
-            return false;
+            return;
         }
-        return piModel.updateTapPositionToReachNewR1(deltaR1, maxTapShift, controllerContext.getAllowedDirection()).map(direction -> {
+        piModel.updateTapPositionToReachNewR1(deltaR1, maxTapShift, controllerContext.getAllowedDirection()).ifPresent(direction -> {
             controllerContext.updateAllowedDirection(direction);
             Range<Integer> tapPositionRange = piModel.getTapPositionRange();
             LOGGER.debug("Controller branch '{}' change tap from {} to {} (full range: {})", controllerBranch.getId(),
                     previousTapPosition, piModel.getTapPosition(), tapPositionRange);
+            controllerBranchesAdjusted.add(new IncrementalChangeDetails(controllerBranch.getId(), previousTapPosition, piModel.getTapPosition()));
             if (piModel.getTapPosition() == tapPositionRange.getMinimum()
                     || piModel.getTapPosition() == tapPositionRange.getMaximum()) {
                 controlledBusesWithAllItsControllersToLimit.add(controlledBus.getId());
             }
-            return direction;
-        }).isPresent();
+        });
+
     }
 
-    private boolean adjustWithSeveralControllers(List<LfBranch> controllerBranches, LfBus controlledBus, IncrementalContextData contextData,
+    private void adjustWithSeveralControllers(List<LfBranch> controllerBranches, LfBus controlledBus, IncrementalContextData contextData,
                                                  SensitivityContext sensitivityContext, double diffV, double halfTargetDeadband,
+                                                 List<IncrementalChangeDetails> controllerBranchesAdjusted,
                                                  List<String> controlledBusesWithAllItsControllersToLimit) {
-        MutableBoolean adjusted = new MutableBoolean(false);
 
         List<Integer> previousTapPositions = controllerBranches.stream()
                 .map(controllerBranch -> controllerBranch.getPiModel().getTapPosition())
@@ -180,25 +181,33 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         while (hasChanged.booleanValue()) {
             hasChanged.setValue(false);
             for (LfBranch controllerBranch : controllerBranches) {
-                if (Math.abs(remainingDiffV.doubleValue()) > halfTargetDeadband) {
-                    var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
-                    double sensitivity = sensitivityContext.calculateSensitivityFromRToV(controllerBranch, controlledBus);
-                    if (isInsensitive(contextData, controllerBranch, controlledBus, sensitivity)) {
-                        continue;
-                    }
-                    PiModel piModel = controllerBranch.getPiModel();
-                    double previousR1 = piModel.getR1();
-                    double deltaR1 = remainingDiffV.doubleValue() / sensitivity;
-                    piModel.updateTapPositionToReachNewR1(deltaR1, 1, controllerContext.getAllowedDirection()).ifPresent(direction -> {
-                        controllerContext.updateAllowedDirection(direction);
-                        remainingDiffV.add(-(piModel.getR1() - previousR1) * sensitivity);
-                        hasChanged.setValue(true);
-                        adjusted.setValue(true);
-                    });
-                }
+                adjustController(controlledBus, contextData, sensitivityContext, halfTargetDeadband, controllerBranch, remainingDiffV, hasChanged);
             }
         }
+        reportAdjustments(controlledBus, controllerBranches, previousTapPositions, controllerBranchesAdjusted, controlledBusesWithAllItsControllersToLimit);
+    }
 
+    private static void adjustController(LfBus controlledBus, IncrementalContextData contextData, SensitivityContext sensitivityContext, double halfTargetDeadband,
+                                         LfBranch controllerBranch, MutableDouble remainingDiffV, MutableBoolean hasChanged) {
+        if (Math.abs(remainingDiffV.doubleValue()) > halfTargetDeadband) {
+            var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
+            double sensitivity = sensitivityContext.calculateSensitivityFromRToV(controllerBranch, controlledBus);
+            if (isInsensitive(contextData, controllerBranch, controlledBus, sensitivity)) {
+                return;
+            }
+            PiModel piModel = controllerBranch.getPiModel();
+            double previousR1 = piModel.getR1();
+            double deltaR1 = remainingDiffV.doubleValue() / sensitivity;
+            piModel.updateTapPositionToReachNewR1(deltaR1, 1, controllerContext.getAllowedDirection()).ifPresent(direction -> {
+                controllerContext.updateAllowedDirection(direction);
+                remainingDiffV.add(-(piModel.getR1() - previousR1) * sensitivity);
+                hasChanged.setValue(true);
+            });
+        }
+    }
+
+    private static void reportAdjustments(LfBus controlledBus, List<LfBranch> controllerBranches, List<Integer> previousTapPositions,
+                                          List<IncrementalChangeDetails> controllerBranchesAdjusted, List<String> controlledBusesWithAllItsControllersToLimit) {
         boolean allControllersToLimit = true;
         for (int i = 0; i < controllerBranches.size(); i++) {
             LfBranch controllerBranch = controllerBranches.get(i);
@@ -209,6 +218,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                 LOGGER.debug("Controller branch '{}' (controlled bus '{}') change tap from {} to {} (full range: {})",
                         controllerBranch.getId(), controlledBus.getId(), previousTapPosition,
                         piModel.getTapPosition(), tapPositionRange);
+                controllerBranchesAdjusted.add(new IncrementalChangeDetails(controllerBranch.getId(), previousTapPosition, piModel.getTapPosition()));
             }
             if (piModel.getTapPosition() != tapPositionRange.getMinimum()
                     && piModel.getTapPosition() != tapPositionRange.getMaximum()) {
@@ -218,8 +228,6 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         if (allControllersToLimit) {
             controlledBusesWithAllItsControllersToLimit.add(controlledBus.getId());
         }
-
-        return adjusted.booleanValue();
     }
 
     private static double getDiffV(TransformerVoltageControl voltageControl) {
@@ -270,13 +278,17 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
         // for synthetics logs
-        List<String> controlledBusesAdjusted = new ArrayList<>();
+        List<IncrementalChangeDetails> controllerBranchesAdjusted = new ArrayList<>();
         List<String> controlledBusesWithAllItsControllersToLimit = new ArrayList<>();
 
-        controlledBusesOutOfDeadband.forEach(controlledBus -> checkAndAdjustControlledBus(controlledBus, contextData, sensitivityContext,
-                controlledBusesAdjusted, controlledBusesWithAllItsControllersToLimit, status));
+        controlledBusesOutOfDeadband.forEach(controlledBus -> checkAndAdjustControlledBus(controlledBus, contextData,
+                sensitivityContext, controllerBranchesAdjusted, controlledBusesWithAllItsControllersToLimit));
 
-        ReportNode iterationReportNode = !controlledBusesOutOfDeadband.isEmpty() || !controlledBusesAdjusted.isEmpty() || !controlledBusesWithAllItsControllersToLimit.isEmpty() ?
+        if (!controllerBranchesAdjusted.isEmpty()) {
+            status.setValue(OuterLoopStatus.UNSTABLE);
+        }
+
+        ReportNode iterationReportNode = !controlledBusesOutOfDeadband.isEmpty() || !controllerBranchesAdjusted.isEmpty() || !controlledBusesWithAllItsControllersToLimit.isEmpty() ?
                 Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1) : null;
 
         if (!controlledBusesOutOfDeadband.isEmpty()) {
@@ -291,10 +303,13 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             }
             Reports.reportTransformerControlBusesOutsideDeadband(Objects.requireNonNull(iterationReportNode), controlledBusesOutOfDeadband.size());
         }
-        if (!controlledBusesAdjusted.isEmpty()) {
+        if (!controllerBranchesAdjusted.isEmpty()) {
             LOGGER.info("{} controlled bus voltages have been adjusted by changing at least one tap",
-                    controlledBusesAdjusted.size());
-            Reports.reportTransformerControlChangedTaps(Objects.requireNonNull(iterationReportNode), controlledBusesAdjusted.size());
+                    controllerBranchesAdjusted.size());
+            ReportNode summary = Reports.reportTransformerControlChangedTaps(Objects.requireNonNull(iterationReportNode), controllerBranchesAdjusted.size());
+            controllerBranchesAdjusted
+                    .forEach(controllerDetails -> Reports.reportTransformerControlChangedTapsDetail(summary, controllerDetails));
+
         }
         if (!controlledBusesWithAllItsControllersToLimit.isEmpty()) {
             LOGGER.info("{} controlled buses have all its controllers to a tap limit: {}",
@@ -306,8 +321,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     private void checkAndAdjustControlledBus(LfBus controlledBus, IncrementalContextData contextData, SensitivityContext sensitivityContext,
-                                             List<String> controlledBusesAdjusted, List<String> controlledBusesWithAllItsControllersToLimit,
-                                             MutableObject<OuterLoopStatus> status) {
+                                             List<IncrementalChangeDetails> controllerBranchesAdjusted, List<String> controlledBusesWithAllItsControllersToLimit) {
         TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
         double diffV = getDiffV(voltageControl);
         double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
@@ -315,18 +329,13 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             .filter(b -> !b.isDisabled())
             .filter(controller -> !contextData.getControllersContexts().get(controller.getId()).isInsensitive())
             .toList();
-        boolean adjusted;
-        if (controllers.isEmpty()) {
-            // no controller with enough sensitivity
-            adjusted = false;
-        } else if (controllers.size() == 1) {
-            adjusted = adjustWithOneController(controllers.getFirst(), controlledBus, contextData, sensitivityContext, diffV, controlledBusesWithAllItsControllersToLimit);
-        } else {
-            adjusted = adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV, halfTargetDeadband, controlledBusesWithAllItsControllersToLimit);
-        }
-        if (adjusted) {
-            controlledBusesAdjusted.add(controlledBus.getId());
-            status.setValue(OuterLoopStatus.UNSTABLE);
+        if (controllers.size() == 1) {
+            adjustWithOneController(controllers.getFirst(), controlledBus, contextData, sensitivityContext,
+                    diffV, controllerBranchesAdjusted, controlledBusesWithAllItsControllersToLimit);
+        } else if (controllers.size() > 1) {
+            adjustWithSeveralControllers(controllers, controlledBus, contextData, sensitivityContext, diffV,
+                    halfTargetDeadband, controllerBranchesAdjusted, controlledBusesWithAllItsControllersToLimit);
         }
     }
+
 }

@@ -26,7 +26,6 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.Range;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
@@ -91,9 +90,9 @@ public class AcIncrementalPhaseControlOuterLoop
         }
     }
 
-    private int checkCurrentLimiterPhaseControls(AcSensitivityContext sensitivityContext, IncrementalContextData contextData,
-                                                     List<TransformerPhaseControl> currentLimiterPhaseControls) {
-        MutableInt numOfCurrentLimiterPstsThatChangedTap = new MutableInt(0);
+    private void checkCurrentLimiterPhaseControls(AcSensitivityContext sensitivityContext, IncrementalContextData contextData,
+                                                     List<TransformerPhaseControl> currentLimiterPhaseControls,
+                                                     List<IncrementalChangeDetails> currentLimiterPstsThatChangedTap) {
 
         for (TransformerPhaseControl phaseControl : currentLimiterPhaseControls) {
             LfBranch controllerBranch = phaseControl.getControllerBranch();
@@ -113,14 +112,14 @@ public class AcIncrementalPhaseControlOuterLoop
                     int oldTapPosition = piModel.getTapPosition();
                     double oldA1 = piModel.getA1();
                     Range<Integer> tapPositionRange = piModel.getTapPositionRange();
-                    piModel.updateTapPositionToExceedNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
-                        controllerContext.updateAllowedDirection(direction);
-                        numOfCurrentLimiterPstsThatChangedTap.add(1);
-                    });
+                    piModel.updateTapPositionToExceedNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection())
+                            .ifPresent(controllerContext::updateAllowedDirection);
 
                     if (piModel.getTapPosition() != oldTapPosition) {
                         logger.debug("Controller branch '{}' changed tap from {} to {} to limit current (full range: {})", controllerBranch.getId(),
                                 oldTapPosition, piModel.getTapPosition(), tapPositionRange);
+                        IncrementalChangeDetails changeDetails = new IncrementalChangeDetails(controllerBranch.getId(), oldTapPosition, piModel.getTapPosition());
+                        currentLimiterPstsThatChangedTap.add(changeDetails);
 
                         double discreteDa = piModel.getA1() - oldA1;
                         checkImpactOnOtherPhaseShifters(sensitivityContext, phaseControl, currentLimiterPhaseControls, discreteDa);
@@ -128,7 +127,6 @@ public class AcIncrementalPhaseControlOuterLoop
                 }
             }
         }
-        return numOfCurrentLimiterPstsThatChangedTap.getValue();
     }
 
     private void checkImpactOnOtherPhaseShifters(AcSensitivityContext sensitivityContext, TransformerPhaseControl phaseControl,
@@ -203,32 +201,27 @@ public class AcIncrementalPhaseControlOuterLoop
                                                         context.getLoadFlowContext().getEquationSystem(),
                                                         context.getLoadFlowContext().getJacobianMatrix());
 
-        final int numOfCurrentLimiterPstsThatChangedTap;
-        final int numOfActivePowerControlPstsThatChangedTap;
+        // for detailed reports
+        final List<IncrementalChangeDetails> currentLimiterPstsThatChangedTap = new ArrayList<>();
+        final List<IncrementalChangeDetails> activePowerControlPstsThatChangedTap = new ArrayList<>();
         if (!currentLimiterPhaseControls.isEmpty()) {
-            numOfCurrentLimiterPstsThatChangedTap = checkCurrentLimiterPhaseControls(sensitivityContext,
-                                                                                         contextData,
-                                                                                         currentLimiterPhaseControls);
-        } else {
-            numOfCurrentLimiterPstsThatChangedTap = 0;
+            checkCurrentLimiterPhaseControls(sensitivityContext, contextData, currentLimiterPhaseControls, currentLimiterPstsThatChangedTap);
         }
 
         if (!activePowerControlPhaseControls.isEmpty()) {
-            numOfActivePowerControlPstsThatChangedTap = checkActivePowerControlPhaseControls(sensitivityContext,
-                                                                                                 contextData,
-                                                                                                 activePowerControlPhaseControls);
-        } else {
-            numOfActivePowerControlPstsThatChangedTap = 0;
+            checkActivePowerControlPhaseControls(sensitivityContext, contextData, activePowerControlPhaseControls, activePowerControlPstsThatChangedTap);
         }
 
-        if (numOfCurrentLimiterPstsThatChangedTap + numOfActivePowerControlPstsThatChangedTap != 0) {
+        if (!currentLimiterPstsThatChangedTap.isEmpty() || !activePowerControlPstsThatChangedTap.isEmpty()) {
             status = OuterLoopStatus.UNSTABLE;
             ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
-            if (numOfCurrentLimiterPstsThatChangedTap != 0) {
-                Reports.reportCurrentLimiterPstsChangedTaps(iterationReportNode, numOfCurrentLimiterPstsThatChangedTap);
+            if (!currentLimiterPstsThatChangedTap.isEmpty()) {
+                ReportNode summary = Reports.reportCurrentLimiterPstsChangedTaps(iterationReportNode, currentLimiterPstsThatChangedTap.size());
+                currentLimiterPstsThatChangedTap.forEach(changeDetails -> Reports.reportTransformerControlChangedTapsDetail(summary, changeDetails));
             }
-            if (numOfActivePowerControlPstsThatChangedTap != 0) {
-                Reports.reportActivePowerControlPstsChangedTaps(iterationReportNode, numOfActivePowerControlPstsThatChangedTap);
+            if (!activePowerControlPstsThatChangedTap.isEmpty()) {
+                ReportNode summary = Reports.reportActivePowerControlPstsChangedTaps(iterationReportNode, activePowerControlPstsThatChangedTap.size());
+                activePowerControlPstsThatChangedTap.forEach(changeDetails -> Reports.reportTransformerControlChangedTapsDetail(summary, changeDetails));
             }
         }
 
