@@ -386,7 +386,9 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     }
 
     /**
-     * Sorts components by size in reverse order and update index for every root.
+     * Builds a list of components, sort it by size in reverse order and update index for every root.
+     *
+     * @return a list of components sorted by size in reverse order.
      */
     public List<Set<V>> allComponents() {
         List<Set<V>> components = new ArrayList<>(roots.size());
