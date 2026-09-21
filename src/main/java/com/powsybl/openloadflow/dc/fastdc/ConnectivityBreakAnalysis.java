@@ -209,7 +209,11 @@ public final class ConnectivityBreakAnalysis {
         GraphConnectivity<LfBus, LfBranch> connectivity = lfNetwork.getConnectivity();
 
         // concatenate all computed elements, to apply them on the connectivity
-        List<LfAction> lfActions = operatorStrategy == null ? Collections.emptyList() : operatorStrategy.getActions().stream().filter(LfAction::isValid).toList();
+        // only branch actions (line/switch open/close) can modify connectivity: other actions (e.g. PST tap, generator/load
+        // setpoint) have no associated branch and must not be considered here, otherwise they would be looked up in
+        // actionElementByBranch as connectivity-modifying elements and break the analysis
+        List<LfAction> lfActions = operatorStrategy == null ? Collections.emptyList()
+                : operatorStrategy.getActions().stream().filter(LfAction::isValid).filter(AbstractLfBranchAction.class::isInstance).toList();
         List<ComputedElement> modifyingConnectivityCandidates = Stream.concat(
                 contingency != null ? contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get) : Stream.empty(),
                 lfActions.stream().map(actionElementByBranch::get).flatMap(Collection::stream)
