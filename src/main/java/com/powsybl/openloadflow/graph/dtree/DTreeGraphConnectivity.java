@@ -79,8 +79,6 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         }
 
         DTGraph<V, E> graph = getGraph();
-        // sorting roots will sort components as components is a wrapper around roots
-        graph.sortComponents();
         componentSets = graph.allComponents();
     }
 
@@ -139,12 +137,10 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         if (mainComponentVertex != null) {
             return graph.rootOf(mainComponentVertex);
         } else {
-            List<DTNode<V, E>> roots = getGraph().getRoots();
-            DTNode<V, E> biggestRoot = roots.getFirst();
+            DTNode<V, E> biggestRoot = null;
 
-            for (int i = 1; i < roots.size(); i++) {
-                DTNode<V, E> root = roots.get(i);
-                if (root.size() > biggestRoot.size()) {
+            for (DTNode<V, E> root : getGraph().getRoots()) {
+                if (biggestRoot == null || root.size() > biggestRoot.size()) {
                     biggestRoot = root;
                 }
             }

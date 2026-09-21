@@ -33,9 +33,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      * the value of the attribute 'rootIndex' of the DTNode at index i is i.
      * In other words: roots.get(i).rootIndex == i
      */
-    private final List<DTNode<V, E>> roots = new ArrayList<>();
-
-    private final AllComponentsView components = new AllComponentsView();
+    private final Set<DTNode<V, E>> roots = new LinkedHashSet<>();
 
     /**
      * Return the root of the tree in which {@code vertex}.
@@ -271,44 +269,32 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     }
 
     /**
-     * Add {@code newRoot} at the end of the list of {@link #roots}.
-     * Its index will be the old number of components (old size
-     * of {@link #roots}).
+     * Add {@code newRoot} in the set of {@link #roots}.
      *
      * @param newRoot the root to add
      */
     private void addRoot(DTNode<V, E> newRoot) {
-        newRoot.setIndex(roots.size());
         roots.add(newRoot);
     }
 
     /**
-     * Remove {@code root} from the list of root. This is done
-     * by swapping {@code root} with the last element of roots
-     * (if any and if it's not {@code root}). The index of the
-     * previously last element will be updated.
+     * Remove {@code root} from the set of root.
      *
      * @param root the root to remove
      */
     private void removeRoot(DTNode<V, E> root) {
-        // update roots, swapping 'root' and the last element of roots
-        DTNode<V, E> last = roots.removeLast();
-        if (root != last) {
-            last.setIndex(root.getIndex());
-            roots.set(last.getIndex(), last);
-        }
+        roots.remove(root);
     }
 
     /**
-     * Replace the root at index {@code oldRoot.getIndex()} with {@code newRoot}.
+     * Remove {@code oldRoot} and replace with {@code newRoot}.
      *
      * @param oldRoot the old root to replace with {@code newRoot}
      * @param newRoot the new root to add
      */
     void replaceRoot(DTNode<V, E> oldRoot, DTNode<V, E> newRoot) {
-        int index = oldRoot.getIndex();
-        newRoot.setIndex(index);
-        roots.set(index, newRoot);
+        roots.remove(oldRoot);
+        roots.add(newRoot);
     }
 
     @Override
@@ -402,31 +388,22 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     /**
      * Sorts components by size in reverse order and update index for every root.
      */
-    public void sortComponents() {
-        roots.sort(Comparator.<DTNode<V, E>>comparingInt(DTNode::size).reversed());
-        for (int i = 0; i < roots.size(); i++) {
-            roots.get(i).setIndex(i);
-        }
-    }
-
     public List<Set<V>> allComponents() {
+        List<Set<V>> components = new ArrayList<>(roots.size());
+        for (DTNode<V, E> root : roots) {
+            components.add(root.componentView());
+        }
+
+        components.sort(Comparator.<Set<V>>comparingInt(Set::size).reversed());
+        for (int i = 0; i < components.size(); i++) {
+            ComponentView<V, E> comp = (ComponentView<V, E>) components.get(i);
+            comp.setIndex(i);
+        }
+
         return components;
     }
 
-    List<DTNode<V, E>> getRoots() {
+    Set<DTNode<V, E>> getRoots() {
         return roots;
-    }
-
-    private final class AllComponentsView extends AbstractList<Set<V>> {
-
-        @Override
-        public Set<V> get(int index) {
-            return roots.get(index).componentView();
-        }
-
-        @Override
-        public int size() {
-            return roots.size();
-        }
     }
 }

@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.graph.dtree;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.NoSuchElementException;
 
 /**
@@ -59,26 +58,25 @@ class VerticesNotInMainComponent<V, E> extends AbstractSetView<V> {
     private class Itr implements Iterator<V> {
 
         private final DTNode<V, E> excludedTree;
-        private int index = 0;
-        private Iterator<V> currentTreeIt;
+        private final Iterator<DTNode<V, E>> rootIt;
+        private Iterator<V> curIt;
 
         Itr(DTNode<V, E> excludedTree) {
+            rootIt = graph.getRoots().iterator();
             this.excludedTree = excludedTree;
         }
 
         @Override
         public boolean hasNext() {
-            if (currentTreeIt != null && currentTreeIt.hasNext()) {
+            if (curIt != null && curIt.hasNext()) {
                 return true;
             }
 
-            List<DTNode<V, E>> roots = graph.getRoots();
-            while (index < roots.size()) {
-                DTNode<V, E> next = roots.get(index);
-                index++;
+            while (rootIt.hasNext()) {
+                DTNode<V, E> next = rootIt.next();
 
                 if (next != excludedTree) {
-                    currentTreeIt = new DFSIterator<>(next);
+                    curIt = new DFSIterator<>(next);
                     return true;
                 }
             }
@@ -92,7 +90,7 @@ class VerticesNotInMainComponent<V, E> extends AbstractSetView<V> {
                 throw new NoSuchElementException();
             }
 
-            return currentTreeIt.next();
+            return curIt.next();
         }
     }
 }
