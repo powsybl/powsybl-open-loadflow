@@ -29,34 +29,36 @@ public class LfBoundaryLineAction extends AbstractLfAction<BoundaryLineAction> {
 
     @Override
     public boolean apply(LfNetwork lfNetwork, LfContingency lfContingency, LfNetworkParameters lfNetworkParameters) {
-        if (isValid()) {
-            if (lfBranch.getBranchType().equals(LfBranch.BranchType.BOUNDARY_LINE)) {
-                LfLoad boundaryActionLoad = lfBranch.getBus2().getLoads().stream().findFirst().orElse(null);
-
-                // Case the dangling line has a generation part that regulates in voltage and the action modifies the load reactive power
-                LfGenerator boundaryActionGenerator = lfBranch.getBus2().getGenerators().stream().findFirst().orElse(null);
-                if (null != boundaryActionGenerator && !Double.isNaN(boundaryActionGenerator.getTargetV()) && action.getReactivePowerValue().isPresent()) {
-                    LOGGER.warn("The dangling line action on {} will modify the load reactive power but the dangling line has generation part regulating in voltage.", action.getBoundaryLineId());
-                }
-
-                if (null != boundaryActionLoad) {
-                    if (action.getActivePowerValue().isPresent()) {
-                        double activePowerValue = action.isRelativeValue() ? action.getActivePowerValue().getAsDouble() / PerUnit.SB
-                                + boundaryActionLoad.getTargetP() : action.getActivePowerValue().getAsDouble() / PerUnit.SB;
-                        boundaryActionLoad.setTargetP(activePowerValue);
-                    }
-                    if (action.getReactivePowerValue().isPresent()) {
-                        double reactivePowerValue = action.isRelativeValue() ? action.getReactivePowerValue().getAsDouble() / PerUnit.SB
-                                + boundaryActionLoad.getTargetQ() : action.getReactivePowerValue().getAsDouble() / PerUnit.SB;
-                        boundaryActionLoad.setTargetQ(reactivePowerValue);
-                    }
-                }
-                return true;
-            }
-            LOGGER.warn("Dangling line action {}: branch matching dangling line id {} is not a dangling line", action.getId(), action.getBoundaryLineId());
+        if (!isValid()) {
+            LOGGER.warn("Boundary line action {}: branch matching boundary line id {} not found", action.getId(), boundaryLineId);
             return false;
         }
-        LOGGER.warn("Dangling line action {}: branch matching dangling line id {} not found", action.getId(), action.getBoundaryLineId());
-        return false;
+        if (!lfBranch.getBranchType().equals(LfBranch.BranchType.BOUNDARY_LINE)) {
+            LOGGER.warn("Boundary line action {}: branch matching boundary line id {} is not a boundary line", action.getId(), boundaryLineId);
+            return false;
+        }
+
+        LfLoad boundaryActionLoad = lfBranch.getBus2().getLoads().stream().findFirst().orElse(null);
+        if (boundaryActionLoad == null) {
+            // No load on this boundary line: nothing to do
+            return true;
+        }
+        if (action.getActivePowerValue().isPresent()) {
+            double activePowerValue = action.getActivePowerValue().getAsDouble() / PerUnit.SB;
+            double targetValue = action.isRelativeValue() ? activePowerValue + boundaryActionLoad.getTargetP() : activePowerValue;
+            boundaryActionLoad.setTargetP(targetValue);
+        }
+        if (action.getReactivePowerValue().isPresent()) {
+            // Case the boundary line has a generation part that regulates in voltage and the action modifies the load reactive power
+            LfGenerator boundaryActionGenerator = lfBranch.getBus2().getGenerators().stream().findFirst().orElse(null);
+            if (boundaryActionGenerator != null && !Double.isNaN(boundaryActionGenerator.getTargetV())) {
+                LOGGER.warn("The boundary line action {} on {} will modify the load reactive power but the boundary line has generation part regulating in voltage.", action.getId(), boundaryLineId);
+            }
+
+            double reactivePowerValue = action.getReactivePowerValue().getAsDouble() / PerUnit.SB;
+            double targetValue = action.isRelativeValue() ? reactivePowerValue + boundaryActionLoad.getTargetQ() : reactivePowerValue;
+            boundaryActionLoad.setTargetQ(targetValue);
+        }
+        return true;
     }
 }
