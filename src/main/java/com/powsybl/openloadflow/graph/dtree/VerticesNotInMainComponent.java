@@ -60,7 +60,7 @@ class VerticesNotInMainComponent<V, E> extends AbstractSetView<V> {
 
         private final DTNode<V, E> excludedTree;
         private int index = 0;
-        private Iterator<V> curIt;
+        private Iterator<V> currentTreeIt;
 
         Itr(DTNode<V, E> excludedTree) {
             this.excludedTree = excludedTree;
@@ -68,7 +68,7 @@ class VerticesNotInMainComponent<V, E> extends AbstractSetView<V> {
 
         @Override
         public boolean hasNext() {
-            if (curIt != null && curIt.hasNext()) {
+            if (currentTreeIt != null && currentTreeIt.hasNext()) {
                 return true;
             }
 
@@ -78,7 +78,7 @@ class VerticesNotInMainComponent<V, E> extends AbstractSetView<V> {
                 index++;
 
                 if (next != excludedTree) {
-                    curIt = new DFSIterator<>(next);
+                    currentTreeIt = new DFSIterator<>(next);
                     return true;
                 }
             }
@@ -92,7 +92,7 @@ class VerticesNotInMainComponent<V, E> extends AbstractSetView<V> {
                 throw new NoSuchElementException();
             }
 
-            return curIt.next();
+            return currentTreeIt.next();
         }
     }
 }
