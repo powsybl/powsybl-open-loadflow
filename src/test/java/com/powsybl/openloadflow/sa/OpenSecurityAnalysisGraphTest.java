@@ -14,7 +14,6 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.graph.MinimumSpanningTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
@@ -73,16 +72,6 @@ class OpenSecurityAnalysisGraphTest {
     }
 
     @Test
-    void testMst() {
-        LOGGER.info("Test Minimum Spanning Tree on test network containing {} branches", network.getBranchCount());
-        try (var testDataRef = computeReferenceLfContingencies();
-             var testData = computeLfContingencies(new MinimumSpanningTreeGraphConnectivityFactory<>())) {
-            printResult(testData.getListLfContingencies());
-            checkResult(testData.getListLfContingencies(), testDataRef.getListLfContingencies());
-        }
-    }
-
-    @Test
     void testDTree() {
         LOGGER.info("Test D-Tree on test network containing {} branches", network.getBranchCount());
         try (var testDataRef = computeReferenceLfContingencies();
@@ -97,24 +86,20 @@ class OpenSecurityAnalysisGraphTest {
         network.getSwitch("B3").setOpen(true);
         contingenciesProvider = n -> Collections.singletonList(new Contingency("L1", new BranchContingency("L1")));
         try (var testDataRef = computeReferenceLfContingencies();
-             var testData1 = computeLfContingencies(new MinimumSpanningTreeGraphConnectivityFactory<>());
-             var testData2 = computeLfContingencies(new EvenShiloachGraphDecrementalConnectivityFactory<>());
-             var testData3 = computeLfContingencies(new DTreeGraphConnectivityFactory<>())) {
+             var testData1 = computeLfContingencies(new EvenShiloachGraphDecrementalConnectivityFactory<>());
+             var testData2 = computeLfContingencies(new DTreeGraphConnectivityFactory<>())) {
             checkResult(testData1.getListLfContingencies(), testDataRef.getListLfContingencies());
             checkResult(testData2.getListLfContingencies(), testDataRef.getListLfContingencies());
-            checkResult(testData3.getListLfContingencies(), testDataRef.getListLfContingencies());
         }
 
         contingenciesProvider = n -> Collections.singletonList(new Contingency("L2", new BranchContingency("L2")));
         network.getSwitch("B3").setOpen(false);
         network.getSwitch("B1").setOpen(true);
         try (var testDataRef = computeReferenceLfContingencies();
-             var testData1 = computeLfContingencies(new MinimumSpanningTreeGraphConnectivityFactory<>());
-             var testData2 = computeLfContingencies(new EvenShiloachGraphDecrementalConnectivityFactory<>());
-             var testData3 = computeLfContingencies(new DTreeGraphConnectivityFactory<>())) {
+             var testData1 = computeLfContingencies(new EvenShiloachGraphDecrementalConnectivityFactory<>());
+             var testData2 = computeLfContingencies(new DTreeGraphConnectivityFactory<>())) {
             checkResult(testData1.getListLfContingencies(), testDataRef.getListLfContingencies());
             checkResult(testData2.getListLfContingencies(), testDataRef.getListLfContingencies());
-            checkResult(testData3.getListLfContingencies(), testDataRef.getListLfContingencies());
         }
     }
 

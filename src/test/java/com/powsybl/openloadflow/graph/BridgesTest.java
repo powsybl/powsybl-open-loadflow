@@ -71,12 +71,6 @@ class BridgesTest {
     }
 
     @Test
-    void testMst() {
-        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new MinimumSpanningTreeGraphConnectivity<>(), "Minimum-Spanning-Tree");
-        assertEquals(bridgesSetReference, bridges);
-    }
-
-    @Test
     void testDTree() {
         Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new DTreeGraphConnectivity<>(), "DTree");
         assertEquals(bridgesSetReference, bridges);
