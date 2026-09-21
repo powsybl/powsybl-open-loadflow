@@ -522,11 +522,6 @@ public class NewHolmGraphConnectivity<V, E> extends AbstractGraphConnectivity<V,
             return adjacencyList.get(v);
         }
 
-        @Override
-        public Set<V> getVertices() {
-            throw new UnsupportedOperationException();
-        }
-
         public String eulerTour(V vertex) {
             AVLTree<Occurrence<V, E>> tree = treeOf(vertex);
 

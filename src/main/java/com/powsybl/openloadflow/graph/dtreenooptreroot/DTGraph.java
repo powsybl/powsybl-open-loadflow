@@ -377,7 +377,6 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         return vertexToTreeNode.get(v).getNeighborEdges();
     }
 
-    @Override
     public Set<V> getVertices() {
         return vertexToTreeNode.keySet();
     }

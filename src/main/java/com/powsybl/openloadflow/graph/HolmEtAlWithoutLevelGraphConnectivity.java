@@ -263,7 +263,6 @@ public class HolmEtAlWithoutLevelGraphConnectivity<V, E> extends AbstractGraphCo
             return set;
         }
 
-        @Override
         public Set<V> getVertices() {
             return adjacencyList.keySet();
         }

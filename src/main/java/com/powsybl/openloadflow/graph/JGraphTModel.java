@@ -78,7 +78,6 @@ public class JGraphTModel<V, E> implements GraphModel<V, E> {
         return graph.degreeOf(v);
     }
 
-    @Override
     public Set<V> getVertices() {
         return graph.vertexSet();
     }

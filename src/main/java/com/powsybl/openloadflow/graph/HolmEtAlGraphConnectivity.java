@@ -385,11 +385,6 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
 
             return set;
         }
-
-        @Override
-        public Set<V> getVertices() {
-            return adjacencyList.getFirst().keySet();
-        }
     }
 
     private static final class EdgeInfo<V> {
