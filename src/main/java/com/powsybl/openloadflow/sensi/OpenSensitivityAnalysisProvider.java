@@ -269,9 +269,8 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     public record ReplayResult<T extends SensitivityResultWriter>(T resultWriter, List<SensitivityFactor> factors, List<Contingency> contingencies) {
     }
 
-    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir,
-                                                                      BiFunction<List<Contingency>, List<OperatorStrategy>, T> resultWriterProvider,
-                                                                      ReportNode reportNode) {
+    public <T extends SensitivityResultWriter> ReplayResult<T> replay(ZonedDateTime date, Path debugDir, BiFunction<List<Contingency>,
+            List<OperatorStrategy>, T> resultWriterProvider, ReportNode reportNode) {
         Objects.requireNonNull(date);
         Objects.requireNonNull(debugDir);
         Objects.requireNonNull(resultWriterProvider);
