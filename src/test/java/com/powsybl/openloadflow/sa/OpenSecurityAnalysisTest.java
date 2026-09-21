@@ -198,7 +198,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 Collections.emptyList(),
                 new SecurityAnalysisParameters());
 
-        // WITHOUT LIMIT REDUCTION
+        // WITHOUT LIMIT SCALING
         //
         // Line NHV1_NHV2_1 side ONE
         //     0.5' limit        : 1600 A
@@ -232,7 +232,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 limitScalings,
                 new SecurityAnalysisParameters());
 
-        // WITH LIMIT "REDUCTION" (All temporary limits x 1.5)
+        // WITH LIMIT "SCALING" (All temporary limits x 1.5)
         //
         // Line NHV1_NHV2_1 side ONE
         //     0.5' limit (x 1.5)  : 1600 A -> 2400 A

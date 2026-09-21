@@ -120,7 +120,7 @@ public class LimitViolationManager {
         String operationalLimitsGroupId = limitsGroup.getOperationalLimitsGroupId();
         double i = iGetter.apply(branch).eval();
         for (LfBranch.LfLimit temporaryLimit : limits) {
-            if (i > temporaryLimit.getReducedValue()) {
+            if (i > temporaryLimit.getScaledValue()) {
                 addBranchLimitViolation(createLimitViolation(branch, operationalLimitsGroupId, temporaryLimit, LimitViolationType.CURRENT, PerUnit.ib(bus.getNominalV()), i, side));
                 break;
             }
@@ -132,7 +132,7 @@ public class LimitViolationManager {
         String operationalLimitsGroupId = limitsGroup.getOperationalLimitsGroupId();
         double p = pGetter.apply(branch).eval();
         for (LfBranch.LfLimit temporaryLimit : limits) {
-            if (Math.abs(p) > temporaryLimit.getReducedValue()) {
+            if (Math.abs(p) > temporaryLimit.getScaledValue()) {
                 addBranchLimitViolation(createLimitViolation(branch, operationalLimitsGroupId, temporaryLimit, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p, side));
                 break;
             }
@@ -146,7 +146,7 @@ public class LimitViolationManager {
         double s = sGetter.applyAsDouble(branch);
         if (!Double.isNaN(s)) {
             for (LfBranch.LfLimit temporaryLimit : limits) {
-                if (s > temporaryLimit.getReducedValue()) {
+                if (s > temporaryLimit.getScaledValue()) {
                     addBranchLimitViolation(createLimitViolation(branch, operationalLimitsGroupId, temporaryLimit, LimitViolationType.APPARENT_POWER, PerUnit.SB, s, side));
                     break;
                 }

@@ -142,7 +142,7 @@ public interface LfBranch extends LfElement {
             return value;
         }
 
-        public double getReducedValue() {
+        public double getScaledValue() {
             return value * scaling;
         }
 
