@@ -232,7 +232,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 limitScalings,
                 new SecurityAnalysisParameters());
 
-        // WITH LIMIT "SCALING" (All temporary limits x 1.5)
+        // WITH LIMIT SCALING (All temporary limits x 1.5)
         //
         // Line NHV1_NHV2_1 side ONE
         //     0.5' limit (x 1.5)  : 1600 A -> 2400 A
@@ -278,7 +278,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 limitScalings,
                 new SecurityAnalysisParameters());
 
-        // AFTER LIMIT "REDUCTION"
+        // AFTER LIMIT SCALING
         //
         // Line NHV1_NHV2_1 side ONE
         //     ---------------------------- Post-contingency state : 1008.9 A
