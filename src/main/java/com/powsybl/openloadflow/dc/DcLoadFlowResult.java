@@ -51,7 +51,7 @@ public class DcLoadFlowResult extends AbstractLoadFlowResult {
         if (getOuterLoopResult().status() == OuterLoopStatus.UNSTABLE) {
             return new Status(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, "Reached outer loop max iterations limit. Last outer loop name: " + getOuterLoopResult().outerLoopName());
         } else if (getOuterLoopResult().status() == OuterLoopStatus.FAILED) {
-            return new Status(LoadFlowResult.ComponentResult.Status.FAILED, "Outer loop failed: " + getOuterLoopResult().statusText());
+            return new Status(LoadFlowResult.ComponentResult.Status.FAILED, "Outer loop '" + getOuterLoopResult().outerLoopName() + "' failed: " + getOuterLoopResult().statusText());
         }
         if (solverSuccess) {
             return new Status(LoadFlowResult.ComponentResult.Status.CONVERGED, "Converged");
