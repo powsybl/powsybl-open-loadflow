@@ -36,8 +36,8 @@ import java.util.stream.Collectors;
  */
 public class StateMap<T> extends HashMap<T, StateMap.State> {
 
-    private Set<T> removed;
-    private Set<T> added;
+    private transient Set<T> removed;
+    private transient Set<T> added;
 
     /**
      * Mark the specified element as added. That is, mark the
