@@ -116,6 +116,7 @@ public class DTreeGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
         }
 
         modificationsStack.push(new Modifications<>(graph, mainComponentNode, fictitious, true));
+        graph.setCurrentModificationsContext(modificationsStack.peek());
     }
 
     @Override

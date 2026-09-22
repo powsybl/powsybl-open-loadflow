@@ -297,7 +297,7 @@ public class DTGraph<V, E> {
             newRoot.makeRoot(true);
             afterRemovingTreeEdge(false, newRoot, rootLarge, removedEdge);
         } else {
-            afterRemovingTreeEdge(false, newRoot, rootLarge, removedEdge);
+            afterRemovingTreeEdge(false, rootSmall, rootLarge, removedEdge);
         }
     }
 
