@@ -13,7 +13,7 @@ import com.powsybl.iidm.network.LoadingLimits;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.iidm.network.TwoSides;
-import com.powsybl.openloadflow.sa.LimitReductionManager;
+import com.powsybl.openloadflow.sa.LimitScalingManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
@@ -68,11 +68,11 @@ public interface LfBranch extends LfElement {
         }
 
         /**
-         * Create the list of LfLimits from a LoadingLimits and a list of reductions.
+         * Create the list of LfLimits from a LoadingLimits and a list of scalings.
          * The resulting list will contain the permanent limit
          * This list is returned in a LfLimitsGroup object
          */
-        public static LfLimitsGroup createSortedLimitsList(LoadingLimits loadingLimits, String operationalLimitsGroupId, LfBus bus, double[] limitReductions) {
+        public static LfLimitsGroup createSortedLimitsList(LoadingLimits loadingLimits, String operationalLimitsGroupId, LfBus bus, double[] limitScalings) {
             List<LfLimit> sortedLimits = new ArrayList<>(3);
             if (loadingLimits != null) {
                 double toPerUnit = getScaleForLimitType(loadingLimits.getLimitType(), bus);
@@ -83,15 +83,15 @@ public interface LfBranch extends LfElement {
                         // it is not useful to add a limit with acceptable duration equal to zero as the only value plausible
                         // for this limit is infinity.
                         // https://javadoc.io/doc/com.powsybl/powsybl-core/latest/com/powsybl/iidm/network/CurrentLimits.html
-                        double reduction = limitReductions.length == 0 ? 1d : limitReductions[i + 1]; // Temporary limit's reductions are stored starting from index 1 in `limitReductions`
+                        double scaling = limitScalings.length == 0 ? 1d : limitScalings[i + 1]; // Temporary limit's scalings are stored starting from index 1 in `limitScalings`
                         double originalValuePerUnit = temporaryLimit.getValue() * toPerUnit;
                         sortedLimits.add(0, LfLimit.createTemporaryLimit(temporaryLimit.getName(), temporaryLimit.getAcceptableDuration(),
-                                originalValuePerUnit, reduction));
+                                originalValuePerUnit, scaling));
                     }
                     i++;
                 }
-                double reduction = limitReductions.length == 0 ? 1d : limitReductions[0];
-                sortedLimits.add(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimitName(), loadingLimits.getPermanentLimit() * toPerUnit, reduction));
+                double scaling = limitScalings.length == 0 ? 1d : limitScalings[0];
+                sortedLimits.add(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimitName(), loadingLimits.getPermanentLimit() * toPerUnit, scaling));
             }
             if (sortedLimits.size() > 1) {
                 // we only make that fix if there is more than a permanent limit attached to the branch.
@@ -114,21 +114,21 @@ public interface LfBranch extends LfElement {
 
         private final double value;
 
-        private final double reduction;
+        private final double scaling;
 
-        public LfLimit(String name, int acceptableDuration, double value, double reduction) {
+        public LfLimit(String name, int acceptableDuration, double value, double scaling) {
             this.name = name;
             this.acceptableDuration = acceptableDuration;
             this.value = value;
-            this.reduction = reduction;
+            this.scaling = scaling;
         }
 
-        public static LfLimit createTemporaryLimit(String name, int acceptableDuration, double originalValuePerUnit, Double reduction) {
-            return new LfLimit(name, acceptableDuration, originalValuePerUnit, reduction);
+        public static LfLimit createTemporaryLimit(String name, int acceptableDuration, double originalValuePerUnit, Double scaling) {
+            return new LfLimit(name, acceptableDuration, originalValuePerUnit, scaling);
         }
 
-        public static LfLimit createPermanentLimit(String permanentLimitName, double originalValuePerUnit, Double reduction) {
-            return new LfLimit(permanentLimitName, Integer.MAX_VALUE, originalValuePerUnit, reduction);
+        public static LfLimit createPermanentLimit(String permanentLimitName, double originalValuePerUnit, Double scaling) {
+            return new LfLimit(permanentLimitName, Integer.MAX_VALUE, originalValuePerUnit, scaling);
         }
 
         public String getName() {
@@ -143,16 +143,16 @@ public interface LfBranch extends LfElement {
             return value;
         }
 
-        public double getReducedValue() {
-            return value * reduction;
+        public double getScaledValue() {
+            return value * scaling;
         }
 
         public void setAcceptableDuration(int acceptableDuration) {
             this.acceptableDuration = acceptableDuration;
         }
 
-        public double getReduction() {
-            return reduction;
+        public double getScaling() {
+            return scaling;
         }
     }
 
@@ -279,13 +279,13 @@ public interface LfBranch extends LfElement {
 
     List<Evaluable> getAdditionalClosedQ2();
 
-    List<LfLimitsGroup> getLimits1(LimitType type, LimitReductionManager limitReductionManager);
+    List<LfLimitsGroup> getLimits1(LimitType type, LimitScalingManager limitScalingManager);
 
-    default List<LfLimitsGroup> getLimits2(LimitType type, LimitReductionManager limitReductionManager) {
+    default List<LfLimitsGroup> getLimits2(LimitType type, LimitScalingManager limitScalingManager) {
         return Collections.emptyList();
     }
 
-    double[] getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits);
+    double[] getLimitScalings(TwoSides side, LimitScalingManager limitScalingManager, LoadingLimits limits);
 
     void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport);
 
