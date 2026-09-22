@@ -59,12 +59,20 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
     }
 
     public void beforeInsertingEdgeInComponent(DTNode<V, E> rootNodeU, Edge<V, E> edge) {
+        if (topologicalComparisonsDisabled()) {
+            return;
+        }
+
         if (isInMainComponent(rootNodeU)) {
             markEdgeAdded(edge.edgeData());
         }
     }
 
     public void beforeInsertingTreeEdge(DTNode<V, E> rootU, DTNode<V, E> rootV, Edge<V, E> edge) {
+        if (topologicalComparisonsDisabled()) {
+            return;
+        }
+
         if (isInMainComponent(rootV)) {
             markEdgeAdded(edge.edgeData());
             markAllAdded(rootU);
@@ -75,18 +83,30 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
     }
 
     public void afterInsertingTreeEdge(DTNode<V, E> mergedTree) {
+        if (topologicalComparisonsDisabled()) {
+            return;
+        }
+
         if (isMainComponentVertexFictitious) {
             maybeBiggestTreeChanged(mergedTree);
         }
     }
 
     public void afterRemovingNonTreeEdge(Edge<V, E> edge) {
+        if (topologicalComparisonsDisabled()) {
+            return;
+        }
+
         if (isInMainComponent(edge.nodeU())) {
             markEdgeRemoved(edge.edgeData());
         }
     }
 
     public void afterRemovingTreeEdge(boolean replacementEdgeFound, DTNode<V, E> smallRoot, DTNode<V, E> largeRoot, Edge<V, E> edge) {
+        if (topologicalComparisonsDisabled()) {
+            return;
+        }
+
         if (replacementEdgeFound) {
             if (isInMainComponent(smallRoot)) {
                 markEdgeRemoved(edge.edgeData());
@@ -116,19 +136,13 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
         }
     }
 
-    public void afterTreesDisconnected() {
-        if (isMainComponentVertexFictitious) {
-            maybeBiggestTreeChanged(graph.getBiggestRoot());
-        }
-    }
-
     /**
      * Change the main component vertex to the specified one.
      *
      * @param mainComponentVertex new vertex identifying the main component.
      */
     public void setMainComponentVertex(V mainComponentVertex) {
-        if (verticesState == null || edgesState == null) {
+        if (topologicalComparisonsDisabled()) {
             return;
         }
 
@@ -161,35 +175,31 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
         isMainComponentVertexFictitious = false;
     }
 
-    public boolean isInMainComponent(DTNode<V, E> node) {
+    private boolean isInMainComponent(DTNode<V, E> node) {
         return mainComponentNode.findRoot() == node.findRoot();
     }
 
-    public void markEdgeAdded(E edge) {
+    private void markEdgeAdded(E edge) {
         if (edgesState != null) {
             edgesState.markAdded(edge);
         }
     }
 
-    public void markEdgeRemoved(E edge) {
+    private void markEdgeRemoved(E edge) {
         if (edgesState != null) {
             edgesState.markRemoved(edge);
         }
     }
 
-    public void markAllAdded(DTNode<V, E> root) {
+    private void markAllAdded(DTNode<V, E> root) {
         markAll(root, State.ADDED);
     }
 
-    public void markAllRemoved(DTNode<V, E> root) {
+    private void markAllRemoved(DTNode<V, E> root) {
         markAll(root, State.REMOVED);
     }
 
-    public void markAll(DTNode<V, E> root, State newState) {
-        if (verticesState == null || edgesState == null) {
-            return;
-        }
-
+    private void markAll(DTNode<V, E> root, State newState) {
         for (DFSIterator<V, E> it = new DFSIterator<>(root); it.hasNext();) {
             V vertex = it.next();
             verticesState.mark(vertex, newState);
@@ -223,31 +233,35 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
     }
 
     public Set<V> getVerticesRemovedFromMainComponent() {
-        if (verticesState == null) {
+        if (topologicalComparisonsDisabled()) {
             throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
         }
         return verticesState.getRemoved();
     }
 
     public Set<E> getEdgesRemovedFromMainComponent() {
-        if (edgesState == null) {
+        if (topologicalComparisonsDisabled()) {
             throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
         }
         return edgesState.getRemoved();
     }
 
     public Set<V> getVerticesAddedToMainComponent() {
-        if (verticesState == null) {
+        if (topologicalComparisonsDisabled()) {
             throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
         }
         return verticesState.getAdded();
     }
 
     public Set<E> getEdgesAddedToMainComponent() {
-        if (edgesState == null) {
+        if (topologicalComparisonsDisabled()) {
             throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
         }
         return edgesState.getAdded();
+    }
+
+    private boolean topologicalComparisonsDisabled() {
+        return verticesState == null || edgesState == null;
     }
 
     @Override
