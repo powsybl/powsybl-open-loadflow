@@ -75,7 +75,6 @@ class BridgesTest {
         return Stream.of(
                 Arguments.of(new NaiveGraphConnectivity<>(LfBus::getNum), "naive algorithm"),
                 Arguments.of(new EvenShiloachGraphDecrementalConnectivity<>(), "Even-Shiloach"),
-                Arguments.of(new MinimumSpanningTreeGraphConnectivity<>(), "Minimum-Spanning-Tree"),
                 Arguments.of(new HolmEtAlGraphConnectivity<>(), "Holm-et-al"),
                 Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>(), "Holm-et-al (without level)"),
                 Arguments.of(new NewHolmGraphConnectivity<>(), "Holm-et-al-2"),

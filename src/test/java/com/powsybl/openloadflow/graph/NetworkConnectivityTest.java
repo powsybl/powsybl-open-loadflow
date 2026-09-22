@@ -85,7 +85,6 @@ class NetworkConnectivityTest {
         // Testing cutting an edge then adding it back
         testReaddEdge(new NaiveGraphConnectivity<>(LfBus::getNum), true);
         testReaddEdge(new EvenShiloachGraphDecrementalConnectivity<>(), false);
-        testReaddEdge(new MinimumSpanningTreeGraphConnectivity<>(), true);
         testReaddEdge(new HolmEtAlGraphConnectivity<>(), true);
         testReaddEdge(new HolmEtAlWithoutLevelGraphConnectivity<>(), true);
         testReaddEdge(new NewHolmGraphConnectivity<>(), true);
@@ -121,7 +120,6 @@ class NetworkConnectivityTest {
     void testNonConnectedComponents() {
         testNonConnectedComponents(new NaiveGraphConnectivity<>(LfBus::getNum));
         testNonConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
-        testNonConnectedComponents(new MinimumSpanningTreeGraphConnectivity<>());
         testNonConnectedComponents(new HolmEtAlGraphConnectivity<>());
         testNonConnectedComponents(new HolmEtAlWithoutLevelGraphConnectivity<>());
         testNonConnectedComponents(new NewHolmGraphConnectivity<>());
@@ -132,7 +130,6 @@ class NetworkConnectivityTest {
     void testConnectedComponents() {
         testConnectedComponents(new NaiveGraphConnectivity<>(LfBus::getNum));
         testConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
-        testConnectedComponents(new MinimumSpanningTreeGraphConnectivity<>());
         testConnectedComponents(new HolmEtAlGraphConnectivity<>());
         testConnectedComponents(new HolmEtAlWithoutLevelGraphConnectivity<>());
         testConnectedComponents(new NewHolmGraphConnectivity<>());

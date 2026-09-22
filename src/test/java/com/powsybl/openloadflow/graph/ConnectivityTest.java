@@ -663,7 +663,6 @@ class ConnectivityTest {
     private static Stream<Arguments> provideNonRestrictedConnectivities() {
         return Stream.of(
                 Arguments.of(new NaiveGraphConnectivity<Integer, String>(v -> v - 1)),
-                Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()),
                 Arguments.of(new HolmEtAlGraphConnectivity<>()),
                 Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>()),
                 Arguments.of(new NewHolmGraphConnectivity<>()),
@@ -692,7 +691,6 @@ class ConnectivityTest {
         return Stream.of(
                 Arguments.of(new NaiveGraphConnectivity<Integer, String>(v -> v - 1)),
                 Arguments.of(new EvenShiloachGraphDecrementalConnectivity<>()),
-                Arguments.of(new MinimumSpanningTreeGraphConnectivity<>()),
                 Arguments.of(new HolmEtAlGraphConnectivity<>()),
                 Arguments.of(new HolmEtAlWithoutLevelGraphConnectivity<>()),
                 Arguments.of(new NewHolmGraphConnectivity<>()),
