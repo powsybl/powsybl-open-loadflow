@@ -637,8 +637,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createAcDcConverter(AcDcConverter<?> acDcConverter, LfNetwork lfNetwork, LfNetworkParameters parameters,
-                                            Optional<Double> vdcOverride) {
+    private static void createAcDcConverter(AcDcConverter<?> acDcConverter, LfNetwork lfNetwork, LfNetworkParameters parameters, Optional<Double> vdcOverride) {
 
         if (acDcConverter.getTerminal2().isPresent()) {
             throw new PowsyblException("Open Load Flow does not support AC/DC converters with two AC terminals");
@@ -1376,11 +1375,11 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         // -- Sanity checks : detecting invalid DC configuration and automatically resolving reference-less islands
         double dcNominalV = dcVoltages.iterator().next();
         List<AcDcConverter<?>> convertersToSetInVdcMode =
-            DcComponentValidator.resolveDcComponent(dcBuses, loadingContext.acDcConverterSet, numDcc);
+                DcComponentValidator.resolveDcComponent(dcBuses, loadingContext.acDcConverterSet, numDcc);
         convertersToSetInVdcMode.forEach(converter -> {
             LOGGER.info("Network {}: converter '{}' automatically set to V_DC control mode (target Vdc = {} kV) " +
-                    "to settle an otherwise unconstrained DC island in DC component {}",
-                lfNetwork, converter.getId(), dcNominalV, numDcc);
+                            "to settle an otherwise unconstrained DC island in DC component {}",
+                    lfNetwork, converter.getId(), dcNominalV, numDcc);
             Reports.reportAutomaticVdcReferenceConverter(lfNetwork.getReportNode(), numDcc, converter.getId(), dcNominalV);
         });
 
