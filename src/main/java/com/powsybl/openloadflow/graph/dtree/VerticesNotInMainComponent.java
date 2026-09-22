@@ -59,10 +59,11 @@ class VerticesNotInMainComponent<V, E> extends AbstractSetView<V> {
     private class Itr implements Iterator<V> {
 
         private final DTNode<V, E> excludedTree;
-        private int index = 0;
+        private final Iterator<DTNode<V, E>> rootIt;
         private Iterator<V> curIt;
 
         Itr(DTNode<V, E> excludedTree) {
+            rootIt = graph.getRoots().iterator();
             this.excludedTree = excludedTree;
         }
 
@@ -72,10 +73,8 @@ class VerticesNotInMainComponent<V, E> extends AbstractSetView<V> {
                 return true;
             }
 
-            List<DTNode<V, E>> roots = graph.getRoots();
-            while (index < roots.size()) {
-                DTNode<V, E> next = roots.get(index);
-                index++;
+            while (rootIt.hasNext()) {
+                DTNode<V, E> next = rootIt.next();
 
                 if (next != excludedTree) {
                     curIt = new DFSIterator<>(next);

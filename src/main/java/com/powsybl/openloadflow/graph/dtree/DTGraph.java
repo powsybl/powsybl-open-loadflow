@@ -35,9 +35,26 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      * the value of the attribute 'rootIndex' of the DTNode at index i is i.
      * In other words: roots.get(i).rootIndex == i
      */
-    private final List<DTNode<V, E>> roots = new ArrayList<>();
+    private final Set<DTNode<V, E>> roots = new LinkedHashSet<>();
 
-    private final AllComponentsView components = new AllComponentsView();
+    public long sumOfDistances() {
+        long sum = 0;
+
+        for (DTNode<V, E> node : vertexToTreeNode.values()) {
+            sum += node.findRootWithDepth().depth();
+        }
+
+        return sum;
+    }
+
+    public DTNode<V, E> getNodeOrThrow(V v) {
+        DTNode<V, E> node = vertexToTreeNode.get(v);
+        if (node == null) {
+            throw new IllegalArgumentException("given vertex " + v + " is not in the graph");
+        }
+
+        return node;
+    }
 
     /**
      * Return the root of the tree in which {@code vertex}.
@@ -46,7 +63,32 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      * @return the root of the tree in which {@code vertex} is.
      */
     DTNode<V, E> rootOf(V vertex) {
-        return vertexToTreeNode.get(vertex).findRoot();
+        return getNodeOrThrow(vertex).findRoot();
+    }
+
+    @Override
+    public void addVertex(V v) {
+        if (containsVertex(v)) {
+            return;
+        }
+
+        DTNode<V, E> newNode = new DTNode<>(this, v);
+        vertexToTreeNode.put(v, newNode);
+        addRoot(newNode);
+    }
+
+    @Override
+    public void removeVertex(V v) {
+        if (!containsVertex(v)) {
+            return;
+        }
+
+        for (E edge : getNeighborEdgesOf(v)) {
+            removeEdge(edge);
+        }
+
+        DTNode<V, E> root = vertexToTreeNode.remove(v);
+        removeRoot(root);
     }
 
     @Override
@@ -55,8 +97,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
             return;
         }
 
-        DTNode<V, E> nodeU = getNodeThrowIfInexistent(u);
-        DTNode<V, E> nodeV = getNodeThrowIfInexistent(v);
+        DTNode<V, E> nodeU = getNodeOrThrow(u);
+        DTNode<V, E> nodeV = getNodeOrThrow(v);
 
         // update edges
         Edge<V, E> edge = new Edge<>(nodeU, nodeV, e);
@@ -75,15 +117,6 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         }
 
         check();
-    }
-
-    public DTNode<V, E> getNodeThrowIfInexistent(V v) {
-        DTNode<V, E> node = vertexToTreeNode.get(v);
-        if (node == null) {
-            throw new IllegalArgumentException("no such vertex in graph: " + v);
-        }
-
-        return node;
     }
 
     /**
@@ -159,12 +192,12 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     private void insertTreeEdge(DTNode<V, E> rootU, DTNode<V, E> nodeU, DTNode<V, E> rootV, DTNode<V, E> nodeV, Edge<V, E> edge) {
         if (rootU.size() < rootV.size()) {
             nodeU.makeRoot(true);
-            nodeU.link(rootV, nodeV, edge);
             removeRoot(nodeU);
+            nodeU.link(rootV, nodeV, edge);
         } else {
             nodeV.makeRoot(true);
-            nodeV.link(rootU, nodeU, edge);
             removeRoot(nodeV);
+            nodeV.link(rootU, nodeU, edge);
         }
     }
 
@@ -176,7 +209,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         }
 
         if (edge.isTreeEdge()) {
-            removeTreeEdge(edge.nodeU(), edge.nodeV());
+            removeTreeEdge(edge);
         } else {
             removeNonTreeEdge(edge);
         }
@@ -185,8 +218,9 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     }
 
     /**
+     * Let {@code nodeU} be {@code edge.nodeU()} and {@code nodeV} be {@code edge.nodeV()}.
      * Remove the tree edge between {@code nodeU} and {@code nodeV}.
-     * Assuming nodeU is a child of nodeV, this is a two steps process :
+     * Assuming nodeU is a child of {@code nodeV}, this is a two steps process :
      * <ol>
      *     <li>Unlink nodeU from nodeV. This creates two trees with a smaller one called {@code small},</li>
      *     <li>Search for a replacement edge and a potential new centroid by iterating over {@code small}.</li>
@@ -196,16 +230,15 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      *     </ul>
      * </ol>
      *
-     * @param nodeU one endpoint of the edge to remove.
-     * @param nodeV the other endpoint of the edge to remove.
+     * @param edge the edge to remove
      */
-    private void removeTreeEdge(DTNode<V, E> nodeU, DTNode<V, E> nodeV) {
+    private void removeTreeEdge(Edge<V, E> edge) {
         DTNode<V, E> child;
 
-        if (nodeU == nodeV.getParent()) {
-            child = nodeV;
+        if (edge.nodeU() == edge.nodeV().getParent()) {
+            child = edge.nodeV();
         } else {
-            child = nodeU;
+            child = edge.nodeU();
         }
 
         // unlink child from its parent
@@ -277,72 +310,32 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     }
 
     /**
-     * Add {@code newRoot} at the end of the list of {@link #roots}.
-     * Its index will be the old number of components (old size
-     * of {@link #roots}).
+     * Add {@code newRoot} in the set of {@link #roots}.
      *
      * @param newRoot the root to add
      */
     private void addRoot(DTNode<V, E> newRoot) {
-        newRoot.setIndex(roots.size());
         roots.add(newRoot);
     }
 
     /**
-     * Remove {@code root} from the list of root. This is done
-     * by swapping {@code root} with the last element of roots
-     * (if any and if it's not {@code root}). The index of the
-     * previously last element will be updated.
+     * Remove {@code root} from the set of root.
      *
      * @param root the root to remove
      */
     private void removeRoot(DTNode<V, E> root) {
-        // update roots, swapping 'root' and the last element of roots
-        DTNode<V, E> last = roots.removeLast();
-        if (root != last) {
-            last.setIndex(root.getIndex());
-            roots.set(last.getIndex(), last);
-        }
+        roots.remove(root);
     }
 
     /**
-     * Replace the root at index {@code oldRoot.getIndex()} with {@code newRoot}.
+     * Remove {@code oldRoot} and replace with {@code newRoot}.
      *
      * @param oldRoot the old root to replace with {@code newRoot}
      * @param newRoot the new root to add
      */
     void replaceRoot(DTNode<V, E> oldRoot, DTNode<V, E> newRoot) {
-        int index = oldRoot.getIndex();
-        newRoot.setIndex(index);
-        roots.set(index, newRoot);
-    }
-
-    @Override
-    public void addVertex(V v) {
-        if (containsVertex(v)) {
-            return;
-        }
-
-        DTNode<V, E> newNode = new DTNode<>(this, v);
-        vertexToTreeNode.put(v, newNode);
-        addRoot(newNode);
-
-        check();
-    }
-
-    @Override
-    public void removeVertex(V v) {
-        if (!containsVertex(v)) {
-            return;
-        }
-
-        for (E edge : getNeighborEdgesOf(v)) {
-            removeEdge(edge);
-        }
-        DTNode<V, E> root = vertexToTreeNode.remove(v);
-        removeRoot(root);
-
-        check();
+        roots.remove(oldRoot);
+        roots.add(newRoot);
     }
 
     @Override
@@ -385,38 +378,31 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     }
 
     public Set<V> componentView(V vertex) {
-        return vertexToTreeNode.get(vertex).componentView();
+        return getNodeOrThrow(vertex).componentView();
     }
 
     /**
-     * Sorts components by size in reverse order and update index for every root.
+     * Builds a list of components, sort it by size in reverse order and update index for every root.
+     *
+     * @return a list of components sorted by size in reverse order.
      */
-    public void sortComponents() {
-        roots.sort(Comparator.<DTNode<V, E>>comparingInt(DTNode::size).reversed());
-        for (int i = 0; i < roots.size(); i++) {
-            roots.get(i).setIndex(i);
-        }
-    }
-
     public List<Set<V>> allComponents() {
+        List<Set<V>> components = new ArrayList<>(roots.size());
+        for (DTNode<V, E> root : roots) {
+            components.add(root.componentView());
+        }
+
+        components.sort(Comparator.<Set<V>>comparingInt(Set::size).reversed());
+        for (int i = 0; i < components.size(); i++) {
+            ComponentView<V, E> comp = (ComponentView<V, E>) components.get(i);
+            comp.setIndex(i);
+        }
+
         return components;
     }
 
-    List<DTNode<V, E>> getRoots() {
+    Set<DTNode<V, E>> getRoots() {
         return roots;
-    }
-
-    private final class AllComponentsView extends AbstractList<Set<V>> {
-
-        @Override
-        public Set<V> get(int index) {
-            return roots.get(index).componentView();
-        }
-
-        @Override
-        public int size() {
-            return roots.size();
-        }
     }
 
     private void check() {

@@ -45,4 +45,8 @@ public class ComponentView<V, E> extends AbstractSetView<V> {
     public int size() {
         return node.findRoot().size();
     }
+
+    void setIndex(int index) {
+        node.setIndex(index);
+    }
 }

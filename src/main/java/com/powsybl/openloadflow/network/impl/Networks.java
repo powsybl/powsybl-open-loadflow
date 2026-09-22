@@ -233,6 +233,12 @@ public final class Networks {
     }
 
     public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
+                                                              ReportNode reportNode, int partitionNum) {
+        return loadWithReconnectableElements(network, topoConfig, networkParameters, new LfNetworkList.VariantCloner(network),
+                LfNetworkList.DefaultVariantCleaner::new, reportNode, partitionNum);
+    }
+
+    public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
                                                               LfNetworkList.VariantProvider variantProvider, LfNetworkList.VariantCleanerFactory variantCleanerFactory,
                                                               ReportNode reportNode) {
         return loadWithReconnectableElements(network, topoConfig, networkParameters, variantProvider,
