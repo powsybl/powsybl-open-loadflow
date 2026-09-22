@@ -167,8 +167,10 @@ public class DTNode<V, E> {
      * @param parentRoot root of parent
      * @param parent     node that will become the parent of {@code this}.
      * @param edge       the edge linking {@code this} and {@code parent}
+     * @return root of the merged tree. In some cases {@code parentRoot} won't be the final root
+     * because of the restoration of the centroid property
      */
-    public void link(DTNode<V, E> parentRoot, DTNode<V, E> parent, Edge<V, E> edge) {
+    public DTNode<V, E> link(DTNode<V, E> parentRoot, DTNode<V, E> parent, Edge<V, E> edge) {
         // first: update parent/child relations
         parent.addChildUnchecked(this);
         this.parent = parent;
@@ -194,6 +196,9 @@ public class DTNode<V, E> {
         // eventually, change the root to a better one
         if (newCentroid != null) {
             newCentroid.makeRoot(true);
+            return newCentroid;
+        } else {
+            return parentRoot;
         }
     }
 
