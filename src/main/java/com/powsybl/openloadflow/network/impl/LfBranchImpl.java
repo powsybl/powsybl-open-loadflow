@@ -11,7 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LineFortescue;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.sa.LimitReductionManager;
+import com.powsybl.openloadflow.sa.LimitScalingManager;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 import org.slf4j.Logger;
@@ -240,14 +240,14 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimitsGroup> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits1(final LimitType type, LimitScalingManager limitScalingManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits, TwoSides.ONE), limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits, TwoSides.ONE), limitScalingManager);
             case APPARENT_POWER:
-                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits, TwoSides.ONE), limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits, TwoSides.ONE), limitScalingManager);
             case CURRENT:
-                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits, TwoSides.ONE), limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits, TwoSides.ONE), limitScalingManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -255,14 +255,14 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimitsGroup> getLimits2(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits2(final LimitType type, LimitScalingManager limitScalingManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits, TwoSides.TWO), limitReductionManager);
+                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits, TwoSides.TWO), limitScalingManager);
             case APPARENT_POWER:
-                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits, TwoSides.TWO), limitReductionManager);
+                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits, TwoSides.TWO), limitScalingManager);
             case CURRENT:
-                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits, TwoSides.TWO), limitReductionManager);
+                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits, TwoSides.TWO), limitScalingManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -270,46 +270,46 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     /**
-     * <p>Create the list of the limit reductions to use for each limit:
+     * <p>Create the list of the limit scalings to use for each limit:
      * <ul>
      *  <li>the value for the permanent limit is stored at index 0, values for the temporary limits are stored from index 1;</li>
-     *  <li>if no reduction is detected for a limit, the corresponding value is set to 1;</li>
-     *  <li>if several LimitReductions are applicable for the same limit, the last one is used;</li>
+     *  <li>if no scaling is detected for a limit, the corresponding value is set to 1;</li>
+     *  <li>if several LimitScalings are applicable for the same limit, the last one is used;</li>
      * </ul></p>
-     * <p>This method may return an empty list when no reduction apply.</p>
+     * <p>This method may return an empty list when no scaling apply.</p>
      */
     @Override
-    public double[] getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
+    public double[] getLimitScalings(TwoSides side, LimitScalingManager limitScalingManager, LoadingLimits limits) {
         if (limits == null) {
             return new double[] {};
         }
         if (limits.getLimitType() != LimitType.CURRENT) {
             return new double[] {};
         }
-        if (limitReductionManager == null || limitReductionManager.isEmpty()) {
+        if (limitScalingManager == null || limitScalingManager.isEmpty()) {
             return new double[] {};
         }
-        // Initialize the array of the reductions with 1s
-        double[] limitReductions = new double[limits.getTemporaryLimits().size() + 1];
-        Arrays.fill(limitReductions, 1.);
+        // Initialize the array of the scalings with 1s
+        double[] limitScalings = new double[limits.getTemporaryLimits().size() + 1];
+        Arrays.fill(limitScalings, 1.);
         double nominalV = branchRef.get().getTerminal(side).getVoltageLevel().getNominalV();
-        for (LimitReductionManager.TerminalLimitReduction terminalLimitReduction : limitReductionManager.getTerminalLimitReductions()) {
-            if (terminalLimitReduction.nominalV().contains(nominalV)) {
-                if (terminalLimitReduction.isPermanent()) {
-                    limitReductions[0] = terminalLimitReduction.reduction();
+        for (LimitScalingManager.TerminalLimitScaling terminalLimitScaling : limitScalingManager.getTerminalLimitScalings()) {
+            if (terminalLimitScaling.nominalV().contains(nominalV)) {
+                if (terminalLimitScaling.isPermanent()) {
+                    limitScalings[0] = terminalLimitScaling.scaling();
                 }
-                if (terminalLimitReduction.acceptableDuration() != null) {
-                    int i = 1; // temporary limit's reductions will be stored starting from index 1
+                if (terminalLimitScaling.acceptableDuration() != null) {
+                    int i = 1; // temporary limit's scalings will be stored starting from index 1
                     for (LoadingLimits.TemporaryLimit temporaryLimit : limits.getTemporaryLimits()) {
-                        if (terminalLimitReduction.acceptableDuration().contains(temporaryLimit.getAcceptableDuration())) {
-                            limitReductions[i] = terminalLimitReduction.reduction();
+                        if (terminalLimitScaling.acceptableDuration().contains(temporaryLimit.getAcceptableDuration())) {
+                            limitScalings[i] = terminalLimitScaling.scaling();
                         }
                         i++;
                     }
                 }
             }
         }
-        return limitReductions;
+        return limitScalings;
     }
 
     @Override

@@ -13,7 +13,7 @@ import com.powsybl.iidm.network.LoadingLimits;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.sa.LimitReductionManager;
+import com.powsybl.openloadflow.sa.LimitScalingManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 import org.slf4j.Logger;
@@ -367,12 +367,12 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public List<LfLimitsGroup> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits1(final LimitType type, LimitScalingManager limitScalingManager) {
         return Collections.emptyList();
     }
 
     @Override
-    public double[] getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
+    public double[] getLimitScalings(TwoSides side, LimitScalingManager limitScalingManager, LoadingLimits limits) {
         return new double[] {};
     }
 
