@@ -35,6 +35,15 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      */
     private final Set<DTNode<V, E>> roots = new LinkedHashSet<>();
 
+    public DTNode<V, E> getNodeOrThrow(V v) {
+        DTNode<V, E> node = vertexToTreeNode.get(v);
+        if (node == null) {
+            throw new IllegalArgumentException("given vertex " + v + " is not in the graph");
+        }
+
+        return node;
+    }
+
     /**
      * Return the root of the tree in which {@code vertex}.
      *
@@ -94,15 +103,6 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
             // insert tree edge
             insertTreeEdge(rootUdepth.node(), nodeU, rootVdepth.node(), nodeV, edge);
         }
-    }
-
-    public DTNode<V, E> getNodeOrThrow(V v) {
-        DTNode<V, E> node = vertexToTreeNode.get(v);
-        if (node == null) {
-            throw new IllegalArgumentException("given vertex " + v + " is not in the graph");
-        }
-
-        return node;
     }
 
     /**
