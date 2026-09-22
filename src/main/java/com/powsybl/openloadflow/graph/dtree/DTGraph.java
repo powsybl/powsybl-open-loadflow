@@ -207,7 +207,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      * Assuming nodeU is a child of {@code nodeV}, this is a two steps process :
      * <ol>
      *     <li>Unlink nodeU from nodeV. This creates two trees with a smaller one called {@code small},</li>
-     *     <li>Unlink {@code nodeU} from {@code nodeV}. This creates two trees with a smaller one called {@code small},</li>
+     *     <li>Search for a replacement edge and a potential new centroid by iterating over {@code small}.</li>
      *     <ul>
      *         <li>if one is found, it is a non-tree edge so it is removed and then added as a tree edge</li>
      *         <li>if none is found, fix the centroid property</li>
