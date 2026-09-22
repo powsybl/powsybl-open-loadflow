@@ -7,9 +7,6 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.runners;
 
-import com.powsybl.openloadflow.graph.dtreenooptreroot.DTreeNoOptRerootGraphConnectivityFactory;
-import com.powsybl.openloadflow.graph.dtreerootset.DTreeSetRootGraphConnectivityFactory;
-
 import java.io.IOException;
 
 import static com.powsybl.openloadflow.graph.benchmark.runners.SingleSecurityAnalysisRunner.Mode.DC;
@@ -88,8 +85,6 @@ public final class MainSAR {
         // sar.addConnectivityFactory(new HolmEtAlWithoutLevelGraphConnectivityFactory<>());
         // sar.addConnectivityFactory(new NewHolmGraphConnectivityFactory<>());
         // sar.addConnectivityFactory(new HolmStandaloneFactory<>());
-        sar.addConnectivityFactory(new DTreeSetRootGraphConnectivityFactory<>());
-        sar.addConnectivityFactory(new DTreeNoOptRerootGraphConnectivityFactory<>());
         // sar.addConnectivityFactory(new DTreeStandaloneFactory<>());
         // sar.addConnectivityFactory(new Delta2DTreeStandalone.Factory<>());
         // sar.addConnectivityFactory(new Delta2ReplaceWithBestDTreeStandalone.Factory<>());
