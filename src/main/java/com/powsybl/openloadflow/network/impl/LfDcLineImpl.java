@@ -57,9 +57,6 @@ public class LfDcLineImpl extends AbstractLfDcLine {
 
         if (dcBus1 == null || dcBus2 == null) {
             // Current and power should be zero for both sides
-            if (i1 != 0 || i2 != 0 || p1 != 0 || p2 != 0) {
-                throw new IllegalArgumentException("Current and power should be zero");
-            }
             dcLine.getDcTerminal1().setI(0);
             dcLine.getDcTerminal2().setI(0);
             dcLine.getDcTerminal1().setP(0);

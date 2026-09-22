@@ -385,4 +385,28 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         Optional<LfDcLine> dl34pBisOrEmpty = lfNetwork.getDcLines().stream().filter(lfDcLine -> Objects.equals(lfDcLine.getId(), "dl34p_bis")).findFirst();
         assertTrue(dl34pBisOrEmpty.isEmpty());
     }
+
+    @Test
+    void testDisconnectedAcDcConverterIsNotAddedToTheLfNetwork() {
+        network = AcDcNetworkFactory.createAcDcNetworkBipolarModel();
+        VoltageSourceConverter conv = network.getVoltageSourceConverter("conv23p");
+        LfNetworkParameters networkParameters = new LfNetworkParameters().setAcDcNetwork(true);
+
+        // Disconnected AC side
+        conv.disconnect();
+        LfNetwork lfNetwork1 = Networks.load(network, networkParameters).getFirst();
+        assertFalse(lfNetwork1.getVoltageSourceConverters().stream().map(LfVoltageSourceConverter::getId).anyMatch(id -> id.equals("conv23p")));
+
+        // Disconnected DC terminal 1
+        conv.connect();
+        conv.getDcTerminal1().disconnect();
+        LfNetwork lfNetwork2 = Networks.load(network, networkParameters).getFirst();
+        assertFalse(lfNetwork2.getVoltageSourceConverters().stream().map(LfVoltageSourceConverter::getId).anyMatch(id -> id.equals("conv23p")));
+
+        // Disconnected DC terminal 2
+        conv.getDcTerminal1().setConnected(true);
+        conv.getDcTerminal2().disconnect();
+        LfNetwork lfNetwork3 = Networks.load(network, networkParameters).getFirst();
+        assertFalse(lfNetwork3.getVoltageSourceConverters().stream().map(LfVoltageSourceConverter::getId).anyMatch(id -> id.equals("conv23p")));
+    }
 }
