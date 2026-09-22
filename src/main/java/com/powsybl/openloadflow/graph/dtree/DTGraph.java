@@ -378,20 +378,6 @@ public class DTGraph<V, E> {
         return edges.containsKey(edge);
     }
 
-    public V getEdgeSource(E edge) {
-        return switch (edges.get(edge)) {
-            case null -> null;
-            case Edge<V, E> e -> e.nodeU().getVertex();
-        };
-    }
-
-    public V getEdgeTarget(E edge) {
-        return switch (edges.get(edge)) {
-            case null -> null;
-            case Edge<V, E> e -> e.nodeV().getVertex();
-        };
-    }
-
     public Set<E> getNeighborEdgesOf(V v) {
         return vertexToTreeNode.get(v).getNeighborEdges();
     }
