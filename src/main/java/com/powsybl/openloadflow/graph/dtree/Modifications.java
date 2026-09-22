@@ -28,7 +28,7 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
 
     private final DTGraph<V, E> graph;
 
-    private final Deque<GraphModification<V, E>> modifications = new ArrayDeque<>();
+    private final Deque<GraphModification<V, E>> modificationsStack = new ArrayDeque<>();
     private final StateMap<V> verticesState;
     private final StateMap<E> edgesState;
 
@@ -55,7 +55,7 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
     }
 
     public void push(GraphModification<V, E> modification) {
-        modifications.push(modification);
+        modificationsStack.push(modification);
     }
 
     public void beforeInsertingEdgeInComponent(DTNode<V, E> rootNodeU, Edge<V, E> edge) {
@@ -139,8 +139,8 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
             //    update state of edges and vertices
 
             DTNode<V, E> oldComponentRoot = this.mainComponentNode.findRoot();
-            DTNode<V, E> mainComponentNode = graph.getNodeOrThrow(mainComponentVertex);
-            DTNode<V, E> newComponentRoot = mainComponentNode.findRoot();
+            DTNode<V, E> newMainComponentNode = graph.getNodeOrThrow(mainComponentVertex);
+            DTNode<V, E> newComponentRoot = newMainComponentNode.findRoot();
 
             if (oldComponentRoot != newComponentRoot) {
                 // the new main component vertex isn't in the current main component.
@@ -155,7 +155,7 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
                 markAllAdded(newComponentRoot);
             }
 
-            this.mainComponentNode = mainComponentNode;
+            this.mainComponentNode = newMainComponentNode;
         }
 
         isMainComponentVertexFictitious = false;
@@ -252,6 +252,6 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
 
     @Override
     public Iterator<GraphModification<V, E>> iterator() {
-        return modifications.iterator();
+        return modificationsStack.iterator();
     }
 }
