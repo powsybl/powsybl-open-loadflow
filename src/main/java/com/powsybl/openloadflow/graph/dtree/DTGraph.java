@@ -42,7 +42,32 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      * @return the root of the tree in which {@code vertex} is.
      */
     DTNode<V, E> rootOf(V vertex) {
-        return vertexToTreeNode.get(vertex).findRoot();
+        return getNodeOrThrow(vertex).findRoot();
+    }
+
+    @Override
+    public void addVertex(V v) {
+        if (containsVertex(v)) {
+            return;
+        }
+
+        DTNode<V, E> newNode = new DTNode<>(this, v);
+        vertexToTreeNode.put(v, newNode);
+        addRoot(newNode);
+    }
+
+    @Override
+    public void removeVertex(V v) {
+        if (!containsVertex(v)) {
+            return;
+        }
+
+        for (E edge : getNeighborEdgesOf(v)) {
+            removeEdge(edge);
+        }
+
+        DTNode<V, E> root = vertexToTreeNode.remove(v);
+        removeRoot(root);
     }
 
     @Override
@@ -51,8 +76,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
             return;
         }
 
-        DTNode<V, E> nodeU = getNodeThrowIfInexistent(u);
-        DTNode<V, E> nodeV = getNodeThrowIfInexistent(v);
+        DTNode<V, E> nodeU = getNodeOrThrow(u);
+        DTNode<V, E> nodeV = getNodeOrThrow(v);
 
         // update edges
         Edge<V, E> edge = new Edge<>(nodeU, nodeV, e);
@@ -71,10 +96,10 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         }
     }
 
-    public DTNode<V, E> getNodeThrowIfInexistent(V v) {
+    public DTNode<V, E> getNodeOrThrow(V v) {
         DTNode<V, E> node = vertexToTreeNode.get(v);
         if (node == null) {
-            throw new IllegalArgumentException("no such vertex in graph: " + v);
+            throw new IllegalArgumentException("given vertex " + v + " is not in the graph");
         }
 
         return node;
@@ -153,12 +178,12 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     private void insertTreeEdge(DTNode<V, E> rootU, DTNode<V, E> nodeU, DTNode<V, E> rootV, DTNode<V, E> nodeV, Edge<V, E> edge) {
         if (rootU.size() < rootV.size()) {
             nodeU.makeRoot(true);
-            nodeU.link(rootV, nodeV, edge);
             removeRoot(nodeU);
+            nodeU.link(rootV, nodeV, edge);
         } else {
             nodeV.makeRoot(true);
-            nodeV.link(rootU, nodeU, edge);
             removeRoot(nodeV);
+            nodeV.link(rootU, nodeU, edge);
         }
     }
 
@@ -170,34 +195,34 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         }
 
         if (edge.isTreeEdge()) {
-            removeTreeEdge(edge.nodeU(), edge.nodeV());
+            removeTreeEdge(edge);
         } else {
             removeNonTreeEdge(edge);
         }
     }
 
     /**
+     * Let {@code nodeU} be {@code edge.nodeU()} and {@code nodeV} be {@code edge.nodeV()}.
      * Remove the tree edge between {@code nodeU} and {@code nodeV}.
-     * Assuming nodeU is a child of nodeV, this is a two steps process :
+     * Assuming nodeU is a child of {@code nodeV}, this is a two steps process :
      * <ol>
      *     <li>Unlink nodeU from nodeV. This creates two trees with a smaller one called {@code small},</li>
-     *     <li>Search for a replacement edge and a potential new centroid by iterating over {@code small}.</li>
+     *     <li>Unlink {@code nodeU} from {@code nodeV}. This creates two trees with a smaller one called {@code small},</li>
      *     <ul>
      *         <li>if one is found, it is a non-tree edge so it is removed and then added as a tree edge</li>
      *         <li>if none is found, fix the centroid property</li>
      *     </ul>
      * </ol>
      *
-     * @param nodeU one endpoint of the edge to remove.
-     * @param nodeV the other endpoint of the edge to remove.
+     * @param edge the edge to remove
      */
-    private void removeTreeEdge(DTNode<V, E> nodeU, DTNode<V, E> nodeV) {
+    private void removeTreeEdge(Edge<V, E> edge) {
         DTNode<V, E> child;
 
-        if (nodeU == nodeV.getParent()) {
-            child = nodeV;
+        if (edge.nodeU() == edge.nodeV().getParent()) {
+            child = edge.nodeV();
         } else {
-            child = nodeU;
+            child = edge.nodeU();
         }
 
         // unlink child from its parent
@@ -298,30 +323,6 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     }
 
     @Override
-    public void addVertex(V v) {
-        if (containsVertex(v)) {
-            return;
-        }
-
-        DTNode<V, E> newNode = new DTNode<>(this, v);
-        vertexToTreeNode.put(v, newNode);
-        addRoot(newNode);
-    }
-
-    @Override
-    public void removeVertex(V v) {
-        if (!containsVertex(v)) {
-            return;
-        }
-
-        for (E edge : getNeighborEdgesOf(v)) {
-            removeEdge(edge);
-        }
-        DTNode<V, E> root = vertexToTreeNode.remove(v);
-        removeRoot(root);
-    }
-
-    @Override
     public boolean containsVertex(V vertex) {
         return vertexToTreeNode.containsKey(vertex);
     }
@@ -382,7 +383,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     }
 
     public Set<V> componentView(V vertex) {
-        return vertexToTreeNode.get(vertex).componentView();
+        return getNodeOrThrow(vertex).componentView();
     }
 
     /**
