@@ -452,7 +452,7 @@ public class HolmStandalone<V, E> implements SpanningForestGraphConnectivity<V, 
             switch (gm) {
                 case EdgeAdd<V, E> edgeAdd -> removeEdge(edgeAdd.e);
                 case EdgeRemove<V, E> edgeRemove -> addEdge(edgeRemove.v1, edgeRemove.v2, edgeRemove.e);
-                case VertexAdd<V, E> vertexAdd -> removeVertex(vertexAdd.v);
+                case VertexAdd<V, E> vertexAdd -> removeVertex(vertexAdd.v());
                 default -> throw new IllegalStateException("Unexpected value: " + gm);
             }
         }

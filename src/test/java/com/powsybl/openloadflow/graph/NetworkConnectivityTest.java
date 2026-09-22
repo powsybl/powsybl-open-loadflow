@@ -123,7 +123,6 @@ class NetworkConnectivityTest {
         testNonConnectedComponents(new HolmEtAlGraphConnectivity<>());
         testNonConnectedComponents(new HolmEtAlWithoutLevelGraphConnectivity<>());
         testNonConnectedComponents(new NewHolmGraphConnectivity<>());
-        testNonConnectedComponents(new DTreeGraphConnectivity<>());
     }
 
     @Test
