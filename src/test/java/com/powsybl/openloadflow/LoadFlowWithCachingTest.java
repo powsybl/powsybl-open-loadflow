@@ -307,6 +307,11 @@ class LoadFlowWithCachingTest {
         assertNotNull(findEntryFunction.apply(network, isDc).getValues());
         load.setP0(600);
         assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because of Load detail
+
+        loadFlowRunner.run(network, parameters);
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
+        load.setQ0(600);
+        assertNull(findEntryFunction.apply(network, isDc).getValues()); // cache is invalidated because of Load detail
     }
 
     static Stream<Arguments> allModelAndHvdcSides() {
