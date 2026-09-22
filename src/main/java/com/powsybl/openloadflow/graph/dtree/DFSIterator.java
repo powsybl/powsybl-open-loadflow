@@ -15,9 +15,10 @@ import java.util.NoSuchElementException;
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class DFSIterator<V> implements Iterator<V> {
+public class DFSIterator<V, E> implements Iterator<V> {
 
-    private DTNode<V, ?> cursor;
+    private DTNode<V, E> cursor;
+    private DTNode<V, E> current;
 
     /**
      * Creates a new depth-first iterator starting at the specified root node
@@ -26,7 +27,7 @@ public class DFSIterator<V> implements Iterator<V> {
      * @param root the root of the tree to traverse. It must be a root otherwise,
      *             the iterator may visit nodes outside the subtree
      */
-    DFSIterator(DTNode<V, ?> root) {
+    DFSIterator(DTNode<V, E> root) {
         cursor = root;
     }
 
@@ -41,7 +42,7 @@ public class DFSIterator<V> implements Iterator<V> {
             throw new NoSuchElementException();
         }
 
-        DTNode<V, ?> next = cursor;
+        current = cursor;
 
         // Advances to the next node for the next iteration.
         // The iterator try to:
@@ -65,6 +66,10 @@ public class DFSIterator<V> implements Iterator<V> {
             }
         }
 
-        return next.getVertex();
+        return current.getVertex();
+    }
+
+    public DTNode<V, E> node() {
+        return current;
     }
 }
