@@ -980,18 +980,25 @@ class AcDcLoadFlowTest {
     }
 
     @Test
-    void testNoVdcControl() {
-        // At least one AC/DC converter should control the DC voltage per DC component. This should trigger an Exception
+    void testNoVdcControlIsAutomaticallyResolved() {
         Network network = AcDcNetworkFactory.createAcDcNetworkTwoDcSubNetworks();
 
-        // Change control mode of one VSC. Thus, one DC component is valid but the second one is not
+        // Changing conv56's control mode leaves the second DC component with only P_PCC converters (conv14, conv56).
+        // Since both are still individually grounded, Open Load Flow automatically promotes both of the to V_DC control
+        // internally instead of failing.
         network.getVoltageSourceConverter("conv56")
                 .setTargetP(50)
                 .setControlMode(AcDcConverter.ControlMode.P_PCC);
 
         // Run load flow
-        CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("At least one AC/DC converter control mode must be V_DC in each DC component, but DC component 1 does not have any", e5.getCause().getMessage());
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        // The automatic promotion is purely internal: both converters' IIDM control mode are left untouched
+        assertEquals(AcDcConverter.ControlMode.P_PCC, network.getVoltageSourceConverter("conv14").getControlMode());
+        assertEquals(AcDcConverter.ControlMode.P_PCC, network.getVoltageSourceConverter("conv56").getControlMode());
+
+        // Both converters have been set in V_DC mode with the same voltage setpoint. No current passes through the line
+        assertEquals(0., network.getDcLine("dl45").getDcTerminal1().getI());
     }
 
     @Test
