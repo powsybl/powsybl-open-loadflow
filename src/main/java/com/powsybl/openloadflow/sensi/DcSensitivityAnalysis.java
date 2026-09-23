@@ -589,6 +589,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     .map(Action::getId)
                     .collect(Collectors.toSet());
             var entry = NetworkCache.DC_SENSI_INSTANCE.get(network, new NetworkCache.DcSensiInput(lfParameters, topoActionIds));
+            List<String> permanentContingencyBranchIds = Collections.emptyList();
             if (entry.getValues() == null) {
                 // create networks including all necessary switches
                 try (LfNetworkList lfNetworkList = Networks.loadWithReconnectableElements(network, topoConfig, lfNetworkParameters,
@@ -605,35 +606,21 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     if (variantCleaner != null) {
                         entry.setVariantCleaner(new LfNetworkList.PoolVariantReleaser(network, entry.getWorkingVariantId(), variantCleaner.getTmpVariantId()));
                     }
+                    permanentContingencyBranchIds = lfNetworkList.getPermanentContingencyBranchIds();
                 }
             }
             NetworkCache.DcSensiValue value = entry.getValues().getFirst();
             LfNetwork lfNetwork = value.getNetwork();
             DcLoadFlowContext loadFlowContext = value.getContext();
             analyseNetwork(network, contingencies, variableSets, factorReader, resultWriter, sensiReportNode, lfNetwork,
-                    propagatedContingencies, actions, operatorStrategies, breakers, loadFlowContext, lfParameters, lfParametersExt);
+                    propagatedContingencies, actions, operatorStrategies, breakers, loadFlowContext, lfParameters, lfParametersExt,
+                    permanentContingencyBranchIds);
         } else {
             // create networks including all necessary switches
             // branches that reconnect small components are kept enabled and modeled as permanent contingencies in Woodbury
-            try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig, lfNetworkParameters, sensiReportNode)) {
+            try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig, lfNetworkParameters, sensiReportNode, true)) {
                 LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
-                try (DcLoadFlowContext loadFlowContext = new DcLoadFlowContext(lfNetwork, dcLoadFlowParameters, false)) {
-                    analyseNetwork(network, contingencies, variableSets, factorReader, resultWriter, sensiReportNode, lfNetwork,
-                            propagatedContingencies, actions, operatorStrategies, breakers, loadFlowContext, lfParameters, lfParametersExt);
-                }
-            }
-        }
-    }
-
-    private void analyseNetwork(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
-                                SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
-                                LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, List<Action> actions,
-                                List<OperatorStrategy> operatorStrategies, boolean breakers, DcLoadFlowContext loadFlowContext,
-                                LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-
                 List<String> permanentContingencyBranchIds = lfNetworks.getPermanentContingencyBranchIds();
-
                 try (DcLoadFlowContext loadFlowContext = new DcLoadFlowContext(lfNetwork, dcLoadFlowParameters, false)) {
                     analyseNetwork(network, contingencies, variableSets, factorReader, resultWriter, sensiReportNode, lfNetwork,
                             propagatedContingencies, actions, operatorStrategies, breakers, loadFlowContext, lfParameters, lfParametersExt,
@@ -773,7 +760,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 ConnectivityBreakAnalysis.run(loadFlowContext, contingenciesWithFactors, permanentContingencyBranchIds);
 
         // the map is indexed by lf actions as different kind of actions can be given on the same branch
-        Map<LfAction, List<ComputedElement>> actionElementsIndexByLfAction = ComputedElement.createActionElementsIndexByLfAction(lfActionById, loadFlowContext.getEquationSystem());
+        Map<LfAction, List<ComputedElement>> actionElementsIndexByLfAction = ComputedElement.createActionElementsIndexByLfAction(lfActionById, loadFlowContext.getEquationSystem(),
+                loadFlowContext.getParameters().getEquationSystemCreationParameters());
 
         // compute states with +1 -1 to model the actions in Woodbury engine
         // note that the number of columns in the matrix depends on the number of distinct branches affected by the action elements

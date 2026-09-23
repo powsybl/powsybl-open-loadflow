@@ -220,13 +220,13 @@ public final class Networks {
 
     public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
                                                               ReportNode reportNode) {
-        return loadWithReconnectableElements(network, topoConfig, networkParameters, new LfNetworkList.VariantCloner(network),
-                LfNetworkList.DefaultVariantCleaner::new, reportNode);
+        return loadWithReconnectableElements(network, topoConfig, networkParameters, reportNode, false);
     }
 
     public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
                                                               ReportNode reportNode, boolean keepForPermanentContingency) {
-        return loadWithReconnectableElements(network, topoConfig, networkParameters, LfNetworkList.DefaultVariantCleaner::new, reportNode, keepForPermanentContingency);
+        return loadWithReconnectableElements(network, topoConfig, networkParameters, new LfNetworkList.VariantCloner(network),
+                LfNetworkList.DefaultVariantCleaner::new, reportNode, keepForPermanentContingency);
     }
 
     public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
