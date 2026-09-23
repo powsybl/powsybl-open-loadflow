@@ -29,8 +29,11 @@ import java.util.ServiceLoader;
  */
 public interface AcSolverFactory {
 
+    List<AcSolverFactory> FACTORIES = List.copyOf(
+            Lists.newArrayList(ServiceLoader.load(AcSolverFactory.class, AcSolverFactory.class.getClassLoader()).iterator()));
+
     static List<AcSolverFactory> findAll() {
-        return Lists.newArrayList(ServiceLoader.load(AcSolverFactory.class, AcSolverFactory.class.getClassLoader()).iterator());
+        return FACTORIES;
     }
 
     static AcSolverFactory find(String name) {
