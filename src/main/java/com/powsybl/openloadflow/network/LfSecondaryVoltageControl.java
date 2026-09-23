@@ -20,7 +20,7 @@ public class LfSecondaryVoltageControl implements LfCopyable<LfSecondaryVoltageC
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfSecondaryVoltageControl.class);
 
-    public static final class ControlUnit {
+    public static final class ControlUnit implements LfCopyable<ControlUnit, LfNetwork> {
         private final String id;
 
         private boolean participate;
@@ -31,6 +31,10 @@ public class LfSecondaryVoltageControl implements LfCopyable<LfSecondaryVoltageC
             this.id = Objects.requireNonNull(id);
             this.participate = participate;
             this.generatorVoltageControl = Objects.requireNonNull(generatorVoltageControl);
+        }
+
+        public ControlUnit copy(LfNetwork copyNetwork) {
+            return new ControlUnit(id, participate, copyNetwork.getBusById(generatorVoltageControl.getControlledBus().getId()).getGeneratorVoltageControl().orElseThrow());
         }
 
         public String getId() {
@@ -69,10 +73,7 @@ public class LfSecondaryVoltageControl implements LfCopyable<LfSecondaryVoltageC
         return new LfSecondaryVoltageControl(zoneName,
                 copyNetwork.getBusById(pilotBus.getId()),
                 targetValue,
-                new LinkedHashSet<>(participatingControlUnitIds),
-                generatorVoltageControls.stream()
-                        .map(vc -> copyNetwork.getBusById(vc.getControlledBus().getId()).getGeneratorVoltageControl().orElseThrow())
-                        .collect(Collectors.toSet()));
+                controlUnits.stream().map(controlUnit -> controlUnit.copy(copyNetwork)).toList());
     }
 
     public String getZoneName() {
@@ -92,10 +93,6 @@ public class LfSecondaryVoltageControl implements LfCopyable<LfSecondaryVoltageC
 
     public LfBus getPilotBus() {
         return pilotBus;
-    }
-
-    public Set<String> getParticipatingControlUnitIds() {
-        return participatingControlUnitIds;
     }
 
     public void addParticipatingControlUnit(String id) {

@@ -119,7 +119,7 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(GeneratorReactivePowerControl.class, Set.of("controllerBuses"));
         expected.put(TransformerReactivePowerControl.class, Set.of("controllerBranch", "targetDeadband"));
         expected.put(TransformerPhaseControl.class, Set.of("controllerBranch", "controlledBranch", "targetDeadband", "controlledSide", "mode", "unit"));
-        expected.put(LfSecondaryVoltageControl.class, Set.of("zoneName", "pilotBus", "participatingControlUnitIds", "generatorVoltageControls", "targetValue"));
+        expected.put(LfSecondaryVoltageControl.class, Set.of("controlUnits", "pilotBus", "targetValue", "zoneName"));
         expected.put(LfOverloadManagementSystem.class, Set.of("monitoredBranch", "monitoredSide", "branchTrippingList"));
         expected.put(LfNetwork.class, Set.of("numCC", "synchronousNetworks", "slackBusSelector", "referenceBusSelector", "maxSlackBusCount", "busesById", "busesByIndex",
                 "branches", "branchesById", "branchesByOriginalId", "shuntCount", "shuntsByIndex", "shuntsById", "generatorsById", "loadsById", "areasById", "areas", "hvdcs",
