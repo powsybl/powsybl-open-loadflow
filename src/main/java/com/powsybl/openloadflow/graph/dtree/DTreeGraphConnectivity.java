@@ -173,8 +173,11 @@ public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnecti
     @Override
     public Set<V> getLargestConnectedComponent() {
         checkSavedContext();
-        updateComponents();
-        return components.getFirst();
+        if (components == null) {
+            return graph.getBiggestRoot().componentView();
+        } else {
+            return components.getFirst();
+        }
     }
 
     @Override

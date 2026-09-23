@@ -355,11 +355,11 @@ public class PropagatedContingency {
     private static boolean isSlackBusIsolated(GraphConnectivity<LfBus, LfBranch> connectivity, LfBus slackBus) {
         // check that slack bus belongs to the largest component.
         // Largest component has always the number 0.
-        int number = connectivity.getComponentNumber(slackBus);
-        if (number != 0) {
+        Set<LfBus> largestComponent = connectivity.getLargestConnectedComponent();
+        if (!largestComponent.contains(slackBus)) {
             // if not main component anymore but same size as the main one, still consider it as not isolated
             // (mainly useful for unit test small networks...)
-            return connectivity.getLargestConnectedComponent().size() != connectivity.getConnectedComponent(slackBus).size();
+            return largestComponent.size() != connectivity.getConnectedComponent(slackBus).size();
         }
         return false;
     }

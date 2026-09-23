@@ -85,6 +85,20 @@ public interface GraphConnectivity<V, E> {
      */
     int getComponentNumber(V vertex);
 
+    default boolean connected(V vertex1, V vertex2) {
+        int num1 = getComponentNumber(vertex1);
+        int num2 = getComponentNumber(vertex2);
+
+        return num1 >= 0 && num1 == num2;
+    }
+
+    default boolean disconnected(V vertex1, V vertex2) {
+        int num1 = getComponentNumber(vertex1);
+        int num2 = getComponentNumber(vertex2);
+
+        return num1 >= 0 && num2 >= 0 && num1 != num2;
+    }
+
     /**
      * Set the main component with given vertex.
      * The connected component relative to this vertex is considered as being the main component.
