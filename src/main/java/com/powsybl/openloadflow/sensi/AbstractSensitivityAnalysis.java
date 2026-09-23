@@ -646,7 +646,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         @Override
         public RhsColumn describeRhs(Map<LfBus, Double> participationByBus) {
             if (variableElement == null) {
-                return null;
+                return RhsColumn.EMPTY;
             }
             RhsColumnBuilder builder = new RhsColumnBuilder(expectedNonZeros(participationByBus));
             switch (variableType) {
