@@ -138,13 +138,11 @@ public final class LfNetworkCopier {
         // reproduce the per synchronous component state (excluded slack buses); slack and reference
         // selection is left to be lazily redone on the copy
         for (LfSynchronousNetwork originalSc : originalNetwork.getSynchronousNetworks()) {
-            if (!originalSc.getExcludedSlackBuses().isEmpty()) {
-                copyNetwork.getSynchronousNetwork(originalSc.getNumSC())
-                        .setExcludedSlackBuses(originalSc.getExcludedSlackBuses()
-                                .stream()
-                                .map(bus -> copyNetwork.getBusById(bus.getId()))
-                                .collect(Collectors.toCollection(LinkedHashSet::new)));
-            }
+            copyNetwork.getSynchronousNetwork(originalSc.getNumSC())
+                    .setExcludedSlackBuses(originalSc.getExcludedSlackBuses()
+                            .stream()
+                            .map(bus -> copyNetwork.getBusById(bus.getId()))
+                            .collect(Collectors.toCollection(LinkedHashSet::new)));
         }
 
         return copyNetwork;
