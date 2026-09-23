@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+ * Copyright (c) 2020-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -237,9 +237,10 @@ public final class ConnectivityBreakAnalysis {
                 int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
                 Set<LfBus> disabledBuses = connectivity.getVerticesRemovedFromMainComponent();
                 Set<LfHvdc> hvdcsWithoutPower = PropagatedContingency.getHvdcsWithoutPower(lfNetwork, disabledBuses, connectivity);
+                // FIXME: set copy may be useless (Naive / Even Shiloach), but mandatory for DTree
                 connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, operatorStrategy, lfNetwork, elementsToReconnect,
                         new DisabledElements(disabledBuses, connectivity.getEdgesRemovedFromMainComponent(), hvdcsWithoutPower),
-                        connectivity.getConnectedComponent(lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst()), createdSynchronousComponents);
+                        new HashSet<>(connectivity.getConnectedComponent(lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst())), createdSynchronousComponents);
             }
         } finally {
             connectivity.undoTemporaryChanges();

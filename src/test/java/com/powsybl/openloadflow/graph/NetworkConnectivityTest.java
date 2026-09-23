@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +42,7 @@ class NetworkConnectivityTest {
     void testConnectivity() {
         testConnectivity(new NaiveGraphConnectivity<>(LfBus::getNum));
         testConnectivity(new EvenShiloachGraphDecrementalConnectivity<>());
+        testConnectivity(new DTreeGraphConnectivity<>());
     }
 
     @Test
@@ -49,6 +51,7 @@ class NetworkConnectivityTest {
         // created connected component.
         testReducedMainComponent(new NaiveGraphConnectivity<>(LfBus::getNum));
         testReducedMainComponent(new EvenShiloachGraphDecrementalConnectivity<>());
+        testReducedMainComponent(new DTreeGraphConnectivity<>());
     }
 
     @Test
@@ -56,6 +59,7 @@ class NetworkConnectivityTest {
         // Testing cutting an edge then adding it back
         testReaddEdge(new NaiveGraphConnectivity<>(LfBus::getNum), true);
         testReaddEdge(new EvenShiloachGraphDecrementalConnectivity<>(), false);
+        testReaddEdge(new DTreeGraphConnectivity<>(), true);
     }
 
     @Test
@@ -78,12 +82,14 @@ class NetworkConnectivityTest {
     void testNonConnectedComponents() {
         testNonConnectedComponents(new NaiveGraphConnectivity<>(LfBus::getNum));
         testNonConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
+        testNonConnectedComponents(new DTreeGraphConnectivity<>());
     }
 
     @Test
     void testConnectedComponents() {
         testConnectedComponents(new NaiveGraphConnectivity<>(LfBus::getNum));
         testConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
+        testConnectedComponents(new DTreeGraphConnectivity<>());
     }
 
     private void testConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
