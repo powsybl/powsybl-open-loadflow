@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChangeDetails;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -138,7 +139,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
 
     private void adjustWithController(LfBranch controllerBranch, LfBranch controlledBranch, TwoSides controlledSide, IncrementalContextData contextData,
                                          double diffQ, SensitivityContext sensitivities,
-                                         List<IncrementalChangeDetails> adjustedControllerBranches,
+                                         List<DiscreteControllerChangeDetails> adjustedControllerBranches,
                                          List<String> controlledBranchesWithAllItsControllersToLimit) {
         // only one transformer controls a branch
         var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
@@ -151,7 +152,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
             Range<Integer> tapPositionRange = piModel.getTapPositionRange();
             LOGGER.debug("Controller branch '{}' change tap from {} to {} (full range: {})", controllerBranch.getId(),
                     previousTapPosition, piModel.getTapPosition(), tapPositionRange);
-            adjustedControllerBranches.add(new IncrementalChangeDetails(controlledBranch.getId(), previousTapPosition, piModel.getTapPosition()));
+            adjustedControllerBranches.add(new DiscreteControllerChangeDetails(controlledBranch.getId(), previousTapPosition, piModel.getTapPosition()));
 
             if (piModel.getTapPosition() == tapPositionRange.getMinimum()
                     || piModel.getTapPosition() == tapPositionRange.getMaximum()) {
@@ -180,7 +181,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
         // for synthetics logs
-        List<IncrementalChangeDetails> adjustedControllerBranches = new ArrayList<>();
+        List<DiscreteControllerChangeDetails> adjustedControllerBranches = new ArrayList<>();
         List<String> controlledBranchesWithAllItsControllersToLimit = new ArrayList<>();
 
         controlledBranchesOutOfDeadband.forEach(controlledBranch -> {

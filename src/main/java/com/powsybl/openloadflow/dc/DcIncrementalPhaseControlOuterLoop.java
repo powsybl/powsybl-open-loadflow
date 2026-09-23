@@ -9,12 +9,12 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.ac.outerloop.IncrementalChangeDetails;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChangeDetails;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -81,7 +81,7 @@ public class DcIncrementalPhaseControlOuterLoop
                     context.getLoadFlowContext().getEquationSystem(),
                     context.getLoadFlowContext().getJacobianMatrix());
 
-            final List<IncrementalChangeDetails> activePowerControlPstsThatChangedTap = new ArrayList<>();
+            final List<DiscreteControllerChangeDetails> activePowerControlPstsThatChangedTap = new ArrayList<>();
             checkActivePowerControlPhaseControls(sensitivityContext, contextData,
                     activePowerControlPhaseControls, activePowerControlPstsThatChangedTap);
             if (!activePowerControlPstsThatChangedTap.isEmpty()) {

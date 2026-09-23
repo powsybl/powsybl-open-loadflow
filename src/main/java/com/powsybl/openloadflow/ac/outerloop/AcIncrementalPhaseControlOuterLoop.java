@@ -19,6 +19,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChangeDetails;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -92,7 +93,7 @@ public class AcIncrementalPhaseControlOuterLoop
 
     private void checkCurrentLimiterPhaseControls(AcSensitivityContext sensitivityContext, IncrementalContextData contextData,
                                                      List<TransformerPhaseControl> currentLimiterPhaseControls,
-                                                     List<IncrementalChangeDetails> currentLimiterPstsThatChangedTap) {
+                                                     List<DiscreteControllerChangeDetails> currentLimiterPstsThatChangedTap) {
 
         for (TransformerPhaseControl phaseControl : currentLimiterPhaseControls) {
             LfBranch controllerBranch = phaseControl.getControllerBranch();
@@ -118,7 +119,7 @@ public class AcIncrementalPhaseControlOuterLoop
                     if (piModel.getTapPosition() != oldTapPosition) {
                         logger.debug("Controller branch '{}' changed tap from {} to {} to limit current (full range: {})", controllerBranch.getId(),
                                 oldTapPosition, piModel.getTapPosition(), tapPositionRange);
-                        IncrementalChangeDetails changeDetails = new IncrementalChangeDetails(controllerBranch.getId(), oldTapPosition, piModel.getTapPosition());
+                        DiscreteControllerChangeDetails changeDetails = new DiscreteControllerChangeDetails(controllerBranch.getId(), oldTapPosition, piModel.getTapPosition());
                         currentLimiterPstsThatChangedTap.add(changeDetails);
 
                         double discreteDa = piModel.getA1() - oldA1;
@@ -202,8 +203,8 @@ public class AcIncrementalPhaseControlOuterLoop
                                                         context.getLoadFlowContext().getJacobianMatrix());
 
         // for detailed reports
-        final List<IncrementalChangeDetails> currentLimiterPstsThatChangedTap = new ArrayList<>();
-        final List<IncrementalChangeDetails> activePowerControlPstsThatChangedTap = new ArrayList<>();
+        final List<DiscreteControllerChangeDetails> currentLimiterPstsThatChangedTap = new ArrayList<>();
+        final List<DiscreteControllerChangeDetails> activePowerControlPstsThatChangedTap = new ArrayList<>();
         if (!currentLimiterPhaseControls.isEmpty()) {
             checkCurrentLimiterPhaseControls(sensitivityContext, contextData, currentLimiterPhaseControls, currentLimiterPstsThatChangedTap);
         }

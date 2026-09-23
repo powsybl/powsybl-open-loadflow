@@ -6,13 +6,15 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-package com.powsybl.openloadflow.ac.outerloop;
+package com.powsybl.openloadflow.lf.outerloop;
 
 /**
- * Used to log and report changes of incremental control outer loops (on tap changers and shunts)
+ * Used to track tap changers and shunts section changes
  * @param elementId
  * @param oldPosition
  * @param newPosition
+ *  *
+ *  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
-public record IncrementalChangeDetails(String elementId, int oldPosition, int newPosition) {
+public record DiscreteControllerChangeDetails(String elementId, int oldPosition, int newPosition) {
 }

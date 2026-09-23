@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.util;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
-import com.powsybl.openloadflow.ac.outerloop.IncrementalChangeDetails;
+import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChangeDetails;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
@@ -653,7 +653,7 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportTransformerControlChangedTapsDetail(ReportNode reportNode, IncrementalChangeDetails changeDetails) {
+    public static void reportTransformerControlChangedTapsDetail(ReportNode reportNode, DiscreteControllerChangeDetails changeDetails) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.transformerControlChangedTapsDetail")
                 .withUntypedValue("transformerId", changeDetails.elementId())
@@ -687,7 +687,7 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportShuntVoltageControlChangedSectionDetail(ReportNode reportNode, IncrementalChangeDetails changeDetails) {
+    public static void reportShuntVoltageControlChangedSectionDetail(ReportNode reportNode, DiscreteControllerChangeDetails changeDetails) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.shuntVoltageControlChangedSectionDetail")
                 .withUntypedValue("shuntId", changeDetails.elementId())

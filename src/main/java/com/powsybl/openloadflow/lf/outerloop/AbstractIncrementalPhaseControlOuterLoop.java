@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.lf.outerloop;
 
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.ac.outerloop.IncrementalChangeDetails;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
@@ -116,7 +115,7 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
 
     protected void checkActivePowerControlPhaseControls(AbstractSensitivityContext<V, E> sensitivityContext, IncrementalContextData contextData,
                                                            List<TransformerPhaseControl> activePowerControlPhaseControls,
-                                                           List<IncrementalChangeDetails> activePowerControlPstsThatChangedTap) {
+                                                           List<DiscreteControllerChangeDetails> activePowerControlPstsThatChangedTap) {
 
         for (TransformerPhaseControl phaseControl : activePowerControlPhaseControls) {
             LfBranch controllerBranch = phaseControl.getControllerBranch();
@@ -143,7 +142,7 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
                     if (piModel.getTapPosition() != oldTapPosition) {
                         logger.debug("Controller branch '{}' change tap from {} to {} to reach active power target (full range: {})", controllerBranch.getId(),
                                 oldTapPosition, piModel.getTapPosition(), tapPositionRange);
-                        IncrementalChangeDetails changeDetails = new IncrementalChangeDetails(controllerBranch.getId(), oldTapPosition, piModel.getTapPosition());
+                        DiscreteControllerChangeDetails changeDetails = new DiscreteControllerChangeDetails(controllerBranch.getId(), oldTapPosition, piModel.getTapPosition());
                         activePowerControlPstsThatChangedTap.add(changeDetails);
                     }
                 }

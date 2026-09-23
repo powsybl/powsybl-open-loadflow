@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChangeDetails;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -140,7 +141,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     private void adjustWithOneController(LfBranch controllerBranch, LfBus controlledBus, IncrementalContextData contextData, SensitivityContext sensitivities,
-                                            double diffV, List<IncrementalChangeDetails> controllerBranchesAdjusted, List<String> controlledBusesWithAllItsControllersToLimit) {
+                                         double diffV, List<DiscreteControllerChangeDetails> controllerBranchesAdjusted, List<String> controlledBusesWithAllItsControllersToLimit) {
         // only one transformer controls a bus
         var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
         double sensitivity = sensitivities.calculateSensitivityFromRToV(controllerBranch, controlledBus);
@@ -155,7 +156,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             Range<Integer> tapPositionRange = piModel.getTapPositionRange();
             LOGGER.debug("Controller branch '{}' change tap from {} to {} (full range: {})", controllerBranch.getId(),
                     previousTapPosition, piModel.getTapPosition(), tapPositionRange);
-            controllerBranchesAdjusted.add(new IncrementalChangeDetails(controllerBranch.getId(), previousTapPosition, piModel.getTapPosition()));
+            controllerBranchesAdjusted.add(new DiscreteControllerChangeDetails(controllerBranch.getId(), previousTapPosition, piModel.getTapPosition()));
             if (piModel.getTapPosition() == tapPositionRange.getMinimum()
                     || piModel.getTapPosition() == tapPositionRange.getMaximum()) {
                 controlledBusesWithAllItsControllersToLimit.add(controlledBus.getId());
@@ -166,7 +167,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private void adjustWithSeveralControllers(List<LfBranch> controllerBranches, LfBus controlledBus, IncrementalContextData contextData,
                                                  SensitivityContext sensitivityContext, double diffV, double halfTargetDeadband,
-                                                 List<IncrementalChangeDetails> controllerBranchesAdjusted,
+                                                 List<DiscreteControllerChangeDetails> controllerBranchesAdjusted,
                                                  List<String> controlledBusesWithAllItsControllersToLimit) {
 
         List<Integer> previousTapPositions = controllerBranches.stream()
@@ -207,7 +208,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     private static void reportAdjustments(LfBus controlledBus, List<LfBranch> controllerBranches, List<Integer> previousTapPositions,
-                                          List<IncrementalChangeDetails> controllerBranchesAdjusted, List<String> controlledBusesWithAllItsControllersToLimit) {
+                                          List<DiscreteControllerChangeDetails> controllerBranchesAdjusted, List<String> controlledBusesWithAllItsControllersToLimit) {
         boolean allControllersToLimit = true;
         for (int i = 0; i < controllerBranches.size(); i++) {
             LfBranch controllerBranch = controllerBranches.get(i);
@@ -218,7 +219,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                 LOGGER.debug("Controller branch '{}' (controlled bus '{}') change tap from {} to {} (full range: {})",
                         controllerBranch.getId(), controlledBus.getId(), previousTapPosition,
                         piModel.getTapPosition(), tapPositionRange);
-                controllerBranchesAdjusted.add(new IncrementalChangeDetails(controllerBranch.getId(), previousTapPosition, piModel.getTapPosition()));
+                controllerBranchesAdjusted.add(new DiscreteControllerChangeDetails(controllerBranch.getId(), previousTapPosition, piModel.getTapPosition()));
             }
             if (piModel.getTapPosition() != tapPositionRange.getMinimum()
                     && piModel.getTapPosition() != tapPositionRange.getMaximum()) {
@@ -278,7 +279,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
         // for synthetics logs
-        List<IncrementalChangeDetails> controllerBranchesAdjusted = new ArrayList<>();
+        List<DiscreteControllerChangeDetails> controllerBranchesAdjusted = new ArrayList<>();
         List<String> controlledBusesWithAllItsControllersToLimit = new ArrayList<>();
 
         controlledBusesOutOfDeadband.forEach(controlledBus -> checkAndAdjustControlledBus(controlledBus, contextData,
@@ -321,7 +322,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
     }
 
     private void checkAndAdjustControlledBus(LfBus controlledBus, IncrementalContextData contextData, SensitivityContext sensitivityContext,
-                                             List<IncrementalChangeDetails> controllerBranchesAdjusted, List<String> controlledBusesWithAllItsControllersToLimit) {
+                                             List<DiscreteControllerChangeDetails> controllerBranchesAdjusted, List<String> controlledBusesWithAllItsControllersToLimit) {
         TransformerVoltageControl voltageControl = controlledBus.getTransformerVoltageControl().orElseThrow();
         double diffV = getDiffV(voltageControl);
         double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
