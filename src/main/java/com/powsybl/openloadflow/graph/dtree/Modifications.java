@@ -25,10 +25,23 @@ import java.util.Set;
  * main component or removed from it.
  *
  * <p>
- * When an edge is added to or removed from a {@link DTGraph}, then several
- * methods from this class can be called to save the evolution of the main
- * component.
+ * Topological comparisons are always computed relative to some main component
+ * vertex, even when the user didn't specify one. When an edge is added in (or
+ * removed from) a {@link DTGraph}, a DFS is performed to compute every vertex
+ * that are now connected to (disconnected from) the main component vertex. It
+ * is the responsibility of {@link DTGraph} to call the appropriate methods from
+ * this class.
  * </p>
+ *
+ * <p>
+ * Specifying a main component vertex is optional. In this case the main component
+ * vertex is a vertex in the biggest component and is considered as fictitious.
+ * It may lose its fictitious status when {@link #setMainComponentVertex(Object)}
+ * is called. Over the time, this vertex may automatically change to another one
+ * as the biggest main component can change.
+ * </p>
+ *
+ * @see StateMap
  */
 public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
 
@@ -46,10 +59,16 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
     private boolean isMainComponentVertexFictitious;
     private DTNode<V, E> mainComponentNode;
 
-    Modifications(DTGraph<V, E> graph, DTNode<V, E> mainComponentVertex, boolean fictitiousMCV, boolean computeComparisons) {
+    Modifications(DTGraph<V, E> graph, V mainComponentVertex, boolean computeComparisons) {
         this.graph = graph;
-        this.mainComponentNode = mainComponentVertex;
-        this.isMainComponentVertexFictitious = fictitiousMCV;
+
+        if (mainComponentVertex == null) {
+            mainComponentNode = graph.getBiggestRoot();
+            isMainComponentVertexFictitious = true;
+        } else {
+            mainComponentNode = graph.getNodeOrThrow(mainComponentVertex);
+            isMainComponentVertexFictitious = false;
+        }
 
         if (computeComparisons) {
             verticesState = new StateMap<>();
@@ -65,9 +84,9 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
     }
 
     /**
-     * Called before a new edge is inserted in a component,
-     * in other words, inserting {@code edge} won't merge two components.
-     * If the edge is inside the main component, it is marked as added to the main component.
+     * Called before a new edge is inserted in a component, in other words, inserting
+     * {@code edge} won't merge two components. If the edge is inside the main component,
+     * it is marked as added to the main component.
      *
      * @param treeRoot the root of the tree containing both endpoint of {@code edge}
      * @param edge the edge that is to be inserted

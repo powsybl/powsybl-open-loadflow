@@ -43,8 +43,8 @@ public class StateMap<T> {
 
     private final Map<T, State> states = new HashMap<>();
 
-    private transient Set<T> removed;
-    private transient Set<T> added;
+    private Set<T> removed;
+    private Set<T> added;
 
     public State getState(T element) {
         return states.get(element);
