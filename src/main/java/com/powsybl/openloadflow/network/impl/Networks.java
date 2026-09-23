@@ -64,6 +64,16 @@ public final class Networks {
         resetInjectionsState(network.getLccConverterStations());
         resetInjectionsState(network.getBatteries());
         resetInjectionsState(network.getBoundaryLines());
+
+        for (DcBus dcb : network.getDcBuses()) {
+            dcb.setV(Double.NaN);
+        }
+        for (DcLine dcl : network.getDcLines()) {
+            dcl.unsetSolvedValues();
+        }
+        for (VoltageSourceConverter vsc : network.getVoltageSourceConverters()) {
+            vsc.unsetSolvedValues();
+        }
     }
 
     private static double getDoubleProperty(Identifiable<?> identifiable, String name) {
@@ -210,7 +220,8 @@ public final class Networks {
 
     public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
                                                               ReportNode reportNode) {
-        return loadWithReconnectableElements(network, topoConfig, networkParameters, LfNetworkList.DefaultVariantCleaner::new, reportNode);
+        return loadWithReconnectableElements(network, topoConfig, networkParameters, new LfNetworkList.VariantCloner(network),
+                LfNetworkList.DefaultVariantCleaner::new, reportNode);
     }
 
     public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
@@ -219,12 +230,12 @@ public final class Networks {
     }
 
     public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
-                                                              LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode) {
-        return loadWithReconnectableElements(network, topoConfig, networkParameters, variantCleanerFactory, reportNode, false);
+                                                              LfNetworkList.VariantProvider variantProvider, LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode) {
+        return loadWithReconnectableElements(network, topoConfig, networkParameters, variantProvider, variantCleanerFactory, reportNode, false);
     }
 
     public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
-                                                              LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode,
+                                                              LfNetworkList.VariantProvider variantProvider, LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode,
                                                               boolean keepForPermanentContingency) {
         LfTopoConfig modifiedTopoConfig;
         if (networkParameters.isSimulateAutomationSystems()) {
@@ -244,10 +255,8 @@ public final class Networks {
             }
 
             // create a temporary working variant to build LF networks
-            String tmpVariantId = "olf-tmp-" + UUID.randomUUID();
             String workingVariantId = network.getVariantManager().getWorkingVariantId();
-            network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
-            network.getVariantManager().setWorkingVariant(tmpVariantId);
+            String tmpVariantId = variantProvider.getTmpVariantId(workingVariantId);
 
             // retain in topology all switches that could be open or close
             // and close switches that could be closed during the simulation
@@ -287,7 +296,7 @@ public final class Networks {
     }
 
     public static DcBus getDcBus(DcTerminal terminal) {
-        return terminal.getDcNode().getDcBus();
+        return terminal.getDcBus();
     }
 
     public static boolean isIsolatedBusForHvdc(LfBus bus, GraphConnectivity<LfBus, LfBranch> connectivity) {

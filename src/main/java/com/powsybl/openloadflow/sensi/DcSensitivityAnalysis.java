@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.sensi;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.action.Action;
+import com.powsybl.action.SwitchAction;
+import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
@@ -17,6 +19,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
@@ -580,17 +583,62 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         var dcLoadFlowParameters = createDcLoadFlowParameters(lfNetworkParameters, matrixFactory, lfParameters, lfParametersExt);
 
-        // create networks including all necessary switches
-        // branches that reconnect small components are kept enabled and modeled as permanent contingencies in Woodbury
-        try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig, lfNetworkParameters, sensiReportNode, true)) {
-            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
+        if (lfParametersExt.isNetworkCacheEnabled()) {
+            Set<String> topoActionIds = actions.stream()
+                    .filter(action -> action instanceof SwitchAction || action instanceof TerminalsConnectionAction)
+                    .map(Action::getId)
+                    .collect(Collectors.toSet());
+            var entry = NetworkCache.DC_SENSI_INSTANCE.get(network, new NetworkCache.DcSensiInput(lfParameters, topoActionIds));
+            if (entry.getValues() == null) {
+                // create networks including all necessary switches
+                try (LfNetworkList lfNetworkList = Networks.loadWithReconnectableElements(network, topoConfig, lfNetworkParameters,
+                        new LfNetworkList.PoolVariantAcquirer(network, lfParametersExt.getNetworkVariantPoolSize()), LfNetworkList.WorkingVariantReverter::new, sensiReportNode)) {
+                    if (lfNetworkList.getList().isEmpty()) {
+                        throw new PowsyblException("Empty network");
+                    }
+                    var values = lfNetworkList.getList()
+                            .stream()
+                            .map(n -> new NetworkCache.DcSensiValue(new DcLoadFlowContext(n, dcLoadFlowParameters)))
+                            .toList();
+                    entry.setValues(values);
+                    LfNetworkList.VariantCleaner variantCleaner = lfNetworkList.getVariantCleaner();
+                    if (variantCleaner != null) {
+                        entry.setVariantCleaner(new LfNetworkList.PoolVariantReleaser(network, entry.getWorkingVariantId(), variantCleaner.getTmpVariantId()));
+                    }
+                }
+            }
+            NetworkCache.DcSensiValue value = entry.getValues().getFirst();
+            LfNetwork lfNetwork = value.getNetwork();
+            DcLoadFlowContext loadFlowContext = value.getContext();
+            analyseNetwork(network, contingencies, variableSets, factorReader, resultWriter, sensiReportNode, lfNetwork,
+                    propagatedContingencies, actions, operatorStrategies, breakers, loadFlowContext, lfParameters, lfParametersExt);
+        } else {
+            // create networks including all necessary switches
+            // branches that reconnect small components are kept enabled and modeled as permanent contingencies in Woodbury
+            try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig, lfNetworkParameters, sensiReportNode)) {
+                LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
+                try (DcLoadFlowContext loadFlowContext = new DcLoadFlowContext(lfNetwork, dcLoadFlowParameters, false)) {
+                    analyseNetwork(network, contingencies, variableSets, factorReader, resultWriter, sensiReportNode, lfNetwork,
+                            propagatedContingencies, actions, operatorStrategies, breakers, loadFlowContext, lfParameters, lfParametersExt);
+                }
+            }
+        }
+    }
 
-            List<String> permanentContingencyBranchIds = lfNetworks.getPermanentContingencyBranchIds();
+    private void analyseNetwork(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
+                                SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
+                                LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, List<Action> actions,
+                                List<OperatorStrategy> operatorStrategies, boolean breakers, DcLoadFlowContext loadFlowContext,
+                                LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
+        Stopwatch stopwatch = Stopwatch.createStarted();
 
-            try (DcLoadFlowContext loadFlowContext = new DcLoadFlowContext(lfNetwork, dcLoadFlowParameters, false)) {
-                analyseNetwork(network, contingencies, variableSets, factorReader, resultWriter, sensiReportNode, lfNetwork,
-                        propagatedContingencies, actions, operatorStrategies, breakers, loadFlowContext, lfParameters, lfParametersExt,
-                        permanentContingencyBranchIds);
+                List<String> permanentContingencyBranchIds = lfNetworks.getPermanentContingencyBranchIds();
+
+                try (DcLoadFlowContext loadFlowContext = new DcLoadFlowContext(lfNetwork, dcLoadFlowParameters, false)) {
+                    analyseNetwork(network, contingencies, variableSets, factorReader, resultWriter, sensiReportNode, lfNetwork,
+                            propagatedContingencies, actions, operatorStrategies, breakers, loadFlowContext, lfParameters, lfParametersExt,
+                            permanentContingencyBranchIds);
+                }
             }
         }
     }
@@ -626,10 +674,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
     }
 
     private void analyseNetwork(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
-                                SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
-                                LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, List<Action> actions,
-                                List<OperatorStrategy> operatorStrategies, boolean breakers, DcLoadFlowContext loadFlowContext,
-                                LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, List<String> permanentContingencyBranchIds) {
+            SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
+            LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, List<Action> actions,
+            List<OperatorStrategy> operatorStrategies, boolean breakers, DcLoadFlowContext loadFlowContext,
+            LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, List<String> permanentContingencyBranchIds) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         cleanContingencies(lfNetwork, propagatedContingencies);
@@ -661,8 +709,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         "BRANCH_ACTIVE_POWER_2 and BRANCH_ACTIVE_POWER_3 are yet supported in DC");
                 });
 
-        LOGGER.info("Running DC sensitivity analysis with {} factors, {} contingencies and {} operator strategies",
-                allLfFactors.size(), contingencies.size(), operatorStrategies.size());
+        LOGGER.info("Running DC sensitivity analysis with {} factors, {} contingencies, {} operator strategies and {} actions",
+                allLfFactors.size(), contingencies.size(), operatorStrategies.size(), actions.size());
 
         // next we only work with valid factors
         var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter, propagatedContingencies, operatorStrategiesByContingencyId, parameters);
