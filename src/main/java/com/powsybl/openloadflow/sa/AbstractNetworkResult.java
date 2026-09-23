@@ -155,7 +155,7 @@ public abstract class AbstractNetworkResult {
         return branch.getPhaseTapChanger();
     }
 
-    public Map<Pair<String, Optional<ThreeSides>>,ChangedPhaseTapChanger> getChangedPhaseTapChangers() {
+    public Map<Pair<String, Optional<ThreeSides>>, ChangedPhaseTapChanger> getChangedPhaseTapChangers() {
         return changedPhaseTapChangers;
     }
 }
