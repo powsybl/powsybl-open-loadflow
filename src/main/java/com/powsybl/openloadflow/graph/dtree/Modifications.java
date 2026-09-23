@@ -208,6 +208,9 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
 
     /**
      * Change the main component vertex to the specified one.
+     * If the new main component vertex isn't in the actual main component,
+     * we need to mark every element in the new main component as added
+     * and every element in the old main component as removed.
      *
      * @param mainComponentVertex new vertex identifying the main component.
      */
@@ -219,7 +222,7 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
         if (this.mainComponentNode.getVertex() != mainComponentVertex) {
             // two things to do:
             // 1. check if the new main component vertex was in the main component before temporary changes.
-            // 2. if the main component vertex isn't in the current main component vertex, we need to
+            // 2. if the main component vertex isn't in the current main component, we need to
             //    update state of edges and vertices
 
             DTNode<V, E> oldComponentRoot = this.mainComponentNode.findRoot();
