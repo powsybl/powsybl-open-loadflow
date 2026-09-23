@@ -386,6 +386,18 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         return getNodeOrThrow(vertex).componentView();
     }
 
+    DTNode<V, E> getBiggestRoot() {
+        DTNode<V, E> biggestRoot = null;
+
+        for (DTNode<V, E> root : roots) {
+            if (biggestRoot == null || root.size() > biggestRoot.size()) {
+                biggestRoot = root;
+            }
+        }
+
+        return biggestRoot;
+    }
+
     /**
      * Builds a list of components, sort it by size in reverse order and update index for every root.
      *

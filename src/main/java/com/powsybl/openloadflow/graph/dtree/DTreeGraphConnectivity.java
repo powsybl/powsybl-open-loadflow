@@ -101,6 +101,17 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     }
 
     @Override
+    public Set<V> getLargestConnectedComponent() {
+        checkSavedContext();
+
+        if (componentSets == null) {
+            return getGraph().getBiggestRoot().componentView();
+        } else {
+            return componentSets.getFirst();
+        }
+    }
+
+    @Override
     protected Set<V> getNonConnectedVertices(V vertex) {
         checkSavedContext();
         checkVertex(vertex);
@@ -137,15 +148,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         if (mainComponentVertex != null) {
             return graph.rootOf(mainComponentVertex);
         } else {
-            DTNode<V, E> biggestRoot = null;
-
-            for (DTNode<V, E> root : getGraph().getRoots()) {
-                if (biggestRoot == null || root.size() > biggestRoot.size()) {
-                    biggestRoot = root;
-                }
-            }
-
-            return biggestRoot;
+            return graph.getBiggestRoot();
         }
     }
 
