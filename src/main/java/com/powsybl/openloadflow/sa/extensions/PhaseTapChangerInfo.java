@@ -6,7 +6,7 @@ import com.powsybl.openloadflow.network.PiModel;
 
 import java.util.Optional;
 
-public class PhaseTapChangerResult {
+public class PhaseTapChangerInfo {
 
     private final PhaseTapChanger phaseTapChanger;
 
@@ -18,7 +18,7 @@ public class PhaseTapChangerResult {
 
     private PiModel piModel;
 
-    public PhaseTapChangerResult(PhaseTapChanger phaseTapChanger, String transformerId, ThreeSides side, PiModel piModel, int currentTap) {
+    public PhaseTapChangerInfo(PhaseTapChanger phaseTapChanger, String transformerId, ThreeSides side, PiModel piModel, int currentTap) {
         this.phaseTapChanger = phaseTapChanger;
         this.side = side;
         this.currentTap = currentTap;

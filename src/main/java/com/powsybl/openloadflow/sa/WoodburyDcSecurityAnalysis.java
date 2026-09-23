@@ -228,7 +228,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 postContingencyNetworkResult.getThreeWindingsTransformerResults()),
                 connectivityResult,
                 Double.NaN, // TODO: report distributed active power in Fast DC SA
-                postContingencyNetworkResult.getMovedPhaseShifterResults()
+                postContingencyNetworkResult.getChangedPhaseTapChangers().values().stream().toList()
         );
     }
 
