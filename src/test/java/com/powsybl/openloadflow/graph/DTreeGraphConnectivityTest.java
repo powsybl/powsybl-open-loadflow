@@ -181,6 +181,7 @@ class DTreeGraphConnectivityTest {
     private static Stream<Arguments> provideDTreeConnectivities() {
         return Stream.of(
                 Arguments.of(new DTreeGraphConnectivity<>()),
+                Arguments.of(new com.powsybl.openloadflow.graph.dtreepr.DTreeGraphConnectivity<>()),
                 Arguments.of(new DTreeStandalone<>()),
                 Arguments.of(new Delta2DTreeStandalone<>()),
                 Arguments.of(new Delta2ReplaceWithBestDTreeStandalone<>()),

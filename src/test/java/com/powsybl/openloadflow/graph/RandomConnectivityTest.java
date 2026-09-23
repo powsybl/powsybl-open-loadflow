@@ -18,6 +18,7 @@ import org.jgrapht.graph.DefaultUndirectedGraph;
 import org.jgrapht.util.SupplierUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.provider.Arguments;
 
 import java.util.*;
 
@@ -54,8 +55,9 @@ public class RandomConnectivityTest {
                         // new HolmEtAlGraphConnectivity<>(),
                         // new NewHolmGraphConnectivity<>(),
                         // new HolmStandalone<>(),
-                        // new DTreeGraphConnectivity<>(),
-                        new DTreeStandalone<>()
+                        new DTreeGraphConnectivity<>(),
+                        new DTreeStandalone<>(),
+                        new com.powsybl.openloadflow.graph.dtreepr.DTreeGraphConnectivity<>()
                         // new Delta2DTreeStandalone<>(),
                         // new Delta2ReplaceWithBestDTreeStandalone<>(),
                         // new ReplaceWithBestDTreeStandalone<>()

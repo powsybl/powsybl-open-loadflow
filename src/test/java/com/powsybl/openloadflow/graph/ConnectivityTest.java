@@ -696,6 +696,7 @@ class ConnectivityTest {
                 Arguments.of(new NewHolmGraphConnectivity<>()),
                 Arguments.of(new HolmStandalone<>()),
                 Arguments.of(new DTreeGraphConnectivity<>()),
+                Arguments.of(new com.powsybl.openloadflow.graph.dtreepr.DTreeGraphConnectivity<>()),
                 Arguments.of(new DTreeStandalone<>()),
                 Arguments.of(new Delta2DTreeStandalone<>()),
                 Arguments.of(new Delta2ReplaceWithBestDTreeStandalone<>()),
