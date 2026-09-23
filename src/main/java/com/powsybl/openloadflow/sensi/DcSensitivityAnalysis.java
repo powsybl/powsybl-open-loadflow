@@ -660,6 +660,23 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
+    private static Set<LfBus> computePermanentlyIsolatedBuses(LfNetwork lfNetwork, List<String> permanentContingencyBranchIds) {
+        if (permanentContingencyBranchIds.isEmpty()) {
+            return Collections.emptySet();
+        }
+        var connectivity = lfNetwork.getConnectivity();
+        connectivity.startTemporaryChanges();
+        try {
+            permanentContingencyBranchIds.stream()
+                    .map(lfNetwork::getBranchById)
+                    .filter(Objects::nonNull)
+                    .forEach(connectivity::removeEdge);
+            return new HashSet<>(connectivity.getVerticesRemovedFromMainComponent());
+        } finally {
+            connectivity.undoTemporaryChanges();
+        }
+    }
+
     private void analyseNetwork(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
             SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
             LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, List<Action> actions,
@@ -872,23 +889,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         stopwatch.stop();
         LOGGER.info("DC sensitivity analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
-    }
-
-    private static Set<LfBus> computePermanentlyIsolatedBuses(LfNetwork lfNetwork, List<String> permanentContingencyBranchIds) {
-        if (permanentContingencyBranchIds.isEmpty()) {
-            return Collections.emptySet();
-        }
-        var connectivity = lfNetwork.getConnectivity();
-        connectivity.startTemporaryChanges();
-        try {
-            permanentContingencyBranchIds.stream()
-                    .map(lfNetwork::getBranchById)
-                    .filter(Objects::nonNull)
-                    .forEach(connectivity::removeEdge);
-            return new HashSet<>(connectivity.getVerticesRemovedFromMainComponent());
-        } finally {
-            connectivity.undoTemporaryChanges();
-        }
     }
 
     private List<ConnectivityBreakAnalysis.ConnectivityAnalysisResult> runOperatorStrategiesConnectivityAnalysis(
