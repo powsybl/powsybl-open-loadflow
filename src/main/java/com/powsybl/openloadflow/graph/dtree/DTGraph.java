@@ -207,7 +207,7 @@ public class DTGraph<V, E> {
             removeTreeEdge(edge);
         } else {
             removeNonTreeEdge(edge);
-            afterRemovingNonTreeEdge(edge);
+            afterRemovingNonBreakingConnectivityEdge(edge.nodeU().findRoot(), edge);
         }
 
         return edge;
@@ -279,7 +279,7 @@ public class DTGraph<V, E> {
                     // found a replacement edge
                     removeNonTreeEdge(nonTreeEdge);
                     DTNode<V, E> mergedTreeRoot = insertTreeEdge(rootSmall, n, oppRoot, oppNode, nonTreeEdge);
-                    afterRemovingTreeEdge(true, mergedTreeRoot, null, removedEdge);
+                    afterRemovingNonBreakingConnectivityEdge(mergedTreeRoot, removedEdge);
                     return;
                 }
             }
@@ -295,9 +295,9 @@ public class DTGraph<V, E> {
         // fix centroid property
         if (newRoot != null) {
             newRoot.makeRoot(true);
-            afterRemovingTreeEdge(false, newRoot, rootLarge, removedEdge);
+            afterRemovingEdgeBreakingConnectivity(newRoot, rootLarge, removedEdge);
         } else {
-            afterRemovingTreeEdge(false, rootSmall, rootLarge, removedEdge);
+            afterRemovingEdgeBreakingConnectivity(rootSmall, rootLarge, removedEdge);
         }
     }
 
@@ -311,9 +311,9 @@ public class DTGraph<V, E> {
         edge.nodeV().removeNonTreeEdge(edge);
     }
 
-    private void beforeInsertingEdgeInComponent(DTNode<V, E> node, Edge<V, E> edge) {
+    private void beforeInsertingEdgeInComponent(DTNode<V, E> treeRoot, Edge<V, E> edge) {
         if (currentModificationsContext != null) {
-            currentModificationsContext.beforeInsertingEdgeInComponent(node, edge);
+            currentModificationsContext.beforeInsertingEdgeInComponent(treeRoot, edge);
         }
     }
 
@@ -329,15 +329,15 @@ public class DTGraph<V, E> {
         }
     }
 
-    private void afterRemovingNonTreeEdge(Edge<V, E> edge) {
+    private void afterRemovingNonBreakingConnectivityEdge(DTNode<V, E> treeRoot, Edge<V, E> edge) {
         if (currentModificationsContext != null) {
-            currentModificationsContext.afterRemovingNonTreeEdge(edge);
+            currentModificationsContext.afterRemovingNonBreakingConnectivityEdge(treeRoot, edge);
         }
     }
 
-    private void afterRemovingTreeEdge(boolean replacementEdgeFound, DTNode<V, E> smallRoot, DTNode<V, E> largeRoot, Edge<V, E> edge) {
+    private void afterRemovingEdgeBreakingConnectivity(DTNode<V, E> smallRoot, DTNode<V, E> largeRoot, Edge<V, E> edge) {
         if (currentModificationsContext != null) {
-            currentModificationsContext.afterRemovingTreeEdge(replacementEdgeFound, smallRoot, largeRoot, edge);
+            currentModificationsContext.afterRemovingEdgeBreakingConnectivity(smallRoot, largeRoot, edge);
         }
     }
 

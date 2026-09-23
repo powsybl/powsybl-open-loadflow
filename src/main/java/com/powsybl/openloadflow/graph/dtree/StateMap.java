@@ -16,12 +16,17 @@ import java.util.stream.Collectors;
 
 /**
  * Associates to each element whether it was added to the main
- * component or removed from a main component between the last call
+ * component or removed from the main component between the last call
  * to {@link GraphConnectivity#startTemporaryChanges} and the
- * current instant. As an element cannot be added and removed at the same
- * time, we can use one {@link Map}, mapping an element to its {@link State}
+ * current instant.
+ *
+ * <p>
+ * As an element cannot be added and removed at the same
+ * time, we use one {@link Map}, mapping an element to its {@link State}
  * (removed or added), instead of two {@link Set} (one for added element
  * and one for removed element).
+ * </p>
+ *
  * <p>
  * If an element is not found, there are two possibilities:
  * <ol>
@@ -34,31 +39,37 @@ import java.util.stream.Collectors;
  *
  * @param <T> the type of the stored element (edges or vertices)
  */
-public class StateMap<T> extends HashMap<T, StateMap.State> {
+public class StateMap<T> {
+
+    private final Map<T, State> states = new HashMap<>();
 
     private transient Set<T> removed;
     private transient Set<T> added;
 
+    public State getState(T element) {
+        return states.get(element);
+    }
+
     /**
      * Mark the specified element as added. That is, mark the
      * element as being added to the main component by the
-     * last topological changes.
+     * last topological change.
      *
      * @param element the element to mark
      */
-    public void markAdded(T element) {
-        mark(element, State.ADDED);
+    public void markAsAdded(T element) {
+        updateState(element, State.ADDED);
     }
 
     /**
      * Mark the specified element as removed. That is, mark the
      * element as being removed from the main component by the
-     * last topological changes.
+     * last topological change.
      *
      * @param element the element to mark
      */
-    public void markRemoved(T element) {
-        mark(element, State.REMOVED);
+    public void markAsRemoved(T element) {
+        updateState(element, State.REMOVED);
     }
 
     /**
@@ -67,7 +78,7 @@ public class StateMap<T> extends HashMap<T, StateMap.State> {
      * <ul>
      *     <li>An element that is in the same state as it was before the call to
      *     {@link GraphConnectivity#startTemporaryChanges} is inserted
-     *     with the specified value.</li>
+     *     with the specified value ({@code currentState == null}).</li>
      *     <li>An element marked as added and removed by the last changes is removed.
      *     Indeed, it was outside the main component before the last call to
      *     {@link GraphConnectivity#startTemporaryChanges}, then it was added
@@ -77,13 +88,16 @@ public class StateMap<T> extends HashMap<T, StateMap.State> {
      *
      * @param element  the element to update
      * @param newState whether the element was added to or removed from
-     *                 the main component
+     *                 the main component by the last topological change
      */
-    public void mark(T element, State newState) {
-        compute(element, (k, state) -> {
-            if (state == null || state == newState) {
+    public void updateState(T element, State newState) {
+        states.compute(element, (k, currentState) -> {
+            if (currentState == null || currentState == newState) {
                 return newState;
             } else {
+                // element is removed and now added (or is added and now removed)
+                // so it was and is still in the main component (or outside).
+                // therefore its state relative to the main component didn't change.
                 return null;
             }
         });
@@ -94,9 +108,9 @@ public class StateMap<T> extends HashMap<T, StateMap.State> {
 
     public Set<T> getRemoved() {
         if (removed == null) {
-            removed = entrySet().stream()
+            removed = states.entrySet().stream()
                     .filter(e -> e.getValue() == State.REMOVED)
-                    .map(Entry::getKey)
+                    .map(Map.Entry::getKey)
                     .collect(Collectors.toSet());
         }
 
@@ -105,11 +119,12 @@ public class StateMap<T> extends HashMap<T, StateMap.State> {
 
     public Set<T> getAdded() {
         if (added == null) {
-            added = entrySet().stream()
+            added = states.entrySet().stream()
                     .filter(e -> e.getValue() == State.ADDED)
-                    .map(Entry::getKey)
+                    .map(Map.Entry::getKey)
                     .collect(Collectors.toSet());
         }
+
         return added;
     }
 

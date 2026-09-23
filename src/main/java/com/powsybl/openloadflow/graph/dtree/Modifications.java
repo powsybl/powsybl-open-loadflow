@@ -18,11 +18,17 @@ import java.util.Iterator;
 import java.util.Set;
 
 /**
- * Contains modifications performed on the graph between
+ * Contains modifications performed on the {@link DTGraph} between
  * the last call to {@link GraphConnectivity#startTemporaryChanges}
  * and the current instant. It stores a stack of {@link GraphModification}
  * and optionally the set of vertices and edges added to the
  * main component or removed from it.
+ *
+ * <p>
+ * When an edge is added to or removed from a {@link DTGraph}, then several
+ * methods from this class can be called to save the evolution of the main
+ * component.
+ * </p>
  */
 public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
 
@@ -58,30 +64,57 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
         modificationsStack.push(modification);
     }
 
-    public void beforeInsertingEdgeInComponent(DTNode<V, E> rootNodeU, Edge<V, E> edge) {
+    /**
+     * Called before a new edge is inserted in a component,
+     * in other words, inserting {@code edge} won't merge two components.
+     * If the edge is inside the main component, it is marked as added to the main component.
+     *
+     * @param treeRoot the root of the tree containing both endpoint of {@code edge}
+     * @param edge the edge that is to be inserted
+     */
+    public void beforeInsertingEdgeInComponent(DTNode<V, E> treeRoot, Edge<V, E> edge) {
         if (topologicalComparisonsDisabled()) {
             return;
         }
 
-        if (isInMainComponent(rootNodeU)) {
-            markEdgeAdded(edge.edgeData());
+        if (isInMainComponent(treeRoot)) {
+            edgesState.markAsAdded(edge.edgeData());
         }
     }
 
+    /**
+     * Called before merging two trees using {@code edge}.
+     * If one of the two endpoints is in the main component, then all vertices and edges
+     * from the other tree are marked as added to the main component. {@code edge} is also
+     * marked as added.
+     *
+     * @param rootU root of the tree containing {@code edge.nodeU()}
+     * @param rootV root of the tree containing {@code edge.nodeV()}
+     * @param edge the edge that will link the two trees
+     */
     public void beforeInsertingTreeEdge(DTNode<V, E> rootU, DTNode<V, E> rootV, Edge<V, E> edge) {
         if (topologicalComparisonsDisabled()) {
             return;
         }
 
         if (isInMainComponent(rootV)) {
-            markEdgeAdded(edge.edgeData());
-            markAllAdded(rootU);
+            edgesState.markAsAdded(edge.edgeData());
+            markAll(rootU, State.ADDED);
         } else if (isInMainComponent(rootU)) {
-            markEdgeAdded(edge.edgeData());
-            markAllAdded(rootV);
+            edgesState.markAsAdded(edge.edgeData());
+            markAll(rootV, State.ADDED);
         }
     }
 
+    /**
+     * Called after merging two trees.
+     * If the main component vertex is fictitious, that is, the user
+     * didn't specify a main component vertex, then the main component
+     * may change. In particular, {@code mergedTree} is a new candidate
+     * to become the main component.
+     *
+     * @param mergedTree the tree resulting from a merge
+     */
     public void afterInsertingTreeEdge(DTNode<V, E> mergedTree) {
         if (topologicalComparisonsDisabled()) {
             return;
@@ -92,47 +125,65 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
         }
     }
 
-    public void afterRemovingNonTreeEdge(Edge<V, E> edge) {
+    /**
+     * Called after removing an edge that didn't create two components.
+     * If the edge was inside the main component, it is marked as removed from the main component.
+     *
+     * @param treeRoot the root of the tree containing the endpoint of {@code edge}
+     * @param edge the edge that was removed
+     */
+    public void afterRemovingNonBreakingConnectivityEdge(DTNode<V, E> treeRoot, Edge<V, E> edge) {
         if (topologicalComparisonsDisabled()) {
             return;
         }
 
-        if (isInMainComponent(edge.nodeU())) {
-            markEdgeRemoved(edge.edgeData());
+        if (isInMainComponent(treeRoot)) {
+            edgesState.markAsRemoved(edge.edgeData());
         }
     }
 
-    public void afterRemovingTreeEdge(boolean replacementEdgeFound, DTNode<V, E> smallRoot, DTNode<V, E> largeRoot, Edge<V, E> edge) {
+    /**
+     * Called after removing an edge that split a tree in two.
+     * If one of the two trees contains the main component vertex
+     * then all vertices and edges of the other one are marked as removed.
+     * {@code edge} is also marked as removed.
+     *
+     * <p>
+     * If the main component vertex is fictitious, that is, the user
+     * didn't specify a main component vertex, then the main component
+     * may change. In particular, there might be a new biggest component
+     * that need to be calculated.
+     * </p>
+     *
+     * @param smallRoot the root of one of the two created tree.
+     *                  Its size is assumed to be smaller than largeRoot's size.
+     * @param largeRoot the root of the other created tree.
+     *                  Its size is assumed to be greater than smallRoot's size.
+     * @param edge the edge that was removed
+     */
+    public void afterRemovingEdgeBreakingConnectivity(DTNode<V, E> smallRoot, DTNode<V, E> largeRoot, Edge<V, E> edge) {
         if (topologicalComparisonsDisabled()) {
             return;
         }
 
-        if (replacementEdgeFound) {
-            if (isInMainComponent(smallRoot)) {
-                markEdgeRemoved(edge.edgeData());
-            }
-        } else {
-            // /!\ small and large can be both in the main component (when a replacement edge was found)
-            // However, in this case, we only need one of the two variables to be true to have
-            // the correct behavior (i.e. only the removedEdge is marked as removed).
-            // When there is no replacement edge, small and large cannot be simultaneously in the main
-            // component as there are in two distinct components.
-            boolean smallInMain = isInMainComponent(smallRoot);
-            boolean largeInMain = !smallInMain && isInMainComponent(largeRoot); // avoid computing isInMainComponent if we know that small is in the main component
+        // compute the main component root once to answer two connectivity queries faster.
+        DTNode<V, E> mainComponentRoot = mainComponentNode.findRoot();
+        boolean smallInMainComponent = mainComponentRoot == smallRoot;
+        boolean largeInMainComponent = mainComponentRoot == largeRoot;
 
-            if (smallInMain || largeInMain) {
-                markEdgeRemoved(edge.edgeData());
-            }
+        if (smallInMainComponent || largeInMainComponent) {
+            edgesState.markAsRemoved(edge.edgeData());
+        }
 
-            if (isMainComponentVertexFictitious) {
-                maybeBiggestTreeChanged(graph.getBiggestRoot());
-            }
+        if (largeInMainComponent) {
+            markAll(smallRoot, State.REMOVED);
+        } else if (smallInMainComponent) {
+            markAll(largeRoot, State.REMOVED);
+        }
 
-            if (largeInMain) {
-                markAllRemoved(smallRoot);
-            } else if (smallInMain) {
-                markAllRemoved(largeRoot);
-            }
+        // handle unspecified main component vertex
+        if (isMainComponentVertexFictitious) {
+            maybeBiggestTreeChanged(graph.getBiggestRoot());
         }
     }
 
@@ -160,13 +211,13 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
                 // the new main component vertex isn't in the current main component.
                 // But that doesn't mean it wasn't in the main component before starting temporary changes,
                 // it may have been removed.
-                if (verticesState.get(mainComponentVertex) != State.REMOVED) {
+                if (verticesState.getState(mainComponentVertex) != State.REMOVED) {
                     throw new PowsyblException("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes");
                 }
 
                 // last thing to do is update state of vertices and edges in the two trees.
-                markAllRemoved(oldComponentRoot);
-                markAllAdded(newComponentRoot);
+                markAll(oldComponentRoot, State.REMOVED);
+                markAll(newComponentRoot, State.ADDED);
             }
 
             this.mainComponentNode = newMainComponentNode;
@@ -175,43 +226,35 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
         isMainComponentVertexFictitious = false;
     }
 
+    /**
+     * A node is in the main component if it is in the same tree as the main component vertex.
+     *
+     * @param node the node to test if it is in the main component
+     * @return {@code true} if {@code node} is in the main component
+     */
     private boolean isInMainComponent(DTNode<V, E> node) {
         return mainComponentNode.findRoot() == node.findRoot();
     }
 
-    private void markEdgeAdded(E edge) {
-        if (edgesState != null) {
-            edgesState.markAdded(edge);
-        }
-    }
-
-    private void markEdgeRemoved(E edge) {
-        if (edgesState != null) {
-            edgesState.markRemoved(edge);
-        }
-    }
-
-    private void markAllAdded(DTNode<V, E> root) {
-        markAll(root, State.ADDED);
-    }
-
-    private void markAllRemoved(DTNode<V, E> root) {
-        markAll(root, State.REMOVED);
-    }
-
+    /**
+     * Update the state of every vertex and edge in the tree rooted at {@code root}.
+     *
+     * @param root root of the tree whose elements' state will be updated.
+     * @param newState the state in which elements are relative to the main component.
+     */
     private void markAll(DTNode<V, E> root, State newState) {
         for (DFSIterator<V, E> it = new DFSIterator<>(root); it.hasNext();) {
             V vertex = it.next();
-            verticesState.mark(vertex, newState);
+            verticesState.updateState(vertex, newState);
 
             DTNode<V, E> node = it.node();
             if (node.getParentEdge() != null) {
-                edgesState.mark(node.getParentEdge().edgeData(), newState);
+                edgesState.updateState(node.getParentEdge().edgeData(), newState);
             }
 
             for (Edge<V, E> nte : node.getNonTreeEdges()) {
                 if (nte.nodeU() == it.node()) { // only if current node is edge source
-                    edgesState.mark(nte.edgeData(), newState);
+                    edgesState.updateState(nte.edgeData(), newState);
                 }
             }
 
@@ -222,12 +265,18 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
         }
     }
 
+    /**
+     * Potentially update the main component if the main component node
+     * isn't in the biggest tree.
+     *
+     * @param currentBiggestRoot the root of the biggest tree
+     */
     private void maybeBiggestTreeChanged(DTNode<V, E> currentBiggestRoot) {
         DTNode<V, E> mainComponentVertexTree = mainComponentNode.findRoot();
         if (currentBiggestRoot.size() > mainComponentVertexTree.size()) {
             // there is a new biggest main component
-            markAllRemoved(mainComponentVertexTree);
-            markAllAdded(currentBiggestRoot);
+            markAll(mainComponentVertexTree, State.REMOVED);
+            markAll(currentBiggestRoot, State.ADDED);
             mainComponentNode = currentBiggestRoot;
         }
     }
