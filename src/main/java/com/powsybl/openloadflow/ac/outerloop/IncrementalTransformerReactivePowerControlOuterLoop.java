@@ -152,7 +152,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
             Range<Integer> tapPositionRange = piModel.getTapPositionRange();
             LOGGER.debug("Controller branch '{}' change tap from {} to {} (full range: {})", controllerBranch.getId(),
                     previousTapPosition, piModel.getTapPosition(), tapPositionRange);
-            adjustedControllerBranches.add(new DiscreteControllerChangeDetails(controlledBranch.getId(), previousTapPosition, piModel.getTapPosition()));
+            adjustedControllerBranches.add(new DiscreteControllerChangeDetails(controllerBranch.getId(), previousTapPosition, piModel.getTapPosition()));
 
             if (piModel.getTapPosition() == tapPositionRange.getMinimum()
                     || piModel.getTapPosition() == tapPositionRange.getMaximum()) {

@@ -184,8 +184,8 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
                 }
             }
         }
-        sectionShiftPerController.entrySet().stream().forEach(e -> adjustedControllers.add(
-                new DiscreteControllerChangeDetails(e.getKey().getId(), initialSectionPerController.get(e.getKey()), e.getKey().getPosition())));
+        sectionShiftPerController.keySet().forEach(controller -> adjustedControllers.add(
+                new DiscreteControllerChangeDetails(controller.getId(), initialSectionPerController.get(controller), controller.getPosition())));
 
     }
 
