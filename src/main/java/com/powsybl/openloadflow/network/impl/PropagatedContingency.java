@@ -84,6 +84,19 @@ public class PropagatedContingency {
         this.busIdsToLose = Objects.requireNonNull(busIdsToLose);
     }
 
+    public PropagatedContingency(PropagatedContingency other) {
+        this.contingency = Objects.requireNonNull(other.contingency);
+        this.index = other.index;
+        this.switchesToOpen = new HashSet<>(Objects.requireNonNull(other.switchesToOpen));
+        this.terminalsToDisconnect = new HashSet<>(Objects.requireNonNull(other.terminalsToDisconnect));
+        this.busIdsToLose = new HashSet<>(Objects.requireNonNull(other.busIdsToLose));
+        this.branchIdsToOpen.putAll(other.branchIdsToOpen);
+        this.hvdcIdsToOpen.addAll(other.hvdcIdsToOpen);
+        this.generatorIdsToLose.addAll(other.generatorIdsToLose);
+        this.loadIdsToLose.putAll(other.loadIdsToLose);
+        this.shuntIdsToShift.putAll(other.shuntIdsToShift);
+    }
+
     public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, LfTopoConfig topoConfig,
                                                          PropagatedContingencyCreationParameters creationParameters) {
         return createList(network, contingencies, topoConfig, creationParameters, 0);
@@ -556,13 +569,17 @@ public class PropagatedContingency {
      *  - Removing branches connected at one side from branches to open.
      *  - Removing slack bus from buses lost (not supported yet).
      *  - Adding branches connected to buses lost in branches to open.
+     *  To not destroy the initial propagated contingencies, deep copy are built and returned
      */
-    public static void cleanContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+    public static List<PropagatedContingency> cleanContingencies(LfNetwork lfNetwork, List<PropagatedContingency> contingencies) {
+        List<PropagatedContingency> cleanedContingencies = new ArrayList<>();
         for (PropagatedContingency contingency : contingencies) {
+            PropagatedContingency cleanedContingency = new PropagatedContingency(contingency);
+            cleanedContingencies.add(cleanedContingency);
             // Elements have already been checked and found in PropagatedContingency, so there is no need to
             // check them again
             Set<String> branchesToRemove = new HashSet<>(); // branches connected to one side, or switches
-            for (String branchId : contingency.getBranchIdsToOpen().keySet()) {
+            for (String branchId : cleanedContingency.getBranchIdsToOpen().keySet()) {
                 LfBranch lfBranch = lfNetwork.getBranchById(branchId);
                 if (lfBranch == null) {
                     branchesToRemove.add(branchId); // disconnected branch
@@ -572,32 +589,33 @@ public class PropagatedContingency {
                     branchesToRemove.add(branchId); // branch connected only on one side
                 }
             }
-            branchesToRemove.forEach(branchToRemove -> contingency.getBranchIdsToOpen().remove(branchToRemove));
+            branchesToRemove.forEach(branchToRemove -> cleanedContingency.getBranchIdsToOpen().remove(branchToRemove));
 
             // update branches to open connected with buses in contingency. This is an approximation:
             // these branches are indeed just open at one side.
             String slackBusId = null;
-            for (String busId : contingency.getBusIdsToLose()) {
+            for (String busId : cleanedContingency.getBusIdsToLose()) {
                 LfBus bus = lfNetwork.getBusById(busId);
                 if (bus != null) {
                     if (bus.isSlack()) {
                         // slack bus disabling is not supported in DC because the relocation is done from propagated contingency
                         // to LfContingency
                         // we keep the slack bus enabled and the connected branches
-                        LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", contingency.getContingency().getId());
+                        LOGGER.error("Contingency '{}' leads to the loss of a slack bus: slack bus kept", cleanedContingency.getContingency().getId());
                         slackBusId = busId;
                     } else {
-                        bus.getBranches().forEach(branch -> contingency.getBranchIdsToOpen().put(branch.getId(), DisabledBranchStatus.BOTH_SIDES));
+                        bus.getBranches().forEach(branch -> cleanedContingency.getBranchIdsToOpen().put(branch.getId(), DisabledBranchStatus.BOTH_SIDES));
                     }
                 }
             }
             if (slackBusId != null) {
-                contingency.getBusIdsToLose().remove(slackBusId);
+                cleanedContingency.getBusIdsToLose().remove(slackBusId);
             }
 
-            if (contingency.hasNoImpact()) {
-                LOGGER.warn("Contingency '{}' has no impact", contingency.getContingency().getId());
+            if (cleanedContingency.hasNoImpact()) {
+                LOGGER.warn("Contingency '{}' has no impact", cleanedContingency.getContingency().getId());
             }
         }
+        return cleanedContingencies;
     }
 }

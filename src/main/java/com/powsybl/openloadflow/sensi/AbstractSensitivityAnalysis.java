@@ -1022,48 +1022,104 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     /**
-     * Write zero or skip factors to output and send a new factor holder containing only other valid ones.
+     * Write zero or skip factors to output and send, for each component, a new factor holder containing only other valid ones.
+     * A factor is relevant to a component when its function element belongs to it (VALID or VALID_ONLY_FOR_FUNCTION status):
+     * the component is then in charge of computing its sensitivity values. As the function element belongs to at most one
+     * component, a factor is written by at most one component. Zero or skip factors are only written once, and only if the
+     * factor is not relevant to any of the components: zero if the variable has been found in at least one component, skip otherwise.
      * IMPORTANT: this is only a base case test (factor status only deal with base case). We do not output anything
      * on post contingency if factor is already invalid (skip o zero) on base case. Except for factors with specific
      * contingency context, we output the invalid status found during base case analysis.
      */
-    protected SensitivityFactorHolder<V, E> writeInvalidFactors(SensitivityFactorHolder<V, E> factorHolder,
-                                                                SensitivityResultWriter resultWriter,
-                                                                List<PropagatedContingency> contingencies,
-                                                                Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId,
-                                                                SensitivityAnalysisParameters parameters) {
+    protected Map<LfNetwork, SensitivityFactorHolder<V, E>> writeInvalidFactors(Map<LfNetwork, SensitivityFactorHolder<V, E>> factorHolderByNetwork,
+                                                                                SensitivityResultWriter resultWriter,
+                                                                                List<PropagatedContingency> contingencies,
+                                                                                Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId,
+                                                                                SensitivityAnalysisParameters parameters) {
+        return writeInvalidFactors(factorHolderByNetwork, resultWriter, contingencies, operatorStrategiesByContingencyId, parameters, false);
+    }
+
+    /**
+     * Same as {@link #writeInvalidFactors(Map, SensitivityResultWriter, List, Map, SensitivityAnalysisParameters)} but, when
+     * {@code keepFactorsWithFunctionElement} is true, a component keeps every factor whose function element belongs to it,
+     * whatever its base case status: an operator strategy may enable a disabled element and make the factor valid, the
+     * component is then in charge of writing its values for every state (using predefined results while it is invalid).
+     * Only the factors whose function element is in no component are written here, including for preventive operator
+     * strategy states.
+     */
+    protected Map<LfNetwork, SensitivityFactorHolder<V, E>> writeInvalidFactors(Map<LfNetwork, SensitivityFactorHolder<V, E>> factorHolderByNetwork,
+                                                                                SensitivityResultWriter resultWriter,
+                                                                                List<PropagatedContingency> contingencies,
+                                                                                Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId,
+                                                                                SensitivityAnalysisParameters parameters,
+                                                                                boolean keepFactorsWithFunctionElement) {
+        Map<LfNetwork, SensitivityFactorHolder<V, E>> validFactorHolderByNetwork = new LinkedHashMap<>();
+        Set<Integer> relevantFactorIndexes = new HashSet<>();
+        // for each factor invalid in a component, keep one representative, ZERO status taking precedence over SKIP status
+        Map<Integer, LfSensitivityFactor<V, E>> invalidFactorByIndex = new TreeMap<>();
+        for (Map.Entry<LfNetwork, SensitivityFactorHolder<V, E>> e : factorHolderByNetwork.entrySet()) {
+            SensitivityFactorHolder<V, E> validFactorHolder = new SensitivityFactorHolder<>();
+            for (var factor : e.getValue().getAllFactors()) {
+                if (keepFactorsWithFunctionElement && factor.getFunctionElement() != null) {
+                    validFactorHolder.addFactor(factor);
+                    relevantFactorIndexes.add(factor.getIndex());
+                    continue;
+                }
+                switch (factor.getStatus()) {
+                    case ZERO -> invalidFactorByIndex.merge(factor.getIndex(), factor,
+                        (previous, current) -> previous.getStatus() == LfSensitivityFactor.Status.ZERO ? previous : current);
+                    case SKIP -> invalidFactorByIndex.putIfAbsent(factor.getIndex(), factor);
+                    default -> {
+                        validFactorHolder.addFactor(factor);
+                        relevantFactorIndexes.add(factor.getIndex());
+                    }
+                }
+            }
+            validFactorHolderByNetwork.put(e.getKey(), validFactorHolder);
+        }
+
         Set<String> skippedVariables = new LinkedHashSet<>();
-        SensitivityFactorHolder<V, E> validFactorHolder = new SensitivityFactorHolder<>();
         Map<String, Integer> contingencyIndexById = contingencies.stream().collect(Collectors.toMap(
                 c -> c.getContingency().getId(),
                 PropagatedContingency::getIndex
         ));
-        for (var factor : factorHolder.getAllFactors()) {
+        for (var factor : invalidFactorByIndex.values()) {
+            if (relevantFactorIndexes.contains(factor.getIndex())) {
+                continue; // written by the component the factor is relevant to
+            }
             Optional<Double> sensitivityVariableToWrite = Optional.empty();
             if (factor.getStatus() == LfSensitivityFactor.Status.ZERO) {
-                // ZERO status is for factors where variable element is in the main connected component and reference element is not.
+                // ZERO status is for factors where variable element is in a simulated component and reference element is not.
                 // Therefore, the sensitivity is known to value 0, but the reference cannot be known and is set to NaN.
                 if (!filterSensitivityValue(0, factor.getVariableType(), factor.getFunctionType(), parameters)) {
                     sensitivityVariableToWrite = Optional.of(0.0);
                 }
-            } else if (factor.getStatus() == LfSensitivityFactor.Status.SKIP) {
+            } else {
                 sensitivityVariableToWrite = Optional.of(Double.NaN);
                 skippedVariables.add(factor.getVariableId());
-            } else {
-                validFactorHolder.addFactor(factor);
             }
-            sensitivityVariableToWrite.ifPresent(value -> writeSensitivityValue(value, factor, resultWriter, contingencyIndexById, operatorStrategiesByContingencyId));
+            sensitivityVariableToWrite.ifPresent(value -> writeSensitivityValue(value, factor, resultWriter, contingencyIndexById, operatorStrategiesByContingencyId,
+                    keepFactorsWithFunctionElement));
         }
         if (!skippedVariables.isEmpty() && LOGGER.isWarnEnabled()) {
             LOGGER.warn("Skipping all factors with variables: '{}', as they cannot be found in the network",
                     String.join(", ", skippedVariables));
         }
-        return validFactorHolder;
+        return validFactorHolderByNetwork;
     }
 
     private void writeSensitivityValue(Double value, LfSensitivityFactor<V, E> factor, SensitivityResultWriter resultWriter,
-                                       Map<String, Integer> contingencyIndexById, Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId) {
+                                       Map<String, Integer> contingencyIndexById, Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId,
+                                       boolean writePreventiveOperatorStrategies) {
         // directly write output for zero and invalid factors
+        ContingencyContextType contextType = factor.getContingencyContext().getContextType();
+        if (writePreventiveOperatorStrategies
+                && (contextType == ContingencyContextType.NONE || contextType == ContingencyContextType.ALL)
+                && parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.NONE) {
+            for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesByContingencyId.getOrDefault(null, Collections.emptyList())) {
+                resultWriter.writeSensitivityValue(factor.getIndex(), -1, operatorStrategy.index(), value, Double.NaN);
+            }
+        }
         if (factor.getContingencyContext().getContextType() == ContingencyContextType.NONE) {
             resultWriter.writeSensitivityValue(factor.getIndex(), -1, -1, value, Double.NaN);
         } else if (factor.getContingencyContext().getContextType() == ContingencyContextType.SPECIFIC &&

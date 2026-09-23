@@ -405,7 +405,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             // prepare contingencies for connectivity analysis and Woodbury engine
             // note that contingencies on branches connected only on one side are removed,
             // this is a difference with dc security analysis
-            cleanContingencies(lfNetwork, propagatedContingencies);
+            List<PropagatedContingency> cleanedContingencies = cleanContingencies(lfNetwork, propagatedContingencies);
 
             // compute the pre-contingency states
             double[] preContingencyStates = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, new DisabledNetwork(), reportNode);
@@ -439,7 +439,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                     securityAnalysisParameters.getModifiedMonitoredElementsParameters());
 
             // compute states with +1 -1 to model the contingencies and run connectivity analysis
-            ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(context, propagatedContingencies);
+            ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(context, cleanedContingencies);
 
             // the map is indexed by lf actions as different kind of actions can be given on the same branch
             Map<LfAction, List<ComputedElement>> actionElementsIndexByLfAction = ComputedElement.createActionElementsIndexByLfAction(lfActionById, context.getEquationSystem(),

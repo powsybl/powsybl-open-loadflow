@@ -21,7 +21,6 @@ import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.strategy.condition.*;
 import com.powsybl.contingency.violations.LimitViolation;
 import com.powsybl.contingency.violations.LimitViolationType;
-import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -63,6 +62,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+
+import static com.powsybl.openloadflow.network.impl.LfNetworkList.getNetworksToSimulate;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -282,21 +283,6 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 new LimitViolationsResult(preContingencyViolations),
                 mergedPreContingencyNetworkResult, preContingencyDistributedActivePower, mergedChangedPhaseShifters.stream().toList());
         return new SecurityAnalysisResult(mergedPrecontingencyResult, postContingencyResults, operatorStrategyResults);
-    }
-
-    static List<LfNetwork> getNetworksToSimulate(LfNetworkList networks, LoadFlowParameters.ComponentMode mode) {
-        return switch (mode) {
-            case MAIN_CONNECTED -> networks.getList().stream()
-                    .filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
-            case MAIN_SYNCHRONOUS -> networks.getList().stream().filter(n -> {
-                // Security analysis does not support LfNetwork with several synchronous networks. An earlier stage
-                // safeguard allows to assume there is only one synchronous network in each LfNetwork.
-                assert n.getSynchronousNetworks().size() == 1;
-                return n.getSynchronousNetworks().getFirst().getNumSC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID);
-            }).toList();
-            case ALL_CONNECTED -> networks.getList().stream()
-                    .filter(n -> n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
-        };
     }
 
     void mergeSecurityAnalysisResult(SecurityAnalysisResult resultToMerge, Map<String, PostContingencyResult> postContingencyResults,

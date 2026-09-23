@@ -17,6 +17,7 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.NetworkCache;
@@ -56,6 +57,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.powsybl.openloadflow.network.impl.LfNetworkList.getNetworksToSimulate;
 import static com.powsybl.openloadflow.network.impl.PropagatedContingency.cleanContingencies;
 import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
 
@@ -327,9 +329,13 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             calculateSensitivityValues(factors, newFactorStates, newFlowStates, contingency, operatorStrategy, resultWriter, disabledNetwork);
             // write contingency status
             if (contingency.hasNoImpact()) {
-                resultWriter.writeStateStatus(contingency.getIndex(), operatorStrategyIndex, SensitivityAnalysisResult.Status.NO_IMPACT);
+                resultWriter.writeStateStatus(contingency.getIndex(), operatorStrategyIndex,
+                        new SensitivityAnalysisResult.LoadFlowStatus(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, ""),
+                        lfNetwork.getNumCC(), lfNetwork.getSynchronousNetworks().getFirst().getNumSC());
             } else {
-                resultWriter.writeStateStatus(contingency.getIndex(), operatorStrategyIndex, SensitivityAnalysisResult.Status.SUCCESS);
+                resultWriter.writeStateStatus(contingency.getIndex(), operatorStrategyIndex,
+                        new SensitivityAnalysisResult.LoadFlowStatus(LoadFlowResult.ComponentResult.Status.CONVERGED, ""),
+                        lfNetwork.getNumCC(), lfNetwork.getSynchronousNetworks().getFirst().getNumSC());
             }
         } else {
             // if we have a contingency including the loss of a DC line or a generator or a load
@@ -361,13 +367,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                         rhsChangedAfterGlskRescaling = rescaleGlsk(factorGroups, impactedBuses);
                     }
                     // write contingency status
-                    resultWriter.writeStateStatus(contingency.getIndex(), operatorStrategyIndex, SensitivityAnalysisResult.Status.SUCCESS);
+                    resultWriter.writeStateStatus(contingency.getIndex(), operatorStrategyIndex,
+                            new SensitivityAnalysisResult.LoadFlowStatus(LoadFlowResult.ComponentResult.Status.CONVERGED, ""), 0, 0);
                 } else {
                     // write contingency status
-                    resultWriter.writeStateStatus(contingency.getIndex(), operatorStrategyIndex, SensitivityAnalysisResult.Status.NO_IMPACT);
+                    resultWriter.writeStateStatus(contingency.getIndex(), operatorStrategyIndex,
+                            new SensitivityAnalysisResult.LoadFlowStatus(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, ""), 0, 0);
                 }
             } else {
-                resultWriter.writeStateStatus(-1, operatorStrategyIndex, SensitivityAnalysisResult.Status.SUCCESS);
+                resultWriter.writeStateStatus(-1, operatorStrategyIndex,
+                        new SensitivityAnalysisResult.LoadFlowStatus(LoadFlowResult.ComponentResult.Status.CONVERGED, ""), 0, 0);
             }
 
             // we need to recompute the factor states because the rhs or the participating elements have changed
@@ -477,6 +486,25 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
+    private static void checkFactorsSupportedInDc(List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors) {
+        lfFactors.stream()
+                .filter(lfFactor -> lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
+                        && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
+                        && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_3
+                        || lfFactor.getVariableType() != SensitivityVariableType.INJECTION_ACTIVE_POWER
+                        && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE
+                        && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_1
+                        && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_2
+                        && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_3
+                        && lfFactor.getVariableType() != SensitivityVariableType.HVDC_LINE_ACTIVE_POWER)
+                .findFirst()
+                .ifPresent(ignored -> {
+                    throw new PowsyblException("Only variables of type TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, " +
+                            "TRANSFORMER_PHASE_3, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1, " +
+                            "BRANCH_ACTIVE_POWER_2 and BRANCH_ACTIVE_POWER_3 are yet supported in DC");
+                });
+    }
+
     private void warnOverridenParameter(String parameterName, String wantedValue, String usedValue) {
         LOGGER.warn("Load flow parameter {}={} is not handled in DC sensitivity analysis, using parameter value {} instead", parameterName, wantedValue, usedValue);
     }
@@ -579,9 +607,18 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setPlausibleActivePowerLimit(lfParametersExt.getPlausibleActivePowerLimit())
                 .setCountriesToBalance(lfParameters.getCountriesToBalance())
                 .setDistributedOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setComponentMode(lfParameters.getComponentMode())
                 .setAllowNonLinearShuntZeroSection(lfParametersExt.isAllowNonLinearShuntZeroSection());
 
         var dcLoadFlowParameters = createDcLoadFlowParameters(lfNetworkParameters, matrixFactory, lfParameters, lfParametersExt);
+
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
+        Map<String, Action> actionsById = Actions.indexById(actions);
+        Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId =
+                OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById, true);
+        Set<Action> neededActions = OperatorStrategies.getNeededActions(operatorStrategiesByContingencyId, actionsById);
+        Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
 
         if (lfParametersExt.isNetworkCacheEnabled()) {
             Set<String> topoActionIds = actions.stream()
@@ -609,25 +646,62 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     permanentContingencyBranchIds = lfNetworkList.getPermanentContingencyBranchIds();
                 }
             }
-            NetworkCache.DcSensiValue value = entry.getValues().getFirst();
-            LfNetwork lfNetwork = value.getNetwork();
-            DcLoadFlowContext loadFlowContext = value.getContext();
-            analyseNetwork(network, contingencies, variableSets, factorReader, resultWriter, sensiReportNode, lfNetwork,
-                    propagatedContingencies, actions, operatorStrategies, breakers, loadFlowContext, lfParameters, lfParametersExt,
-                    permanentContingencyBranchIds);
+            Map<LfNetwork, DcLoadFlowContext> loadFlowContextByNetwork = new LinkedHashMap<>();
+            entry.getValues().forEach(value -> loadFlowContextByNetwork.put(value.getNetwork(), value.getContext()));
+            List<LfNetwork> lfNetworksToSimulate = getNetworksToSimulate(new ArrayList<>(loadFlowContextByNetwork.keySet()), lfNetworkParameters.getComponentMode());
+            var validFactorHolderByNetwork = readFactorsAndWriteInvalidOnes(network, lfNetworksToSimulate, variableSetsById, factorReader, breakers,
+                    propagatedContingencies, operatorStrategiesByContingencyId, resultWriter, contingencies.size(), operatorStrategies.size(), actions.size());
+            for (var e : validFactorHolderByNetwork.entrySet()) {
+                analyseNetwork(network, e.getKey(), loadFlowContextByNetwork.get(e.getKey()), e.getValue(), propagatedContingencies,
+                        operatorStrategiesByContingencyId, neededActions, resultWriter, sensiReportNode, lfParameters, lfParametersExt,
+                        permanentContingencyBranchIds, stopwatch);
+            }
         } else {
             // create networks including all necessary switches
             // branches that reconnect small components are kept enabled and modeled as permanent contingencies in Woodbury
             try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig, lfNetworkParameters, sensiReportNode, true)) {
-                LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow(() -> new PowsyblException("Empty network"));
                 List<String> permanentContingencyBranchIds = lfNetworks.getPermanentContingencyBranchIds();
-                try (DcLoadFlowContext loadFlowContext = new DcLoadFlowContext(lfNetwork, dcLoadFlowParameters, false)) {
-                    analyseNetwork(network, contingencies, variableSets, factorReader, resultWriter, sensiReportNode, lfNetwork,
-                            propagatedContingencies, actions, operatorStrategies, breakers, loadFlowContext, lfParameters, lfParametersExt,
-                            permanentContingencyBranchIds);
+                // Multi-component support: run the analysis on every component selected by the configured ComponentMode.
+                // Factors are first read on every component so that the ones that are not relevant to any component are written once.
+                var validFactorHolderByNetwork = readFactorsAndWriteInvalidOnes(network, getNetworksToSimulate(lfNetworks, lfNetworkParameters.getComponentMode()),
+                        variableSetsById, factorReader, breakers, propagatedContingencies, operatorStrategiesByContingencyId, resultWriter,
+                        contingencies.size(), operatorStrategies.size(), actions.size());
+                for (var e : validFactorHolderByNetwork.entrySet()) {
+                    try (DcLoadFlowContext loadFlowContext = new DcLoadFlowContext(e.getKey(), dcLoadFlowParameters, false)) {
+                        analyseNetwork(network, e.getKey(), loadFlowContext, e.getValue(), propagatedContingencies,
+                                operatorStrategiesByContingencyId, neededActions, resultWriter, sensiReportNode, lfParameters, lfParametersExt,
+                                permanentContingencyBranchIds, stopwatch);
+                    }
                 }
             }
         }
+
+        stopwatch.stop();
+        LOGGER.info("DC sensitivity analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+    }
+
+    private Map<LfNetwork, SensitivityFactorHolder<DcVariableType, DcEquationType>> readFactorsAndWriteInvalidOnes(
+            Network network, List<LfNetwork> lfNetworks, Map<String, SensitivityVariableSet> variableSetsById,
+            SensitivityFactorReader factorReader, boolean breakers, List<PropagatedContingency> propagatedContingencies,
+            Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId, SensitivityResultWriter resultWriter,
+            int contingencyCount, int operatorStrategyCount, int actionCount) {
+        Map<LfNetwork, SensitivityFactorHolder<DcVariableType, DcEquationType>> allFactorHolderByNetwork = new LinkedHashMap<>();
+        for (LfNetwork lfNetwork : lfNetworks) {
+            SensitivityFactorHolder<DcVariableType, DcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork, breakers);
+            checkFactorsSupportedInDc(allFactorHolder.getAllFactors());
+            allFactorHolderByNetwork.put(lfNetwork, allFactorHolder);
+        }
+        int allLfFactorsCount = allFactorHolderByNetwork.values().stream().findFirst().map(h -> h.getAllFactors().size()).orElse(0);
+        LOGGER.info("Running DC sensitivity analysis with {} factors, {} contingencies, {} operator strategies and {} actions",
+                allLfFactorsCount, contingencyCount, operatorStrategyCount, actionCount);
+
+        // next we only work with valid factors
+        var validFactorHolderByNetwork = writeInvalidFactors(allFactorHolderByNetwork, resultWriter, propagatedContingencies, operatorStrategiesByContingencyId, parameters);
+        for (var e : validFactorHolderByNetwork.entrySet()) {
+            LOGGER.info("{}/{} factors are valid for component (numCC={}, numSC={})", e.getValue().getAllFactors().size(), allLfFactorsCount,
+                    e.getKey().getNumCC(), e.getKey().getSynchronousNetworks().getFirst().getNumSC());
+        }
+        return validFactorHolderByNetwork;
     }
 
     /**
@@ -677,49 +751,16 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         }
     }
 
-    private void analyseNetwork(Network network, List<Contingency> contingencies, List<SensitivityVariableSet> variableSets,
-            SensitivityFactorReader factorReader, SensitivityResultWriter resultWriter, ReportNode sensiReportNode,
-            LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, List<Action> actions,
-            List<OperatorStrategy> operatorStrategies, boolean breakers, DcLoadFlowContext loadFlowContext,
-            LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, List<String> permanentContingencyBranchIds) {
-        Stopwatch stopwatch = Stopwatch.createStarted();
+    private void analyseNetwork(Network network, LfNetwork lfNetwork, DcLoadFlowContext loadFlowContext,
+            SensitivityFactorHolder<DcVariableType, DcEquationType> validFactorHolder, List<PropagatedContingency> propagatedContingencies,
+            Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId, Set<Action> neededActions,
+            SensitivityResultWriter resultWriter, ReportNode sensiReportNode, LoadFlowParameters lfParameters,
+            OpenLoadFlowParameters lfParametersExt, List<String> permanentContingencyBranchIds, Stopwatch stopwatch) {
+        List<PropagatedContingency> cleanedContingencies = cleanContingencies(lfNetwork, propagatedContingencies);
 
-        cleanContingencies(lfNetwork, propagatedContingencies);
-
-        Map<String, Action> actionsById = Actions.indexById(actions);
-        Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId =
-                OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById, true);
-        Set<Action> neededActions = OperatorStrategies.getNeededActions(operatorStrategiesByContingencyId, actionsById);
         Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network); // only convert needed actions
 
-        Map<String, SensitivityVariableSet> variableSetsById = variableSets.stream().collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
-        SensitivityFactorHolder<DcVariableType, DcEquationType> allFactorHolder = readAndCheckFactors(network, variableSetsById, factorReader, lfNetwork, breakers);
-        List<LfSensitivityFactor<DcVariableType, DcEquationType>> allLfFactors = allFactorHolder.getAllFactors();
-
-        allLfFactors.stream()
-                .filter(lfFactor -> lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_1
-                            && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_2
-                            && lfFactor.getFunctionType() != SensitivityFunctionType.BRANCH_ACTIVE_POWER_3
-                        || lfFactor.getVariableType() != SensitivityVariableType.INJECTION_ACTIVE_POWER
-                            && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE
-                            && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_1
-                            && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_2
-                            && lfFactor.getVariableType() != SensitivityVariableType.TRANSFORMER_PHASE_3
-                            && lfFactor.getVariableType() != SensitivityVariableType.HVDC_LINE_ACTIVE_POWER)
-                .findFirst()
-                .ifPresent(ignored -> {
-                    throw new PowsyblException("Only variables of type TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, " +
-                        "TRANSFORMER_PHASE_3, INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1, " +
-                        "BRANCH_ACTIVE_POWER_2 and BRANCH_ACTIVE_POWER_3 are yet supported in DC");
-                });
-
-        LOGGER.info("Running DC sensitivity analysis with {} factors, {} contingencies, {} operator strategies and {} actions",
-                allLfFactors.size(), contingencies.size(), operatorStrategies.size(), actions.size());
-
-        // next we only work with valid factors
-        var validFactorHolder = writeInvalidFactors(allFactorHolder, resultWriter, propagatedContingencies, operatorStrategiesByContingencyId, parameters);
         var validLfFactors = validFactorHolder.getAllFactors();
-        LOGGER.info("{}/{} factors are valid", validLfFactors.size(), allLfFactors.size());
 
         // create jacobian matrix either using calculated voltages from pre-contingency network or nominal voltages
         VoltageInitializer voltageInitializer = lfParameters.getVoltageInitMode() == LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES
@@ -761,13 +802,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         // filter contingencies without factors
         List<PropagatedContingency> contingenciesWithFactors = new ArrayList<>();
-        propagatedContingencies.forEach(contingency -> {
+        cleanedContingencies.forEach(contingency -> {
             List<LfSensitivityFactor<DcVariableType, DcEquationType>> lfFactors = validFactorHolder.getFactorsForContingencies(
                     List.of(contingency.getContingency().getId()));
             if (!lfFactors.isEmpty()) {
                 contingenciesWithFactors.add(contingency);
             } else {
-                resultWriter.writeStateStatus(contingency.getIndex(), -1, SensitivityAnalysisResult.Status.SUCCESS);
+                resultWriter.writeStateStatus(contingency.getIndex(), -1,
+                        new SensitivityAnalysisResult.LoadFlowStatus(LoadFlowResult.ComponentResult.Status.CONVERGED, ""),
+                        lfNetwork.getNumCC(), lfNetwork.getSynchronousNetworks().getFirst().getNumSC());
             }
         });
 
@@ -783,6 +826,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // compute states with +1 -1 to model the actions in Woodbury engine
         // note that the number of columns in the matrix depends on the number of distinct branches affected by the action elements
         DenseMatrix actionsStates = ComputedElement.calculateElementsStates(loadFlowContext, actionElementsIndexByLfAction.values().stream().flatMap(Collection::stream).toList());
+
+        // Report the pre-contingency component status (folded from writeSynchronousComponentStatus).
+        resultWriter.writeStateStatus(-1, -1,
+                new SensitivityAnalysisResult.LoadFlowStatus(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, "DC linear update"),
+                lfNetwork.getNumCC(), lfNetwork.getSynchronousNetworks().getFirst().getNumSC());
 
         if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.ONLY_OPERATOR_STRATEGIES) {
             // calculate sensitivity values for pre-contingency network
@@ -886,9 +934,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 permanentContingencyBranchIds, permanentlyIsolatedBuses, stopwatch);
             LOGGER.info("Operator strategies sensitivity calculation done in {} ms", operatorStrategyStopwatch.elapsed(TimeUnit.MILLISECONDS));
         }
-
-        stopwatch.stop();
-        LOGGER.info("DC sensitivity analysis done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
     private List<ConnectivityBreakAnalysis.ConnectivityAnalysisResult> runOperatorStrategiesConnectivityAnalysis(

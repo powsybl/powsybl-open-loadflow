@@ -1426,6 +1426,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         network.getLine("l25").getTerminal1().disconnect();
         network.getLine("l25").getTerminal2().disconnect();
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS);
         // with contingency context all
         List<Contingency> contingencies = Collections.singletonList(new Contingency("l12", new BranchContingency("l12")));
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l46", "g1")); // all contingency context.

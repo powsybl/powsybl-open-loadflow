@@ -23,6 +23,7 @@ import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder
 import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -140,7 +141,8 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             }
 
             @Override
-            public void writeStateStatus(int contingencyIndex, int operatorStrategyIndex, SensitivityAnalysisResult.Status status) {
+            public void writeStateStatus(int contingencyIndex, int operatorStrategyIndex,
+                                         SensitivityAnalysisResult.LoadFlowStatus loadFlowStatus, int numCC, int numCS) {
                 statusCallCount.incrementAndGet();
             }
         };
@@ -152,7 +154,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 resultWriter,
                 runParameters);
 
-        assertEquals(0, statusCallCount.get()); // Not called for the case case
+        assertEquals(1, statusCallCount.get());
         assertEquals(factors.size(), valueCallCount.get());
 
         // now check call count with contingencies, and report
@@ -173,7 +175,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 resultWriter,
                 runParameters);
 
-        assertEquals(200, statusCallCount.get()); // 200 contingencies
+        assertEquals(202, statusCallCount.get()); // 200 contingencies
         assertEquals(402, valueCallCount.get()); // (base case + 200 contingences) * 2 factors = 402
 
         assertReportEquals("/sensiMtReport.txt", reportNode);
@@ -2223,14 +2225,16 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         olfParameters.setMaxNewtonRaphsonIterations(1);
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
                 .setParameters(sensiParameters);
-        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
-        assertEquals("Initial load flow of base situation ended with solver status MAX_ITERATION_REACHED", e.getCause().getMessage());
+        var result = sensiRunner.run(network, factors, runParameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED,
+                result.getStateStatuses().getFirst().getComponentsLoadFlowStatusList().getFirst().status().status());
 
         olfParameters.setMaxNewtonRaphsonIterations(10)
                 .setSlackBusPMaxMismatch(0.00001)
                 .setMaxOuterLoopIterations(1);
-        e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
-        assertEquals("Initial load flow of base situation ended with outer loop status UNSTABLE", e.getCause().getMessage());
+        result = sensiRunner.run(network, factors, runParameters);
+        assertEquals("OuterLoopStatus UNSTABLE",
+                result.getStateStatuses().getFirst().getComponentsLoadFlowStatusList().getFirst().status().statusText());
     }
 
     @Test

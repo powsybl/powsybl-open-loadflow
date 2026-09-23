@@ -651,6 +651,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
         Network network = HvdcNetworkFactory.createLccWithBiggerComponents();
 
         SensitivityAnalysisParameters sensiParameters = createParameters(dc, "vl1_0");
+        sensiParameters.getLoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS);
 
         List<SensitivityFactor> factors = List.of(createBranchFlowPerLinearGlsk("l56", "glsk"));
 

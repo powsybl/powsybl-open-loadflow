@@ -7,7 +7,9 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.iidm.network.ComponentConstants;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.NetworkVariantPool;
 import com.powsybl.openloadflow.network.LfNetwork;
 
@@ -174,5 +176,24 @@ public class LfNetworkList implements AutoCloseable {
 
     public List<String> getPermanentContingencyBranchIds() {
         return permanentContingencyBranchIds;
+    }
+
+    public static List<LfNetwork> getNetworksToSimulate(LfNetworkList networks, LoadFlowParameters.ComponentMode mode) {
+        return getNetworksToSimulate(networks.getList(), mode);
+    }
+
+    public static List<LfNetwork> getNetworksToSimulate(List<LfNetwork> networks, LoadFlowParameters.ComponentMode mode) {
+        return switch (mode) {
+            case MAIN_CONNECTED -> networks.stream()
+                    .filter(n -> n.getNumCC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+            case MAIN_SYNCHRONOUS -> networks.stream().filter(n -> {
+                // Security analysis does not support LfNetwork with several synchronous networks. An earlier stage
+                // safeguard allows to assume there is only one synchronous network in each LfNetwork.
+                assert n.getSynchronousNetworks().size() == 1;
+                return n.getSynchronousNetworks().getFirst().getNumSC() == ComponentConstants.MAIN_NUM && n.getValidity().equals(LfNetwork.Validity.VALID);
+            }).toList();
+            case ALL_CONNECTED -> networks.stream()
+                    .filter(n -> n.getValidity().equals(LfNetwork.Validity.VALID)).toList();
+        };
     }
 }
