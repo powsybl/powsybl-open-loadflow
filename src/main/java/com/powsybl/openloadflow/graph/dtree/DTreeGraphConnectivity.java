@@ -106,16 +106,7 @@ public class DTreeGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
 
     @Override
     public void startTemporaryChanges() {
-        DTNode<V, E> mainComponentNode;
-        boolean fictitious = false;
-        if (defaultMainComponentVertex == null) {
-            mainComponentNode = graph.getBiggestRoot();
-            fictitious = true;
-        } else {
-            mainComponentNode = graph.getNodeOrThrow(defaultMainComponentVertex);
-        }
-
-        modificationsStack.push(new Modifications<>(graph, mainComponentNode, fictitious, true));
+        modificationsStack.push(new Modifications<>(graph, defaultMainComponentVertex, true));
         graph.setCurrentModificationsContext(modificationsStack.peek());
     }
 
