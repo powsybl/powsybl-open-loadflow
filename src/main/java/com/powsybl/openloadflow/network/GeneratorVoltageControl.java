@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.ToDoubleFunction;
 
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
@@ -83,9 +84,10 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
     }
 
     /**
-     * Returns itself in case of local control, split into several local voltage controls in case of remote control.
+     * Returns itself in case of local control, split into several local voltage controls in case of remote control,
+     * each one getting the target voltage given by {@code localTargetV} for its controller bus.
      */
-    public List<GeneratorVoltageControl> toLocalVoltageControls() {
+    public List<GeneratorVoltageControl> toLocalVoltageControls(ToDoubleFunction<LfBus> localTargetV) {
         if (isLocalControl()) {
             return List.of(this);
         } else {
@@ -93,7 +95,7 @@ public class GeneratorVoltageControl extends VoltageControl<LfBus> {
             // create one (local) generator control per controller bus and remove this one
             controlledBus.setGeneratorVoltageControl(null);
             for (LfBus controllerBus : controllerElements) {
-                var generatorVoltageControl = new GeneratorVoltageControl(controllerBus, targetPriority, targetValue);
+                var generatorVoltageControl = new GeneratorVoltageControl(controllerBus, targetPriority, localTargetV.applyAsDouble(controllerBus));
                 generatorVoltageControl.addControllerElement(controllerBus);
                 generatorVoltageControls.add(generatorVoltageControl);
             }
