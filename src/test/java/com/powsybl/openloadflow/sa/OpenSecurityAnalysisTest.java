@@ -1577,6 +1577,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertSame(PostContingencyComputationStatus.CONVERGED, l1ContingencyResult.getStatus());
         assertEquals(100.3689, l1ContingencyResult.getNetworkResult().getBranchResult("PS1").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-100.1844, l1ContingencyResult.getNetworkResult().getBranchResult("PS1").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0, l1ContingencyResult.getChangedPhaseTapChangers().size());
+        ChangedPhaseTapChanger changedPhaseTapChanger = result.getPreContingencyResult().getChangedPhaseTapChangers().stream().findFirst().orElseThrow();
+        assertEquals("PS1", changedPhaseTapChanger.transformerId());
+        assertNull(changedPhaseTapChanger.side());
+        assertEquals(1, changedPhaseTapChanger.initialTap());
+        assertEquals(0, changedPhaseTapChanger.finalTap());
     }
 
     @Test
@@ -3020,6 +3026,14 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
         assertEquals(100.369, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("PS1").getP1(), LoadFlowAssert.DELTA_POWER);
         assertEquals(100.184, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("L2").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1, result.getPreContingencyResult().getChangedPhaseTapChangers().size());
+        ChangedPhaseTapChanger changedPhaseTapChanger = result.getPreContingencyResult().getChangedPhaseTapChangers().stream().findFirst().orElseThrow();
+        assertEquals("PS1", changedPhaseTapChanger.transformerId());
+        assertNull(changedPhaseTapChanger.side());
+        assertEquals(2, changedPhaseTapChanger.initialTap());
+        assertEquals(0, changedPhaseTapChanger.finalTap());
+        assertEmpty(result.getPostContingencyResults().get(0).getChangedPhaseTapChangers());
+
     }
 
     @ParameterizedTest
@@ -5338,5 +5352,45 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         parameters.getModifiedMonitoredElementsParameters().setPowerModificationThreshold(170); // MW-MVAr, this time should filter
         SecurityAnalysisResult resultFiltered2 = runSecurityAnalysis(network, contingencies, monitors, parameters);
         assertEmpty(resultFiltered2.getPostContingencyResults().getFirst().getNetworkResult().getThreeWindingsTransformerResults());
+    }
+
+    @Test
+    void testChangedPhaseShifterResults() {
+        Network network = PhaseControlFactory.createNetworkWithT2wt();
+        network.newLine().setId("L3")
+                .setConnectableBus1("B1")
+                .setBus1("B1")
+                .setConnectableBus2("B2")
+                .setBus2("B2")
+                .setR(4.0)
+                .setX(200.0)
+                .add();
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+        ps1.getPhaseTapChanger()
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setTargetDeadband(0)
+                .setRegulating(true)
+                .setTapPosition(0)
+                .setRegulationTerminal(ps1.getTerminal1())
+                .setRegulationValue(33);
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters().setPhaseShifterRegulationOn(true);
+        List<Contingency> contingencies = List.of(Contingency.line("L1"));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), loadFlowParameters);
+        // Checking pre-contingency changes
+        Collection<ChangedPhaseTapChanger> changedPhaseTapChangers = result.getPreContingencyResult().getChangedPhaseTapChangers();
+        assertEquals(1, changedPhaseTapChangers.size());
+        ChangedPhaseTapChanger changedPhaseTapChanger = changedPhaseTapChangers.stream().findFirst().orElseThrow();
+        assertEquals("PS1", changedPhaseTapChanger.transformerId());
+        assertNull(changedPhaseTapChanger.side());
+        assertEquals(0, changedPhaseTapChanger.initialTap());
+        assertEquals(1, changedPhaseTapChanger.finalTap());
+        // Checking post-contingency changes
+        changedPhaseTapChangers = result.getPostContingencyResults().getFirst().getChangedPhaseTapChangers();
+        assertEquals(1, changedPhaseTapChangers.size());
+        changedPhaseTapChanger = changedPhaseTapChangers.stream().findFirst().orElseThrow();
+        assertEquals("PS1", changedPhaseTapChanger.transformerId());
+        assertNull(changedPhaseTapChanger.side());
+        assertEquals(1, changedPhaseTapChanger.initialTap());
+        assertEquals(0, changedPhaseTapChanger.finalTap());
     }
 }

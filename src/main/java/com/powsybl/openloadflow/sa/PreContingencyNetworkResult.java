@@ -52,6 +52,17 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         update(LfBranch::isDisabled);
     }
 
+    @Override
+    protected void storeInitialPhaseTapChangerInfo() {
+        phaseTapChangerInfos = network.getBranches().stream()
+                .filter(b -> !b.isDisabled())
+                .filter(LfBranch::hasPhaseControllerCapability)
+                .map(b -> new PhaseTapChangerInfo(b,
+                        b.getPhaseTapChanger().orElseThrow().getTapPosition())
+                )
+                .toList();
+    }
+
     public void update(Predicate<LfBranch> isBranchDisabled) {
         clear();
         Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getNoneStateMonitor(), network);
@@ -59,6 +70,8 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         zeroImpedanceFlows.clear();
         zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getAllStateMonitor(), network);
         addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
+        storeInitialPhaseTapChangerInfo();
+        updateChangedPhaseTapChanger();
     }
 
     public BranchResult getBranchResult(String branchId) {

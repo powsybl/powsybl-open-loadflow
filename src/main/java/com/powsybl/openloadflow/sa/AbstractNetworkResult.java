@@ -10,20 +10,20 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfStarBus;
+import com.powsybl.openloadflow.network.impl.Transformers;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResult;
+import com.powsybl.security.results.ChangedPhaseTapChanger;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_1;
-import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_2;
-import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_3;
+import static com.powsybl.openloadflow.network.LfBranch.BranchType.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -42,10 +42,38 @@ public abstract class AbstractNetworkResult {
 
     protected final double dcPowerFactor;
 
+    protected List<PhaseTapChangerInfo> phaseTapChangerInfos = new ArrayList<>();
+
     static final List<LfBranch.BranchType> T3WT_BRANCH_TYPES = List.of(TRANSFO_3_LEG_1, TRANSFO_3_LEG_2, TRANSFO_3_LEG_3);
+
+    protected static class PhaseTapChangerInfo {
+
+        private final LfBranch ptcBranch;
+
+        private int currentTap;
+
+        public PhaseTapChangerInfo(LfBranch ptcBranch, int currentTap) {
+            this.ptcBranch = ptcBranch;
+            this.currentTap = currentTap;
+        }
+
+        public int getCurrentTap() {
+            return currentTap;
+        }
+
+        public void setCurrentTap(int currentTap) {
+            this.currentTap = currentTap;
+        }
+
+        public LfBranch getPtcBranch() {
+            return ptcBranch;
+        }
+    }
 
     public record StateMonitorIndexes(StateMonitorIndex monitorIndex, StateMonitorIndex zeroImpedanceMonitorIndex) {
     }
+
+    protected final Map<LfBranch, ChangedPhaseTapChanger> changedPhaseTapChangers = new HashMap<>();
 
     protected AbstractNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
         this.network = Objects.requireNonNull(network);
@@ -92,6 +120,20 @@ public abstract class AbstractNetworkResult {
 
     public abstract List<BranchResult> getBranchResults();
 
+    protected abstract void storeInitialPhaseTapChangerInfo();
+
+    protected void updateChangedPhaseTapChanger() {
+        for (PhaseTapChangerInfo ptcInfo : phaseTapChangerInfos) {
+            LfBranch b = ptcInfo.getPtcBranch();
+            int newTapPosition = Transformers.findTapPosition(b.getPhaseTapChanger().orElseThrow(),
+                    Math.toDegrees(b.getPiModel().getA1()));
+            if (ptcInfo.getCurrentTap() != newTapPosition) {
+                changedPhaseTapChangers.put(b, new ChangedPhaseTapChanger(b.getMainOriginalId(), b.getOriginalSide().orElse(null), ptcInfo.getCurrentTap(), newTapPosition));
+                ptcInfo.setCurrentTap(newTapPosition);
+            }
+        }
+    }
+
     public abstract void update();
 
     private boolean isATransfo3WBranch(LfBranch lfBranch) {
@@ -128,5 +170,9 @@ public abstract class AbstractNetworkResult {
             }
         }
         return zeroImpedanceFlows;
+    }
+
+    public Map<LfBranch, ChangedPhaseTapChanger> getChangedPhaseTapChangers() {
+        return changedPhaseTapChangers;
     }
 }
