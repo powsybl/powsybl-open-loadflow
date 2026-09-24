@@ -37,7 +37,7 @@ import com.powsybl.security.LimitViolationsResult;
 import com.powsybl.security.PostContingencyComputationStatus;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisResult;
-import com.powsybl.security.limitreduction.LimitReduction;
+import com.powsybl.security.limitscaling.LimitScaling;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.*;
@@ -59,7 +59,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
     private record WoodburyContext(DcLoadFlowContext dcLoadFlowContext, Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId, Map<String, LfAction> lfActionById,
                                    boolean createResultExtension, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
-                                   List<LimitReduction> limitReductions, SecurityAnalysisParameters.ModifiedMonitoredElementsParameters modifiedMonitoredElementsParameters) {
+                                   List<LimitScaling> limitScalings, SecurityAnalysisParameters.ModifiedMonitoredElementsParameters modifiedMonitoredElementsParameters) {
     }
 
     private record ToFastDcResults(Function<ConnectivityAnalysisResult, double[]> toPostContingencyStates,
@@ -209,7 +209,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         postContingencyNetworkResult.update(isBranchDisabledDueToContingency);
 
         // detect violations
-        var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, woodburyContext.limitReductions, woodburyContext.violationsParameters);
+        var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, woodburyContext.limitScalings, woodburyContext.violationsParameters);
         postContingencyLimitViolationManager.detectViolations(lfNetwork, isBranchDisabledDueToContingency);
 
         // connectivity result due to the contingency
@@ -227,7 +227,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 postContingencyNetworkResult.getBusResults(),
                 postContingencyNetworkResult.getThreeWindingsTransformerResults()),
                 connectivityResult,
-                Double.NaN  // TODO: report distributed active power in Fast DC SA
+                Double.NaN,  // TODO: report distributed active power in Fast DC SA
+                Collections.emptyList()
         );
     }
 
@@ -263,7 +264,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
         // detect violations
         var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager,
-                woodburyContext.limitReductions, woodburyContext.violationsParameters);
+                woodburyContext.limitScalings, woodburyContext.violationsParameters);
         postActionsViolationManager.detectViolations(lfNetwork, isBranchDisabledDueToContingency);
 
         return new OperatorStrategyResult(operatorStrategy,
@@ -383,7 +384,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
     @Override
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, DcLoadFlowParameters dcParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
-                                                    List<Action> actions, List<LimitReduction> limitReductions, ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution) {
+                                                    List<Action> actions, List<LimitScaling> limitScalings, ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution) {
         // DC security analysis does not support AC-DC networks.
         // Therefore, we can also assume that lfNetwork contains only one synchronous network
 
@@ -431,10 +432,10 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             preContingencyNetworkResult.update();
 
             // detect violations
-            var preContingencyLimitViolationManager = new LimitViolationManager(limitReductions);
+            var preContingencyLimitViolationManager = new LimitViolationManager(limitScalings);
             preContingencyLimitViolationManager.detectViolations(lfNetwork);
             WoodburyContext woodburyContext = new WoodburyContext(context, operatorStrategiesByContingencyId, lfActionById, createResultExtension,
-                    securityAnalysisParameters.getIncreasedViolationsParameters(), limitReductions,
+                    securityAnalysisParameters.getIncreasedViolationsParameters(), limitScalings,
                     securityAnalysisParameters.getModifiedMonitoredElementsParameters());
 
             // compute states with +1 -1 to model the contingencies and run connectivity analysis
