@@ -266,6 +266,29 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
             runParameters.getReportNode()), runParameters.getComputationManager().getExecutor());
     }
 
+    /**
+     * Reverse-mode (adjoint) sensitivity, AC only: given cotangents over the monitored functions, returns
+     * dL/dvariable for each declared lever without materialising the sensitivity matrix. Reuses the AC load flow
+     * retained in the network cache, so a load flow with {@code networkCacheEnabled} must have run on
+     * {@code network} first. See {@link AcSensitivityAnalysis#runAdjoint}.
+     */
+    public Map<AcSensitivityAnalysis.VariableRef, Double> runAdjoint(Network network,
+                                          String workingVariantId,
+                                          Map<AcSensitivityAnalysis.FunctionRef, Double> cotangentsByFunction,
+                                          List<AcSensitivityAnalysis.AdjointVariable> variables,
+                                          List<SensitivityVariableSet> variableSets,
+                                          SensitivityAnalysisParameters sensitivityAnalysisParameters) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(cotangentsByFunction);
+        Objects.requireNonNull(variables);
+        Objects.requireNonNull(sensitivityAnalysisParameters);
+        if (sensitivityAnalysisParameters.getLoadFlowParameters().isDc()) {
+            throw new PowsyblException("Adjoint (VJP) sensitivity is only supported in AC");
+        }
+        AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(matrixFactory, connectivityFactory, sensitivityAnalysisParameters);
+        return analysis.runAdjoint(network, workingVariantId, variableSets, cotangentsByFunction, variables);
+    }
+
     public record ReplayResult<T extends SensitivityResultWriter>(T resultWriter, List<SensitivityFactor> factors, List<Contingency> contingencies) {
     }
 
