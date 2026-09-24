@@ -489,6 +489,21 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     rhs.add(rows[k], column, values[k]);
                 }
             }
+
+            @Override
+            public boolean equals(Object o) {
+                return o instanceof Entries other && Arrays.equals(rows, other.rows) && Arrays.equals(values, other.values);
+            }
+
+            @Override
+            public int hashCode() {
+                return 31 * Arrays.hashCode(rows) + Arrays.hashCode(values);
+            }
+
+            @Override
+            public String toString() {
+                return "Entries(rows=" + Arrays.toString(rows) + ", values=" + Arrays.toString(values) + ")";
+            }
         }
     }
 

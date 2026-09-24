@@ -307,33 +307,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         }
         describeSvcPilotFactorsRhs(factorGroups, context).forEach((col, column) -> parameterRhs[col] = column);
 
-        // xBar = sum over the monitored functions of yBar * df/dx, each function scattered exactly once
-        double[] xBar = new double[equationCount];
-        Set<Pair<SensitivityFunctionType, String>> seenFunctions = new HashSet<>();
-        for (var e : cotangents.entrySet()) {
-            double yBar = e.getValue();
-            var factor = e.getKey();
-            if (!seenFunctions.add(Pair.of(factor.getFunctionType(), factor.getFunctionId()))) {
-                continue;
-            }
-            Derivable<AcVariableType> functionTerm = factor.getFunctionEquationTerm();
-            // same guard as the forward calculateSensitivityValues
-            if (!functionTerm.isActive()) {
-                throw new PowsyblException("runAdjoint: the equation term of function " + factor.getFunctionType()
-                        + " on '" + factor.getFunctionId() + "' is inactive, so its cotangent cannot be propagated");
-            }
-            // function base applied here and variable base applied on thetaBar: together the forward unscaleSensitivity
-            double scale = yBar * getFunctionBaseValue(factor);
-            for (Variable<AcVariableType> variable : functionTerm.getVariables()) {
-                int row = variable.getRow();
-                if (row >= 0) {
-                    xBar[row] += scale * functionTerm.der(variable);
-                }
-            }
-        }
-
         // the stored matrix is the transposed Jacobian, so solve() is the adjoint solve
-        double[] lambda = xBar; // solved in place
+        double[] lambda = computeStateCotangent(equationCount, cotangents); // solved in place
         context.getJacobianMatrix().solve(lambda);
 
         // thetaBar = lambda . rhs per variable group, plus the direct df/dp term of branch parameters. The rhs
@@ -351,6 +326,37 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             thetaBar[col] = thetaG / getVariableBaseValue(group.getFirstFactor());
         }
         return thetaBar;
+    }
+
+    /**
+     * xBar = sum over the monitored functions of yBar * df/dx, each function scattered exactly once even when
+     * several factors share it.
+     */
+    private static double[] computeStateCotangent(int equationCount,
+                                                  Map<LfSensitivityFactor<AcVariableType, AcEquationType>, Double> cotangents) {
+        double[] xBar = new double[equationCount];
+        Set<Pair<SensitivityFunctionType, String>> seenFunctions = new HashSet<>();
+        for (var e : cotangents.entrySet()) {
+            var factor = e.getKey();
+            if (!seenFunctions.add(Pair.of(factor.getFunctionType(), factor.getFunctionId()))) {
+                continue;
+            }
+            Derivable<AcVariableType> functionTerm = factor.getFunctionEquationTerm();
+            // same guard as the forward calculateSensitivityValues
+            if (!functionTerm.isActive()) {
+                throw new PowsyblException("runAdjoint: the equation term of function " + factor.getFunctionType()
+                        + " on '" + factor.getFunctionId() + "' is inactive, so its cotangent cannot be propagated");
+            }
+            // function base applied here and variable base applied on thetaBar: together the forward unscaleSensitivity
+            double scale = e.getValue() * getFunctionBaseValue(factor);
+            for (Variable<AcVariableType> variable : functionTerm.getVariables()) {
+                int row = variable.getRow();
+                if (row >= 0) {
+                    xBar[row] += scale * functionTerm.der(variable);
+                }
+            }
+        }
+        return xBar;
     }
 
     /**

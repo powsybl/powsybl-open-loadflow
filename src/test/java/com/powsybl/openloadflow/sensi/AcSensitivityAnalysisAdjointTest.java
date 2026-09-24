@@ -266,6 +266,11 @@ class AcSensitivityAnalysisAdjointTest {
         // every monitored bus is declared with weight 0; the loop re-weights one of them to 1 at a time
         Map<AcSensitivityAnalysis.FunctionRef, Double> declaredBuses =
                 declared(List.of(SensitivityFunctionType.BUS_VOLTAGE), List.of(monitored));
+        // The outer loop only brings the pilot within its own tolerance of the target, so dividing by the target
+        // step would carry that residual into the FD. In closed loop the pilot voltage IS the target, so the
+        // achieved pilot voltage change measures the same slope without it.
+        double dPilotKv = busVoltage(nAfter, pilot) - busVoltage(nBefore, pilot);
+        assertEquals(2 * dV, dPilotKv, 5e-3, "the pilot must track its target in both perturbed load flows");
         double pilotTheta = 0;
         for (String f0 : monitored) {
             // ȳ = e_{f0} -> θ̄[zone] = dV_f0 / dV_pilotTarget (closed loop), raw per-unit
@@ -277,8 +282,8 @@ class AcSensitivityAnalysisAdjointTest {
             assertEquals(sKv, theta, 1e-12 * Math.abs(sKv) + 1e-13,
                     "runAdjoint vs forward closed-loop S for " + f0);
 
-            double fdKv = (busVoltage(nAfter, f0) - busVoltage(nBefore, f0)) / (2 * dV);
-            assertEquals(fdKv, theta, 1e-4 * (Math.abs(fdKv) + 1e-2),   // measured FD residual max ~1.6e-5
+            double fdKv = (busVoltage(nAfter, f0) - busVoltage(nBefore, f0)) / dPilotKv;
+            assertEquals(fdKv, theta, 1e-4 * (Math.abs(fdKv) + 1e-2),
                     "runAdjoint vs re-solve FD for " + f0);
 
             if (f0.equals(pilot)) {
@@ -933,8 +938,6 @@ class AcSensitivityAnalysisAdjointTest {
         LoadFlowParameters lfp = cacheEnabledParameters();
         assertTrue(LoadFlow.find("OpenLoadFlow").run(network, lfp).isFullyConverged());
 
-        SensitivityFunctionType ft = SensitivityFunctionType.BRANCH_ACTIVE_POWER_1;
-        List<String> functions = List.of("L1-2-1", "L2-3-1");
         // >1 variable per set, so a guarantee loop that covers only the first is caught; and the shunt set
         // is never a monitored function, so its variables can only be grouped by that loop.
         List<String> lines = List.of("L1-5-1", "L3-4-1", "L4-5-1");
@@ -1064,8 +1067,6 @@ class AcSensitivityAnalysisAdjointTest {
         LoadFlowParameters lfp = cacheEnabledParameters();
         assertTrue(LoadFlow.find("OpenLoadFlow").run(network, lfp).isFullyConverged());
 
-        SensitivityFunctionType ft = SensitivityFunctionType.BRANCH_ACTIVE_POWER_1;
-        List<String> functions = List.of("L1-2-1", "L2-3-1");
         String line = "L2-3-1"; // monitored too, so the self-pair / direct term collides as well
         Map<AcSensitivityAnalysis.FunctionRef, Double> cot = Map.of(powerKey("L1-2-1"), 0.75, powerKey("L2-3-1"), -1.5);
 
