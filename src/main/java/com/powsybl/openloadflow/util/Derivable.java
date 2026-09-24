@@ -24,11 +24,7 @@ public interface Derivable<V extends Enum<V> & Quantity> extends Evaluable {
 
     boolean isActive();
 
-    /**
-     * The variables this quantity depends on: the domain of {@link #der(Variable)}. Together they let a caller
-     * scatter the whole gradient (for instance into an adjoint right-hand side) without knowing whether the
-     * quantity is a single equation term or a combination of terms.
-     */
+    /** The variables this quantity depends on: the domain of {@link #der(Variable)}. */
     List<Variable<V>> getVariables();
 
 }

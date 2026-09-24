@@ -37,9 +37,8 @@ public class InjectionDerivable<V extends Enum<V> & Quantity> implements Derivab
     public double der(Variable<V> variable) {
         // The variable part of the equation is   injectionPart+branchPart
         // Thus Variable injectionPart = - branchPart
-        // And the derivative of the injection is the opposite of the derivative of the branch terms.
-        // Only the terms that depend on the variable contribute (a branch term throws on a variable it does
-        // not carry, and its derivative there is zero anyway).
+        // And the derivative of the injection is the opposite of the derivative of the branch terms
+        // (only the terms depending on the variable are asked: a term throws on a variable it does not carry)
         return -getBranchTermStream()
                 .filter(t -> t.getVariables().contains(variable))
                 .mapToDouble(t -> t.der(variable))

@@ -438,28 +438,23 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
     }
 
     /**
-     * The {@code ∂F/∂p} column of one factor group, as its NON-ZEROS.
-     *
-     * <p>Most sensitivity variables move exactly one residual row: a bus target voltage and a transformer
-     * phase are the target equation's own row, a shunt susceptance and a reactive injection are the bus's
-     * reactive row. Branch parameters move four; only an active-power injection under distributed slack, and
-     * a GLSK variable set, are genuinely dense. Describing the column instead of writing it into a dense
-     * matrix lets the adjoint contract it in {@code O(nnz)} rather than scanning every equation row per
-     * group, and lets the forward keep materialising the dense matrix it solves against — from the SAME
-     * description, so the two directions cannot disagree about what a variable type means.</p>
+     * The dF/dp column of one factor group, stored as its non-zeros. Most variable types touch a single equation
+     * row; only an active-power injection under distributed slack and a variable set are dense. The forward path
+     * writes the column into the dense RHS it solves against, the adjoint contracts it with lambda, both from the
+     * same description.
      */
     protected sealed interface RhsColumn {
 
         /** The column with no non-zeros: an inactive target equation, or a group filled elsewhere. */
         RhsColumn EMPTY = new Entries(new int[0], new double[0]);
 
-        /** {@code Σ_row column[row] · lambda[row]}. */
+        /** Dot product with {@code lambda}, indexed by equation column. */
         double dot(double[] lambda);
 
         /** Accumulate this column into {@code rhs} at {@code column}. */
         void writeInto(Matrix rhs, int column);
 
-        /** A scaled unit vector — the common case, carried as two primitives. */
+        /** A scaled unit vector, the common case. */
         record OneHot(int row, double scale) implements RhsColumn {
 
             @Override
@@ -474,9 +469,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         /**
-         * An arbitrary set of non-zeros. Rows may REPEAT and are then summed, which is not an edge case: an
-         * active-power injection adds its own +1 on top of the slack participation already spread over every
-         * bus, its own included. Both operations below are additive, so no merge is needed.
+         * An arbitrary set of non-zeros. Rows may repeat and are then summed: an active-power injection adds its
+         * own +1 on top of the slack participation spread over every bus, its own included.
          */
         record Entries(int[] rows, double[] values) implements RhsColumn {
 
@@ -498,10 +492,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
     }
 
-    /**
-     * Accumulates the non-zeros of one {@link RhsColumn}. A single entry builds a {@link RhsColumn.OneHot},
-     * so the one-hot case is classified by construction rather than detected afterwards.
-     */
+    /** Accumulates the non-zeros of one {@link RhsColumn}; a single entry builds a {@link RhsColumn.OneHot}. */
     protected static final class RhsColumnBuilder {
 
         private int[] rows;
@@ -509,10 +500,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         private int size;
 
         /**
-         * @param expectedSize the number of non-zeros the caller is about to add. Worth passing: growing by
-         *                     doubling and copying at the end costs about three times the final arrays, which
-         *                     is invisible for a one-hot column and very much not for an injection spread
-         *                     over every load bus of a large network.
+         * @param expectedSize presizing hint: the number of non-zeros about to be added.
          */
         RhsColumnBuilder(int expectedSize) {
             rows = new int[Math.max(1, expectedSize)];
@@ -533,7 +521,6 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             return switch (size) {
                 case 0 -> RhsColumn.EMPTY;
                 case 1 -> new RhsColumn.OneHot(rows[0], values[0]);
-                // Hand the arrays over as they are when the hint was exact, which is the whole point of it.
                 default -> new RhsColumn.Entries(
                         size == rows.length ? rows : Arrays.copyOf(rows, size),
                         size == values.length ? values : Arrays.copyOf(values, size));
@@ -546,10 +533,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         List<LfSensitivityFactor<V, E>> getFactors();
 
         /**
-         * Any factor of this group, as its representative. Every factor of a group shares the group's
-         * variable, so for anything that depends on the VARIABLE — its element, its per-unit base — they
-         * are interchangeable. Never null: {@code createFactorGroups} creates a group and adds its first
-         * factor in one step, so a group cannot exist empty.
+         * Any factor of this group; all share the group's variable. Never null, a group is created with its
+         * first factor.
          */
         LfSensitivityFactor<V, E> getFirstFactor();
 
@@ -607,9 +592,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             factors.add(factor);
         }
 
-        // The row an injection lands on is a RUNTIME fact, not a static one — the slack bus contributes
-        // nothing, and an inactive equation has no row at all — so the description is built at the same
-        // moment the write used to happen, not precomputed from the variable type alone.
+        // the slack bus contributes nothing and an inactive equation has no column
         protected void addBusInjection(RhsColumnBuilder builder, LfBus lfBus, double injection) {
             Equation<V, E> p = (Equation<V, E>) lfBus.getP();
             if (lfBus.isSlack() || !p.isActive()) {
@@ -651,9 +634,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
             RhsColumnBuilder builder = new RhsColumnBuilder(expectedNonZeros(participationByBus));
             switch (variableType) {
                 case TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3:
-                    // An INACTIVE target equation has no column, and the variable is not differentiable in
-                    // this state: the empty column is the honest answer, and the caller is expected to know
-                    // that a zero here can mean "not asked" as well as "no authority".
+                    // an inactive target equation has no column: empty column
                     if (variableEquation.isActive()) {
                         builder.add(variableEquation.getColumn(), Math.toRadians(1d));
                     }
@@ -670,9 +651,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                     addBusReactiveInjection(builder, (LfBus) variableElement, 1d);
                     break;
                 case SVC_PILOT_POINT_TARGET_VOLTAGE:
-                    // Empty here: this group's column is produced at the AC-orchestration level
-                    // (AcSensitivityAnalysis.describeSvcPilotFactorsRhs) once the Jacobian is factored and the
-                    // SVC coordination weights can be computed.
+                    // this group's column is produced by AcSensitivityAnalysis.describeSvcPilotFactorsRhs once the
+                    // Jacobian is factored and the SVC coordination weights can be computed
                     break;
                 case BUS_TARGET_VOLTAGE:
                     if (variableEquation.isActive()) {
@@ -791,13 +771,8 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
 
         /**
-         * How many non-zeros this variable type is about to write. An active-power injection under distributed
-         * slack reaches every participating bus; a branch parameter reaches the P and Q rows of both its
-         * buses; everything else is a single row.
-         *
-         * <p>This repeats the type dispatch of {@link #describeRhs}, so the two can drift — harmlessly: the
-         * number is only a presizing hint, and a wrong one costs {@link RhsColumnBuilder} a resize, never a
-         * wrong column. A type added there and forgotten here loses a little speed and nothing else.</p>
+         * Presizing hint for {@link RhsColumnBuilder}: the number of non-zeros {@link #describeRhs} is about to
+         * write. A wrong value only costs a resize.
          */
         private int expectedNonZeros(Map<LfBus, Double> participationByBus) {
             return switch (variableType) {

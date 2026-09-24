@@ -267,18 +267,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     }
 
     /**
-     * Reverse-mode (adjoint / VJP) sensitivity — the dual of {@link #run}: given output cotangents
-     * {@code ȳ} over the declared functions, returns {@code θ̄ = Sᵀ·ȳ} keyed by variable, WITHOUT
-     * materialising the sensitivity matrix {@code S}. AC only. Reuses the AC load flow retained in the
-     * network cache ({@code networkCacheEnabled}): a plain cached {@code run_ac} must have run on
+     * Reverse-mode (adjoint) sensitivity, AC only: given cotangents over the monitored functions, returns
+     * dL/dvariable for each declared lever without materialising the sensitivity matrix. Reuses the AC load flow
+     * retained in the network cache, so a load flow with {@code networkCacheEnabled} must have run on
      * {@code network} first. See {@link AcSensitivityAnalysis#runAdjoint}.
-     *
-     * @param cotangentsByFunction dL/dfunction per monitored function — the declaration of what is monitored,
-     *                             replacing the SPI {@code List<SensitivityFactor>}.
-     * @param variables            the levers to differentiate against.
-     * @return dL/dvariable, keyed by {@link AcSensitivityAnalysis.VariableRef} — by the
-     *         (variableType, variableId) PAIR, since one element may be declared under several variable
-     *         types in the same call and each is its own lever with its own gradient.
      */
     public Map<AcSensitivityAnalysis.VariableRef, Double> runAdjoint(Network network,
                                           String workingVariantId,

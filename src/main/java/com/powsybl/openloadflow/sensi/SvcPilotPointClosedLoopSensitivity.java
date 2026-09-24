@@ -54,10 +54,8 @@ public final class SvcPilotPointClosedLoopSensitivity {
      * Compute the controlled-bus weights {@code w} for a unit perturbation of the queried zone's pilot voltage
      * target. Returns a map keyed by controlled bus to its weight (in pu V per pu V).
      *
-     * <p>Convenience wrapper: builds and factorizes the coordination once for this single query. When several
-     * pilots are queried at the same converged state (e.g. many SVC zones in one sensitivity/adjoint call),
-     * build a {@link Coordination} once and reuse it via {@link Coordination#weightsForPilot} — the matrix
-     * {@code B} is pilot-independent, so a single factorization serves every zone.
+     * <p>Builds and factorizes the coordination for this single query. To query several pilots at the same
+     * converged state, build a {@link Coordination} once and call {@link Coordination#weightsForPilot}.</p>
      */
     public static Map<LfBus, Double> computeControlledBusWeights(LfBus queriedPilotBus, AcLoadFlowContext context) {
         boolean activePilot = context.getNetwork().getSecondaryVoltageControls().stream()
@@ -77,11 +75,9 @@ public final class SvcPilotPointClosedLoopSensitivity {
     }
 
     /**
-     * Build and LU-factorize the all-zones coordination matrix {@code B = A·J_K^T} (with each zone's last row
-     * replaced by its pilot-voltage constraint) <b>once</b>. {@code B} is identical for every queried pilot —
-     * only the right-hand side (a unit at the queried zone's last-row position) differs — so a single
-     * factorization serves all zones, avoiding one full assembly + LU per pilot. Returns {@code null} when there
-     * is no active SVC zone. The caller owns the returned {@link Coordination} and must close it.
+     * Builds and LU-factorizes the all-zones coordination matrix {@code B = A.J_K^T}, each zone's last row
+     * replaced by its pilot-voltage constraint. {@code B} is pilot-independent, so one factorization serves every
+     * queried pilot. Returns {@code null} when there is no active SVC zone. The caller must close the result.
      */
     public static Coordination buildCoordination(AcLoadFlowContext context) {
         LfNetwork lfNetwork = context.getNetwork();
