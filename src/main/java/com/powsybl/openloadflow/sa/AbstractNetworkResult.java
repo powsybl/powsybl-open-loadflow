@@ -7,8 +7,6 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.iidm.network.PhaseTapChanger;
-import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfStarBus;
@@ -20,7 +18,6 @@ import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResult;
 import com.powsybl.security.results.ChangedPhaseTapChanger;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -51,22 +48,13 @@ public abstract class AbstractNetworkResult {
 
     protected static class PhaseTapChangerInfo {
 
-        private final PhaseTapChanger phaseTapChanger;
+        private final LfBranch ptcBranch;
 
         private int currentTap;
 
-        private final String transformerId;
-
-        private final ThreeSides side;
-
-        private PiModel piModel;
-
-        public PhaseTapChangerInfo(PhaseTapChanger phaseTapChanger, String transformerId, ThreeSides side, PiModel piModel, int currentTap) {
-            this.phaseTapChanger = phaseTapChanger;
-            this.side = side;
+        public PhaseTapChangerInfo(LfBranch ptcBranch, int currentTap) {
+            this.ptcBranch = ptcBranch;
             this.currentTap = currentTap;
-            this.transformerId = transformerId;
-            this.piModel = piModel;
         }
 
         public int getCurrentTap() {
@@ -77,31 +65,15 @@ public abstract class AbstractNetworkResult {
             this.currentTap = currentTap;
         }
 
-        public PhaseTapChanger getPhaseTapChanger() {
-            return phaseTapChanger;
-        }
-
-        public PiModel getPiModel() {
-            return piModel;
-        }
-
-        public void setPiModel(PiModel piModel) {
-            this.piModel = piModel;
-        }
-
-        public String getTransformerId() {
-            return transformerId;
-        }
-
-        public Optional<ThreeSides> getSide() {
-            return Optional.ofNullable(side);
+        public LfBranch getPtcBranch() {
+            return ptcBranch;
         }
     }
 
     public record StateMonitorIndexes(StateMonitorIndex monitorIndex, StateMonitorIndex zeroImpedanceMonitorIndex) {
     }
 
-    protected final Map<Pair<String, Optional<ThreeSides>>, ChangedPhaseTapChanger> changedPhaseTapChangers = new HashMap<>();
+    protected final Map<LfBranch, ChangedPhaseTapChanger> changedPhaseTapChangers = new HashMap<>();
 
     protected AbstractNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
         this.network = Objects.requireNonNull(network);
@@ -152,10 +124,11 @@ public abstract class AbstractNetworkResult {
 
     protected void updateChangedPhaseTapChanger() {
         for (PhaseTapChangerInfo ptcInfo : phaseTapChangerInfos) {
-            int newTapPosition = Transformers.findTapPosition(ptcInfo.getPhaseTapChanger(), Math.toDegrees(ptcInfo.getPiModel().getA1()));
+            LfBranch b = ptcInfo.getPtcBranch();
+            int newTapPosition = Transformers.findTapPosition(b.getPhaseTapChanger().orElseThrow(),
+                    Math.toDegrees(b.getPiModel().getA1()));
             if (ptcInfo.getCurrentTap() != newTapPosition) {
-                changedPhaseTapChangers.put(Pair.of(ptcInfo.getTransformerId(), ptcInfo.getSide()),
-                        new ChangedPhaseTapChanger(ptcInfo.getTransformerId(), ptcInfo.getSide().orElse(null), ptcInfo.getCurrentTap(), newTapPosition));
+                changedPhaseTapChangers.put(b, new ChangedPhaseTapChanger(b.getMainOriginalId(), b.getOriginalSide().orElse(null), ptcInfo.getCurrentTap(), newTapPosition));
                 ptcInfo.setCurrentTap(newTapPosition);
             }
         }
@@ -199,11 +172,7 @@ public abstract class AbstractNetworkResult {
         return zeroImpedanceFlows;
     }
 
-    private Optional<PhaseTapChanger> extractPhaseTapChanger(LfBranch branch) {
-        return branch.getPhaseTapChanger();
-    }
-
-    public Map<Pair<String, Optional<ThreeSides>>, ChangedPhaseTapChanger> getChangedPhaseTapChangers() {
+    public Map<LfBranch, ChangedPhaseTapChanger> getChangedPhaseTapChangers() {
         return changedPhaseTapChangers;
     }
 }

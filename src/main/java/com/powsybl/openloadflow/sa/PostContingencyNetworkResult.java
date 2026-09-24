@@ -18,7 +18,6 @@ import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResult;
 import com.powsybl.security.results.ChangedPhaseTapChanger;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -148,12 +147,9 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
                 .filter(LfBranch::hasPhaseControllerCapability)
                 .map(b -> {
                     // Finding if phase tap has been changed in previous pre contingency state
-                    ChangedPhaseTapChanger changedPhaseTapChanger = preContingencyChangedTaps.getOrDefault(Pair.of(b.getMainOriginalId(), b.getOriginalSide()), null);
+                    ChangedPhaseTapChanger changedPhaseTapChanger = preContingencyChangedTaps.getOrDefault(b, null);
                     // Creating initial info with either network initial tap, or pre contingency tap if it has been changed
-                    return new PhaseTapChangerInfo(b.getPhaseTapChanger().orElseThrow(),
-                            b.getMainOriginalId(),
-                            b.getOriginalSide().orElse(null),
-                            b.getPiModel(),
+                    return new PhaseTapChangerInfo(b,
                             changedPhaseTapChanger != null ? changedPhaseTapChanger.finalTap() : b.getPhaseTapChanger().orElseThrow().getTapPosition());
                 })
                 .toList();

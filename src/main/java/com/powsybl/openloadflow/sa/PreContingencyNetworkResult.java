@@ -57,10 +57,7 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         phaseTapChangerInfos = network.getBranches().stream()
                 .filter(b -> !b.isDisabled())
                 .filter(LfBranch::hasPhaseControllerCapability)
-                .map(b -> new PhaseTapChangerInfo(b.getPhaseTapChanger().orElseThrow(),
-                        b.getMainOriginalId(),
-                        b.getOriginalSide().orElse(null),
-                        b.getPiModel(),
+                .map(b -> new PhaseTapChangerInfo(b,
                         b.getPhaseTapChanger().orElseThrow().getTapPosition())
                 )
                 .toList();
