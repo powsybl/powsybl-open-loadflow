@@ -21,11 +21,11 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.mutable.MutableDouble;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -38,6 +38,19 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
     private static final double DV_EPS = 1E-4; // 0.1 kV
     private static final double DK_DIFF_MAX_EPS = 1E-3; // 1 MVar
+    private static final double K_SATURATION_EPS = 5E-2;
+    private static final double MAX_TARGET_VOLTAGE_STEP_KV = 2;
+
+    /**
+     * A zone error (pilot point voltage difference and controller buses k difference) has to decrease by at least this
+     * ratio from one adjustment to the next one to be considered as progressing.
+     */
+    private static final double MIN_PROGRESS_RATIO = 1E-2;
+
+    /**
+     * Number of consecutive adjustments without progress after which a zone is considered as stalled.
+     */
+    private static final int MAX_NO_PROGRESS_COUNT = 2;
 
     private final double minPlausibleTargetVoltage;
 
@@ -51,6 +64,33 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
     public SecondaryVoltageControlOuterLoop(double minPlausibleTargetVoltage, double maxPlausibleTargetVoltage) {
         this.minPlausibleTargetVoltage = minPlausibleTargetVoltage;
         this.maxPlausibleTargetVoltage = maxPlausibleTargetVoltage;
+    }
+
+    /**
+     * Error of a zone at the time of its last adjustment, used to detect zones that cannot be adjusted anymore (for
+     * instance because their controlled bus target voltages are clipped to the plausible voltage range, or because
+     * their controller buses reactive power cannot be aligned any better).
+     */
+    private record ZoneError(double pilotDvAbs, double dkDiffMax) {
+
+        boolean hasProgressedFrom(ZoneError previous) {
+            return pilotDvAbs < previous.pilotDvAbs * (1 - MIN_PROGRESS_RATIO)
+                    || dkDiffMax < previous.dkDiffMax * (1 - MIN_PROGRESS_RATIO);
+        }
+    }
+
+    private static final class ContextData {
+
+        private final Map<String, ZoneError> lastZoneError = new HashMap<>();
+
+        private final Map<String, MutableInt> noProgressCount = new HashMap<>();
+
+        private final Set<String> stalledZoneNames = new HashSet<>();
+    }
+
+    @Override
+    public void initialize(AcOuterLoopContext context) {
+        context.setData(new ContextData());
     }
 
     public static class SensitivityContext {
@@ -216,27 +256,117 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         return secondaryVoltageControl.getTargetValue() - secondaryVoltageControl.getPilotBus().getV();
     }
 
-    private Optional<List<String>> processSecondaryVoltageControl(List<LfSecondaryVoltageControl> secondaryVoltageControls,
-                                                                  AcLoadFlowContext loadFlowContext) {
+    /**
+     * A zone is stalled when its error did not decrease anymore during the last adjustments: adjusting it again would
+     * just repeat the same ineffective target voltage change until max outer loop iteration is reached.
+     */
+    private static boolean isStalled(ContextData contextData, String zoneName, ZoneError zoneError, double pilotNominalV) {
+        ZoneError previousZoneError = contextData.lastZoneError.put(zoneName, zoneError);
+        if (previousZoneError == null || zoneError.hasProgressedFrom(previousZoneError)) {
+            contextData.noProgressCount.remove(zoneName);
+            return false;
+        }
+        MutableInt count = contextData.noProgressCount.computeIfAbsent(zoneName, k -> new MutableInt());
+        count.increment();
+        if (count.intValue() < MAX_NO_PROGRESS_COUNT) {
+            return false;
+        }
+        contextData.stalledZoneNames.add(zoneName);
+        LOGGER.warn("Secondary voltage control of zone '{}' is stalled after {} adjustments without progress (remaining pilot point dv is {} kV, " +
+                "controller buses dk diff max is {}): it cannot be adjusted any further and is now ignored",
+                zoneName, count.intValue(), zoneError.pilotDvAbs() * pilotNominalV, zoneError.dkDiffMax());
+        return true;
+    }
+
+    private static boolean shouldAdjustSecondaryVoltageControl(double pilotDv, KStats kStats) {
+        if (Math.abs(pilotDv) > DV_EPS) {
+            return pilotDv > 0 && kStats.kAverage() < 1 - K_SATURATION_EPS
+                    || pilotDv < 0 && kStats.kAverage() > -1 + K_SATURATION_EPS;
+        }
+        if (kStats.allAtLimits()) {
+            return false;
+        }
+        // Once the pilot target is reached, do not keep adjusting a globally saturated zone just to improve reactive
+        // power sharing.
+        if (kStats.kAverage() <= -1 + K_SATURATION_EPS || kStats.kAverage() >= 1 - K_SATURATION_EPS) {
+            return false;
+        }
+        return Math.abs(kStats.dkDiffMax()) > DK_DIFF_MAX_EPS;
+    }
+
+    private record TargetVoltageChange(DenseMatrix dv, int clippedTargetVoltageCount, double maxTargetVoltageStepKv) {
+    }
+
+    private record TargetVoltage(double value, boolean clipped) {
+    }
+
+    private static TargetVoltageChange clipTargetVoltageChange(List<LfBus> controlledBuses, DenseMatrix dv,
+                                                               Map<Integer, Integer> controlledBusIndex) {
+        DenseMatrix clippedDv = new DenseMatrix(dv.getRowCount(), dv.getColumnCount());
+        int clippedTargetVoltageCount = 0;
+        double maxTargetVoltageStepKv = 0;
+        for (LfBus controlledBus : controlledBuses) {
+            int i = controlledBusIndex.get(controlledBus.getNum());
+            double dvValue = dv.get(i, 0);
+            double stepKv = dvValue * controlledBus.getNominalV();
+            double absStepKv = Math.abs(stepKv);
+            maxTargetVoltageStepKv = Math.max(maxTargetVoltageStepKv, absStepKv);
+            if (stepKv > MAX_TARGET_VOLTAGE_STEP_KV) {
+                clippedDv.set(i, 0, MAX_TARGET_VOLTAGE_STEP_KV / controlledBus.getNominalV());
+                clippedTargetVoltageCount++;
+            } else if (stepKv < -MAX_TARGET_VOLTAGE_STEP_KV) {
+                clippedDv.set(i, 0, -MAX_TARGET_VOLTAGE_STEP_KV / controlledBus.getNominalV());
+                clippedTargetVoltageCount++;
+            } else {
+                clippedDv.set(i, 0, dvValue);
+            }
+        }
+        return new TargetVoltageChange(clippedDv, clippedTargetVoltageCount, maxTargetVoltageStepKv);
+    }
+
+    private TargetVoltage clipTargetVoltageToPlausibleRange(double targetV) {
+        if (targetV < minPlausibleTargetVoltage) {
+            return new TargetVoltage(minPlausibleTargetVoltage, true);
+        }
+        if (targetV > maxPlausibleTargetVoltage) {
+            return new TargetVoltage(maxPlausibleTargetVoltage, true);
+        }
+        return new TargetVoltage(targetV, false);
+    }
+
+    private List<String> processSecondaryVoltageControl(List<LfSecondaryVoltageControl> secondaryVoltageControls,
+                                                        AcLoadFlowContext loadFlowContext,
+                                                        ContextData contextData) {
         List<String> adjustedZoneNames = new ArrayList<>();
 
         for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
+            String zoneName = secondaryVoltageControl.getZoneName();
+            if (contextData.stalledZoneNames.contains(zoneName)) {
+                continue;
+            }
             double pilotDv = calculatePilotPointDv(secondaryVoltageControl);
             List<LfBus> controllerBuses = secondaryVoltageControl.getControllerBuses();
             KStats kStats = calculateKStats(controllerBuses);
-            if (Math.abs(pilotDv) > DV_EPS || !kStats.allAtLimits() && Math.abs(kStats.dkDiffMax()) > DK_DIFF_MAX_EPS) {
+            if (shouldAdjustSecondaryVoltageControl(pilotDv, kStats)) {
                 var pilotBus = secondaryVoltageControl.getPilotBus();
                 if (LOGGER.isDebugEnabled()) {
                     int allControllerBusesCount = secondaryVoltageControl.getControllerBuses().size();
                     LOGGER.debug("Secondary voltage control of zone '{}': {}/{} controller buses available, pilot point dv is {} kV, controller buses dk diff max is {} (k average is {})",
-                            secondaryVoltageControl.getZoneName(), controllerBuses.size(), allControllerBusesCount, pilotDv * pilotBus.getNominalV(), kStats.dkDiffMax(), kStats.kAverage());
+                            zoneName, controllerBuses.size(), allControllerBusesCount, pilotDv * pilotBus.getNominalV(), kStats.dkDiffMax(), kStats.kAverage());
                 }
-                adjustedZoneNames.add(secondaryVoltageControl.getZoneName());
+                if (isStalled(contextData, zoneName, new ZoneError(Math.abs(pilotDv), kStats.dkDiffMax()), pilotBus.getNominalV())) {
+                    continue;
+                }
+                adjustedZoneNames.add(zoneName);
+            } else {
+                // zone does not need to be adjusted anymore, reset its progress tracking
+                contextData.lastZoneError.remove(zoneName);
+                contextData.noProgressCount.remove(zoneName);
             }
         }
 
         if (adjustedZoneNames.isEmpty()) {
-            return Optional.of(Collections.emptyList());
+            return Collections.emptyList();
         }
 
         List<LfBus> allControllerBuses = secondaryVoltageControls.stream()
@@ -263,7 +393,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         DenseMatrix jK = createJk(sensitivityContext, allControllerBuses, allControlledBuses, controllerBusIndex, controlledBusIndex).transpose();
         DenseMatrix b = a.times(jK);
 
-        // replace last row for each of the secondary voltage control block
+        // replace last row for each secondary voltage control block
         for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
             List<LfBus> controllerBuses = secondaryVoltageControl.getEnabledControllerBuses();
             List<LfBus> controlledBuses = controllerBuses.stream()
@@ -288,39 +418,41 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         @SuppressWarnings("UnnecessaryLocalVariable")
         DenseMatrix dv = rhs;
 
+        TargetVoltageChange targetVoltageChange = clipTargetVoltageChange(allControlledBuses, dv, controlledBusIndex);
+        if (targetVoltageChange.clippedTargetVoltageCount() > 0) {
+            LOGGER.info("Clip {} secondary voltage control target voltage changes to {} kV (unclipped max step was {} kV)",
+                    targetVoltageChange.clippedTargetVoltageCount(), MAX_TARGET_VOLTAGE_STEP_KV,
+                    targetVoltageChange.maxTargetVoltageStepKv());
+        }
+
         // compute new controlled bus target voltages
-        Map<LfBus, Double> newControlledBusTargetV = new HashMap<>(allControllerBuses.size());
+        Map<LfBus, Double> newControlledBusTargetV = new HashMap<>(allControlledBuses.size());
+        int clippedPlausibleTargetVoltageCount = 0;
         for (LfBus controlledBus : allControlledBuses) {
             int i = controlledBusIndex.get(controlledBus.getNum());
             var vc = controlledBus.getGeneratorVoltageControl().orElseThrow();
-            double newTargetV = vc.getTargetValue() + dv.get(i, 0);
-            newControlledBusTargetV.put(controlledBus, newTargetV);
-        }
-
-        Map<LfBus, Double> notPlausibleNewControlledBusTargetV = newControlledBusTargetV.entrySet()
-                .stream()
-                .filter(e -> {
-                    double newTargetV = e.getValue();
-                    return !VoltageControl.isTargetVoltagePlausible(newTargetV, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
-                })
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        if (notPlausibleNewControlledBusTargetV.isEmpty()) {
-            for (var e : newControlledBusTargetV.entrySet()) {
-                LfBus controlledBus = e.getKey();
-                double newTargetV = e.getValue();
-                var vc = controlledBus.getGeneratorVoltageControl().orElseThrow();
-                LOGGER.trace("Adjust target voltage of controlled bus '{}': {} -> {}",
-                        controlledBus.getId(), vc.getTargetValue() * controlledBus.getNominalV(),
-                        newTargetV * controlledBus.getNominalV());
-                vc.setTargetValue(newTargetV);
+            TargetVoltage newTargetV = clipTargetVoltageToPlausibleRange(vc.getTargetValue() + targetVoltageChange.dv().get(i, 0));
+            if (newTargetV.clipped()) {
+                clippedPlausibleTargetVoltageCount++;
             }
-        } else {
-            LOGGER.error("Skipping all controlled bus target voltage adjustment because some of the calculated new target voltages are not plausible: {}",
-                    notPlausibleNewControlledBusTargetV);
-            return Optional.empty();
+            newControlledBusTargetV.put(controlledBus, newTargetV.value());
+        }
+        if (clippedPlausibleTargetVoltageCount > 0) {
+            LOGGER.info("Clip {} secondary voltage control target voltages to plausible range [{}, {}] pu",
+                    clippedPlausibleTargetVoltageCount, minPlausibleTargetVoltage, maxPlausibleTargetVoltage);
         }
 
-        return Optional.of(adjustedZoneNames);
+        for (var e : newControlledBusTargetV.entrySet()) {
+            LfBus controlledBus = e.getKey();
+            double newTargetV = e.getValue();
+            var vc = controlledBus.getGeneratorVoltageControl().orElseThrow();
+            LOGGER.trace("Adjust target voltage of controlled bus '{}': {} -> {}",
+                    controlledBus.getId(), vc.getTargetValue() * controlledBus.getNominalV(),
+                    newTargetV * controlledBus.getNominalV());
+            vc.setTargetValue(newTargetV);
+        }
+
+        return adjustedZoneNames;
     }
 
     private static void tryToReEnableHelpfulControllerBuses(LfNetwork network) {
@@ -336,6 +468,60 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
         if (!zoneNames.isEmpty()) {
             LOGGER.info("Controller buses of secondary voltage control zones {} cannot produce or absorb more reactive power",
                     zoneNames);
+        }
+    }
+
+    @Override
+    public void cleanup(AcOuterLoopContext context) {
+        logSecondaryVoltageControlSummary(context.getNetwork(), (ContextData) context.getData());
+    }
+
+    /**
+     * Log, for each secondary voltage control zone, whether the pilot point voltage target has been reached and
+     * whether reactive power of the controller buses has been aligned.
+     */
+    private static void logSecondaryVoltageControlSummary(LfNetwork network, ContextData contextData) {
+        List<LfSecondaryVoltageControl> secondaryVoltageControls = network.getSecondaryVoltageControls();
+        if (secondaryVoltageControls.isEmpty() || !LOGGER.isInfoEnabled()) {
+            return;
+        }
+        List<String> pilotPointNotReached = new ArrayList<>();
+        List<String> reactivePowerNotAligned = new ArrayList<>();
+        int okCount = 0;
+        for (LfSecondaryVoltageControl secondaryVoltageControl : secondaryVoltageControls) {
+            String zoneName = secondaryVoltageControl.getZoneName();
+            List<LfBus> controllerBuses = secondaryVoltageControl.getControllerBuses();
+            if (controllerBuses.isEmpty()) {
+                pilotPointNotReached.add(zoneName + " (no controller bus)");
+                continue;
+            }
+            LfBus pilotBus = secondaryVoltageControl.getPilotBus();
+            double pilotDv = calculatePilotPointDv(secondaryVoltageControl);
+            KStats kStats = calculateKStats(controllerBuses);
+            boolean pilotPointReached = Math.abs(pilotDv) <= DV_EPS;
+            // a zone where all controller buses are at their reactive power limit cannot align them any better
+            boolean reactivePowerAligned = kStats.dkDiffMax() <= DK_DIFF_MAX_EPS || kStats.allAtLimits();
+            if (!pilotPointReached) {
+                pilotPointNotReached.add(String.format(Locale.ROOT, "%s (dv=%.3f kV)", zoneName, pilotDv * pilotBus.getNominalV()));
+            }
+            if (!reactivePowerAligned) {
+                reactivePowerNotAligned.add(String.format(Locale.ROOT, "%s (dk=%.4f)", zoneName, kStats.dkDiffMax()));
+            }
+            if (pilotPointReached && reactivePowerAligned) {
+                okCount++;
+            }
+        }
+        LOGGER.info("Secondary voltage control summary: {}/{} zones with pilot point voltage target reached and reactive power aligned",
+                okCount, secondaryVoltageControls.size());
+        if (!pilotPointNotReached.isEmpty()) {
+            LOGGER.info("Secondary voltage control zones with pilot point voltage target not reached: {}", pilotPointNotReached);
+        }
+        if (!reactivePowerNotAligned.isEmpty()) {
+            LOGGER.info("Secondary voltage control zones with reactive power not aligned: {}", reactivePowerNotAligned);
+        }
+        if (contextData != null && !contextData.stalledZoneNames.isEmpty()) {
+            LOGGER.info("Secondary voltage control zones given up because they could not be adjusted any further: {}",
+                    contextData.stalledZoneNames);
         }
     }
 
@@ -360,10 +546,8 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
 
-        List<String> adjustedZoneNames = processSecondaryVoltageControl(secondaryVoltageControls, context.getLoadFlowContext()).orElse(null);
-        if (adjustedZoneNames == null) {
-            return new OuterLoopResult(this, OuterLoopStatus.FAILED, "Cannot adjust secondary voltage control because some calculated controlled bus target voltages are not plausible");
-        }
+        List<String> adjustedZoneNames = processSecondaryVoltageControl(secondaryVoltageControls, context.getLoadFlowContext(),
+                (ContextData) context.getData());
 
         OuterLoopStatus status = OuterLoopStatus.STABLE;
         if (!adjustedZoneNames.isEmpty()) {
