@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChangeDetails;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -26,6 +27,7 @@ import org.apache.commons.lang3.mutable.MutableObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -141,11 +143,12 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
     }
 
     private void adjustB(ShuntVoltageControl voltageControl, List<LfShunt> sortedControllerShunts, LfBus controlledBus, IncrementalContextData contextData,
-                         SensitivityContext sensitivityContext, double diffV, MutableObject<Integer> numAdjustedShunts) {
+                         SensitivityContext sensitivityContext, double diffV, List<DiscreteControllerChangeDetails> adjustedControllers) {
         // several shunts could control the same bus
         double remainingDiffV = diffV;
         boolean hasChanged = true;
         Map<LfShunt.Controller, Integer> sectionShiftPerController = new HashMap<>();
+        Map<LfShunt.Controller, Integer> initialSectionPerController = new HashMap<>();
         while (hasChanged) {
             hasChanged = false;
             for (LfShunt controllerShunt : sortedControllerShunts) {
@@ -156,6 +159,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
                         var controllerContext = contextData.getControllersContexts().get(controller.getId());
                         double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
                         if (Math.abs(remainingDiffV) > halfTargetDeadband) {
+                            initialSectionPerController.computeIfAbsent(controller, LfShunt.Controller::getPosition);
                             int sectionShift = sectionShiftPerController.getOrDefault(controller, 0);
                             if (sectionShift > maxSectionShift) {
                                 // already changed by maximum allowed number of sections shift in this outerloop
@@ -180,7 +184,9 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
                 }
             }
         }
-        numAdjustedShunts.setValue(numAdjustedShunts.get() + sectionShiftPerController.size());
+        sectionShiftPerController.keySet().forEach(controller -> adjustedControllers.add(
+                new DiscreteControllerChangeDetails(controller.getId(), initialSectionPerController.get(controller), controller.getPosition())));
+
     }
 
     private static double getDiffV(ShuntVoltageControl voltageControl) {
@@ -221,7 +227,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
             return new OuterLoopResult(this, status.get());
         }
 
-        MutableObject<Integer> numAdjustedShunts = new MutableObject<>(0);
+        List<DiscreteControllerChangeDetails> adjustedControllers = new ArrayList<>();
 
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerShuntsOutOfDeadband,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
@@ -233,13 +239,14 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
                     .filter(shunt -> !shunt.isDisabled())
                     .sorted(Comparator.comparingDouble(LfShunt::getBMagnitude).reversed())
                     .toList();
-            adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, diffV, numAdjustedShunts);
+            adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, diffV, adjustedControllers);
         });
 
-        if (numAdjustedShunts.get() != 0) {
+        if (!adjustedControllers.isEmpty()) {
             status.setValue(OuterLoopStatus.UNSTABLE);
             ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
-            Reports.reportShuntVoltageControlChangedSection(iterationReportNode, numAdjustedShunts.get());
+            ReportNode summary = Reports.reportShuntVoltageControlChangedSection(iterationReportNode, adjustedControllers.size());
+            adjustedControllers.forEach(c -> Reports.reportShuntVoltageControlChangedSectionDetail(summary, c));
         }
 
         return new OuterLoopResult(this, status.get());
