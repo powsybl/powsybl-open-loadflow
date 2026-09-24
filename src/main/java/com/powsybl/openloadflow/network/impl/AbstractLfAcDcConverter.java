@@ -57,7 +57,7 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         this.controlMode = vdcOverride.isPresent() ? AcDcConverter.ControlMode.V_DC : converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
         double rawTargetVdc = vdcOverride.orElseGet(converter::getTargetVdc);
-        targetVdc = dcBus1.isGrounded() ? rawTargetVdc / dcBus2.getNominalV() : rawTargetVdc / dcBus1.getNominalV();
+        this.targetVdc = rawTargetVdc / getDcVoltageBase();
         this.pAc = converter.getTerminal1().getP();
         this.qAc = converter.getTerminal1().getQ();
     }
@@ -110,6 +110,12 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     @Override
     public double getTargetVdc() {
         return targetVdc;
+    }
+
+    @Override
+    public double getDcVoltageBase() {
+        // Hypothesis: all buses in the DC voltage have the same nominal DC voltage.
+        return dcBus1.getNominalV();
     }
 
     @Override
