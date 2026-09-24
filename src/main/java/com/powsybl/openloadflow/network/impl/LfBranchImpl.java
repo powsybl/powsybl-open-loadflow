@@ -195,10 +195,6 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         return branchRef.get();
     }
 
-    public TwoWindingsTransformer getTwoWindingsTransformer() {
-        return (TwoWindingsTransformer) branchRef.get();
-    }
-
     @Override
     public String getId() {
         return getBranch().getId();
