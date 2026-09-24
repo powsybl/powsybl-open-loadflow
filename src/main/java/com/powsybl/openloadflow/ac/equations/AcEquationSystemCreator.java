@@ -793,7 +793,7 @@ public class AcEquationSystemCreator {
     }
 
     protected void createDcLineEquations(LfDcLine dcLine, LfDcBus dcBus1, LfDcBus dcBus2, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        // effective equations, could be closed one or open one
+        // effective equations, could be closed one or open (EvaluableConstants.ZERO) one
         Evaluable p1 = null;
         Evaluable p2 = null;
         Evaluable i1 = null;
@@ -809,7 +809,6 @@ public class AcEquationSystemCreator {
             if (!dcBus1.isGrounded()) {
                 closedP1 = new ClosedDcLineSide1PowerEquationTerm(dcLine, dcBus1, dcBus2, equationSystem.getVariableSet());
                 closedI1 = new ClosedDcLineSide1CurrentEquationTerm(dcLine, dcBus1, dcBus2, equationSystem.getVariableSet());
-
             }
             if (!dcBus2.isGrounded()) {
                 closedP2 = new ClosedDcLineSide2PowerEquationTerm(dcLine, dcBus1, dcBus2, equationSystem.getVariableSet());
@@ -819,13 +818,18 @@ public class AcEquationSystemCreator {
             i1 = closedI1;
             p2 = closedP2;
             i2 = closedI2;
+        } else {
+            p1 = EvaluableConstants.ZERO;
+            i1 = EvaluableConstants.ZERO;
+            p2 = EvaluableConstants.ZERO;
+            i2 = EvaluableConstants.ZERO;
         }
 
         createDcLineEquations(dcLine, dcBus1, dcBus2, equationSystem,
-                p1, i1,
-                p2, i2,
+                p1, i1, p2, i2,
                 closedP1, closedI1,
-                closedP2, closedI2);
+                closedP2, closedI2
+        );
     }
 
     protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2,
@@ -958,7 +962,6 @@ public class AcEquationSystemCreator {
                                                 Evaluable p2, Evaluable i2,
                                                 SingleEquationTerm<AcVariableType, AcEquationType> closedP1, SingleEquationTerm<AcVariableType, AcEquationType> closedI1,
                                                 SingleEquationTerm<AcVariableType, AcEquationType> closedP2, SingleEquationTerm<AcVariableType, AcEquationType> closedI2) {
-
         if (closedI1 != null) {
             equationSystem.getEquation(dcBus1.getNum(), AcEquationType.DC_BUS_TARGET_I).orElseThrow()
                     .addTerm(closedI1);
