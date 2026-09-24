@@ -310,9 +310,6 @@ public interface LfBranch extends LfElement {
     // Phase tap changer accessor (for results)
     Optional<PhaseTapChanger> getPhaseTapChanger();
 
-    // Three-windings transformer ID accessor (for 3WT branches)
-    Optional<String> getThreeWindingsTransformerId();
-
     // transformer voltage control
 
     Optional<TransformerVoltageControl> getVoltageControl();

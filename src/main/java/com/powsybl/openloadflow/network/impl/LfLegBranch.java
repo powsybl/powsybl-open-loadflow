@@ -148,11 +148,6 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public Optional<String> getThreeWindingsTransformerId() {
-        return Optional.of(getTwt().getId());
-    }
-
-    @Override
     public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
                                                  boolean createExtension, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows,
                                                  LoadFlowModel loadFlowModel) {

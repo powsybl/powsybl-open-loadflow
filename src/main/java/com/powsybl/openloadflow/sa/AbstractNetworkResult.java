@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfStarBus;
 import com.powsybl.openloadflow.network.impl.Transformers;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
@@ -169,9 +170,8 @@ public abstract class AbstractNetworkResult {
     private boolean isContainingAMonitoredBranch(LfZeroImpedanceNetwork zeroImpedanceNetwork, StateMonitor monitor) {
         for (LfBranch lfBranch : zeroImpedanceNetwork.getGraph().edgeSet()) {
             if (isATransfo3WBranch(lfBranch)) {
-                if (lfBranch.getThreeWindingsTransformerId()
-                        .filter(monitor.getThreeWindingsTransformerIds()::contains)
-                        .isPresent()) {
+                LfLegBranch lfLegBranch = (LfLegBranch) lfBranch;
+                if (monitor.getThreeWindingsTransformerIds().contains(lfLegBranch.getTwt().getId())) {
                     return true;
                 }
             } else {

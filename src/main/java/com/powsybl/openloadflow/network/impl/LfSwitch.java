@@ -67,11 +67,6 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public Optional<String> getThreeWindingsTransformerId() {
-        return Optional.empty();
-    }
-
-    @Override
     public boolean isConnectedSide1() {
         return true;
     }

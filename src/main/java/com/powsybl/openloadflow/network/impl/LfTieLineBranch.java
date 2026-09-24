@@ -169,9 +169,4 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     public Optional<PhaseTapChanger> getPhaseTapChanger() {
         return Optional.empty();
     }
-
-    @Override
-    public Optional<String> getThreeWindingsTransformerId() {
-        return Optional.empty();
-    }
 }
