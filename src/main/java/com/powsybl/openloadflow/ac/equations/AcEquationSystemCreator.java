@@ -793,7 +793,7 @@ public class AcEquationSystemCreator {
     }
 
     protected void createDcLineEquations(LfDcLine dcLine, LfDcBus dcBus1, LfDcBus dcBus2, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        // effective equations, could be closed one or open one
+        // effective equations, could be closed one or open (EvaluableConstants.ZERO) one
         Evaluable p1 = null;
         Evaluable p2 = null;
         Evaluable i1 = null;
@@ -804,12 +804,6 @@ public class AcEquationSystemCreator {
         SingleEquationTerm<AcVariableType, AcEquationType> closedI1 = null;
         SingleEquationTerm<AcVariableType, AcEquationType> closedP2 = null;
         SingleEquationTerm<AcVariableType, AcEquationType> closedI2 = null;
-
-        // open equations, only created when the line is (or becomes) open; null while it stays closed
-        SingleEquationTerm<AcVariableType, AcEquationType> openP1 = null;
-        SingleEquationTerm<AcVariableType, AcEquationType> openI1 = null;
-        SingleEquationTerm<AcVariableType, AcEquationType> openP2 = null;
-        SingleEquationTerm<AcVariableType, AcEquationType> openI2 = null;
 
         if (dcBus1 != null && dcBus2 != null) {
             if (!dcBus1.isGrounded()) {
@@ -824,26 +818,17 @@ public class AcEquationSystemCreator {
             i1 = closedI1;
             p2 = closedP2;
             i2 = closedI2;
-        } else if (dcBus1 != null) {
-            openP1 = new OpenDcLineEquationTerm(dcLine);
-            openI1 = new OpenDcLineEquationTerm(dcLine);
-            p1 = openP1;
-            i1 = openI1;
-            p2 = EvaluableConstants.ZERO;
-            i2 = EvaluableConstants.ZERO;
-        } else if (dcBus2 != null) {
-            openP2 = new OpenDcLineEquationTerm(dcLine);
-            openI2 = new OpenDcLineEquationTerm(dcLine);
+        } else {
             p1 = EvaluableConstants.ZERO;
             i1 = EvaluableConstants.ZERO;
-            p2 = openP2;
-            i2 = openI2;
+            p2 = EvaluableConstants.ZERO;
+            i2 = EvaluableConstants.ZERO;
         }
 
         createDcLineEquations(dcLine, dcBus1, dcBus2, equationSystem,
                 p1, i1, p2, i2,
-                closedP1, closedI1, closedP2, closedI2,
-                openP1, openI1, openP2, openI2
+                closedP1, closedI1,
+                closedP2, closedI2
         );
     }
 
@@ -976,16 +961,10 @@ public class AcEquationSystemCreator {
                                                 Evaluable p1, Evaluable i1,
                                                 Evaluable p2, Evaluable i2,
                                                 SingleEquationTerm<AcVariableType, AcEquationType> closedP1, SingleEquationTerm<AcVariableType, AcEquationType> closedI1,
-                                                SingleEquationTerm<AcVariableType, AcEquationType> closedP2, SingleEquationTerm<AcVariableType, AcEquationType> closedI2,
-                                                SingleEquationTerm<AcVariableType, AcEquationType> openP1, SingleEquationTerm<AcVariableType, AcEquationType> openI1,
-                                                SingleEquationTerm<AcVariableType, AcEquationType> openP2, SingleEquationTerm<AcVariableType, AcEquationType> openI2) {
+                                                SingleEquationTerm<AcVariableType, AcEquationType> closedP2, SingleEquationTerm<AcVariableType, AcEquationType> closedI2) {
         if (closedI1 != null) {
             equationSystem.getEquation(dcBus1.getNum(), AcEquationType.DC_BUS_TARGET_I).orElseThrow()
                     .addTerm(closedI1);
-        }
-        if (openI1 != null) {
-            equationSystem.getEquation(dcBus1.getNum(), AcEquationType.DC_BUS_TARGET_I).orElseThrow()
-                .addTerm(openI1);
         }
         if (i1 != null) {
             dcLine.setI1(i1);
@@ -994,10 +973,6 @@ public class AcEquationSystemCreator {
             equationSystem.getEquation(dcBus2.getNum(), AcEquationType.DC_BUS_TARGET_I).orElseThrow()
                     .addTerm(closedI2);
         }
-        if (openI2 != null) {
-            equationSystem.getEquation(dcBus2.getNum(), AcEquationType.DC_BUS_TARGET_I).orElseThrow()
-                .addTerm(openI2);
-        }
         if (i2 != null) {
             dcLine.setI2(i2);
         }
@@ -1005,18 +980,12 @@ public class AcEquationSystemCreator {
         if (closedP1 != null) {
             equationSystem.attach(closedP1);
         }
-        if (openP1 != null) {
-            equationSystem.attach(openP1);
-        }
         if (p1 != null) {
             dcLine.setP1(p1);
         }
 
         if (closedP2 != null) {
             equationSystem.attach(closedP2);
-        }
-        if (openP2 != null) {
-            equationSystem.attach(openP2);
         }
         if (p2 != null) {
             dcLine.setP2(p2);
