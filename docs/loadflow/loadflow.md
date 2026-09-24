@@ -377,7 +377,7 @@ DC buses. Please note that converters with a second optional AC terminal are not
 
 A converter can control either the power it exchanges with the AC network (`P_PCC` control mode),
 the voltage between its two DC buses (`V_DC` control mode), or follow a DC-voltage droop law
-relating the two (`P_PCC_DROOP` control mode, detailed [below](#droop-control)).
+relating the two (`DC_DROOP` control mode, detailed [below](#droop-control)).
 If a DC network has only converters in `P_PCC` mode, they will be automatically set in `V_DC` mode with the DC nominal voltage as target voltage.
 
 In addition to the control modes `P_PCC`, `V_DC` and `DC_DROOP`, the voltage source converter can be set in two modes :

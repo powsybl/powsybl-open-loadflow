@@ -33,13 +33,13 @@ import java.util.Objects;
  */
 public class ConverterDroopEquationTerm extends AbstractConverterDcFlowEquation {
 
-    private List<LfVoltageSourceConverter.LfDroopReference> droopBands;
+    private List<LfVoltageSourceConverter.LfDroopReference> droopReferences;
 
     public ConverterDroopEquationTerm(LfVoltageSourceConverter converter, LfDcBus dcBus1, LfDcBus dcBus2, VariableSet<AcVariableType> variableSet) {
         // pass the DC voltage base as nominalV so that v1() - v2() is U_dc in per unit of that base
         super(converter, dcBus1, dcBus2, converter.getDcVoltageBase(), variableSet);
-        droopBands = new ArrayList<>(converter.getDroopCurve());
-        if (droopBands.isEmpty()) {
+        droopReferences = new ArrayList<>(converter.getDroopCurve());
+        if (droopReferences.isEmpty()) {
             throw new PowsyblException("Cannot create a ConverterDroopEquationTerm for AC/DC converter '" + converter.getId()
                     + "' which is not in DC_DROOP control mode");
         }
@@ -80,11 +80,11 @@ public class ConverterDroopEquationTerm extends AbstractConverterDcFlowEquation 
         // Note that the list is supposed to be sorted by refVdc.
         // Linear search is faster for small lists.
         int idx = 0; // default if uDc below min voltage.
-        for (idx = 0; idx < droopBands.size() - 1; idx++) {
-            if (uDc < droopBands.get(idx + 1).refVdc()) {
+        for (idx = 0; idx < droopReferences.size() - 1; idx++) {
+            if (uDc < droopReferences.get(idx + 1).refVdc()) {
                 break;
             }
         } // if uDc is beyond voltage of last segment, idx stays clamped to droopBands.size() - 1
-        return droopBands.get(idx);
+        return droopReferences.get(idx);
     }
 }
