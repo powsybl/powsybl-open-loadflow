@@ -12,7 +12,6 @@ import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.ContingencyElementType;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
-import com.powsybl.openloadflow.sa.extensions.PhaseTapChangerInfo;
 import com.powsybl.security.SecurityAnalysisParameters.ModifiedMonitoredElementsParameters;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;

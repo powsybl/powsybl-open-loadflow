@@ -13,7 +13,6 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfStarBus;
 import com.powsybl.openloadflow.network.impl.Transformers;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
-import com.powsybl.openloadflow.sa.extensions.PhaseTapChangerInfo;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
@@ -48,6 +47,55 @@ public abstract class AbstractNetworkResult {
     protected List<PhaseTapChangerInfo> phaseTapChangerInfos = new ArrayList<>();
 
     static final List<LfBranch.BranchType> T3WT_BRANCH_TYPES = List.of(TRANSFO_3_LEG_1, TRANSFO_3_LEG_2, TRANSFO_3_LEG_3);
+
+    protected static class PhaseTapChangerInfo {
+
+        private final PhaseTapChanger phaseTapChanger;
+
+        private int currentTap;
+
+        private final String transformerId;
+
+        private final ThreeSides side;
+
+        private PiModel piModel;
+
+        public PhaseTapChangerInfo(PhaseTapChanger phaseTapChanger, String transformerId, ThreeSides side, PiModel piModel, int currentTap) {
+            this.phaseTapChanger = phaseTapChanger;
+            this.side = side;
+            this.currentTap = currentTap;
+            this.transformerId = transformerId;
+            this.piModel = piModel;
+        }
+
+        public int getCurrentTap() {
+            return currentTap;
+        }
+
+        public void setCurrentTap(int currentTap) {
+            this.currentTap = currentTap;
+        }
+
+        public PhaseTapChanger getPhaseTapChanger() {
+            return phaseTapChanger;
+        }
+
+        public PiModel getPiModel() {
+            return piModel;
+        }
+
+        public void setPiModel(PiModel piModel) {
+            this.piModel = piModel;
+        }
+
+        public String getTransformerId() {
+            return transformerId;
+        }
+
+        public Optional<ThreeSides> getSide() {
+            return Optional.ofNullable(side);
+        }
+    }
 
     public record StateMonitorIndexes(StateMonitorIndex monitorIndex, StateMonitorIndex zeroImpedanceMonitorIndex) {
     }
