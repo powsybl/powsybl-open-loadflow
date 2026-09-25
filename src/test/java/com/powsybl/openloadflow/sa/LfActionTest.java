@@ -12,11 +12,11 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.LoadContingency;
-import com.powsybl.iidm.network.Generator;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.ThreeSides;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
+import com.powsybl.iidm.network.test.BoundaryLineNetworkFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ServiceParameterResolver;
@@ -33,9 +33,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -233,6 +237,104 @@ class LfActionTest extends AbstractSerDeTest {
 
             LfAction lfAreaTargetAction = LfActionUtils.createLfAction(targetAction, network, lfNetwork);
             assertFalse(lfAreaTargetAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
+        }
+    }
+
+    static Stream<Arguments> boundaryLineActionProvider() {
+        return Stream.of(
+                Arguments.of(BoundaryLineNetworkFactory.createWithGeneration(), true, 0.6, 0.35, 1, 1.01),
+                Arguments.of(BoundaryLineNetworkFactory.createWithGeneration(), false, 0.1, 0.05, 1, 1.01),
+                Arguments.of(BoundaryLineNetworkFactory.create(), true, 0.6, 0.35, 0, Double.NaN),
+                Arguments.of(BoundaryLineNetworkFactory.create(), false, 0.1, 0.05, 0, Double.NaN)
+        );
+    }
+
+    /**
+     * Check that the boundary line action only change load P and Q parts, regardless of the generation part
+     * @param network
+     * @param relativeValue
+     * @param expectedModifiedP
+     * @param expectedModifiedQ
+     * @param generatorsCount
+     * @param expectedTargetV
+     */
+    @MethodSource("boundaryLineActionProvider")
+    @ParameterizedTest
+    void testBoundaryLineAction(Network network, boolean relativeValue, double expectedModifiedP, double expectedModifiedQ, int generatorsCount, double expectedTargetV) {
+        BoundaryLineAction boundaryLineAction = new BoundaryLineActionBuilder()
+                .withId("action")
+                .withBoundaryLineId("DL")
+                .withActivePowerValue(10)
+                .withReactivePowerValue(5)
+                .withRelativeValue(relativeValue)
+                .build();
+
+        var matrixFactory = new DenseMatrixFactory();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+
+            // Checks before applying action
+            LfBranch lfBranch = lfNetwork.getBranchById("DL");
+            assertNotNull(lfBranch);
+            assertEquals(generatorsCount, lfBranch.getBus2().getGenerators().size());
+            if (generatorsCount == 1) {
+                assertEquals(expectedTargetV, lfBranch.getBus2().getGenerators().get(0).getTargetV());
+            }
+            assertEquals(LfBranch.BranchType.BOUNDARY_LINE, lfBranch.getBranchType());
+            assertEquals(0.5, lfBranch.getBus2().getLoadTargetP());
+            assertEquals(0.3, lfBranch.getBus2().getLoadTargetQ());
+
+            LfAction lfAction = LfActionUtils.createLfAction(boundaryLineAction, network, lfNetwork);
+            if (generatorsCount == 1) {
+                assertEquals(expectedTargetV, lfBranch.getBus2().getGenerators().get(0).getTargetV());
+            }
+            assertTrue(lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
+            assertEquals(expectedModifiedP, lfBranch.getBus2().getLoadTargetP());
+            assertEquals(expectedModifiedQ, lfBranch.getBus2().getLoadTargetQ());
+        }
+    }
+
+    @Test
+    void testBoundaryActionActionNotFound() {
+        Network network = BoundaryLineNetworkFactory.create();
+        BoundaryLineAction boundaryActionAction = new BoundaryLineActionBuilder()
+                .withId("action")
+                .withBoundaryLineId("UnexistingLine")
+                .withActivePowerValue(10)
+                .withReactivePowerValue(5)
+                .withRelativeValue(true)
+                .build();
+
+        var matrixFactory = new DenseMatrixFactory();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            LfAction lfAction = LfActionUtils.createLfAction(boundaryActionAction, network, lfNetwork);
+            assertFalse(lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
+        }
+    }
+
+    @Test
+    void testBoundaryActionActionNotBoundaryActionBranch() {
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        BoundaryLineAction boundaryActionAction = new BoundaryLineActionBuilder()
+                .withId("action")
+                .withBoundaryLineId("l12")
+                .withActivePowerValue(10)
+                .withReactivePowerValue(5)
+                .withRelativeValue(true)
+                .build();
+
+        var matrixFactory = new DenseMatrixFactory();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+        try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
+            LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
+            LfAction lfAction = LfActionUtils.createLfAction(boundaryActionAction, network, lfNetwork);
+            assertFalse(lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
         }
     }
 }

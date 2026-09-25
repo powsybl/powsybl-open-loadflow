@@ -114,6 +114,14 @@ public final class Actions {
                     break;
                 }
 
+                case BoundaryLineAction.NAME: {
+                    BoundaryLineAction danglingLineAction = (BoundaryLineAction) action;
+                    if (network.getBoundaryLine(danglingLineAction.getBoundaryLineId()) == null) {
+                        throw new PowsyblException("Dangling line '" + danglingLineAction.getBoundaryLineId() + "' not found");
+                    }
+                    break;
+                }
+
                 default:
                     throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
             }
