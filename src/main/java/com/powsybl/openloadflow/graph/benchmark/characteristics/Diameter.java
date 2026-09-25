@@ -16,9 +16,12 @@ import org.jgrapht.Graph;
 import org.jgrapht.alg.interfaces.ShortestPathAlgorithm;
 import org.jgrapht.alg.shortestpath.BFSShortestPath;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -37,32 +40,38 @@ public final class Diameter {
         result.print(vertices.size());
     }
 
+    public static <V, E> void diameterMultithreaded(Graph<V, E> graph, int threadCount) {
+        diameterMultithreaded(graph, new ArrayList<>(graph.vertexSet()), threadCount);
+    }
+
     public static <V, E> void diameterMultithreaded(Graph<V, E> graph, List<V> vertices, int threadCount) {
-        ProgressManager<Progress> manager = new ProgressManager<>();
-        manager.setFormatter(new Formatter());
+        try (ExecutorService executor = Executors.newFixedThreadPool(threadCount)) {
+            ProgressManager<Progress> manager = new ProgressManager<>();
+            manager.setFormatter(new Formatter());
 
-        int n = vertices.size();
-        int delta = n / threadCount;
+            int n = vertices.size();
+            int delta = n / threadCount;
 
-        CompletableFuture<TaskResult> result = null;
-        for (int i = 0; i < threadCount; i++) {
-            int start = delta * i;
-            int end = i == threadCount - 1 ? n : start + delta;
+            CompletableFuture<TaskResult> result = null;
+            for (int i = 0; i < threadCount; i++) {
+                int start = delta * i;
+                int end = i == threadCount - 1 ? n : start + delta;
 
-            Progress progress = manager.newProgress(new Progress());
-            progress.setProgress(0, end - start);
-            var future = CompletableFuture.supplyAsync(() -> diameterSingleTask(progress, graph, vertices, start, end));
-            if (result == null) {
-                result = future;
-            } else {
-                result = result.thenCombine(future, TaskResult::merge);
+                Progress progress = manager.newProgress(new Progress());
+                progress.setProgress(0, end - start);
+                var future = CompletableFuture.supplyAsync(() -> diameterSingleTask(progress, graph, vertices, start, end), executor);
+                if (result == null) {
+                    result = future;
+                } else {
+                    result = result.thenCombine(future, TaskResult::merge);
+                }
             }
+
+            manager.printProgress(true);
+
+            TaskResult taskResult = Objects.requireNonNull(result).join();
+            taskResult.print(n);
         }
-
-        manager.printProgress(true);
-
-        TaskResult taskResult = Objects.requireNonNull(result).join();
-        taskResult.print(n);
     }
 
     private static <V, E> TaskResult diameterSingleTask(Progress progress, Graph<V, E> graph, List<V> vertices, int start, int end) {
@@ -74,8 +83,10 @@ public final class Diameter {
             ShortestPathAlgorithm.SingleSourcePaths<V, E> pathsFromI = shortestPath.getPaths(vertices.get(i));
 
             for (int j = 0; j < i; j++) {
-                int length = (int) pathsFromI.getWeight(vertices.get(j));
-                distToCount.adjustOrPutValue(length, 1, 1);
+                double length = pathsFromI.getWeight(vertices.get(j));
+                if (length != Double.POSITIVE_INFINITY) {
+                    distToCount.adjustOrPutValue(Math.toIntExact((long) length), 1, 1);
+                }
             }
 
             progress.setProgress(i - start, end - start);

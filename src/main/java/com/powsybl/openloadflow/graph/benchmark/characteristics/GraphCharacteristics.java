@@ -9,6 +9,9 @@ package com.powsybl.openloadflow.graph.benchmark.characteristics;
 
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.graph.benchmark.log.Log;
+import com.powsybl.openloadflow.graph.benchmark.ng.BusBreakerGraph;
+import com.powsybl.openloadflow.graph.benchmark.ng.BusGraph;
+import com.powsybl.openloadflow.graph.benchmark.ng.NodeBreakerGraph;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -47,9 +50,13 @@ public final class GraphCharacteristics {
 
         List<LfBus> vertices = new ArrayList<>(graph.vertexSet());
 
-        Diameter.diameterMultithreaded(graph, vertices, Runtime.getRuntime().availableProcessors() - 1);
+        Diameter.diameterMultithreaded(graph, vertices, Runtime.getRuntime().availableProcessors());
         degree(graph);
         multiEdges(graph, vertices);
+
+        // Diameter.diameterMultithreaded(new BusGraph(network), Runtime.getRuntime().availableProcessors());
+        // Diameter.diameterMultithreaded(new BusBreakerGraph(network), Runtime.getRuntime().availableProcessors());
+        Diameter.diameterMultithreaded(new NodeBreakerGraph(network), Runtime.getRuntime().availableProcessors());
     }
 
     public static <V, E> void degree(Graph<V, E> graph) {
