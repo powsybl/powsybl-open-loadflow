@@ -80,7 +80,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
                     report);
         }
 
-        if (generator.isRegulatingWithMode(RegulationMode.REACTIVE_POWER) && generator.isRemoteRegulating() && parameters.isGeneratorReactivePowerRemoteControl()) {
+        if (generator.isRegulatingWithMode(RegulationMode.REACTIVE_POWER) && generator.hasRegulatingTerminal() && parameters.isGeneratorReactivePowerRemoteControl()) {
             setRemoteReactivePowerControl(generator.getRegulatingTerminal(), generator.getVoltageRegulation().getTargetValue());
         }
 
@@ -255,6 +255,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     @Override
     protected boolean checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         return forceVoltageControl || super.checkIfGeneratorIsInsideActivePowerLimitsForVoltageControl(parameters, report);
+    }
+
+    @Override
+    public boolean hasEquivalentLocalTargetV() {
+        return !Double.isNaN(generatorRef.get().getEquivalentLocalTargetV());
     }
 
     @Override

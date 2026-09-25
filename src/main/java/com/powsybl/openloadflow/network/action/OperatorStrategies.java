@@ -73,7 +73,15 @@ public final class OperatorStrategies {
                             .ifPresent(id -> throwMissingOperatorStrategyAction(operatorStrategy, id));
                 }
                 switch (operatorStrategy.getContingencyContext().getContextType()) {
-                    case ALL, ONLY_CONTINGENCIES -> {
+                    case ALL -> {
+                        operatorStrategiesByContingencyId.computeIfAbsent(null, key -> new ArrayList<>())
+                                .add(indexedOperatorStrategy);
+                        for (String contingencyId : contingencyIds) {
+                            operatorStrategiesByContingencyId.computeIfAbsent(contingencyId, key -> new ArrayList<>())
+                                    .add(indexedOperatorStrategy);
+                        }
+                    }
+                    case ONLY_CONTINGENCIES -> {
                         for (String contingencyId : contingencyIds) {
                             operatorStrategiesByContingencyId.computeIfAbsent(contingencyId, key -> new ArrayList<>())
                                     .add(indexedOperatorStrategy);

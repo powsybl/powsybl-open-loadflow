@@ -44,6 +44,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetworkLoaderImpl.class);
 
+    private static final double MIN_SECONDARY_VOLTAGE_CONTROL_REACTIVE_RANGE_MVAR = 5.0;
+
     private static final double TARGET_V_EPSILON = 1e-2;
 
     private static final double TARGET_Q_EPSILON = 1e-2;
@@ -631,7 +633,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createAcDcConverter(AcDcConverter<?> acDcConverter, LfNetwork lfNetwork, LfNetworkParameters parameters) {
+    private static void createAcDcConverters(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkParameters parameters,
+                                             List<AcDcConverter<?>> convertersToSetInVdcMode, double dcNominalV) {
+        for (AcDcConverter<?> acDcConverter : loadingContext.acDcConverterSet) {
+            createAcDcConverter(acDcConverter, lfNetwork, parameters, convertersToSetInVdcMode.contains(acDcConverter) ? Optional.of(dcNominalV) : Optional.empty());
+        }
+    }
+
+    private static void createAcDcConverter(AcDcConverter<?> acDcConverter, LfNetwork lfNetwork, LfNetworkParameters parameters, Optional<Double> vdcOverride) {
 
         if (acDcConverter.getTerminal2().isPresent()) {
             throw new PowsyblException("Open Load Flow does not support AC/DC converters with two AC terminals");
@@ -642,7 +651,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LfDcBus lfDcBus1 = getLfDcBus(acDcConverter.getDcTerminal1(), lfNetwork);
             LfDcBus lfDcBus2 = getLfDcBus(acDcConverter.getDcTerminal2(), lfNetwork);
             if (acDcConverter instanceof VoltageSourceConverter voltageSourceConverter) {
-                LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, lfDcBus1, lfDcBus2, lfBus1, parameters);
+                LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, lfDcBus1, lfDcBus2, lfBus1, parameters, vdcOverride);
 
                 if (voltageSourceConverterImpl.isVoltageRegulatorOn()) {
                     VoltageSourceConverterVoltageControl voltageControl = new VoltageSourceConverterVoltageControl(lfBus1,
@@ -1366,17 +1375,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     throw new PowsyblException("DcSwitch " + s.getId() + " has non zero resistance: not handled yet in AC DC load flow (R = " + s.getR() + ")");
                 });
 
-        // Ensure at least one converter controls V_DC
-        boolean isVdcControlled = false;
-        for (AcDcConverter<?> converter : loadingContext.acDcConverterSet) {
-            if (converter.getControlMode() == AcDcConverter.ControlMode.V_DC) {
-                isVdcControlled = true;
-                break;
-            }
-        }
-        if (!isVdcControlled) {
-            throw new PowsyblException("At least one AC/DC converter control mode must be V_DC in each DC component, but DC component " + numDcc + " does not have any");
-        }
+        // -- Sanity checks : detecting invalid DC configuration and automatically resolving reference-less islands
+        double dcNominalV = dcVoltages.iterator().next();
+        List<AcDcConverter<?>> convertersToSetInVdcMode =
+                DcComponentValidator.resolveDcComponent(dcBuses, loadingContext.acDcConverterSet, numDcc);
+        convertersToSetInVdcMode.forEach(converter -> {
+            LOGGER.info("Network {}: converter '{}' automatically set to V_DC control mode (target Vdc = {} kV) " +
+                            "to settle an otherwise unconstrained DC island in DC component {}",
+                    lfNetwork, converter.getId(), dcNominalV, numDcc);
+            Reports.reportAutomaticVdcReferenceConverter(lfNetwork.getReportNode(), numDcc, converter.getId(), dcNominalV);
+        });
+
+        // Add AC-DC converters to the LfNetwork
+        createAcDcConverters(lfNetwork, loadingContext, parameters, convertersToSetInVdcMode, dcNominalV);
 
         postProcessors.forEach(pp -> pp.onLfNetworkLoaded(network, lfNetwork));
     }
@@ -1396,10 +1407,16 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static Set<GeneratorVoltageControl> findControlZoneGeneratorVoltageControl(Network network, LfNetworkParameters parameters,
-                                                                                       LfNetwork lfNetwork, ControlZone controlZone) {
-        Set<GeneratorVoltageControl> generatorVoltageControls = new LinkedHashSet<>();
+    private record ResolvedSecondaryVoltageControlUnit(ControlUnit controlUnit, boolean participate, GeneratorVoltageControl generatorVoltageControl) {
+    }
+
+    private static List<ResolvedSecondaryVoltageControlUnit> findControlZoneControlUnits(Network network, LfNetworkParameters parameters,
+                                                                                         LfNetwork lfNetwork, ControlZone controlZone) {
+        List<ResolvedSecondaryVoltageControlUnit> controlUnits = new ArrayList<>();
         Set<String> controlUnitsNotFound = new LinkedHashSet<>();
+        Set<String> unsupportedControlUnits = new LinkedHashSet<>();
+        Set<String> controlUnitsWithoutRegulatingTerminal = new LinkedHashSet<>();
+        Set<String> controlUnitsWithRegulatingTerminalOutsideLfNetwork = new LinkedHashSet<>();
         Set<String> controlledBusesOfNotFoundVoltageControls = new LinkedHashSet<>();
         for (ControlUnit controlUnit : controlZone.getControlUnits()) {
             Identifiable<?> identifiable = network.getIdentifiable(controlUnit.getId());
@@ -1408,16 +1425,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 continue;
             }
             if (identifiable.getType() != IdentifiableType.GENERATOR && !HvdcConverterStations.isVsc(identifiable)) {
-                throw new PowsyblException("Control unit '" + controlUnit.getId() + "' of zone '"
-                        + controlZone.getName() + "' is expected to be either a generator or a VSC converter station");
+                unsupportedControlUnits.add(controlUnit.getId());
+                continue;
             }
             Terminal regulatingTerminal = Networks.getEquipmentRegulatingTerminal(identifiable).orElse(null);
             if (regulatingTerminal == null) {
+                controlUnitsWithoutRegulatingTerminal.add(controlUnit.getId());
                 continue;
             }
             LfBus controlledBus = getLfBus(regulatingTerminal, lfNetwork, parameters.isBreakers());
             if (controlledBus == null) {
                 // might happen if controlled bus is not in same component that controller buses
+                controlUnitsWithRegulatingTerminalOutsideLfNetwork.add(controlUnit.getId());
                 continue;
             }
             if (!controlledBus.isGeneratorVoltageControlled()) {
@@ -1427,15 +1446,110 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 continue;
             }
             GeneratorVoltageControl generatorVoltageControl = controlledBus.getGeneratorVoltageControl().orElseThrow();
-            generatorVoltageControls.add(generatorVoltageControl);
+            // a remotely controlling unit has to be moved to local control (see createSecondaryVoltageControls), which
+            // is only accurate if it defines an equivalent local target voltage. A locally controlling one already has
+            // a target voltage for its own bus, so it does not need any.
+            boolean localControl = identifiable instanceof Injection<?> injection
+                    && getLfBus(injection.getTerminal(), lfNetwork, parameters.isBreakers()) == controlledBus;
+            controlUnits.add(new ResolvedSecondaryVoltageControlUnit(controlUnit,
+                    controlUnit.isParticipate() && canParticipateInSecondaryVoltageControl(identifiable, localControl),
+                    generatorVoltageControl));
         }
         LOGGER.debug("{} control units of control zone '{}' have been mapped to {} generator voltage controls (controlled buses: {}, " +
-                "controlled buses without voltage control: {}, control units not found: {})",
-                controlZone.getControlUnits().size(), controlZone.getName(), generatorVoltageControls.size(),
-                generatorVoltageControls.stream().map(VoltageControl::getControlledBus).map(LfElement::getId).toList(),
+                "controlled buses without voltage control: {}, control units not found: {}, unsupported control units: {}, " +
+                "control units without regulating terminal: {}, control units with regulating terminal outside LF network: {})",
+                controlZone.getControlUnits().size(), controlZone.getName(),
+                controlUnits.stream().map(ResolvedSecondaryVoltageControlUnit::generatorVoltageControl).distinct().count(),
+                controlUnits.stream().map(ResolvedSecondaryVoltageControlUnit::generatorVoltageControl).distinct()
+                        .map(VoltageControl::getControlledBus).map(LfElement::getId).toList(),
                 controlledBusesOfNotFoundVoltageControls,
-                controlUnitsNotFound);
-        return generatorVoltageControls;
+                controlUnitsNotFound,
+                unsupportedControlUnits,
+                controlUnitsWithoutRegulatingTerminal,
+                controlUnitsWithRegulatingTerminalOutsideLfNetwork);
+        return controlUnits;
+    }
+
+    private static boolean canParticipateInSecondaryVoltageControl(Identifiable<?> identifiable, boolean localControl) {
+        return hasSecondaryVoltageControlReactiveRange(identifiable)
+                && (localControl || hasValidSecondaryVoltageControlTarget(identifiable));
+    }
+
+    private static boolean hasValidSecondaryVoltageControlTarget(Identifiable<?> identifiable) {
+        if (identifiable instanceof Generator generator) {
+            return isValidSecondaryVoltageControlTarget(generator.getEquivalentLocalTargetV());
+        }
+        if (identifiable instanceof VscConverterStation vsc) {
+            return isValidSecondaryVoltageControlTarget(vsc.getVoltageSetpoint());
+        }
+        return false;
+    }
+
+    private static boolean isValidSecondaryVoltageControlTarget(double targetV) {
+        return !Double.isNaN(targetV) && !Double.isInfinite(targetV) && targetV > 0.0;
+    }
+
+    private static boolean hasSecondaryVoltageControlReactiveRange(Identifiable<?> identifiable) {
+        if (!(identifiable instanceof ReactiveLimitsHolder holder)) {
+            return true;
+        }
+        ReactiveLimits limits = holder.getReactiveLimits();
+        if (limits == null) {
+            return true;
+        }
+        double p = 0.0;
+        if (identifiable instanceof Generator generator) {
+            p = generator.getTargetP();
+        }
+        return limits.getMaxQ(p) - limits.getMinQ(p) >= MIN_SECONDARY_VOLTAGE_CONTROL_REACTIVE_RANGE_MVAR;
+    }
+
+    /**
+     * A generator voltage control of a secondary voltage control zone is moved from remote to local control (see
+     * {@link #createSecondaryVoltageControls}). When its generators do not all define an equivalent local target
+     * voltage, their target voltage would have to be rescaled to the controller bus nominal voltage, which is not
+     * accurate enough. In that case:
+     * <ul>
+     *     <li>a shared remote voltage control is discarded from the zone, as keeping it cannot work: a unique
+     *         controlled bus cannot help to align reactive power of the controller buses generators</li>
+     *     <li>otherwise remote control is kept</li>
+     * </ul>
+     */
+    private static List<GeneratorVoltageControl> toLocalVoltageControlsForSecondaryVoltageControl(GeneratorVoltageControl generatorVoltageControl,
+                                                                                                  ControlZone controlZone) {
+        if (generatorVoltageControl.isLocalControl()) {
+            return List.of(generatorVoltageControl);
+        }
+        List<AbstractLfGenerator> generators = generatorVoltageControl.getMergedControllerElements().stream()
+                .flatMap(controllerBus -> controllerBus.getGenerators().stream())
+                .filter(generator -> generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)
+                .filter(AbstractLfGenerator.class::isInstance)
+                .map(AbstractLfGenerator.class::cast)
+                .toList();
+        List<String> generatorsWithoutEquivalentLocalTargetV = generators.stream()
+                .filter(generator -> !generator.hasEquivalentLocalTargetV())
+                .map(LfGenerator::getId)
+                .toList();
+        if (!generatorsWithoutEquivalentLocalTargetV.isEmpty()) {
+            if (generatorVoltageControl.getMergedControllerElements().size() > 1) {
+                LOGGER.warn("Shared remote voltage control of controlled bus {} cannot be moved to local control for secondary voltage control of zone '{}' " +
+                        "because generators {} have no equivalent local target voltage: control units are discarded from the zone " +
+                        "as a unique controlled bus cannot help to align their reactive power",
+                        generatorVoltageControl.getControlledBus().getId(), controlZone.getName(), generatorsWithoutEquivalentLocalTargetV);
+                return List.of();
+            }
+            LOGGER.warn("Remote voltage control of controlled bus {} cannot be moved to local control for secondary voltage control of zone '{}' " +
+                    "because generators {} have no equivalent local target voltage: remote control is kept",
+                    generatorVoltageControl.getControlledBus().getId(), controlZone.getName(), generatorsWithoutEquivalentLocalTargetV);
+            return List.of(generatorVoltageControl);
+        }
+        // switch each generator to its equivalent local target voltage, then split the control per controller bus
+        generators.forEach(AbstractLfGenerator::switchToLocalVoltageControl);
+        return generatorVoltageControl.toLocalVoltageControls(controllerBus -> controllerBus.getGenerators().stream()
+                .filter(generator -> generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)
+                .mapToDouble(LfGenerator::getTargetV)
+                .findFirst()
+                .orElseThrow());
     }
 
     private static void createSecondaryVoltageControls(Network network, LfNetworkParameters parameters, LfNetwork lfNetwork) {
@@ -1465,26 +1579,60 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         LfBus lfPilotBus = lfNetwork.getBusById(pilotBus.getId());
         if (lfPilotBus != null) { // could be in another LfNetwork (another component)
             double targetV = pilotPoint.getTargetV() / lfPilotBus.getNominalV();
-            // filter missing control units and find corresponding primary voltage control, controlled bus
-            Set<GeneratorVoltageControl> generatorVoltageControls = findControlZoneGeneratorVoltageControl(network, parameters, lfNetwork, controlZone);
-            if (!generatorVoltageControls.isEmpty()) {
+            // filter missing/unsupported control units and find corresponding primary voltage controls
+            List<ResolvedSecondaryVoltageControlUnit> controlUnits = findControlZoneControlUnits(network, parameters, lfNetwork, controlZone);
+            if (!controlUnits.isEmpty()) {
                 // remove remote control for generators that belongs to a secondary voltage control zone because
                 // - it does not make sens to mix generator remote control plus pilot point remote control
                 // - it cannot work in case of generator shared voltage control (no way to align K of generators
                 //   for a given shared voltage control as a unique controlled bus cannot help to align reactive
                 //   power of generators)
-                Set<GeneratorVoltageControl> splitGeneratorVoltageControls = generatorVoltageControls.stream()
-                    .flatMap(vc -> vc.toLocalVoltageControls().stream())
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
-
-                Set<String> participatingControlUnitIds = controlZone.getControlUnits().stream()
-                    .filter(ControlUnit::isParticipate)
-                    .map(ControlUnit::getId).collect(Collectors.toSet());
+                Map<GeneratorVoltageControl, List<GeneratorVoltageControl>> splitGeneratorVoltageControlsByOriginalControl = controlUnits.stream()
+                        .map(ResolvedSecondaryVoltageControlUnit::generatorVoltageControl)
+                        .distinct()
+                        .collect(Collectors.toMap(vc -> vc, vc -> toLocalVoltageControlsForSecondaryVoltageControl(vc, controlZone)));
+                List<LfSecondaryVoltageControl.ControlUnit> lfControlUnits = createLfSecondaryVoltageControlUnits(controlZone,
+                        controlUnits, splitGeneratorVoltageControlsByOriginalControl);
                 var lfSvc = new LfSecondaryVoltageControl(controlZone.getName(), lfPilotBus, targetV,
-                    participatingControlUnitIds, splitGeneratorVoltageControls);
-                lfNetwork.addSecondaryVoltageControl(lfSvc);
+                        lfControlUnits);
+                if (!lfControlUnits.isEmpty()) {
+                    lfNetwork.addSecondaryVoltageControl(lfSvc);
+                }
             }
         }
+    }
+
+    private static List<LfSecondaryVoltageControl.ControlUnit> createLfSecondaryVoltageControlUnits(
+            ControlZone controlZone,
+            List<ResolvedSecondaryVoltageControlUnit> controlUnits,
+            Map<GeneratorVoltageControl, List<GeneratorVoltageControl>> splitGeneratorVoltageControlsByOriginalControl) {
+        List<LfSecondaryVoltageControl.ControlUnit> lfControlUnits = new ArrayList<>(controlUnits.size());
+        Set<String> controlUnitsWithoutControllerBus = new LinkedHashSet<>();
+        for (ResolvedSecondaryVoltageControlUnit controlUnit : controlUnits) {
+            List<GeneratorVoltageControl> splitGeneratorVoltageControls = splitGeneratorVoltageControlsByOriginalControl.get(controlUnit.generatorVoltageControl());
+            GeneratorVoltageControl splitGeneratorVoltageControl = findSplitGeneratorVoltageControl(controlUnit.controlUnit().getId(),
+                    splitGeneratorVoltageControls).orElse(null);
+            if (splitGeneratorVoltageControl == null) {
+                controlUnitsWithoutControllerBus.add(controlUnit.controlUnit().getId());
+                continue;
+            }
+            lfControlUnits.add(new LfSecondaryVoltageControl.ControlUnit(controlUnit.controlUnit().getId(),
+                    controlUnit.participate(), splitGeneratorVoltageControl));
+        }
+        if (!controlUnitsWithoutControllerBus.isEmpty()) {
+            LOGGER.debug("Control units {} of control zone '{}' have been discarded because they are not controller buses of a generator voltage control",
+                    controlUnitsWithoutControllerBus, controlZone.getName());
+        }
+        return lfControlUnits;
+    }
+
+    private static Optional<GeneratorVoltageControl> findSplitGeneratorVoltageControl(String controlUnitId, List<GeneratorVoltageControl> generatorVoltageControls) {
+        return generatorVoltageControls.stream()
+                .filter(generatorVoltageControl -> generatorVoltageControl.getMergedControllerElements().stream()
+                        .flatMap(controllerBus -> controllerBus.getGenerators().stream())
+                        .anyMatch(generator -> generator.getId().equals(controlUnitId)
+                                && generator.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE))
+                .findFirst();
     }
 
     private static Optional<Bus> findPilotBus(Network network, boolean breaker, List<String> busbarSectionsOrBusesId) {
@@ -1676,7 +1824,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     )
             );
 
-            // Create DC networks
+            // Create DC networks and add AC-DC converters
             filteredDcBusesByComponentStream.forEach(e ->
                     addDcComponentElements(
                             e.getKey().getLeft(),
@@ -1688,20 +1836,6 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     )
             );
 
-            // Add AC-DC converters
-            for (AcDcConverter<?> converter : network.getVoltageSourceConverters()) {
-                DcBus dcBus = converter.getDcTerminal1().getDcBus();
-                if (dcBus != null && dcBus.getConnectedComponent() != null) {
-                    int numCc = dcBus.getConnectedComponent().getNum();
-
-                    if (lfNetworkByCc.containsKey(numCc)) {
-                        createAcDcConverter(converter, lfNetworkByCc.get(numCc), parameters);
-                    } else {
-                        // Should not happen
-                        throw new PowsyblException("Found AC-DC converter in a connected component without AC buses");
-                    }
-                }
-            }
             if (network.getLineCommutatedConverterCount() > 0) {
                 throw new PowsyblException("Open Load Flow does not currently support LCC converters");
             }

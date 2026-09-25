@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -955,7 +956,7 @@ public final class Reports {
     public static ReportNode createPostContingencySimulation(ReportNode reportNode, String contingencyId) {
         return reportNode.newReportNode()
                 .withMessageTemplate(POST_CONTINGENCY_SIMULATION_KEY)
-                .withUntypedValue(CONTINGENCY_ID, contingencyId)
+                .withUntypedValue(CONTINGENCY_ID, Objects.toString(contingencyId))
                 .add();
     }
 
@@ -1148,6 +1149,16 @@ public final class Reports {
                 .withUntypedValue("slackBus", slackBus)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add());
+    }
+
+    public static void reportAutomaticVdcReferenceConverter(ReportNode reportNode, int dcComponentNum, String converterId, double targetVdc) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.automaticVdcReferenceConverter")
+                .withUntypedValue("dcComponentNum", dcComponentNum)
+                .withUntypedValue("converterId", converterId)
+                .withUntypedValue("targetVdc", targetVdc)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
     }
 
     public static void reportAcEmulationDisabledInWoodburyDcSecurityAnalysis(ReportNode reportNode) {
