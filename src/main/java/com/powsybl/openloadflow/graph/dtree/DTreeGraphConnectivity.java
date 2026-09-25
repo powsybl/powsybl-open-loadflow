@@ -106,16 +106,7 @@ public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnecti
 
     @Override
     public void startTemporaryChanges(boolean computeComparisons) {
-        DTNode<V, E> mainComponentNode;
-        boolean fictitious = false;
-        if (defaultMainComponentVertex == null) {
-            mainComponentNode = graph.getBiggestRoot();
-            fictitious = true;
-        } else {
-            mainComponentNode = graph.getNodeOrThrow(defaultMainComponentVertex);
-        }
-
-        modificationsStack.push(new Modifications<>(graph, mainComponentNode, fictitious, computeComparisons));
+        modificationsStack.push(new Modifications<>(graph, defaultMainComponentVertex, computeComparisons));
         graph.setCurrentModificationsContext(modificationsStack.peek());
     }
 
@@ -173,8 +164,9 @@ public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnecti
     @Override
     public Set<V> getLargestConnectedComponent() {
         checkSavedContext();
+
         if (components == null) {
-            return graph.getBiggestRoot().componentView();
+            return getGraph().getBiggestRoot().componentView();
         } else {
             return components.getFirst();
         }
