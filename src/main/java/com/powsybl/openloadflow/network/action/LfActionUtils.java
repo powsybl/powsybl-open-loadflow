@@ -53,7 +53,7 @@ public final class LfActionUtils {
             case AreaInterchangeTargetAction.NAME ->
                 new LfAreaInterchangeTargetAction((AreaInterchangeTargetAction) action, lfNetwork);
             case BoundaryLineAction.NAME ->
-                new LfBoundaryLineAction((BoundaryLineAction) action, lfNetwork);
+                new LfBoundaryLineAction((BoundaryLineAction) action, network, lfNetwork);
             default -> throw new UnsupportedOperationException("Unsupported action type: " + action.getType());
         };
     }
