@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * @author Alice Caron {@literal <alice.caron at rte-france.com>}
+ * @author Alexandre LE JEAN {@literal <alexandre.le-jean@artelys.com>}
  */
 public class LfBoundaryLineAction extends AbstractLfAction<BoundaryLineAction> {
 
@@ -15,31 +16,32 @@ public class LfBoundaryLineAction extends AbstractLfAction<BoundaryLineAction> {
 
     private final String boundaryLineId;
     private final LfBranch lfBranch;
+    private final LfLoad lfBoundaryLoad;
 
     public LfBoundaryLineAction(BoundaryLineAction action, LfNetwork lfNetwork) {
         super(action);
         boundaryLineId = action.getBoundaryLineId();
         lfBranch = lfNetwork.getBranchById(action.getBoundaryLineId());
+        lfBoundaryLoad = lfBranch != null ? lfBranch.getBus2().getLoads().stream().findFirst().orElse(null) : null;
     }
 
     @Override
     public boolean isValid() {
-        return lfBranch != null;
+        return lfBranch != null && LfBranch.BranchType.BOUNDARY_LINE == lfBranch.getBranchType();
     }
 
     @Override
     public boolean apply(LfNetwork lfNetwork, LfContingency lfContingency, LfNetworkParameters lfNetworkParameters) {
         if (!isValid()) {
-            LOGGER.warn("Boundary line action {}: branch matching boundary line id {} not found", action.getId(), boundaryLineId);
+            if(lfBranch == null) {
+                LOGGER.warn("Boundary line action {}: branch matching boundary line id {} not found", action.getId(), boundaryLineId);
+            }
+            else if (LfBranch.BranchType.BOUNDARY_LINE != lfBranch.getBranchType()) {
+                LOGGER.warn("Boundary line action {}: branch matching boundary line id {} is not a boundary line", action.getId(), boundaryLineId);
+            }
             return false;
         }
-        if (!lfBranch.getBranchType().equals(LfBranch.BranchType.BOUNDARY_LINE)) {
-            LOGGER.warn("Boundary line action {}: branch matching boundary line id {} is not a boundary line", action.getId(), boundaryLineId);
-            return false;
-        }
-
-        LfLoad boundaryActionLoad = lfBranch.getBus2().getLoads().stream().findFirst().orElse(null);
-        if (boundaryActionLoad == null) {
+        if (lfBoundaryLoad == null) {
             // No load on this boundary line: nothing to do
             return true;
         }
