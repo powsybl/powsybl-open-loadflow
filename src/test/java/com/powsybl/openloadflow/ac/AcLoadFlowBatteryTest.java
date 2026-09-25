@@ -11,7 +11,7 @@ import com.powsybl.iidm.network.Battery;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.extensions.VoltageRegulationAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.BatteryNetworkFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -68,10 +68,12 @@ class AcLoadFlowBatteryTest {
 
     @Test
     void test() {
-        battery2.newExtension(VoltageRegulationAdder.class)
-                .withTargetV(401)
-                .withVoltageRegulatorOn(false)
-                .add();
+        battery2.newVoltageRegulation()
+            .withTerminal(battery2.getTerminal())
+            .withTargetValue(401)
+            .withMode(RegulationMode.VOLTAGE)
+            .withRegulating(false)
+            .build();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
@@ -84,10 +86,8 @@ class AcLoadFlowBatteryTest {
     @Test
     void testWithVoltageControl() {
         generator.setVoltageRegulatorOn(false);
-        battery2.newExtension(VoltageRegulationAdder.class)
-                .withTargetV(401)
-                .withVoltageRegulatorOn(true)
-                .add();
+        battery2.setLocalTargetV(401);
+        battery2.newVoltageRegulation().withMode(RegulationMode.VOLTAGE).build();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
