@@ -188,11 +188,17 @@ public class WoodburyEngine {
      */
     private double getAlphaRhsValue(DenseMatrix states, ClosedBranchSide1DcFlowEquationTerm p1, int columnState, ComputedElement computedElement) {
         double newAlpha = 0;
-        // enabling of transformers is not yet supported
         if (computedElement instanceof ComputedTapPositionChangeElement computedTapPositionChangeElement) {
             TapPositionChange tapPositionChange = computedTapPositionChangeElement.getTapPositionChange();
             PiModel newPiModel = tapPositionChange.getNewPiModel();
             newAlpha = newPiModel.getA1();
+        } else if (computedElement instanceof ComputedSwitchBranchElement switchElement && switchElement.isEnabled()
+                && switchElement.getLfBranch().isDisabled()) {
+            // when closing a branch that is currently disabled (absent from the base flow states), and if it is a phase
+            // shifting transformer, its phase shift must be injected the same way a tap position change injects the new
+            // phase shift. When the branch is already enabled in the base flow states (e.g. in fast DC sensitivity
+            // analysis), its phase shift is already accounted for and must not be added again.
+            newAlpha = switchElement.getLfBranch().getPiModel().getA1();
         }
         return states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha;
     }

@@ -28,7 +28,14 @@ public abstract class AbstractHvdcAcEmulationLimitsOuterLoop<V extends Enum<V> &
         C extends LoadFlowContext<V, E, P>,
         O extends OuterLoopContext<V, E, P, C>> implements OuterLoop<V, E, P, C, O> {
 
+    public static final String NAME = "HvdcAcEmulationLimits";
+
     protected AbstractHvdcAcEmulationLimitsOuterLoop() { }
+
+    @Override
+    public String getName() {
+        return NAME;
+    }
 
     protected static boolean checkAcEmulationMode(LfHvdc hvdc, boolean computeLoss, Logger logger, ReportNode reportNode) {
         LfHvdc.AcEmulationControl acEmulationControl = hvdc.getAcEmulationControl();

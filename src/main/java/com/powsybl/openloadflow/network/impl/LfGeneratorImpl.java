@@ -258,6 +258,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
+    public boolean hasEquivalentLocalTargetV() {
+        return !Double.isNaN(generatorRef.get().getEquivalentLocalTargetV());
+    }
+
+    @Override
     public boolean switchToLocalVoltageControl() {
         super.switchToLocalVoltageControl();
         if (!Double.isNaN(generatorRef.get().getEquivalentLocalTargetV())) {
