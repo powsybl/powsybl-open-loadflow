@@ -53,9 +53,9 @@ class AcLoadFlowBatteryTest {
         genBus = network.getBusBreakerView().getBus("NGEN");
         batBus = network.getBusBreakerView().getBus("NBAT");
         generator = network.getGenerator("GEN");
-        generator.setMinP(0).setMaxP(1000).setTargetV(401.);
+        generator.setMinP(0).setMaxP(1000).getVoltageRegulation().setTargetValue(401.);
         battery1 = network.getBattery("BAT");
-        battery1.setMinP(-1000).setMaxP(1000).setTargetQ(0).setTargetP(0);
+        battery1.setMinP(-1000).setMaxP(1000).setLocalTargetQ(0).setTargetP(0);
         battery2 = network.getBattery("BAT2");
         battery2.setMinP(-1000).setTargetP(-1000).setMaxP(1000);
 
@@ -85,7 +85,7 @@ class AcLoadFlowBatteryTest {
 
     @Test
     void testWithVoltageControl() {
-        generator.setVoltageRegulatorOn(false);
+        generator.getVoltageRegulation().setRegulating(false);
         battery2.setLocalTargetV(401);
         battery2.newVoltageRegulation().withMode(RegulationMode.VOLTAGE).build();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);

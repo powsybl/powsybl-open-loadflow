@@ -116,9 +116,9 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
         };
 
         if (svc.isRegulating()) {
-            switch (svc.getRegulationMode()) {
+            switch (svc.getVoltageRegulation().getMode()) {
                 case VOLTAGE, VOLTAGE_PER_REACTIVE_POWER -> setupVoltageControl(svc, parameters, report);
-                case REACTIVE_POWER -> targetQ = -svc.getReactivePowerSetpoint() / PerUnit.SB;
+                case REACTIVE_POWER -> targetQ = -svc.getRegulatingTargetQ() / PerUnit.SB;
             }
         } else {
             targetQ = 0;
@@ -126,7 +126,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     }
 
     private void setupVoltageControl(StaticVarCompensator svc, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        setVoltageControl(svc.getVoltageSetpoint(), svc.getTerminal(), svc.getRegulatingTerminal(), parameters, report);
+        setVoltageControl(svc.getRegulatingTargetV(), svc.getTerminal(), svc.getRegulatingTerminal(), parameters, report);
 
         // slope model: check if to be applied based on 1/ option and 2/ the regulation mode
         boolean svcWithVoltagePerReactivePowerControl = parameters.isVoltagePerReactivePowerControl()
