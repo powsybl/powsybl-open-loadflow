@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -38,10 +39,13 @@ public final class ShuntNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(101.3664)
-                .setTargetV(390)
+                .setLocalTargetV(390)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
         VoltageLevel vl2 = s2.newVoltageLevel()
                 .setId("vl2")
@@ -71,9 +75,12 @@ public final class ShuntNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setBus("b3")
                 .setConnectableBus("b3")
                 .setSectionCount(0)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(393)
-                .setTargetDeadband(5.0)
+                .setLocalTargetV(393)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withTargetDeadband(5.0)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .newNonLinearModel()
                 .beginSection()
                 .setB(1e-3)
@@ -110,9 +117,12 @@ public final class ShuntNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setBus("b3")
                 .setConnectableBus("b3")
                 .setSectionCount(0)
-                .setVoltageRegulatorOn(false)
-                .setTargetV(393)
-                .setTargetDeadband(5.0)
+                .setLocalTargetV(393)
+                .newVoltageRegulation()
+                    .withRegulating(false)
+                    .withTargetDeadband(5.0)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .newNonLinearModel()
                 .beginSection()
                 .setB(1e-3)
@@ -135,10 +145,13 @@ public final class ShuntNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b3")
                 .setBus("b3")
                 .setTargetP(0)
-                .setTargetV(393)
+                .setLocalTargetV(393)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
         return network;
     }
@@ -153,9 +166,12 @@ public final class ShuntNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setBus("b4")
                 .setConnectableBus("b4")
                 .setSectionCount(0)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(393)
-                .setTargetDeadband(2.0)
+                .setLocalTargetV(393)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withTargetDeadband(2.0)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .newNonLinearModel()
                 .beginSection()
                 .setB(1e-3)
@@ -207,14 +223,20 @@ public final class ShuntNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b5, "l25", 5.);
         createFixedShuntCompensator(b4, "s4", 0., 1e-4, 20)
                 .setSectionCount(0)
-                .setTargetV(410.)
-                .setTargetDeadband(2.)
-                .setVoltageRegulatorOn(true);
+                .setLocalTargetV(410.)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withTargetDeadband(2.0)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .build();
         createFixedShuntCompensator(b5, "s5", 0., 1e-4, 20)
                 .setSectionCount(0)
-                .setTargetV(410.)
-                .setTargetDeadband(2.)
-                .setVoltageRegulatorOn(true);
+                .setLocalTargetV(410.)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withTargetDeadband(2.0)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .build();
         return network;
     }
 }
