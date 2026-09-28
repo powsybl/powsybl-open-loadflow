@@ -500,6 +500,16 @@ The default value is `false`.
 ### actionableSwitchesIds
 This parameter list is used if [`networkCachedEnabled`](#networkcacheenabled) is activated. It defines a list of switches that might be modified (as an array, or as a comma or semicolon separated string). When one of the switches changes its status (open/close) and a load flow is run just after, the cache will be used to a faster resolution. Note that in the implementation, all the switches of that list will be considered as retained, leading to a size increase of the Jacobian matrix. The list should have a reasonable size, otherwise the simulation without cache use should be preferred.
 
+(param-lf-network-variant-pool-size)=
+### networkVariantPoolSize
+This parameter is used by the DC sensitivity analysis if [`networkCacheEnabled`](#networkcacheenabled) is activated. When the cache is built with topological actions (switch or terminals connection actions), Open Load Flow needs a temporary network variant, cloned from the working variant, to keep the elements that may be reconnected. Instead of creating and removing a variant on each computation, those temporary variants are taken from a pool, created on first use for each network, and given back to the pool when the corresponding cache entry is evicted. This parameter defines the number of temporary variants of that pool. It must be strictly positive and should be at least the number of cache entries that may be simultaneously alive for a same network (for instance the number of concurrent computations), otherwise an exception is thrown when the pool is exhausted.<br>
+The default value is `20`.
+
+(param-lf-network-cache-scope)=
+### networkCacheScope
+This parameter is used if [`networkCacheEnabled`](#networkcacheenabled) is activated. By default, the cache holds a single entry per network and working variant. This parameter allows to partition the cache: entries are then looked up by network, working variant and scope, so several independent cache entries can coexist for a same network and variant. This is mandatory when running concurrent computations on a same network and variant, each thread having to use its own scope, otherwise they would share a single entry, hence a single mutable internal network.<br>
+The default value is undefined (`null`), meaning a single entry per network and variant.
+
 (param-lf-always-update-network)=
 ### alwaysUpdateNetwork
 Update the IIDM network state even in case of non-convergence.<br>
@@ -575,18 +585,20 @@ and then the `DistributedSlack` outerloop.
 
 For AC load flow the supported outer loop names, their default execution order, and their corresponding high-level parameter, are:
 1. `DistributedSlack` / `AreaInterchangeControl` (parameters: [`distributedSlack`](inv:powsyblcore:*:*:#param-lf-distributed-slack) / [`areaInterchangeControl`](#areainterchangecontrol))
-2. `SecondaryVoltageControl` (parameter: [`secondaryVoltageControl`](#secondaryvoltagecontrol))
-3. `VoltageMonitoring` (parameter: [`svcVoltageMonitoring`](#svcvoltagemonitoring))
-4. `ReactiveLimits` (parameter: [`useReactiveLimits`](inv:powsyblcore:*:*:#param-lf-use-reactive-limits))
-5. `PhaseControl` / `IncrementalPhaseControl` (parameters: [`phaseShifterRegulationOn`](inv:powsyblcore:*:*:#param-lf-phase-shifter-regulation-on) and [`phaseShifterControlMode`](#phaseshiftercontrolmode))
-6. `SimpleTransformerVoltageControl` / `TransformerVoltageControl` / `IncrementalTransformerVoltageControl` (parameters: [`transformerVoltageControlOn`](inv:powsyblcore:*:*:#param-lf-transformer-voltage-control-on) and [`transformerVoltageControlMode`](#transformervoltagecontrolmode))
-7. `IncrementalTransformerReactivePowerControl` (parameter: [`transformerReactivePowerControl`](#transformerreactivepowercontrol))
-8. `ShuntVoltageControl` / `IncrementalShuntVoltageControl` (parameters: [`shuntCompensatorVoltageControlOn`](inv:powsyblcore:*:*:#param-lf-shunt-compensator-voltage-control-on) and [`shuntVoltageControlMode`](#shuntvoltagecontrolmode))
-9. `AutomationSystem` (parameter: [`simulateAutomationSystems`](#simulateautomationsystems))
+2. `HvdcAcEmulationLimits` (parameter: [`hvdcAcEmulation`](inv:powsyblcore:*:*:#param-lf-hvdc-ac-emulation))
+3. `SecondaryVoltageControl` (parameter: [`secondaryVoltageControl`](#secondaryvoltagecontrol))
+4. `VoltageMonitoring` (parameter: [`svcVoltageMonitoring`](#svcvoltagemonitoring))
+5. `ReactiveLimits` (parameter: [`useReactiveLimits`](inv:powsyblcore:*:*:#param-lf-use-reactive-limits))
+6. `PhaseControl` / `IncrementalPhaseControl` (parameters: [`phaseShifterRegulationOn`](inv:powsyblcore:*:*:#param-lf-phase-shifter-regulation-on) and [`phaseShifterControlMode`](#phaseshiftercontrolmode))
+7. `SimpleTransformerVoltageControl` / `TransformerVoltageControl` / `IncrementalTransformerVoltageControl` (parameters: [`transformerVoltageControlOn`](inv:powsyblcore:*:*:#param-lf-transformer-voltage-control-on) and [`transformerVoltageControlMode`](#transformervoltagecontrolmode))
+8. `IncrementalTransformerReactivePowerControl` (parameter: [`transformerReactivePowerControl`](#transformerreactivepowercontrol))
+9. `ShuntVoltageControl` / `IncrementalShuntVoltageControl` (parameters: [`shuntCompensatorVoltageControlOn`](inv:powsyblcore:*:*:#param-lf-shunt-compensator-voltage-control-on) and [`shuntVoltageControlMode`](#shuntvoltagecontrolmode))
+10. `AutomationSystem` (parameter: [`simulateAutomationSystems`](#simulateautomationsystems))
 
 And for DC load flow:
-1. `IncrementalPhaseControl` (parameter: [`phaseShifterRegulationOn`](inv:powsyblcore:*:*:#param-lf-phase-shifter-regulation-on))
-2. `AreaInterchangeControl` (parameter: [`areaInterchangeControl`](#areainterchangecontrol))
+1. `HvdcAcEmulationLimits` (parameter: [`hvdcAcEmulation`](inv:powsyblcore:*:*:#param-lf-hvdc-ac-emulation))
+2. `IncrementalPhaseControl` (parameter: [`phaseShifterRegulationOn`](inv:powsyblcore:*:*:#param-lf-phase-shifter-regulation-on))
+3. `AreaInterchangeControl` (parameter: [`areaInterchangeControl`](#areainterchangecontrol))
 
 (param-lf-line-per-unit-mode)=
 ### linePerUnitMode
