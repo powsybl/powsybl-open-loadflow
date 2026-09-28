@@ -55,6 +55,25 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+    public static Network createWithTwoRadialBusesReconnectableByOneBranchEach() {
+        Network network = create();
+        Bus b3 = network.getBusBreakerView().getBus("b3");
+        Bus b4 = network.getBusBreakerView().getBus("b4");
+        Bus b5 = createBus(network, "b5");
+        createGenerator(b5, "g5", 1);
+        createLoad(b5, "d5", 1);
+        Bus b6 = createBus(network, "b6");
+        createGenerator(b6, "g6", 1);
+        createLoad(b6, "d6", 1);
+        Line l35 = createLine(network, b3, b5, "l35", 0.1f);
+        Line l46 = createLine(network, b4, b6, "l46", 0.1f);
+        l35.getTerminal1().disconnect();
+        l35.getTerminal2().disconnect();
+        l46.getTerminal1().disconnect();
+        l46.getTerminal2().disconnect();
+        return network;
+    }
+
     public static Network createWithPhaseTapChanger() {
         Network network = Network.create("test", "code");
         Bus b1 = createBus(network, "b1");
