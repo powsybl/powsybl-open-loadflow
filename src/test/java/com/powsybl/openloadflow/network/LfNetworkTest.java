@@ -23,7 +23,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.sa.LimitReductionManager;
+import com.powsybl.openloadflow.sa.LimitScalingManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.EvaluableConstants;
 import org.apache.commons.lang3.Range;
@@ -366,48 +366,48 @@ class LfNetworkTest extends AbstractSerDeTest {
     }
 
     @Test
-    void testLimitReductions() {
+    void testLimitScalings() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedCurrentLimits());
         // NHV1_NHV2_1 : side 1 PATL 500, side 2 PATL 1100, 1200 for 600s and 1500 for 60s then above 0s
         // NHV1_NHV2_2 : side 1 PATL 1100, 1200 for 1200s then above 60s, side 2 PATL 500
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
-        LimitReductionManager.TerminalLimitReduction terminalLimitReduction1 =
-                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), true, null, 0.5);
-        LimitReductionManager.TerminalLimitReduction terminalLimitReduction2 =
-                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(0, 60), 0.9);
-        LimitReductionManager.TerminalLimitReduction terminalLimitReduction3 =
-                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(600, 1200), 0.8);
-        LimitReductionManager limitReductionManager = new LimitReductionManager();
-        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction1);
-        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction2);
-        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction3);
+        LimitScalingManager.TerminalLimitScaling terminalLimitScaling1 =
+                new LimitScalingManager.TerminalLimitScaling(Range.of(300., 500.), true, null, 0.5);
+        LimitScalingManager.TerminalLimitScaling terminalLimitScaling2 =
+                new LimitScalingManager.TerminalLimitScaling(Range.of(300., 500.), false, Range.of(0, 60), 0.9);
+        LimitScalingManager.TerminalLimitScaling terminalLimitScaling3 =
+                new LimitScalingManager.TerminalLimitScaling(Range.of(300., 500.), false, Range.of(600, 1200), 0.8);
+        LimitScalingManager limitScalingManager = new LimitScalingManager();
+        limitScalingManager.addTerminalLimitScaling(terminalLimitScaling1);
+        limitScalingManager.addTerminalLimitScaling(terminalLimitScaling2);
+        limitScalingManager.addTerminalLimitScaling(terminalLimitScaling3);
 
         LfBranch lfBranch = lfNetworks.get(0).getBranchById("NHV1_NHV2_1");
         Branch<?> branch = network.getBranch("NHV1_NHV2_1");
-        double[] reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager, branch.getNullableCurrentLimits1());
-        assertEquals(1, reductions.length);
-        assertEquals(0.5, reductions[0], 0.001); // PATL
-        reductions = lfBranch.getLimitReductions(TwoSides.TWO, limitReductionManager, branch.getNullableCurrentLimits2());
-        assertEquals(4, reductions.length);
-        assertEquals(0.5, reductions[0], 0.001); // PATL
-        assertEquals(0.8, reductions[1], 0.001); // TATL 600s
-        assertEquals(0.9, reductions[2], 0.001); // TATL 60s
-        assertEquals(0.9, reductions[3], 0.001); // TATL 0s
+        double[] scalings = lfBranch.getLimitScalings(TwoSides.ONE, limitScalingManager, branch.getNullableCurrentLimits1());
+        assertEquals(1, scalings.length);
+        assertEquals(0.5, scalings[0], 0.001); // PATL
+        scalings = lfBranch.getLimitScalings(TwoSides.TWO, limitScalingManager, branch.getNullableCurrentLimits2());
+        assertEquals(4, scalings.length);
+        assertEquals(0.5, scalings[0], 0.001); // PATL
+        assertEquals(0.8, scalings[1], 0.001); // TATL 600s
+        assertEquals(0.9, scalings[2], 0.001); // TATL 60s
+        assertEquals(0.9, scalings[3], 0.001); // TATL 0s
 
         lfBranch = lfNetworks.get(0).getBranchById("NHV1_NHV2_2");
         branch = network.getBranch("NHV1_NHV2_2");
-        reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager, branch.getNullableCurrentLimits1());
-        assertEquals(3, reductions.length);
-        assertEquals(0.5, reductions[0], 0.001); // PATL
-        assertEquals(0.8, reductions[1], 0.001); // TATL 1200s
-        assertEquals(0.9, reductions[2], 0.001); // TATL 60s
-        reductions = lfBranch.getLimitReductions(TwoSides.TWO, limitReductionManager, branch.getNullableCurrentLimits2());
-        assertEquals(1, reductions.length);
-        assertEquals(0.5, reductions[0], 0.001); // PATL
+        scalings = lfBranch.getLimitScalings(TwoSides.ONE, limitScalingManager, branch.getNullableCurrentLimits1());
+        assertEquals(3, scalings.length);
+        assertEquals(0.5, scalings[0], 0.001); // PATL
+        assertEquals(0.8, scalings[1], 0.001); // TATL 1200s
+        assertEquals(0.9, scalings[2], 0.001); // TATL 60s
+        scalings = lfBranch.getLimitScalings(TwoSides.TWO, limitScalingManager, branch.getNullableCurrentLimits2());
+        assertEquals(1, scalings.length);
+        assertEquals(0.5, scalings[0], 0.001); // PATL
     }
 
     @Test
-    void testNoLimitReductionsApplies() {
+    void testNoLimitScalingsApplies() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedCurrentLimits());
         // NHV1_NHV2_1 : side 1 PATL 500, side 2 PATL 1100, 1200 for 600s and 1500 for 60s then above 0s
         // NHV1_NHV2_2 : side 1 PATL 1100, 1200 for 1200s then above 60s, side 2 PATL 500
@@ -415,85 +415,85 @@ class LfNetworkTest extends AbstractSerDeTest {
         LfBranch lfBranch = lfNetworks.get(0).getBranchById("NHV1_NHV2_2");
         Branch<?> branch = network.getBranch("NHV1_NHV2_2");
 
-        // No reductions because the LimitReductionManager is null
-        double[] reductions = lfBranch.getLimitReductions(TwoSides.ONE, null, branch.getNullableCurrentLimits1());
-        assertEquals(0, reductions.length);
+        // No scalings because the LimitScalingManager is null
+        double[] scalings = lfBranch.getLimitScalings(TwoSides.ONE, null, branch.getNullableCurrentLimits1());
+        assertEquals(0, scalings.length);
 
-        // No reductions because the LimitReductionManager is empty
-        reductions = lfBranch.getLimitReductions(TwoSides.ONE, new LimitReductionManager(), branch.getNullableCurrentLimits1());
-        assertEquals(0, reductions.length);
+        // No scalings because the LimitScalingManager is empty
+        scalings = lfBranch.getLimitScalings(TwoSides.ONE, new LimitScalingManager(), branch.getNullableCurrentLimits1());
+        assertEquals(0, scalings.length);
 
-        // No reduction applies because the line isn't within the nominal voltage range => all values equals to 1.
-        LimitReductionManager.TerminalLimitReduction terminalLimitReduction0 =
-                new LimitReductionManager.TerminalLimitReduction(Range.of(100., 200.), true, null, 0.5);
-        LimitReductionManager limitReductionManager0 = new LimitReductionManager();
-        limitReductionManager0.addTerminalLimitReduction(terminalLimitReduction0);
-        reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager0, branch.getNullableCurrentLimits1());
-        assertEquals(3, reductions.length);
-        assertEquals(1., reductions[0], 0.001); // PATL
-        assertEquals(1., reductions[1], 0.001); // TATL 1200s
-        assertEquals(1., reductions[2], 0.001); // TATL 60s
+        // No scaling applies because the line isn't within the nominal voltage range => all values equals to 1.
+        LimitScalingManager.TerminalLimitScaling terminalLimitScaling0 =
+                new LimitScalingManager.TerminalLimitScaling(Range.of(100., 200.), true, null, 0.5);
+        LimitScalingManager limitScalingManager0 = new LimitScalingManager();
+        limitScalingManager0.addTerminalLimitScaling(terminalLimitScaling0);
+        scalings = lfBranch.getLimitScalings(TwoSides.ONE, limitScalingManager0, branch.getNullableCurrentLimits1());
+        assertEquals(3, scalings.length);
+        assertEquals(1., scalings[0], 0.001); // PATL
+        assertEquals(1., scalings[1], 0.001); // TATL 1200s
+        assertEquals(1., scalings[2], 0.001); // TATL 60s
 
-        // No reductions because only current limits are supported
+        // No scalings because only current limits are supported
         branch.getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(100.).add();
-        LimitReductionManager.TerminalLimitReduction terminalLimitReduction1 =
-                new LimitReductionManager.TerminalLimitReduction(Range.of(0., Double.MAX_VALUE), true, null, 0.5);
-        LimitReductionManager limitReductionManager1 = new LimitReductionManager();
-        limitReductionManager1.addTerminalLimitReduction(terminalLimitReduction1);
-        reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager1, branch.getNullableActivePowerLimits1());
-        assertEquals(0, reductions.length);
+        LimitScalingManager.TerminalLimitScaling terminalLimitScaling1 =
+                new LimitScalingManager.TerminalLimitScaling(Range.of(0., Double.MAX_VALUE), true, null, 0.5);
+        LimitScalingManager limitScalingManager1 = new LimitScalingManager();
+        limitScalingManager1.addTerminalLimitScaling(terminalLimitScaling1);
+        scalings = lfBranch.getLimitScalings(TwoSides.ONE, limitScalingManager1, branch.getNullableActivePowerLimits1());
+        assertEquals(0, scalings.length);
 
-        // No reductions because there's no limits
-        reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager1, null);
-        assertEquals(0, reductions.length);
+        // No scalings because there's no limits
+        scalings = lfBranch.getLimitScalings(TwoSides.ONE, limitScalingManager1, null);
+        assertEquals(0, scalings.length);
     }
 
     @Test
-    void testSeveralLimitReductionsForTheSameLimit() {
+    void testSeveralLimitScalingsForTheSameLimit() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedCurrentLimits());
         // NHV1_NHV2_1 : side 1 PATL 500, side 2 PATL 1100, 1200 for 600s and 1500 for 60s then above 0s
         // NHV1_NHV2_2 : side 1 PATL 1100, 1200 for 1200s then above 60s, side 2 PATL 500
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
-        LimitReductionManager.TerminalLimitReduction terminalLimitReduction1 =
-                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), true, null, 0.5);
-        LimitReductionManager.TerminalLimitReduction terminalLimitReduction2 =
-                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(0, 60), 0.9);
-        LimitReductionManager.TerminalLimitReduction terminalLimitReduction3 =
-                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(600, 1200), 0.8);
-        // The following reduction overlaps `terminalLimitReduction2` for temporary limits which acceptable duration is in [0,30] seconds.
-        LimitReductionManager.TerminalLimitReduction terminalLimitReduction4 =
-                new LimitReductionManager.TerminalLimitReduction(Range.of(300., 500.), false, Range.of(0, 30), 0.87);
-        LimitReductionManager limitReductionManager = new LimitReductionManager();
-        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction1);
-        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction2);
-        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction3);
-        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction4);
+        LimitScalingManager.TerminalLimitScaling terminalLimitScaling1 =
+                new LimitScalingManager.TerminalLimitScaling(Range.of(300., 500.), true, null, 0.5);
+        LimitScalingManager.TerminalLimitScaling terminalLimitScaling2 =
+                new LimitScalingManager.TerminalLimitScaling(Range.of(300., 500.), false, Range.of(0, 60), 0.9);
+        LimitScalingManager.TerminalLimitScaling terminalLimitScaling3 =
+                new LimitScalingManager.TerminalLimitScaling(Range.of(300., 500.), false, Range.of(600, 1200), 0.8);
+        // The following scaling overlaps `terminalLimitScaling2` for temporary limits which acceptable duration is in [0,30] seconds.
+        LimitScalingManager.TerminalLimitScaling terminalLimitScaling4 =
+                new LimitScalingManager.TerminalLimitScaling(Range.of(300., 500.), false, Range.of(0, 30), 0.87);
+        LimitScalingManager limitScalingManager = new LimitScalingManager();
+        limitScalingManager.addTerminalLimitScaling(terminalLimitScaling1);
+        limitScalingManager.addTerminalLimitScaling(terminalLimitScaling2);
+        limitScalingManager.addTerminalLimitScaling(terminalLimitScaling3);
+        limitScalingManager.addTerminalLimitScaling(terminalLimitScaling4);
 
         LfBranch lfBranch = lfNetworks.get(0).getBranchById("NHV1_NHV2_1");
         Branch<?> branch = network.getBranch("NHV1_NHV2_1");
-        double[] reductions = lfBranch.getLimitReductions(TwoSides.ONE, limitReductionManager, branch.getNullableCurrentLimits1());
-        assertEquals(1, reductions.length);
-        assertEquals(0.5, reductions[0], 0.001); // PATL
-        reductions = lfBranch.getLimitReductions(TwoSides.TWO, limitReductionManager, branch.getNullableCurrentLimits2());
-        assertEquals(4, reductions.length);
-        assertEquals(0.5, reductions[0], 0.001); // PATL
-        assertEquals(0.8, reductions[1], 0.001); // TATL 600s
-        assertEquals(0.9, reductions[2], 0.001); // TATL 60s
-        // `terminalLimitReduction4` is declared after `terminalLimitReduction2`, so its value is used
-        assertEquals(0.87, reductions[3], 0.001); // TATL 0s
+        double[] scalings = lfBranch.getLimitScalings(TwoSides.ONE, limitScalingManager, branch.getNullableCurrentLimits1());
+        assertEquals(1, scalings.length);
+        assertEquals(0.5, scalings[0], 0.001); // PATL
+        scalings = lfBranch.getLimitScalings(TwoSides.TWO, limitScalingManager, branch.getNullableCurrentLimits2());
+        assertEquals(4, scalings.length);
+        assertEquals(0.5, scalings[0], 0.001); // PATL
+        assertEquals(0.8, scalings[1], 0.001); // TATL 600s
+        assertEquals(0.9, scalings[2], 0.001); // TATL 60s
+        // `terminalLimitScaling4` is declared after `terminalLimitScaling2`, so its value is used
+        assertEquals(0.87, scalings[3], 0.001); // TATL 0s
 
-        limitReductionManager = new LimitReductionManager();
-        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction1);
-        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction4);
-        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction2);
-        limitReductionManager.addTerminalLimitReduction(terminalLimitReduction3);
-        reductions = lfBranch.getLimitReductions(TwoSides.TWO, limitReductionManager, branch.getNullableCurrentLimits2());
-        assertEquals(4, reductions.length);
-        assertEquals(0.5, reductions[0], 0.001); // PATL
-        assertEquals(0.8, reductions[1], 0.001); // TATL 600s
-        assertEquals(0.9, reductions[2], 0.001); // TATL 60s
-        // `terminalLimitReduction4` is now declared before `terminalLimitReduction2`, its value is overlapped by the one of `terminalLimitReduction2`
-        assertEquals(0.9, reductions[3], 0.001); // TATL 0s
+        limitScalingManager = new LimitScalingManager();
+        limitScalingManager.addTerminalLimitScaling(terminalLimitScaling1);
+        limitScalingManager.addTerminalLimitScaling(terminalLimitScaling4);
+        limitScalingManager.addTerminalLimitScaling(terminalLimitScaling2);
+        limitScalingManager.addTerminalLimitScaling(terminalLimitScaling3);
+        scalings = lfBranch.getLimitScalings(TwoSides.TWO, limitScalingManager, branch.getNullableCurrentLimits2());
+        assertEquals(4, scalings.length);
+        assertEquals(0.5, scalings[0], 0.001); // PATL
+        assertEquals(0.8, scalings[1], 0.001); // TATL 600s
+        assertEquals(0.9, scalings[2], 0.001); // TATL 60s
+        // `terminalLimitScaling4` is now declared before `terminalLimitScaling2`, its value is overlapped by the one of `terminalLimitScaling2`
+        assertEquals(0.9, scalings[3], 0.001); // TATL 0s
     }
 
     @Test
