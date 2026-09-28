@@ -101,7 +101,9 @@
         "incrementalShuntControlOuterLoopMaxSectionShift" : 3,
         "fixVoltageTargets" : false,
         "acDcNetwork" : false,
-        "allowNonLinearShuntZeroSection" : true
+        "allowNonLinearShuntZeroSection" : true,
+        "networkVariantPoolSize" : 20,
+        "networkCacheScope" : null
       }
     }
   },
