@@ -27,7 +27,7 @@ final class DcComponentValidator {
     /**
      * Check that a DC component is a configuration Open Load Flow can solve, and resolve any DC subcomponent (i.e. set
      * of DC buses connected through DC lines only) that has no element imposing the DC voltage (no connected DC
-     * ground and no fully connected V_DC/P_PCC_DROOP converter), by selecting all fully connected P_PCC
+     * ground and no fully connected V_DC/DC_DROOP converter), by selecting all fully connected P_PCC
      * converters of that subcomponent to be promoted to V_DC control internally. Disconnected converters are
      * ignored: only fully connected ones take part in the checks/resolution.
      *
@@ -94,12 +94,12 @@ final class DcComponentValidator {
     }
 
     /**
-     * Tells whether a converter settles the DC voltage: V_DC does it directly, P_PCC_DROOP does it
+     * Tells whether a converter settles the DC voltage: V_DC does it directly, DC_DROOP does it
      * through the droop law.
      */
     private static boolean controlsDcVoltage(AcDcConverter<?> converter) {
         return converter.getControlMode() == AcDcConverter.ControlMode.V_DC
-                || converter.getControlMode() == AcDcConverter.ControlMode.P_PCC_DROOP;
+                || converter.getControlMode() == AcDcConverter.ControlMode.DC_DROOP;
     }
 
     /**
