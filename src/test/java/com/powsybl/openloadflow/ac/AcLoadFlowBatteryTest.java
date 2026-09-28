@@ -53,7 +53,7 @@ class AcLoadFlowBatteryTest {
         genBus = network.getBusBreakerView().getBus("NGEN");
         batBus = network.getBusBreakerView().getBus("NBAT");
         generator = network.getGenerator("GEN");
-        generator.setMinP(0).setMaxP(1000).getVoltageRegulation().setTargetValue(401.);
+        generator.setMinP(0).setMaxP(1000).setLocalTargetV(401.);
         battery1 = network.getBattery("BAT");
         battery1.setMinP(-1000).setMaxP(1000).setLocalTargetQ(0).setTargetP(0);
         battery2 = network.getBattery("BAT2");
