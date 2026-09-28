@@ -32,17 +32,6 @@ public final class Actions {
     }
 
     public static void checkWoodburySupported(Network network, List<Action> actions) {
-        // verify there is no closing of transformer in the actions
-        actions.stream()
-                .filter(TerminalsConnectionAction.class::isInstance)
-                .map(TerminalsConnectionAction.class::cast)
-                .filter(action -> !action.isOpen() && (network.getTwoWindingsTransformer(action.getElementId()) != null
-                        || network.getThreeWindingsTransformer(action.getElementId()) != null))
-                .findAny()
-                .ifPresent(e -> {
-                    throw new IllegalStateException("For now, TerminalsConnectionAction enabling a transformer is not allowed in WoodburyDcSecurityAnalysis");
-                });
-
         // verify there is no other action than pst tap change, switching, generator or load action
         actions.stream()
                 .filter(action -> !(action instanceof PhaseTapChangerTapPositionAction || action instanceof TerminalsConnectionAction

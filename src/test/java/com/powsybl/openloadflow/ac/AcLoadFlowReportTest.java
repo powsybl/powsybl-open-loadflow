@@ -482,11 +482,10 @@ class AcLoadFlowReportTest {
                               Bus V: 1 pu, 0 rad
                               Bus injection: 70 MW, 0 MVar
                      + Outer loop DistributedSlack
-                        + SC0
-                           + Outer loop iteration 1
+                        + Outer loop iteration 1
+                           + SC0
                               Slack bus active power (40 MW) distributed in 1 distribution iteration(s)
-                        + SC1
-                           + Outer loop iteration 1
+                           + SC1
                               Slack bus active power (-19.998222 MW) distributed in 1 distribution iteration(s)
                      + Newton-Raphson on Network CC0
                         Newton-Raphson of outer loop iteration 1 of type DistributedSlack

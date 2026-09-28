@@ -52,7 +52,7 @@ public abstract class AbstractDcOuterLoopConfig implements DcOuterLoopConfig {
         return Optional.empty();
     }
 
-    protected static Optional<DcOuterLoop> createDcHvdcAcEmulationLimitsOuterLoop(LoadFlowParameters parameters) {
+    protected static Optional<DcOuterLoop> createHvdcAcEmulationLimitsOuterLoop(LoadFlowParameters parameters) {
         if (parameters.isHvdcAcEmulation()) {
             return Optional.of(new DcHvdcAcEmulationLimitsOuterLoop());
         }
