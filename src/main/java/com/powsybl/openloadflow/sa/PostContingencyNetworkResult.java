@@ -52,34 +52,50 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
     }
 
     public void addResults(StateMonitor monitor, Predicate<LfBranch> isBranchDisabled, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
-        addResults(monitor, branch -> createBranchResults(branch, zeroImpedanceFlows), isBranchDisabled,
+        addResults(monitor, branch -> createBranchResults(branch, isBranchDisabled.test(branch), zeroImpedanceFlows),
                 this::createBusResults, id -> create3WTransformerResults(id, zeroImpedanceFlows));
     }
 
-    private void createBranchResults(LfBranch branch, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
+    private void createBranchResults(LfBranch branch, boolean disabled, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
         var preContingencyBranchResult = preContingencyMonitorInfos.getBranchResult(branch.getId());
-        double preContingencyBranchP1 = preContingencyBranchResult != null ? preContingencyBranchResult.getP1() : Double.NaN;
-        double preContingencyBranchOfContingencyP1 = Double.NaN;
-        if (contingency.getElements().size() == 1) {
-            ContingencyElement contingencyElement = contingency.getElements().getFirst();
-            if (contingencyElement.getType() == ContingencyElementType.BRANCH
-                    || contingencyElement.getType() == ContingencyElementType.LINE
-                    || contingencyElement.getType() == ContingencyElementType.BOUNDARY_LINE
-                    || contingencyElement.getType() == ContingencyElementType.TWO_WINDINGS_TRANSFORMER) {
-                BranchResult preContingencyBranchOfContingencyResult = preContingencyMonitorInfos.getBranchResult(contingencyElement.getId());
-                if (preContingencyBranchOfContingencyResult != null) {
-                    preContingencyBranchOfContingencyP1 = preContingencyBranchOfContingencyResult.getP1();
+        List<BranchResult> results;
+        if (disabled) {
+            results = branch.createDisabledBranchResult(createResultExtension);
+        } else {
+            double preContingencyBranchP1 = preContingencyBranchResult != null ? preContingencyBranchResult.getP1() : Double.NaN;
+            double preContingencyBranchOfContingencyP1 = Double.NaN;
+            if (contingency.getElements().size() == 1) {
+                ContingencyElement contingencyElement = contingency.getElements().getFirst();
+                if (contingencyElement.getType() == ContingencyElementType.BRANCH
+                        || contingencyElement.getType() == ContingencyElementType.LINE
+                        || contingencyElement.getType() == ContingencyElementType.BOUNDARY_LINE
+                        || contingencyElement.getType() == ContingencyElementType.TWO_WINDINGS_TRANSFORMER) {
+                    BranchResult preContingencyBranchOfContingencyResult = preContingencyMonitorInfos.getBranchResult(contingencyElement.getId());
+                    if (preContingencyBranchOfContingencyResult != null) {
+                        preContingencyBranchOfContingencyP1 = preContingencyBranchOfContingencyResult.getP1();
+                    }
                 }
             }
+            results = branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension, zeroImpedanceFlows, loadFlowModel);
         }
-        List<BranchResult> results = branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension, zeroImpedanceFlows, loadFlowModel);
         BranchResult postContingencyBranchResult = results.getFirst(); // getFirst for the tie-line case, all others have only one BranchResult
         if (changed(preContingencyBranchResult, postContingencyBranchResult)) {
             branchResults.addAll(results);
         }
     }
 
+    /**
+     * A threshold of zero or less disables filtering unconditionally: every value is reported regardless of
+     * whether it changed. Above zero: both values absent (disabled at both states) is not a change; exactly one
+     * value absent (got disabled, or got re-enabled) is always a change; otherwise compare against the threshold.
+     */
     private static boolean changed(double pre, double post, double threshold) {
+        if (threshold <= 0) {
+            return true;
+        }
+        if (Double.isNaN(pre) && Double.isNaN(post)) {
+            return false;
+        }
         return Double.isNaN(pre) || Double.isNaN(post) || Math.abs(pre - post) > threshold;
     }
 
@@ -89,8 +105,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
         }
         Objects.requireNonNull(postCtg);
         double threshold = modifiedMonitoredElementsParameters.getPowerModificationThreshold();
-        return threshold <= 0
-            || changed(preCtg.getP1(), postCtg.getP1(), threshold)
+        return changed(preCtg.getP1(), postCtg.getP1(), threshold)
             || changed(preCtg.getQ1(), postCtg.getQ1(), threshold)
             || changed(preCtg.getP2(), postCtg.getP2(), threshold)
             || changed(preCtg.getQ2(), postCtg.getQ2(), threshold);
@@ -102,7 +117,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
             var preContingencyBusResult = preContingencyMonitorInfos.getBusResult("%s_%s".formatted(busResult.getVoltageLevelId(), busResult.getBusId()));
             if (preContingencyBusResult != null) {
                 double threshold = modifiedMonitoredElementsParameters.getVoltageModificationThreshold(preContingencyBusResult.getV());
-                if (Math.abs(preContingencyBusResult.getV() - busResult.getV()) < threshold) {
+                if (!changed(preContingencyBusResult.getV(), busResult.getV(), threshold)) {
                     continue;
                 }
             }
@@ -124,8 +139,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
         }
         Objects.requireNonNull(postCtg);
         double threshold = modifiedMonitoredElementsParameters.getPowerModificationThreshold();
-        return threshold <= 0
-                || changed(preCtg.getP1(), postCtg.getP1(), threshold)
+        return changed(preCtg.getP1(), postCtg.getP1(), threshold)
                 || changed(preCtg.getQ1(), postCtg.getQ1(), threshold)
                 || changed(preCtg.getP2(), postCtg.getP2(), threshold)
                 || changed(preCtg.getQ2(), postCtg.getQ2(), threshold)

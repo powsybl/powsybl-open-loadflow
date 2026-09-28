@@ -224,26 +224,52 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         LfLegBranch leg2 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 2));
         LfLegBranch leg3 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 3));
 
-        double i1Base = PerUnit.ib(leg1.legRef.get().getTerminal().getVoltageLevel().getNominalV());
-        double i2Base = PerUnit.ib(leg2.legRef.get().getTerminal().getVoltageLevel().getNominalV());
-        double i3Base = PerUnit.ib(leg3.legRef.get().getTerminal().getVoltageLevel().getNominalV());
+        // when the star bus is disabled, the legs' flows are meaningless (their equations are out of the system):
+        // report NaN for P/Q/I, but the extension below still reads each leg's live network-side terminal bus,
+        // which is not implied disabled by the star bus being disabled.
+        boolean disabled = network.getBusById(LfStarBus.getId(threeWindingsTransformerId)).isDisabled();
 
-        LfBranchResults legBranchResults1 = leg1.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(leg1.getId())
-                : extractLegBranchResults(leg1);
-        LfBranchResults legBranchResults2 = leg2.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(leg2.getId())
-                : extractLegBranchResults(leg2);
-        LfBranchResults legBranchResults3 = leg3.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(leg3.getId())
-                : extractLegBranchResults(leg3);
+        double flowP1;
+        double flowP2;
+        double flowP3;
+        double flowQ1;
+        double flowQ2;
+        double flowQ3;
+        double currentI1;
+        double currentI2;
+        double currentI3;
+        if (disabled) {
+            flowP1 = Double.NaN;
+            flowP2 = Double.NaN;
+            flowP3 = Double.NaN;
+            flowQ1 = Double.NaN;
+            flowQ2 = Double.NaN;
+            flowQ3 = Double.NaN;
+            currentI1 = Double.NaN;
+            currentI2 = Double.NaN;
+            currentI3 = Double.NaN;
+        } else {
+            double i1Base = PerUnit.ib(leg1.legRef.get().getTerminal().getVoltageLevel().getNominalV());
+            double i2Base = PerUnit.ib(leg2.legRef.get().getTerminal().getVoltageLevel().getNominalV());
+            double i3Base = PerUnit.ib(leg3.legRef.get().getTerminal().getVoltageLevel().getNominalV());
 
-        double flowP1 = legBranchResults1.p1() * PerUnit.SB;
-        double flowP2 = legBranchResults2.p1() * PerUnit.SB;
-        double flowP3 = legBranchResults3.p1() * PerUnit.SB;
-        double flowQ1 = legBranchResults1.q1() * PerUnit.SB;
-        double flowQ2 = legBranchResults2.q1() * PerUnit.SB;
-        double flowQ3 = legBranchResults3.q1() * PerUnit.SB;
-        double currentI1 = legBranchResults1.i1() * i1Base;
-        double currentI2 = legBranchResults2.i1() * i2Base;
-        double currentI3 = legBranchResults3.i1() * i3Base;
+            LfBranchResults legBranchResults1 = leg1.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(leg1.getId())
+                    : extractLegBranchResults(leg1);
+            LfBranchResults legBranchResults2 = leg2.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(leg2.getId())
+                    : extractLegBranchResults(leg2);
+            LfBranchResults legBranchResults3 = leg3.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(leg3.getId())
+                    : extractLegBranchResults(leg3);
+
+            flowP1 = legBranchResults1.p1() * PerUnit.SB;
+            flowP2 = legBranchResults2.p1() * PerUnit.SB;
+            flowP3 = legBranchResults3.p1() * PerUnit.SB;
+            flowQ1 = legBranchResults1.q1() * PerUnit.SB;
+            flowQ2 = legBranchResults2.q1() * PerUnit.SB;
+            flowQ3 = legBranchResults3.q1() * PerUnit.SB;
+            currentI1 = legBranchResults1.i1() * i1Base;
+            currentI2 = legBranchResults2.i1() * i2Base;
+            currentI3 = legBranchResults3.i1() * i3Base;
+        }
 
         ThreeWindingsTransformerResult result = new ThreeWindingsTransformerResult(threeWindingsTransformerId,
                 flowP1, flowQ1, currentI1, flowP2, flowQ2, currentI2, flowP3, flowQ3, currentI3);
