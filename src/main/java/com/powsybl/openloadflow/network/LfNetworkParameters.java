@@ -76,8 +76,6 @@ public class LfNetworkParameters {
 
     public static final boolean DETAILED_REPORT_DEFAULT_VALUE = false;
 
-    public static final boolean INCLUDE_ELEMENTS_RECONNECTING_SMALL_COMPONENTS_DEFAULT_VALUE = true;
-
     public static final boolean ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE = true;
 
     private boolean generatorVoltageRemoteControl = true;
@@ -172,8 +170,6 @@ public class LfNetworkParameters {
 
     private boolean detailedReport = DETAILED_REPORT_DEFAULT_VALUE;
 
-    private boolean includeElementsReconnectingSmallComponents = INCLUDE_ELEMENTS_RECONNECTING_SMALL_COMPONENTS_DEFAULT_VALUE;
-
     private boolean allowNonLinearShuntZeroSection = ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE;
 
     public LfNetworkParameters() {
@@ -230,7 +226,6 @@ public class LfNetworkParameters {
         this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
         this.isAcDcNetwork = other.isAcDcNetwork;
         this.detailedReport = other.detailedReport;
-        this.includeElementsReconnectingSmallComponents = other.includeElementsReconnectingSmallComponents;
         this.allowNonLinearShuntZeroSection = other.allowNonLinearShuntZeroSection;
     }
 
@@ -689,15 +684,6 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public boolean isIncludeElementsReconnectingSmallComponents() {
-        return includeElementsReconnectingSmallComponents;
-    }
-
-    public LfNetworkParameters setIncludeElementsReconnectingSmallComponents(boolean includeElementsReconnectingSmallComponents) {
-        this.includeElementsReconnectingSmallComponents = includeElementsReconnectingSmallComponents;
-        return this;
-    }
-
     public boolean isAllowNonLinearShuntZeroSection() {
         return allowNonLinearShuntZeroSection;
     }
@@ -754,7 +740,6 @@ public class LfNetworkParameters {
                 ", generatorsWithZeroMwTargetAreNotStarted=" + generatorsWithZeroMwTargetAreNotStarted +
                 ", isAcDcNetwork=" + isAcDcNetwork +
                 ", detailedReport=" + detailedReport +
-                ", includeElementsReconnectingSmallComponents=" + includeElementsReconnectingSmallComponents +
                 ", allowNonLinearShuntZeroSection=" + allowNonLinearShuntZeroSection +
                 ')';
     }
