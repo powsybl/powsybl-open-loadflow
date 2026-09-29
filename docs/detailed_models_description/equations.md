@@ -362,4 +362,3 @@ Using the previous equation of power conservation between AC and DC, we have
 $$
 I_{Conv}*(V_1-V_2) + P_{AC} = IdleLoss + SwitchingLoss*|I_{Conv}| + ResistiveLoss*I_{Conv}^{2}
 $$
-
