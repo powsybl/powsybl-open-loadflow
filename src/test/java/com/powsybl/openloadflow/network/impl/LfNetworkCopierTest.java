@@ -12,12 +12,12 @@ import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.PhaseTapChanger;
-import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControlAdder;
 import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -143,9 +143,10 @@ class LfNetworkCopierTest {
     private static Network createNetworkWithRegulatingSvc() {
         Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
         network.getStaticVarCompensator("svc1")
-                .setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
-                .setRegulating(true);
+                .setLocalTargetV(385)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true);
         return network;
     }
 
@@ -167,20 +168,22 @@ class LfNetworkCopierTest {
         Terminal regulatedTerminal = t2wt.getTerminal2();
         t2wt.getRatioTapChanger()
                 .setLoadTapChangingCapabilities(true)
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
-                .setTargetDeadband(0)
-                .setRegulationValue(1)
-                .setRegulationTerminal(regulatedTerminal)
-                .setRegulating(true);
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.REACTIVE_POWER)
+                    .withTargetDeadband(0)
+                    .withTargetValue(1)
+                    .withTerminal(regulatedTerminal)
+                    .withRegulating(true);
         return network;
     }
 
     private static Network createSvcWithStandbyAutomaton() {
         Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
         StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");
-        svc1.setVoltageSetpoint(385)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
-                .setRegulating(true);
+        svc1.setLocalTargetV(385)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true);
         svc1.newExtension(StandbyAutomatonAdder.class)
                 .withHighVoltageThreshold(400)
                 .withLowVoltageThreshold(380)
@@ -211,11 +214,14 @@ class LfNetworkCopierTest {
         TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("T2wT");
         t2wt.getRatioTapChanger()
                 .setLoadTapChangingCapabilities(true)
-                .setTargetDeadband(0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal2())
-                .setTargetV(34.0);
+                .newVoltageRegulation()
+                    .withTargetDeadband(0)
+                    .withRegulating(true)
+                    .withTerminal(t2wt.getTerminal2())
+                    .withTargetValue(34.0)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .build();
         return network;
     }
 

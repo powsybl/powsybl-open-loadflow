@@ -10,7 +10,6 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.Battery;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.regulation.RegulationMode;
-import com.powsybl.iidm.network.extensions.VoltageRegulation;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
