@@ -190,7 +190,8 @@ public class DistributedSlackNetworkFactory extends AbstractLoadFlowNetworkFacto
                 .newVoltageRegulation()
                     .withRegulating(true)
                     .withMode(RegulationMode.VOLTAGE)
-                    .add()                .add();
+                    .add()
+                .add();
         Generator g2 = b2.getVoltageLevel()
                 .newGenerator()
                 .setId("g2")
