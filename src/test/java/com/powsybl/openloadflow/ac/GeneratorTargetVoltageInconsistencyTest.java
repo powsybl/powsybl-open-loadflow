@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
@@ -50,9 +51,12 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetQ(50)
-                .setTargetV(23)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetQ(50)
+                .setLocalTargetV(23)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
         vl1.newGenerator()
                 .setId("g2")
@@ -62,9 +66,12 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetQ(100)
-                .setTargetV(22)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetQ(100)
+                .setLocalTargetV(22)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
 
         VoltageLevel vl2 = s.newVoltageLevel()
@@ -180,9 +187,12 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(413)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(ld.getTerminal())
+                .newVoltageRegulation()
+                    .withTargetValue(413)
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(ld.getTerminal())
+                    .add()
                 .add();
 
         VoltageLevel vl2 = s.newVoltageLevel()
@@ -201,9 +211,12 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(225)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(ld.getTerminal())
+                .newVoltageRegulation()
+                    .withTargetValue(225)
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(ld.getTerminal())
+                    .add()
                 .add();
 
         network.newLine()
@@ -229,7 +242,7 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setGeneratorVoltageRemoteControl(true);
 
         Generator g = network.getGenerator("g2");
-        assertEquals(0.5625, g.getTargetV() / g.getTerminal().getVoltageLevel().getNominalV());
+        assertEquals(0.5625, g.getRegulatingTargetV() / g.getTerminal().getVoltageLevel().getNominalV());
 
         List<LfNetwork> networkList = Networks.load(network, parameters);
         LfNetwork mainNetwork = networkList.get(0);
@@ -261,8 +274,11 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(413)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(413)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
 
         VoltageLevel vl1 = s.newVoltageLevel()
@@ -281,9 +297,12 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(412)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(g2.getTerminal())
+                .newVoltageRegulation()
+                    .withTargetValue(412)
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(g2.getTerminal())
+                    .add()
                 .add();
 
         network.newLine()
@@ -325,8 +344,8 @@ class GeneratorTargetVoltageInconsistencyTest {
         LfNetworkParameters parameters = new LfNetworkParameters()
                 .setGeneratorVoltageRemoteControl(true);
 
-        assertEquals(412, network.getGenerator("g1").getTargetV());
-        assertEquals(413, g2.getTargetV());
+        assertEquals(412, network.getGenerator("g1").getRegulatingTargetV());
+        assertEquals(413, g2.getRegulatingTargetV());
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
@@ -344,7 +363,12 @@ class GeneratorTargetVoltageInconsistencyTest {
     void remoteAndLocalTestWithDisabling() {
         Network network = createLocalInconsistentTargetVoltageNetwork();
         Generator g2 = network.getGenerator("g2");
-        g2.setRegulatingTerminal(network.getLoad("ld2").getTerminal()).setTargetV(400.0);
+        g2.newVoltageRegulation()
+                .withTargetValue(400)
+                .withRegulating(true)
+                .withMode(RegulationMode.VOLTAGE)
+                .withTerminal(network.getLoad("ld2").getTerminal())
+                .build();
         LfNetworkParameters parameters = new LfNetworkParameters()
                 .setGeneratorVoltageRemoteControl(true)
                 .setDisableInconsistentVoltageControls(true);
@@ -365,7 +389,12 @@ class GeneratorTargetVoltageInconsistencyTest {
     void remoteAndLocalTestWithInconsistentTargetVoltage() throws IOException {
         Network network = createLocalInconsistentTargetVoltageNetwork();
         Generator g2 = network.getGenerator("g2");
-        g2.setRegulatingTerminal(network.getLoad("ld2").getTerminal()).setTargetV(400.0);
+        g2.newVoltageRegulation()
+                .withTargetValue(400)
+                .withRegulating(true)
+                .withMode(RegulationMode.VOLTAGE)
+                .withTerminal(network.getLoad("ld2").getTerminal())
+                .build();
         VoltageLevel vl1 = network.getVoltageLevel("vl1");
         vl1.newGenerator()
                 .setId("g3")
@@ -375,8 +404,11 @@ class GeneratorTargetVoltageInconsistencyTest {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(24)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(24)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
 
         LfNetworkParameters parameters = new LfNetworkParameters()
