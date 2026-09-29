@@ -85,6 +85,8 @@ public interface GraphConnectivity<V, E> {
      */
     int getComponentNumber(V vertex);
 
+    boolean connected(V vertex1, V vertex2);
+
     /**
      * Set the main component with given vertex.
      * The connected component relative to this vertex is considered as being the main component.
