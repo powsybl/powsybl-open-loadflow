@@ -308,7 +308,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testLowVoltageLimitViolations() {
         Network network = createNodeBreakerNetwork();
-        network.getGenerator("G").setTargetV(393);
+        network.getGenerator("G").setLocalTargetV(393);
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         setSlackBusId(lfParameters, "VL1_1");
