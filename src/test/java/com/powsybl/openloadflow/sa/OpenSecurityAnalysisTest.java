@@ -354,7 +354,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testHighVoltageLimitViolations() {
         Network network = createNodeBreakerNetwork();
-        network.getGenerator("G").setTargetV(421);
+        network.getGenerator("G").setLocalTargetV(421);
 
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         setSlackBusId(lfParameters, "VL1_1");
@@ -1223,7 +1223,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @ValueSource(booleans = {false, true})
     void testDcSaWithGeneratorContingency(boolean dcFastMode) {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
-        network.getGenerator("g2").setTargetV(400).setVoltageRegulatorOn(true);
+        network.getGenerator("g2").setLocalTargetV(400).getVoltageRegulation().setRegulating(true);
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);

@@ -213,7 +213,7 @@ class OpenLoadFlowParametersTest {
 
         // Change the nominal voltage to have a target V distant enough but still plausible (in [0.8 1.2] in Pu), so that the NR diverges
         network.getVoltageLevel("VLGEN").setNominalV(100);
-        network.getGenerator("GEN").setTargetV(120);
+        network.getGenerator("GEN").setLocalTargetV(120);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
