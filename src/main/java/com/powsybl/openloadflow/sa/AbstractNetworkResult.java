@@ -42,33 +42,9 @@ public abstract class AbstractNetworkResult {
 
     protected final double dcPowerFactor;
 
-    protected List<PhaseTapChangerInfo> phaseTapChangerInfos = new ArrayList<>();
+    protected Map<LfBranch, Integer> phaseTapChangerInfos = new HashMap<>();
 
     static final List<LfBranch.BranchType> T3WT_BRANCH_TYPES = List.of(TRANSFO_3_LEG_1, TRANSFO_3_LEG_2, TRANSFO_3_LEG_3);
-
-    protected static class PhaseTapChangerInfo {
-
-        private final LfBranch ptcBranch;
-
-        private int currentTap;
-
-        public PhaseTapChangerInfo(LfBranch ptcBranch, int currentTap) {
-            this.ptcBranch = ptcBranch;
-            this.currentTap = currentTap;
-        }
-
-        public int getCurrentTap() {
-            return currentTap;
-        }
-
-        public void setCurrentTap(int currentTap) {
-            this.currentTap = currentTap;
-        }
-
-        public LfBranch getPtcBranch() {
-            return ptcBranch;
-        }
-    }
 
     public record StateMonitorIndexes(StateMonitorIndex monitorIndex, StateMonitorIndex zeroImpedanceMonitorIndex) {
     }
@@ -123,13 +99,13 @@ public abstract class AbstractNetworkResult {
     protected abstract void storeInitialPhaseTapChangerInfo();
 
     protected void updateChangedPhaseTapChanger() {
-        for (PhaseTapChangerInfo ptcInfo : phaseTapChangerInfos) {
-            LfBranch b = ptcInfo.getPtcBranch();
+        for (Map.Entry<LfBranch, Integer> ptcInfo : phaseTapChangerInfos.entrySet()) {
+            LfBranch b = ptcInfo.getKey();
+            int currentTap = ptcInfo.getValue();
             int newTapPosition = Transformers.findTapPosition(b.getPhaseTapChanger().orElseThrow(),
                     Math.toDegrees(b.getPiModel().getA1()));
-            if (ptcInfo.getCurrentTap() != newTapPosition) {
-                changedPhaseTapChangers.put(b, new ChangedPhaseTapChanger(b.getMainOriginalId(), b.getOriginalSide().orElse(null), ptcInfo.getCurrentTap(), newTapPosition));
-                ptcInfo.setCurrentTap(newTapPosition);
+            if (currentTap != newTapPosition) {
+                changedPhaseTapChangers.put(b, new ChangedPhaseTapChanger(b.getMainOriginalId(), b.getOriginalSide().orElse(null), currentTap, newTapPosition));
             }
         }
     }

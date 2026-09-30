@@ -20,7 +20,9 @@ import com.powsybl.security.results.ChangedPhaseTapChanger;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -145,14 +147,14 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
         phaseTapChangerInfos = network.getBranches().stream()
                 .filter(b -> !b.isDisabled())
                 .filter(LfBranch::hasPhaseControllerCapability)
-                .map(b -> {
-                    // Finding if phase tap has been changed in previous pre contingency state
-                    ChangedPhaseTapChanger changedPhaseTapChanger = preContingencyChangedTaps.getOrDefault(b, null);
-                    // Creating initial info with either network initial tap, or pre contingency tap if it has been changed
-                    return new PhaseTapChangerInfo(b,
-                            changedPhaseTapChanger != null ? changedPhaseTapChanger.finalTap() : b.getPhaseTapChanger().orElseThrow().getTapPosition());
-                })
-                .toList();
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        b -> {
+                            // Finding if phase tap has been changed in previous pre contingency state
+                            ChangedPhaseTapChanger changedPhaseTapChanger = preContingencyChangedTaps.getOrDefault(b, null);
+                            // Creating initial info with either network initial tap, or pre contingency tap if it has been changed
+                            return changedPhaseTapChanger != null ? changedPhaseTapChanger.finalTap() : b.getPhaseTapChanger().orElseThrow().getTapPosition();
+                        }));
     }
 
     public void update(Predicate<LfBranch> isBranchDisabled) {

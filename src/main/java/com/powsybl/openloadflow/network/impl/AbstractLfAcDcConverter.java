@@ -15,6 +15,15 @@ import com.powsybl.openloadflow.util.PerUnit;
 import java.util.Optional;
 
 /**
+ * Base class of the AC/DC converters of a {@link LfNetwork}.
+ * <p>Usage rules for subclasses, which IIDM does not enforce:
+ * <ul>
+ *     <li>a converter in {@code DC_DROOP} control mode must have a droop curve and both {@code targetP} and
+ *     {@code targetVdc} defined, otherwise loading the network fails with a {@code PowsyblException};</li>
+ *     <li>all DC buses of a DC component share the same nominal voltage, which is the DC voltage base
+ *     (see {@link #getDcVoltageBase()}).</li>
+ * </ul>
+ *
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
 public abstract class AbstractLfAcDcConverter extends AbstractElement implements LfAcDcConverter {
@@ -57,7 +66,7 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         this.controlMode = vdcOverride.isPresent() ? AcDcConverter.ControlMode.V_DC : converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
         double rawTargetVdc = vdcOverride.orElseGet(converter::getTargetVdc);
-        targetVdc = dcBus1.isGrounded() ? rawTargetVdc / dcBus2.getNominalV() : rawTargetVdc / dcBus1.getNominalV();
+        this.targetVdc = rawTargetVdc / getDcVoltageBase();
         this.pAc = converter.getTerminal1().getP();
         this.qAc = converter.getTerminal1().getQ();
     }
@@ -110,6 +119,12 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     @Override
     public double getTargetVdc() {
         return targetVdc;
+    }
+
+    @Override
+    public double getDcVoltageBase() {
+        // Hypothesis: all buses in the DC voltage have the same nominal DC voltage.
+        return dcBus1.getNominalV();
     }
 
     @Override
