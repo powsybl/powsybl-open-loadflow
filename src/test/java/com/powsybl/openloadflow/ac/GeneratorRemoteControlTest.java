@@ -387,7 +387,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(-targetQ, l34.getTerminal(TwoSides.TWO)); // load convention
+        assertReactivePowerEquals(-targetQ, l34.getTerminal(TwoSides.TWO)); // targetQ was stored in generator convention
 
         // second test: generator g4 regulates reactive power on line 3->4 (on the opposite side of the line)
         g4.newVoltageRegulation()
@@ -398,7 +398,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(-targetQ, l34.getTerminal(TwoSides.ONE)); // load convention
+        assertReactivePowerEquals(-targetQ, l34.getTerminal(TwoSides.ONE)); // targetQ was stored in generator convention
 
         // third test: generator g4 regulates reactive power on line 1->2 (line which is not linked to bus 4)
         g4.newVoltageRegulation()
@@ -409,7 +409,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(-targetQ, l12.getTerminal(TwoSides.ONE)); // load convention
+        assertReactivePowerEquals(-targetQ, l12.getTerminal(TwoSides.ONE)); // targetQ was stored in generator convention
     }
 
     @Test
@@ -437,7 +437,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setGeneratorReactivePowerRemoteControl(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(-targetQ, l34.getTerminal(TwoSides.TWO)); // load convention
+        assertReactivePowerEquals(-targetQ, l34.getTerminal(TwoSides.TWO)); // targetQ was stored in generator convention
     }
 
     @Test
@@ -796,7 +796,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(-targetQ, twt.getTerminal(TwoSides.TWO)); // load convention
+        assertReactivePowerEquals(-targetQ, twt.getTerminal(TwoSides.TWO)); // targetQ was stored in generator convention
     }
 
     /**
