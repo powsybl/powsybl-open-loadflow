@@ -118,7 +118,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
         if (svc.isRegulating()) {
             switch (svc.getVoltageRegulation().getMode()) {
                 case VOLTAGE, VOLTAGE_PER_REACTIVE_POWER -> setupVoltageControl(svc, parameters, report);
-                case REACTIVE_POWER -> targetQ = -svc.getRegulatingTargetQ() / PerUnit.SB;
+                case REACTIVE_POWER -> targetQ = -svc.getLocalTargetQ() / PerUnit.SB;
             }
         } else {
             targetQ = 0;
