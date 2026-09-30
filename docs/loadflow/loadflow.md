@@ -363,6 +363,7 @@ $\sum_{i} I_i + \frac{V_1 - V_2}{R}= 0$ for dcBus1
 
 $\sum_{i} I_i - \frac{V_1 - V_2}{R}= 0$ for dcBus2
 
+If a DC line is disconnected on any side, no current can pass through it.
 
 ### Line Commutated Converter
 
@@ -375,9 +376,11 @@ DC buses. Please note that converters with a second optional AC terminal are not
 
 #### Control modes
 
-A converter can control either the power it exchanges with the AC network (`P_PCC` control mode),
-the voltage between its two DC buses (`V_DC` control mode), or follow a DC-voltage droop law
-relating the two (`DC_DROOP` control mode, detailed [below](#droop-control)).
+If a terminal of the converter is disconnected, the converter is not included in the load flow, and none of the equations below is added.
+
+The converter can control either the power received by the AC network (`P_PCC` control mode) 
+or the voltage between its two DC buses (`V_DC` control mode).
+At least one of the voltage source converters of the DC network must control the voltage (i.e. be in `V_DC` or `DC_DROOP` mode).
 If a DC network has only converters in `P_PCC` mode, they will be automatically set in `V_DC` mode with the DC nominal voltage as target voltage.
 
 In addition to the control modes `P_PCC`, `V_DC` and `DC_DROOP`, the voltage source converter can be set in two modes :
