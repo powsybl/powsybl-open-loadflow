@@ -853,7 +853,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(-targetQ, t3wt.getTerminal(ThreeSides.ONE)); // load convention
+        assertReactivePowerEquals(-targetQ, t3wt.getTerminal(ThreeSides.ONE)); // targetQ was stored in generator convention
     }
 
     @Test
