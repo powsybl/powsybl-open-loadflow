@@ -63,6 +63,11 @@ public interface LfAcDcConverter extends LfElement {
     double getTargetVdc();
 
     /**
+     * @return the per-unit base used for the DC voltage of this converter.
+     */
+    double getDcVoltageBase();
+
+    /**
      * The three loss factors of the converter
      *
      * @param idleLoss      losses independent of the DC current. In MW.
