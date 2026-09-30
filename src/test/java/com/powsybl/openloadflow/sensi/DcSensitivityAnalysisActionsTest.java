@@ -16,6 +16,7 @@ import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.CommonTestConfig;
@@ -342,7 +343,9 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         network.getVoltageLevel("VL1").getNodeBreakerView().newBreaker().setId("SW").setNode1(1).setNode2(10).setRetained(true).setOpen(true).add();
         network.getVoltageLevel("VL1").getNodeBreakerView().newInternalConnection().setNode1(10).setNode2(11).add();
         network.getVoltageLevel("VL1").newGenerator().setId("G_ISO").setNode(11)
-                .setMinP(0.0).setMaxP(1000.0).setVoltageRegulatorOn(true).setTargetV(398).setTargetP(0.0).setTargetQ(0.0).add();
+                .setMinP(0.0).setMaxP(1000.0).setLocalTargetV(398).setTargetP(0.0).setLocalTargetQ(0.0)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .add();
         runDcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL1_0", true)

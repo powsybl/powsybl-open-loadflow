@@ -330,10 +330,10 @@ public final class NodeBreakerNetworkFactory {
             .setNode(node)
             .setMinP(-4999.99)
             .setMaxP(4999.99)
-            .setVoltageRegulatorOn(true)
-            .setTargetV(v)
+            .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+            .setLocalTargetV(v)
             .setTargetP(p)
-            .setTargetQ(q)
+            .setLocalTargetQ(q)
             .add();
     }
 

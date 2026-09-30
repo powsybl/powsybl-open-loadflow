@@ -248,7 +248,7 @@ class OpenLoadFlowParametersTest {
     void testPlausibleTargetVoltage() {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        network.getGenerator("GEN").setTargetV(30.0);
+        network.getGenerator("GEN").setLocalTargetV(30.0);
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         loadFlowRunner.run(network, parameters);
         assertTrue(Double.isNaN(network.getGenerator("GEN").getRegulatingTerminal().getBusView().getBus().getV())); // no calculation

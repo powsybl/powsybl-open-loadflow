@@ -257,7 +257,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
     void validationLevelTest2() {
         network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         network.setMinimumAcceptableValidationLevel(ValidationLevel.EQUIPMENT);
-        network.getTwoWindingsTransformer("T2wT").getRatioTapChanger().setTargetV(Double.NaN).setRegulating(true);
+        network.getTwoWindingsTransformer("T2wT").getRatioTapChanger().getVoltageRegulation().setTargetValue(Double.NaN).setRegulating(true);
         PowsyblException e = assertThrows(PowsyblException.class, () -> Networks.load(network, new FirstSlackBusSelector()));
         assertEquals("Only STEADY STATE HYPOTHESIS validation level of the network is supported", e.getMessage());
     }

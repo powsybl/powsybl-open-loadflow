@@ -227,7 +227,6 @@ class AcLoadFlowSvcTest {
                 .setId("svc2")
                 .setConnectableBus("b2")
                 .setBus("b2")
-                // .setVoltageSetpoint(385) // TODO MSA use setVoltageSetpoint instead of setLocalTargetV
                 .setLocalTargetV(385)
                 .newVoltageRegulation()
                     .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)

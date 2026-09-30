@@ -361,7 +361,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
                     case INJECTION_REACTIVE_POWER -> {
                         var g = network.getGenerator(variable.getId());
                         if (g != null) {
-                            g.setTargetQ(g.getTargetQ() + STEP_SIZE);
+                            g.setLocalTargetQ(g.getLocalTargetQ() + STEP_SIZE);
                         } else {
                             var l = network.getLoad(variable.getId());
                             if (l != null) {
@@ -371,6 +371,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
                     }
                     case BUS_TARGET_VOLTAGE -> {
                         var g = network.getGenerator(variable.getId());
+                        // TODO MSA
                         g.setTargetV(g.getTargetV() + STEP_SIZE);
                     }
                     default -> throw new UnsupportedOperationException();

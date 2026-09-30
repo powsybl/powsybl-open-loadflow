@@ -280,8 +280,7 @@ class DcLoadFlowTest {
                 .setMinP(0)
                 .setMaxP(20)
                 .setTargetP(1)
-                .setTargetQ(0)
-                .setVoltageRegulatorOn(false)
+                .setLocalTargetQ(0)
                 .add();
         for (Line l : List.of(network.getLine("L13-14-1"),
                 network.getLine("L6-13-1"),

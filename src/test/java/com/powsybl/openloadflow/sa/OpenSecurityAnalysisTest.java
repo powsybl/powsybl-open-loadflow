@@ -1349,7 +1349,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testSaWithGeneratorContingency() {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
-        network.getGenerator("g2").setTargetV(400).setVoltageRegulatorOn(true);
+        network.getGenerator("g2").setLocalTargetV(400).getVoltageRegulation().setRegulating(true);
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
@@ -1391,11 +1391,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         // Unit test for a corner case : A generator that switched PV -> PQ during base case situation is lost through a contingency
         // We check that reactive injection (and voltage) are correctly updated (even without ReactiveLimitsOuterloop during the contingency calculation)
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
-        network.getGenerator("g2").setTargetV(420).setVoltageRegulatorOn(true) // High targetV forces g2 to produce huge amount of reactive pwer
-                .newMinMaxReactiveLimits()
-                .setMinQ(0)
-                .setMaxQ(10000) // MaxQ is high but not enough to reach 420 kV, g2 will switch PQ
-                .add();
+        Generator g2 = network.getGenerator("g2");
+        g2.setLocalTargetV(420).getVoltageRegulation().setRegulating(true); // High targetV forces g2 to produce huge amount of reactive pwer
+        g2.newMinMaxReactiveLimits()
+            .setMinQ(0)
+            .setMaxQ(10000) // MaxQ is high but not enough to reach 420 kV, g2 will switch PQ
+            .add();
         List<Contingency> contingencies = List.of(new Contingency("g2", new GeneratorContingency("g2")));
 
         // Contingency parameter to remove ReactiveLimitsOuterloop during contingency calculation (to avoid it to update the reactive injection)
@@ -2330,7 +2331,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testStaticVarCompensatorContingency() {
         Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
-        network.getStaticVarCompensator("svc1").setVoltageSetpoint(385).setRegulationMode(RegulationMode.VOLTAGE);
+        network.getStaticVarCompensator("svc1").setLocalTargetV(385).getVoltageRegulation().setMode(RegulationMode.VOLTAGE);
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Contingency> contingencies = List.of(new Contingency("svc1", new StaticVarCompensatorContingency("svc1")));
         SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
@@ -2353,7 +2354,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     void testStaticVarCompensatorContingencyWithStandByAutomaton() {
         Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
         StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");
-        svc1.setVoltageSetpoint(385).setRegulationMode(RegulationMode.VOLTAGE);
+        svc1.setLocalTargetV(385).getVoltageRegulation().setMode(RegulationMode.VOLTAGE);
         svc1.newExtension(StandbyAutomatonAdder.class)
                 .withHighVoltageThreshold(400)
                 .withLowVoltageThreshold(380)
@@ -2723,26 +2724,27 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     void testWithShuntAndGeneratorVoltageControls2() {
         Network network = VoltageControlNetworkFactory.createNetworkWith2T2wt();
         network.getTwoWindingsTransformer("T2wT1").getRatioTapChanger()
-                .setTargetDeadband(6.0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(network.getTwoWindingsTransformer("T2wT1").getTerminal1())
-                .setTargetV(130.0);
+                .getVoltageRegulation()
+                    .setTargetDeadband(6.0)
+                    .setRegulating(true)
+                    .setTerminal(network.getTwoWindingsTransformer("T2wT1").getTerminal1(), 130.0);
         network.getTwoWindingsTransformer("T2wT2").getRatioTapChanger()
-                .setTargetDeadband(6.0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(network.getTwoWindingsTransformer("T2wT2").getTerminal1())
-                .setTargetV(130.0);
-        network.getGenerator("GEN_1").setRegulatingTerminal(network.getLine("LINE_12").getTerminal2());
+                .getVoltageRegulation()
+                    .setTargetDeadband(6.0)
+                    .setRegulating(true)
+                    .setTerminal(network.getTwoWindingsTransformer("T2wT2").getTerminal1(), 130.0);
+        Generator gen1 = network.getGenerator("GEN_1");
+        gen1.getVoltageRegulation().setTerminal(network.getLine("LINE_12").getTerminal2(), gen1.getRegulatingTargetV());
         network.getVoltageLevel("VL_3").newGenerator()
                 .setId("GEN_3")
                 .setBus("BUS_3")
                 .setMinP(0.0)
                 .setMaxP(140)
                 .setTargetP(1)
-                .setTargetV(33)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(33)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("LINE_12"))));
         LoadFlowParameters lfParameters = new LoadFlowParameters();
@@ -3125,7 +3127,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     @Test
     void testWithShuntVoltageControlContingency() {
         Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
-        network.getGenerator("g1").setRegulatingTerminal(network.getLoad("l4").getTerminal()).setTargetV(390);
+        network.getGenerator("g1").getVoltageRegulation().setTerminal(network.getLoad("l4").getTerminal(), 390);
         List<Contingency> contingencies = List.of(new Contingency("contingency", List.of(new BranchContingency("tr2"), new BranchContingency("tr3"))));
         LoadFlowParameters lfParameters = new LoadFlowParameters()
                 .setShuntCompensatorVoltageControlOn(true);
@@ -3286,18 +3288,18 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         securityAnalysisParameters.setLoadFlowParameters(parameters);
         TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("T2wT");
         t2wt.getRatioTapChanger()
-                .setTargetDeadband(2)
-                .setRegulating(true)
                 .setTapPosition(1)
-                .setRegulationTerminal(t2wt.getTerminal2())
-                .setTargetV(33.0);
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 33.0)
+                    .setTargetDeadband(2)
+                    .setRegulating(true);
         TwoWindingsTransformer t2wt2 = network.getTwoWindingsTransformer("T2wT2");
         t2wt2.getRatioTapChanger()
-                .setTargetDeadband(2)
-                .setRegulating(true)
                 .setTapPosition(1)
-                .setRegulationTerminal(t2wt2.getTerminal1())
-                .setTargetV(33.0);
+                .getVoltageRegulation()
+                    .setTargetDeadband(2)
+                    .setRegulating(true)
+                    .setTerminal(t2wt2.getTerminal1(), 33.0);
         network.getGenerator("GEN_5").newMinMaxReactiveLimits().setMinQ(-5.0).setMaxQ(5.0).add();
         List<Contingency> contingencies = List.of(new Contingency("c", new SwitchContingency("SWITCH")));
         List<StateMonitor> monitors = createNetworkMonitors(network);
@@ -3322,15 +3324,15 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         OpenLoadFlowParameters.create(parameters)
                 .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
         ShuntCompensator shunt = network.getShuntCompensator("SHUNT");
-        shunt.setTargetDeadband(2);
+        shunt.getVoltageRegulation().setTargetDeadband(2);
         ShuntCompensator shunt2 = network.getShuntCompensator("SHUNT2");
         Bus b3 = network.getBusBreakerView().getBus("b3");
         Generator g2 = network.getGenerator("g2");
         network.getGenerator("g2").newMinMaxReactiveLimits().setMinQ(-150).setMaxQ(150).add();
 
         // Generator reactive capability is not enough to hold voltage alone but with shunt it is ok
-        shunt.setVoltageRegulatorOn(true);
-        shunt2.setVoltageRegulatorOn(true);
+        shunt.getVoltageRegulation().setRegulating(true);
+        shunt2.getVoltageRegulation().setRegulating(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(393, b3);
@@ -3341,7 +3343,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertReactivePowerEquals(-134.585, g2.getTerminal());
 
         // Both shunts are used at generator targetV
-        g2.setTargetV(395);
+        g2.setLocalTargetV(395);
         shunt.setSectionCount(0);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
@@ -4365,8 +4367,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .setConnectableBus("B1")
                 .setBus("B1")
                 .setTargetP(10.)
-                .setTargetV(400.)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(400.)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         List<Contingency> contingencies = List.of(new Contingency("G1", new GeneratorContingency("G1")));
@@ -4397,8 +4399,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .setConnectableBus("B1")
                 .setBus("B1")
                 .setTargetP(10.)
-                .setTargetV(400.)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(400.)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         VoltageLevel vl2 = network.newVoltageLevel()
@@ -4416,8 +4418,8 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .setConnectableBus("B2")
                 .setBus("B2")
                 .setTargetP(10.)
-                .setTargetV(400.01)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(400.01)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add()
                 .newMinMaxReactiveLimits()
                 .setMinQ(-300)
@@ -4930,8 +4932,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         VscConverterStation cs3 = network.getVscConverterStation("cs3");
         Generator g4 = b4.getVoltageLevel().newGenerator()
                 .setId("g4")
-                .setVoltageRegulatorOn(false)
-                .setTargetQ(0)
+                .setLocalTargetQ(0)
                 .setMaxP(400)
                 .setMinP(5)
                 .setTargetP(10)
@@ -4998,12 +4999,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         network.getBusBreakerView().getBus("b2")
                 .getGeneratorStream()
                 .forEach(g -> {
-                    g.setTargetV(1.5);
+                    g.setLocalTargetV(1.5);
                     g.newMinMaxReactiveLimits()
                             .setMinQ(-6.5)
                             .setMaxQ(6.5)
                             .add();
-                    g.setTargetQ(1);
+                    g.setLocalTargetQ(1);
 
                 });
 
@@ -5031,7 +5032,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         Network network = DoubleBusNetworkFactory.create();
 
         Generator g2 = network.getGenerator("g2");
-        g2.setTargetQ(1.23);
+        g2.setLocalTargetQ(1.23);
 
         List<Contingency> contingencies = network.getVoltageLevel("vl1")
                 .getNodeBreakerView()
@@ -5046,7 +5047,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
 
         // g2 is PQ although supposed to be in voltage control - Q is determined by the sum of Q entering in the two transfomers connected to g2
-        assertTrue(g2.isVoltageRegulatorOn());
+        assertTrue(g2.isRegulatingWithMode(RegulationMode.VOLTAGE));
         assertEquals(1.23,
                 result.getPreContingencyResult().getNetworkResult().getBranchResult("twg2").getQ2() + result.getPreContingencyResult().getNetworkResult().getBranchResult("twg2_boundary").getQ2(),
                 DELTA_POWER);

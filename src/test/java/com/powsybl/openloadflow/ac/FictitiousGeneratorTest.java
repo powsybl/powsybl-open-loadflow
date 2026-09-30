@@ -13,6 +13,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -72,8 +73,8 @@ class FictitiousGeneratorTest {
                 .setMinP(100)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(221)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(221)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         vl2 = s.newVoltageLevel()
                 .setId("vl2")
@@ -95,8 +96,8 @@ class FictitiousGeneratorTest {
                 .setMinP(100)
                 .setMaxP(200)
                 .setTargetP(0)
-                .setTargetV(224)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(224)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .setFictitious(true)
                 .add();
 
@@ -157,8 +158,8 @@ class FictitiousGeneratorTest {
                 .setMinP(0)
                 .setMaxP(0)
                 .setTargetP(0)
-                .setTargetV(224)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(224)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .setCondenser(true)
                 .add();
 
