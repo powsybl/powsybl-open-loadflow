@@ -371,8 +371,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
                     }
                     case BUS_TARGET_VOLTAGE -> {
                         var g = network.getGenerator(variable.getId());
-                        // TODO MSA
-                        g.setTargetV(g.getTargetV() + STEP_SIZE);
+                        g.setLocalTargetV(g.getLocalTargetV() + STEP_SIZE);
                     }
                     default -> throw new UnsupportedOperationException();
                 }
