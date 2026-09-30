@@ -67,7 +67,7 @@ public class GeneratorVoltageControlManager {
             if (bus.getNominalV() <= minNominalVoltageLimit) {
                 var voltageControl = bus.getGeneratorVoltageControl().orElseThrow();
                 for (LfBus controllerBus : voltageControl.getMergedControllerElements()) {
-                    if (controllerBus.isGeneratorVoltageControlEnabled() && !hasStepUpTransformers(controllerBus, minNominalVoltageLimit)) {
+                    if (controllerBus.isGeneratorVoltageControlEnabled() && !hasStepUpTransformers(controllerBus)) {
                         controllerBus.freezeGenerationTargetQAndDisableGeneratorVoltageControl(controllerBus.getQ().eval());
                         disabledControllerBuses.add(controllerBus);
                     }
@@ -88,10 +88,10 @@ public class GeneratorVoltageControlManager {
     /**
      * True if a controller bus:
      * - has a VSC converter station;
-     * - has step-up transformers converting voltage to a bus with nominal voltage higher than the voltage limit. A step-up
-     * transformer has no tap changing capabilities.
+     * - has step-up transformers converting voltage to a bus with a higher nominal voltage. A step-up transformer has no
+     * voltage control.
      */
-    private boolean hasStepUpTransformers(LfBus bus, double limit) {
+    private boolean hasStepUpTransformers(LfBus bus) {
         if (bus.getGenerators().stream().anyMatch(LfVscConverterStation.class::isInstance)) {
             return true;
         }
@@ -105,7 +105,7 @@ public class GeneratorVoltageControlManager {
                 .mapToDouble(b -> Math.max(b.getBus1().getNominalV(), b.getBus2().getNominalV()))
                 .min()
                 .orElse(-1);
-        // All branches should be step-up transformers arriving to a voltage higher than limit
-        return minConnectedVoltageLevel > startingNominalVoltage && minConnectedVoltageLevel > limit;
+        // All branches should be step-up transformers.
+        return minConnectedVoltageLevel > startingNominalVoltage;
     }
 }

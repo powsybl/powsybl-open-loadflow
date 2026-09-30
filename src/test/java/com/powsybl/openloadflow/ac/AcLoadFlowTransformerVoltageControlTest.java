@@ -1256,22 +1256,22 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertVoltageEquals(230.060, b4);
         assertVoltageEquals(92.050, b6);
         // we force the min nominal voltage control to 225kV...
-        // 3 transformer voltage controls have been disabled because no PV buses (even behind a transfo)
-        // on not controlled side connected component
+        // Generator g3 is under this threshold but is behind non-regulating step-up transformer t38, so it is kept
+        // in voltage control and can still support transformer voltage controls.
         parametersExt.setGeneratorVoltageControlMinNominalVoltage(230.0);
         twt1.getRatioTapChanger().setTapPosition(0);
         twt2.getRatioTapChanger().setTapPosition(0);
         twt3.getRatioTapChanger().setTapPosition(0);
         LoadFlowResult result2 = loadFlowRunner.run(network1, parameters);
-        assertEquals(0, twt1.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, twt1.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt1.getRatioTapChanger().getTapPosition());
-        assertEquals(0, twt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, twt2.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
-        assertEquals(0, twt3.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, twt3.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
-        assertEquals(6, result2.getComponentResults().getFirst().getIterationCount());
-        assertVoltageEquals(276.072, b4);
-        assertVoltageEquals(110.460, b6);
+        assertEquals(8, result2.getComponentResults().getFirst().getIterationCount());
+        assertVoltageEquals(230.060, b4);
+        assertVoltageEquals(92.050, b6);
         // we force the min nominal voltage control to 20k...
         // the 2 generators are kept
         parametersExt.setGeneratorVoltageControlMinNominalVoltage(20.0);
