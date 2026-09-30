@@ -213,6 +213,15 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
     }
 
     @Override
+    public Optional<PhaseTapChanger> getPhaseTapChanger() {
+        var branch = getBranch();
+        if (branch instanceof TwoWindingsTransformer twt) {
+            return Optional.ofNullable(twt.getPhaseTapChanger());
+        }
+        return Optional.empty();
+    }
+
+    @Override
     public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
                                                  boolean createExtension, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows,
                                                  LoadFlowModel loadFlowModel) {
