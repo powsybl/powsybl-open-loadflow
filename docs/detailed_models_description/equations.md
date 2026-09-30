@@ -249,24 +249,23 @@ When the Fast-Decoupled algorithm is used, we recommend these values for some co
 AC DC flows computing in OpenLoadFLow is similar to AC flows computing, but with AC and DC equations in the same system.
 The unknowns are voltage magnitude and phase angle for each AC bus, voltage for each DC bus, and active/reactive
 power for each voltage source converter.<br>
-Concerning AC side, the equations are the same as in AC flows computing, concerning DC side, the equations induced by DC
-components are the followings:
+The equations remain the same as AC load flow for the AC parts of the network flows computing. The DC parts are modelled with the following equations.
 
 ### DC bus
 
 At least one DC bus must be connected to the ground in each DC network, its potential is therefore set to 0.
 Therefore, symmetrical configuration are currently not supported.<br>
-For the others DC buses, each one introduces an equation of current balance: $\sum_{i} I_i = 0$ where $I_i$ are the currents going out of the DC bus.
-These terms are introduced by the DC components connected to the DC bus.
+Each other DC bus introduces an equation of current balance: $\sum_{i} I_i = 0$ where $I_i$ are the currents going out of the DC bus.
 
 ### DC Line
 
-Each DC line adds one term in both of its two connected DC buses current balance:
+Each DC line adds one term to each of its two connected DC buses current balance:
 
 $\sum_{i} I_i + \frac{V_1 - V_2}{R}= 0$ for dcBus1
 
 $\sum_{i} I_i - \frac{V_1 - V_2}{R}= 0$ for dcBus2
 
+If a DC line is disconnected on any side, no current can pass through it.
 
 ### Line Commutated Converter
 
@@ -274,16 +273,19 @@ Line commutated converters are not supported yet by Open Load Flow.
 
 ### Voltage source converters
 
-Let consider a network that is composed of one AC network, and one DC network.
-The voltage source converter is the link between AC and DC networks, it is linked to **one** AC bus at one side, and two
-DC buses at the other side.<br>
-Please note that converters with a second optional AC terminal are not supported by Open Load Flow.
+Voltage source converters are the links between AC and DC networks. They are linked to a single AC bus and two
+DC buses. Please note that converters with a second optional AC terminal are not supported by Open Load Flow.
+
+#### Control modes
+
+If a terminal of the converter is disconnected, the converter is not included in the load flow, and none of the equations below is added.
 
 The converter can control either the power received by the AC network (`P_PCC` control mode)
 or the voltage between its two DC buses (`V_DC` control mode).
-At least one of the voltage source converters of the DC network must be in `V_DC` mode. Otherwise, an exception will be thrown.
+At least one of the voltage source converters of the DC network must control the voltage (i.e. be in `V_DC` or `DC_DROOP` mode).
+If a DC network has only converters in `P_PCC` mode, they will be automatically set in `V_DC` mode with the DC nominal voltage as target voltage.
 
-In addition to the control modes `P_PCC` and `V_DC`, the voltage source converter can be set in two modes :
+In addition to the control modes `P_PCC`, `V_DC` and `DC_DROOP`, the voltage source converter can be set in two modes :
 - Reactive power control mode, in which it imposes the reactive power received from AC to DC, which is 0 by default.
   In this case, the AC voltage is not fixed.
 - Voltage regulator control mode, in which it imposes the voltage at its AC Bus. In this case the reactive power is not
@@ -291,34 +293,35 @@ In addition to the control modes `P_PCC` and `V_DC`, the voltage source converte
 
 **Warning:** At the moment, the active and reactive power control and the AC voltage control are enforced at the converter AC terminal, not at its PCC terminal.
 
-We note $P_{AC}$ the power flow injected by AC network into the converter.
-So $P_{AC}>0$ if the power flows from AC to DC and $P_{AC}<0$ otherwise.
+Let $P_{AC}$ be the power flow injected by the AC network into the converter.
+This sign convention means that $P_{AC}>0$ if the power flows from AC to DC and $P_{AC}<0$ otherwise.
 
-If the converter is in `P_PCC` control mode, we add an equation to impose $P_{AC}$ :
+If the converter is in `P_PCC` control mode, then $P_{AC}$ is set to $P_{Ref}$ :
 
-$P_{AC}$ = $P_{Ref}$
+$$P_{AC} = P_{Ref}$$
 
-Else the converter is in `V_DC` control mode, and we add an equation to impose the voltage between its two DC buses :
+If the converter is in `V_DC` control mode, so the voltage between its two DC buses is set :
 
-$V_{1} - V_{2} = V_{Ref}$
+$$V_{1} - V_{2} = V_{Ref}$$
 
-Similarly, if the converter controls reactive power, we add an equation to impose $Q_{AC}$ :
+If the converter is in `DC_DROOP` control mode, then a relation `V_DC = f(P_AC)` is set (see [below](#droop-control))
 
-$Q_{AC}$ = $Q_{Ref}$
+Similarly, if the converter controls reactive power, $Q_{AC}$ is set to $Q_{Ref}$:
 
-Else the converter controls the AC voltage, and we add an equation to impose $V_{AC}$:
+$$Q_{AC} = Q_{Ref}$$
 
-$V_{AC}= V_{Ref}$
+Else the converter controls the AC voltage, $V_{AC}$ is set to $V_{Ref}$:
 
-On the AC bus, the active and reactive power injected into the converter is added to its power balance.<br>
-On the DC side, we introduce the variable $I_{Conv}$ which is the current flowing in the converter from dcBus1 to dcBus2.
-It is added to the current balances of dcBus1 and dcBus2
+$$V_{AC} = V_{Ref}$$
+
+On the AC bus, the active and reactive power injected into the converter are added to its power balance.<br>
+On the DC side, the current $I_{Conv}$ flowing in the converter from dcBus1 to dcBus2 is added to the current balances of dcBus1 and dcBus2
 
 $\sum_{i} I_i + I_{Conv} = 0$ for dcBus1
 
 $\sum_{i} I_i - I_{Conv}= 0$ for dcBus2
 
-#### Power Equations
+#### Power and loss equations
 
 The last equation of converters ensures the conservation of power between AC and DC.
 
@@ -326,10 +329,10 @@ $$P_{DC} + P_{AC} = P_{Loss}$$
 
 with:
 - $P_{AC}$ the power injected by the AC network into the converter
-- $P_{Loss}>=0$ the converter losses depending on AC current. Its computation is detailed below.
-- $P_{DC} = I_{Conv}*(V_1-V_2)$ the power injected by the DC network into the converter.
+- $P_{Loss}$ (non-negative) the converter losses depending on AC current. Its computation is detailed below.
+- $P_{DC} = I_{Conv} \cdot (V_1-V_2)$ the power injected by the DC network into the converter.
 
-If the converter acts as rectifier, AC injects power in DC, thus $P_{DC}<0$ and $P_{AC}>0$, so we have :
+If the converter acts as a rectifier, AC injects power in DC, thus $P_{DC}<0$ and $P_{AC}>0$, so we have :
 
 $$
 -|P_{DC}| + P_{AC} = P_{Loss}
@@ -338,7 +341,7 @@ $$
 |P_{DC}| = |P_{AC}| - P_{Loss}
 $$
 
-And if the converter acts as inverter, DC injects power in AC, thus $P_{DC}>0$ and $P_{AC}<0$, so we have :
+And if the converter acts as an inverter, DC injects power in AC, thus $P_{DC}>0$ and $P_{AC}<0$, so we have :
 
 $$
 P_{DC} - |P_{AC}| = P_{Loss}
@@ -351,14 +354,45 @@ In both cases, there is a loss of power when passing through the converter.
 
 
 $P_{Loss}$ is defined as :<br>
-$
-P_{Loss} = IdleLoss + SwitchingLoss * |I_{Conv}| + ResistiveLoss * I_{Conv}^{2}
-$
+
+$$
+P_{Loss} = IdleLoss + SwitchingLoss \cdot |I_{Conv}| + ResistiveLoss \cdot I_{Conv}^{2}
+$$
 
 
 Idle loss, switching loss and resistive loss are loss factors that depend on the converter.
 
 Using the previous equation of power conservation between AC and DC, we have
+
 $$
-I_{Conv}*(V_1-V_2) + P_{AC} = IdleLoss + SwitchingLoss*|I_{Conv}| + ResistiveLoss*I_{Conv}^{2}
+I_{Conv} \cdot (V_1-V_2) + P_{AC} = IdleLoss + SwitchingLoss \cdot |I_{Conv}| + ResistiveLoss \cdot I_{Conv}^{2}
 $$
+
+#### Multi-segment droop control
+
+In `DC_DROOP` control mode, the converter does not hold a fixed power or a fixed DC voltage.
+Instead it follows a **droop law** that ties its active power to its DC voltage, so that the
+converter naturally shares in regulating the DC voltage of the network:
+
+$$U_{dc} = V_{Ref} + k(U_{dc}) \cdot (P_{AC} - P_{Ref})$$
+
+with:
+- $P_{AC}$ the active power injected by the AC network into the converter,
+- $U_{dc} = V_1 - V_2$ the pole-to-pole DC voltage of the converter,
+- $(V_{Ref}, P_{Ref})$ the reference point read from the droop curve,
+- $k(U_{dc})$ the droop coefficient, i.e. the slope of $U_{dc}$ versus $P_{AC}$.
+
+$U_{dc} \rightarrow k(U_{dc})$ is piecewise constant, which makes $U_{dc} \rightarrow P_{AC}$ piecewise linear.
+The droop curve passes through the converter setpoint $(targetVdc, targetP)$. This anchors its
+position in the $(U_{dc}, P)$ plane. A `DC_DROOP` converter must therefore have a droop curve
+and both `targetP` and `targetVdc` defined. All $k$ coefficients across the curve's bands must share
+the same strict sign (all positive or all negative): a $k=0$ band leaves its reference power undefined
+when positioning it on the curve, and a sign change would break the band lookup — two different
+$P_{AC}$ values could then land on the same $U_{dc}$, so a solved $U_{dc}$ would no longer point back
+to a single band.
+
+Note that if the solved $U_{dc}$ falls below the lowest band or above the highest band, the nearest
+band's coefficient is used (clamping), so $k$ is always defined.
+
+The reported solution is self-consistent: for each converter, the applied $k$ is the one its
+curve assigns to that converter's own solved $U_{dc}$, provided that the load flow computation converges.

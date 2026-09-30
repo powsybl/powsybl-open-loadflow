@@ -22,7 +22,7 @@ import java.util.Objects;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractElementEquationTerm<LfVoltageSourceConverter, AcVariableType, AcEquationType> {
+public abstract class AbstractConverterDcFlowEquation extends AbstractElementEquationTerm<LfVoltageSourceConverter, AcVariableType, AcEquationType> {
 
     protected final Variable<AcVariableType> v1Var;
 
@@ -38,7 +38,7 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
 
     protected LfDcBus dcBus2;
 
-    protected AbstractConverterDcCurrentEquationTerm(LfVoltageSourceConverter converter, LfDcBus dcBus1, LfDcBus dcBus2, double nominalV, VariableSet<AcVariableType> variableSet) {
+    protected AbstractConverterDcFlowEquation(LfVoltageSourceConverter converter, LfDcBus dcBus1, LfDcBus dcBus2, double nominalV, VariableSet<AcVariableType> variableSet) {
         super(converter);
         Objects.requireNonNull(converter);
         Objects.requireNonNull(variableSet);
