@@ -209,7 +209,11 @@ public final class ConnectivityBreakAnalysis {
         GraphConnectivity<LfBus, LfBranch> connectivity = lfNetwork.getConnectivity();
 
         // concatenate all computed elements, to apply them on the connectivity
-        List<LfAction> lfActions = operatorStrategy == null ? Collections.emptyList() : operatorStrategy.getActions().stream().filter(LfAction::isValid).toList();
+        // only branch actions (line/switch open/close) can modify connectivity: other actions (e.g. PST tap, generator/load
+        // setpoint) have no associated branch and must not be considered here, otherwise they would be looked up in
+        // actionElementByBranch as connectivity-modifying elements and break the analysis
+        List<LfAction> lfActions = operatorStrategy == null ? Collections.emptyList()
+                : operatorStrategy.getActions().stream().filter(LfAction::isValid).filter(AbstractLfBranchAction.class::isInstance).toList();
         List<ComputedElement> modifyingConnectivityCandidates = Stream.concat(
                 contingency != null ? contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get) : Stream.empty(),
                 lfActions.stream().map(actionElementByBranch::get).flatMap(Collection::stream)
@@ -295,10 +299,23 @@ public final class ConnectivityBreakAnalysis {
     }
 
     private static Map<String, ComputedContingencyElement> createContingencyElementsIndexByBranchId(List<PropagatedContingency> contingencies,
-                                                                                                    LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+                                                                                                    LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                                                                                    List<String> additionalBranchIds) {
         Map<String, ComputedContingencyElement> contingencyElementByBranch =
-                contingencies.stream()
-                        .flatMap(contingency -> contingency.getBranchIdsToOpen().keySet().stream())
+                Stream.concat(
+                        contingencies.stream().flatMap(contingency -> contingency.getBranchIdsToOpen().keySet().stream()),
+                        additionalBranchIds.stream()
+                )
+                        // an id may not correspond to a branch of this connected component's LF network: a permanent
+                        // contingency (reconnectable) branch is global to the whole network and may belong to another
+                        // connected component. Such a branch carries no flow here, so it is safely ignored.
+                        .filter(branchId -> {
+                            if (lfNetwork.getBranchById(branchId) == null) {
+                                LOGGER.debug("Contingency or reconnectable branch '{}' is not in the LF network and is ignored in fast DC connectivity analysis", branchId);
+                                return false;
+                            }
+                            return true;
+                        })
                         .map(branch -> new ComputedContingencyElement(new BranchContingency(branch), lfNetwork, equationSystem))
                         .filter(element -> element.getLfBranchEquation() != null)
                         .collect(Collectors.toMap(
@@ -312,8 +329,14 @@ public final class ConnectivityBreakAnalysis {
     }
 
     public static ConnectivityBreakAnalysisResults run(DcLoadFlowContext loadFlowContext, List<PropagatedContingency> contingencies) {
-        // index contingency elements by branch id
-        Map<String, ComputedContingencyElement> contingencyElementByBranch = createContingencyElementsIndexByBranchId(contingencies, loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem());
+        return run(loadFlowContext, contingencies, Collections.emptyList());
+    }
+
+    public static ConnectivityBreakAnalysisResults run(DcLoadFlowContext loadFlowContext, List<PropagatedContingency> contingencies,
+                                                       List<String> permanentContingencyBranchIds) {
+        // index contingency elements by branch id (including permanent contingency branches)
+        Map<String, ComputedContingencyElement> contingencyElementByBranch = createContingencyElementsIndexByBranchId(contingencies,
+                loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem(), permanentContingencyBranchIds);
 
         // compute states with +1 -1 to model the contingencies
         DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(loadFlowContext, contingencyElementByBranch.values());

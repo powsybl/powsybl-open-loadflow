@@ -12,7 +12,18 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
+import java.util.Optional;
+
 /**
+ * Base class of the AC/DC converters of a {@link LfNetwork}.
+ * <p>Usage rules for subclasses, which IIDM does not enforce:
+ * <ul>
+ *     <li>a converter in {@code DC_DROOP} control mode must have a droop curve and both {@code targetP} and
+ *     {@code targetVdc} defined, otherwise loading the network fails with a {@code PowsyblException};</li>
+ *     <li>all DC buses of a DC component share the same nominal voltage, which is the DC voltage base
+ *     (see {@link #getDcVoltageBase()}).</li>
+ * </ul>
+ *
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
 public abstract class AbstractLfAcDcConverter extends AbstractElement implements LfAcDcConverter {
@@ -43,16 +54,19 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected final LfBus bus1;
 
-    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
+    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1, Optional<Double> vdcOverride) {
         super(network);
 
         this.dcBus1 = dcBus1;
         this.dcBus2 = dcBus2;
         this.bus1 = bus1;
         this.lossFactors = new LossFactors(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
-        this.controlMode = converter.getControlMode();
+        // vdcOverride is set when this converter has been automatically promoted to V_DC control because its DC
+        // island had no other element imposing the DC voltage (see DcComponentValidator.resolveDcComponent)
+        this.controlMode = vdcOverride.isPresent() ? AcDcConverter.ControlMode.V_DC : converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
-        targetVdc = dcBus1.isGrounded() ? converter.getTargetVdc() / dcBus2.getNominalV() : converter.getTargetVdc() / dcBus1.getNominalV();
+        double rawTargetVdc = vdcOverride.orElseGet(converter::getTargetVdc);
+        this.targetVdc = rawTargetVdc / getDcVoltageBase();
         this.pAc = converter.getTerminal1().getP();
         this.qAc = converter.getTerminal1().getQ();
     }
@@ -105,6 +119,12 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     @Override
     public double getTargetVdc() {
         return targetVdc;
+    }
+
+    @Override
+    public double getDcVoltageBase() {
+        // Hypothesis: all buses in the DC voltage have the same nominal DC voltage.
+        return dcBus1.getNominalV();
     }
 
     @Override
