@@ -15,6 +15,15 @@ import com.powsybl.openloadflow.util.PerUnit;
 import java.util.Optional;
 
 /**
+ * Base class of the AC/DC converters of a {@link LfNetwork}.
+ * <p>Usage rules for subclasses, which IIDM does not enforce:
+ * <ul>
+ *     <li>a converter in {@code DC_DROOP} control mode must have a droop curve and both {@code targetP} and
+ *     {@code targetVdc} defined, otherwise loading the network fails with a {@code PowsyblException};</li>
+ *     <li>all DC buses of a DC component share the same nominal voltage, which is the DC voltage base
+ *     (see {@link #getDcVoltageBase()}).</li>
+ * </ul>
+ *
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
 public abstract class AbstractLfAcDcConverter extends AbstractElement implements LfAcDcConverter {

@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.ac.equations.dcnetwork;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
@@ -38,11 +37,9 @@ public class ConverterDroopEquationTerm extends AbstractConverterDcFlowEquation 
     public ConverterDroopEquationTerm(LfVoltageSourceConverter converter, LfDcBus dcBus1, LfDcBus dcBus2, VariableSet<AcVariableType> variableSet) {
         // pass the DC voltage base as nominalV so that v1() - v2() is U_dc in per unit of that base
         super(converter, dcBus1, dcBus2, converter.getDcVoltageBase(), variableSet);
+        // The droop curve is guaranteed non-empty because there is a guard
+        // when loading the converter
         droopReferences = new ArrayList<>(converter.getDroopCurve());
-        if (droopReferences.isEmpty()) {
-            throw new PowsyblException("Cannot create a ConverterDroopEquationTerm for AC/DC converter '" + converter.getId()
-                    + "' which is not in DC_DROOP control mode");
-        }
     }
 
     @Override

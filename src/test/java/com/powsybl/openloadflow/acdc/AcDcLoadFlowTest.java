@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.acdc;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.AcDcConverter.ControlMode;
 import com.powsybl.iidm.network.test.DcDetailedNetworkFactory;
@@ -1241,6 +1242,64 @@ class AcDcLoadFlowTest {
 
         checkDroopResult(network, 400., 50.);
         checkDroopResult(network, 415., 37.5);
+    }
+
+    @Test
+    void testDroopAnchorBelowFirstBand() {
+        // The droop converter's anchor (targetVdc, targetP) = (370 kV, 50 MW) lies below the first band [380,390],
+        // so it is clamped to that band (k=0.5): the curve passes through P = 70 MW at 380 kV.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        network.getVoltageSourceConverter("convDroop").setTargetVdc(370.);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        checkDroopResult(network, 380., 70.);
+        checkDroopResult(network, 400., 100.);
+        checkDroopResult(network, 415., 112.5);
+    }
+
+    @Test
+    void testDroopAnchorAboveLastBand() {
+        // The droop converter's anchor (targetVdc, targetP) = (430 kV, 50 MW) lies above the last band [410,420],
+        // so it is clamped to that band (k=2.0): the curve passes through P = 40 MW at 410 kV.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        network.getVoltageSourceConverter("convDroop").setTargetVdc(430.);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        checkDroopResult(network, 385., 10.);
+        checkDroopResult(network, 400., 30.);
+        checkDroopResult(network, 410., 40.);
+    }
+
+    @Test
+    void testDroopWithoutCurveIsRejected() {
+        // IIDM accepts DC_DROOP mode on a converter without droop curve, so the LF network loading must reject it.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        network.getVoltageSourceConverter("convVdc").setControlMode(ControlMode.DC_DROOP);
+
+        PowsyblException e = assertThrows(PowsyblException.class, () -> loadLfNetwork(network));
+        assertEquals("AC/DC converter 'convVdc' in DC_DROOP control mode must have a droop curve", e.getMessage());
+    }
+
+    @Test
+    void testDroopWithUndefinedTargetsIsRejected() {
+        // IIDM only requires targetP and targetVdc in P_PCC and V_DC modes respectively, so the LF network loading
+        // must reject a DC_DROOP converter for which either target is undefined.
+        Network networkWithoutTargetP = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        networkWithoutTargetP.getVoltageSourceConverter("convDroop").setTargetP(Double.NaN);
+        PowsyblException e = assertThrows(PowsyblException.class, () -> loadLfNetwork(networkWithoutTargetP));
+        assertEquals("AC/DC converter 'convDroop' in DC_DROOP control mode must have targetP and targetVdc defined", e.getMessage());
+
+        Network networkWithoutTargetVdc = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        networkWithoutTargetVdc.getVoltageSourceConverter("convDroop").setTargetVdc(Double.NaN);
+        e = assertThrows(PowsyblException.class, () -> loadLfNetwork(networkWithoutTargetVdc));
+        assertEquals("AC/DC converter 'convDroop' in DC_DROOP control mode must have targetP and targetVdc defined", e.getMessage());
+    }
+
+    private static LfNetwork loadLfNetwork(Network network) {
+        LfNetworkParameters lfParameters = new LfNetworkParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector())
+                .setAcDcNetwork(true);
+        return LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters).get(0);
     }
 
 }

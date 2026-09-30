@@ -122,7 +122,8 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         }
         for (int i = 0; i < segments.size(); i++) {
             DroopCurve.Segment segment = segments.get(i);
-            if (v >= segment.getMinV() && v < segment.getMaxV()) {
+            // no check on minV because Core already forbids overlaps
+            if (v < segment.getMaxV()) {
                 return i;
             }
         }
