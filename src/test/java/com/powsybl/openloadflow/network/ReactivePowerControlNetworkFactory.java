@@ -43,7 +43,7 @@ public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkF
         // generator g4 regulates reactive power on line 4->3 (on side of g4)
         g4.newVoltageRegulation()
             .withMode(RegulationMode.REACTIVE_POWER)
-            .withTargetValue(4.0)
+            .withTargetValue(-4.0)
             .withTerminal(l34.getTerminal(TwoSides.TWO))
             .build();
         return network;
@@ -62,7 +62,7 @@ public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkF
         g4.newVoltageRegulation()
             .withMode(RegulationMode.REACTIVE_POWER)
             .withTerminal(l12.getTerminal(TwoSides.TWO))
-            .withTargetValue(1.0)
+            .withTargetValue(-1.0)
             .build();
         return network;
     }

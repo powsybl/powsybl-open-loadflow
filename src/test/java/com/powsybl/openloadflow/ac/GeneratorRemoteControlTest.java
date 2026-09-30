@@ -371,7 +371,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         Line l34 = network.getLine("l34");
         Line l12 = network.getLine("l12");
 
-        double targetQ = 1.0;
+        double targetQ = -1.0;
 
         // disable voltage control on g4
         g4.setTargetQ(0).setVoltageRegulatorOn(false);
@@ -387,7 +387,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(targetQ, l34.getTerminal(TwoSides.TWO));
+        assertReactivePowerEquals(-targetQ, l34.getTerminal(TwoSides.TWO)); // load convention
 
         // second test: generator g4 regulates reactive power on line 3->4 (on the opposite side of the line)
         g4.newVoltageRegulation()
@@ -398,7 +398,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(targetQ, l34.getTerminal(TwoSides.ONE));
+        assertReactivePowerEquals(-targetQ, l34.getTerminal(TwoSides.ONE)); // load convention
 
         // third test: generator g4 regulates reactive power on line 1->2 (line which is not linked to bus 4)
         g4.newVoltageRegulation()
@@ -409,7 +409,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(targetQ, l12.getTerminal(TwoSides.ONE));
+        assertReactivePowerEquals(-targetQ, l12.getTerminal(TwoSides.ONE)); // load convention
     }
 
     @Test
@@ -420,7 +420,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         Line l34 = network.getLine("l34");
         l34.setR(0).setX(0);
 
-        double targetQ = 1.0;
+        double targetQ = -1.0;
 
         // disable voltage control on g4
         g4.setTargetQ(0).setVoltageRegulatorOn(false);
@@ -437,7 +437,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setGeneratorReactivePowerRemoteControl(true);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(targetQ, l34.getTerminal(TwoSides.TWO));
+        assertReactivePowerEquals(-targetQ, l34.getTerminal(TwoSides.TWO)); // load convention
     }
 
     @Test
@@ -484,7 +484,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         Line l34 = network.getLine("l34");
         createGenerator(b2, "g2", 0);
 
-        double targetQ = 1.0;
+        double targetQ = -1.0;
 
         // we disable the voltage control of g1 and g4
         g1.setTargetQ(0).setVoltageRegulatorOn(false);
@@ -796,7 +796,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(targetQ, twt.getTerminal(TwoSides.TWO));
+        assertReactivePowerEquals(-targetQ, twt.getTerminal(TwoSides.TWO)); // load convention
     }
 
     /**
@@ -839,7 +839,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
                 .setTargetQ(0.0)
                 .add();
 
-        double targetQ = -5.0;
+        double targetQ = 5.0;
         gen1.setTargetQ(0.0).newVoltageRegulation()
             .withMode(RegulationMode.REACTIVE_POWER)
             .withTargetValue(targetQ)
@@ -853,7 +853,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
-        assertReactivePowerEquals(targetQ, t3wt.getTerminal(ThreeSides.ONE));
+        assertReactivePowerEquals(-targetQ, t3wt.getTerminal(ThreeSides.ONE)); // load convention
     }
 
     @Test
@@ -923,7 +923,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         Generator g4 = network.getGenerator("g4");
         Line l34 = network.getLine("l34");
 
-        double targetQ = 4.0;
+        double targetQ = -4.0;
 
         // disable voltage control on g4
         g4.setTargetQ(0.0);
@@ -954,7 +954,7 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         Generator g4 = network.getGenerator("g4");
         Line l34 = network.getLine("l34");
 
-        double targetQ = 4.0;
+        double targetQ = -4.0;
 
         // disable voltage control on g4
         g4.setTargetQ(0.0).setVoltageRegulatorOn(false);

@@ -315,7 +315,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 }
                 LfGenerator generator = generators.get(0);
                 if (checkControllerBusGenerators(generators, controllerBus.getId())) {
-                    createGeneratorReactivePowerControl(generator.getControlledBranch(), generator.getControlledBranchSide(), generator.getRemoteTargetQ(), controllerBus);
+                    // generator reactive power control is created in load convention
+                    createGeneratorReactivePowerControl(generator.getControlledBranch(), generator.getControlledBranchSide(), -generator.getRemoteTargetQ(), controllerBus);
                 }
             }
         }

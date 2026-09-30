@@ -382,7 +382,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
             return;
         }
         this.generatorControlType = GeneratorControlType.REMOTE_REACTIVE_POWER;
-        this.remoteTargetQ = remoteTargetQ / PerUnit.SB;
+        this.remoteTargetQ = remoteTargetQ / PerUnit.SB; // stored here in generator convention
     }
 
     @Override

@@ -99,7 +99,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         Generator g4 = network.getGenerator("g4");
         TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("l34");
 
-        double gTargetQ = 3.155;
+        double gTargetQ = -3.155;
         double t2wtTargetQ = 1;
         Terminal regulatedTerminal = t2wt.getTerminal2();
 
@@ -151,7 +151,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, report);
         assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(-5.0, g4.getTerminal()); // limit of generator
-        assertReactivePowerEquals(gTargetQ, regulatedTerminal); // targetQ of generator is held
+        assertReactivePowerEquals(-gTargetQ, regulatedTerminal); // targetQ (in load convention) of generator is held at the terminal
         assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
 
@@ -192,8 +192,8 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         Generator g4 = myNetwork.getGenerator("g4");
         TwoWindingsTransformer twoWindingsTransformer = myNetwork.getTwoWindingsTransformer("l34");
 
-        double gTargetQ = -1;
-        double t2wtTargetQ = 1;
+        double gTargetQ = 1;
+        double t2wtTargetQ = -1;
         Terminal regulatedTerminal = twoWindingsTransformer.getTerminal2();
 
         g4.setTargetQ(0.0);

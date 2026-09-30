@@ -172,7 +172,7 @@ class FastDecoupledTest {
         Generator g4 = network.getGenerator("g4");
         Line l34 = network.getLine("l34");
 
-        double targetQ = 1.0;
+        double targetQ = -1.0; // generator convention
 
         // disable voltage control on g4
         g4.setTargetQ(0).setVoltageRegulatorOn(false);

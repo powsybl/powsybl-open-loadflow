@@ -125,7 +125,7 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         Network network = create();
         network.getLoad("d3").setQ0(1);
         Line l34 = network.getLine("l34");
-        double remoteTargetQ = 2.0;
+        double remoteTargetQ = -2.0;
         Generator g4 = network.getGenerator("g4");
         g4.setTargetQ(0).setVoltageRegulatorOn(false);
         Generator g1 = network.getGenerator("g1");
@@ -147,7 +147,7 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         Network network = create();
         network.getLoad("d3").setQ0(1);
         Line l34 = network.getLine("l34");
-        double remoteTargetQ = 2.0;
+        double remoteTargetQ = -2.0;
         Bus b1 = network.getBusBreakerView().getBus("b1");
         Generator g1 = network.getGenerator("g1");
         g1.setTargetQ(0).setVoltageRegulatorOn(false);
@@ -171,7 +171,7 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         Generator g4 = network.getGenerator("g4");
         g4.setTargetQ(0).setVoltageRegulatorOn(false);
         Line l34 = network.getLine("l34");
-        double remoteTargetQ = 2.0;
+        double remoteTargetQ = -2.0;
         g4.newVoltageRegulation()
             .withMode(RegulationMode.REACTIVE_POWER)
             .withTerminal(l34.getTerminal(TwoSides.TWO))
