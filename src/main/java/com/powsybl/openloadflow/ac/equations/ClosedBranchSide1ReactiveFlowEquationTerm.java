@@ -16,8 +16,6 @@ import net.jafama.FastMath;
 
 import java.util.Objects;
 
-import static com.powsybl.openloadflow.network.PiModel.R2;
-
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -55,33 +53,31 @@ public class ClosedBranchSide1ReactiveFlowEquationTerm extends AbstractClosedBra
     }
 
     public static double q1(double y, double cosKsi, double b1, double v1, double r1, double v2, double cosTheta) {
-        return r1 * v1 * (-b1 * r1 * v1 + y * r1 * v1 * cosKsi
-                - y * R2 * v2 * cosTheta);
+        return ClosedBranchFormulas.q1(y, cosKsi, b1, v1, r1, v2, cosTheta);
     }
 
     public static double dq1dv1(double y, double cosKsi, double b1, double v1, double r1, double v2, double cosTheta) {
-        return r1 * (-2 * b1 * r1 * v1 + 2 * y * r1 * v1 * cosKsi
-                - y * R2 * v2 * cosTheta);
+        return ClosedBranchFormulas.dq1dv1(y, cosKsi, b1, v1, r1, v2, cosTheta);
     }
 
     public static double dq1dv2(double y, double v1, double r1, double cosTheta) {
-        return -y * r1 * R2 * v1 * cosTheta;
+        return ClosedBranchFormulas.dq1dv2(y, v1, r1, cosTheta);
     }
 
     public static double dq1dph1(double y, double v1, double r1, double v2, double sinTheta) {
-        return -y * r1 * R2 * v1 * v2 * sinTheta;
+        return ClosedBranchFormulas.dq1dph1(y, v1, r1, v2, sinTheta);
     }
 
     public static double dq1dph2(double y, double v1, double r1, double v2, double sinTheta) {
-        return -dq1dph1(y, v1, r1, v2, sinTheta);
+        return ClosedBranchFormulas.dq1dph2(y, v1, r1, v2, sinTheta);
     }
 
     public static double dq1da1(double y, double v1, double r1, double v2, double sinTheta) {
-        return dq1dph1(y, v1, r1, v2, sinTheta);
+        return ClosedBranchFormulas.dq1da1(y, v1, r1, v2, sinTheta);
     }
 
     public static double dq1dr1(double y, double cosKsi, double b1, double v1, double r1, double v2, double cosTheta) {
-        return v1 * (2 * r1 * v1 * (-b1 + y * cosKsi) - y * R2 * v2 * cosTheta);
+        return ClosedBranchFormulas.dq1dr1(y, cosKsi, b1, v1, r1, v2, cosTheta);
     }
 
     public static double dq1dy(double r1, double v1, double v2, double cosKsi, double cosTheta) {

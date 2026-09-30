@@ -21,7 +21,6 @@ import com.powsybl.iidm.network.extensions.ReferenceTerminals;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.loadflow.*;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
@@ -62,7 +61,14 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     private boolean forcePhaseControlOffAndAddAngle1Var = false; // just for unit testing
 
     public OpenLoadFlowProvider() {
-        this(new SparseMatrixFactory());
+        this(MatrixFactoryUtil.getMatrixFactory(isCuDssRequestedInConfig()));
+    }
+
+    private static boolean isCuDssRequestedInConfig() {
+        return PlatformConfig.defaultConfig()
+                .getOptionalModuleConfig(OpenLoadFlowParameters.MODULE_SPECIFIC_PARAMETERS)
+                .map(moduleConfig -> moduleConfig.getBooleanProperty("useCuDssMatrixFactory", false))
+                .orElse(false);
     }
 
     public OpenLoadFlowProvider(MatrixFactory matrixFactory) {
