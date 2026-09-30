@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChangeDetails;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -80,9 +81,10 @@ public class DcIncrementalPhaseControlOuterLoop
                     context.getLoadFlowContext().getEquationSystem(),
                     context.getLoadFlowContext().getJacobianMatrix());
 
-            if (checkActivePowerControlPhaseControls(sensitivityContext,
-                    contextData,
-                    activePowerControlPhaseControls) != 0) {
+            final List<DiscreteControllerChangeDetails> activePowerControlPstsThatChangedTap = new ArrayList<>();
+            checkActivePowerControlPhaseControls(sensitivityContext, contextData,
+                    activePowerControlPhaseControls, activePowerControlPstsThatChangedTap);
+            if (!activePowerControlPstsThatChangedTap.isEmpty()) {
                 status = OuterLoopStatus.UNSTABLE;
             }
         }

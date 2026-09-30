@@ -18,7 +18,6 @@ import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.apache.commons.lang3.Range;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 
 import java.util.List;
@@ -114,9 +113,9 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
         }
     }
 
-    protected int checkActivePowerControlPhaseControls(AbstractSensitivityContext<V, E> sensitivityContext, IncrementalContextData contextData,
-                                                           List<TransformerPhaseControl> activePowerControlPhaseControls) {
-        MutableInt numOfActivePowerControlPstsThatChangedTap = new MutableInt(0);
+    protected void checkActivePowerControlPhaseControls(AbstractSensitivityContext<V, E> sensitivityContext, IncrementalContextData contextData,
+                                                           List<TransformerPhaseControl> activePowerControlPhaseControls,
+                                                           List<DiscreteControllerChangeDetails> activePowerControlPstsThatChangedTap) {
 
         for (TransformerPhaseControl phaseControl : activePowerControlPhaseControls) {
             LfBranch controllerBranch = phaseControl.getControllerBranch();
@@ -137,19 +136,18 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
 
                     int oldTapPosition = piModel.getTapPosition();
                     Range<Integer> tapPositionRange = piModel.getTapPositionRange();
-                    piModel.updateTapPositionToReachNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
-                        controllerContext.updateAllowedDirection(direction);
-                        numOfActivePowerControlPstsThatChangedTap.add(1);
-                    });
+                    piModel.updateTapPositionToReachNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection())
+                            .ifPresent(controllerContext::updateAllowedDirection);
 
                     if (piModel.getTapPosition() != oldTapPosition) {
                         logger.debug("Controller branch '{}' change tap from {} to {} to reach active power target (full range: {})", controllerBranch.getId(),
                                 oldTapPosition, piModel.getTapPosition(), tapPositionRange);
+                        DiscreteControllerChangeDetails changeDetails = new DiscreteControllerChangeDetails(controllerBranch.getId(), oldTapPosition, piModel.getTapPosition());
+                        activePowerControlPstsThatChangedTap.add(changeDetails);
                     }
                 }
             }
         }
-        return numOfActivePowerControlPstsThatChangedTap.getValue();
     }
 
 }
