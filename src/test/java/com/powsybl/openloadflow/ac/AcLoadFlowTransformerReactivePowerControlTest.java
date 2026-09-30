@@ -193,7 +193,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         TwoWindingsTransformer twoWindingsTransformer = myNetwork.getTwoWindingsTransformer("l34");
 
         double gTargetQ = 1;
-        double t2wtTargetQ = -1;
+        double t2wtTargetQ = 1;
         Terminal regulatedTerminal = twoWindingsTransformer.getTerminal2();
 
         g4.setTargetQ(0.0);
