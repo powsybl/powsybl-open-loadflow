@@ -9,11 +9,7 @@ package com.powsybl.openloadflow.equations;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.math.matrix.LUDecomposition;
-import com.powsybl.math.matrix.Matrix;
-import com.powsybl.math.matrix.MatrixException;
-import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.math.matrix.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -144,7 +140,9 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 eqArray = itSortedEquationArray.hasNext() ? itSortedEquationArray.next() : null;
             }
         }
-
+        if (matrix instanceof SparseMatrix sparse) {
+            sparse.checkBuildingInconsistency(); // Will throw exception if any building construction (e.g. duplicate rows) is detected
+        }
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
 
