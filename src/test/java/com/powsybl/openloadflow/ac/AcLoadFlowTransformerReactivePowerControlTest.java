@@ -151,7 +151,7 @@ class AcLoadFlowTransformerReactivePowerControlTest {
         result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, report);
         assertTrue(result.isFullyConverged());
         assertReactivePowerEquals(-5.0, g4.getTerminal()); // limit of generator
-        assertReactivePowerEquals(-gTargetQ, regulatedTerminal); // targetQ (in load convention) of generator is held at the terminal
+        assertReactivePowerEquals(-gTargetQ, regulatedTerminal); // targetQ was stored in generator convention
         assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
 
