@@ -8,9 +8,10 @@
 package com.powsybl.openloadflow.util;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.report.ReportNodeAdder;
 import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
-import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChangeDetails;
+import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChange;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
@@ -653,12 +654,15 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportTransformerControlChangedTapsDetail(ReportNode reportNode, DiscreteControllerChangeDetails changeDetails) {
-        reportNode.newReportNode()
-                .withMessageTemplate("olf.transformerControlChangedTapsDetail")
-                .withUntypedValue("transformerId", changeDetails.elementId())
-                .withUntypedValue("oldTapPosition", changeDetails.oldPosition())
-                .withUntypedValue("newTapPosition", changeDetails.newPosition())
+    public static void reportTransformerControlChangedTapsDetail(ReportNode reportNode, DiscreteControllerChange change) {
+        ReportNodeAdder adder = reportNode.newReportNode();
+        change.getSide().ifPresentOrElse(
+            side -> adder.withMessageTemplate("olf.transformerControlChangedTapsDetailWithSide")
+                    .withUntypedValue("side", side.getNum()),
+            () -> adder.withMessageTemplate("olf.transformerControlChangedTapsDetail"));
+        adder.withUntypedValue("transformerId", change.getElementId())
+                .withUntypedValue("oldTapPosition", change.getOldPosition())
+                .withUntypedValue("newTapPosition", change.getNewPosition())
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }
@@ -687,12 +691,12 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportShuntVoltageControlChangedSectionDetail(ReportNode reportNode, DiscreteControllerChangeDetails changeDetails) {
+    public static void reportShuntVoltageControlChangedSectionDetail(ReportNode reportNode, DiscreteControllerChange change) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.shuntVoltageControlChangedSectionDetail")
-                .withUntypedValue("shuntId", changeDetails.elementId())
-                .withUntypedValue("oldPosition", changeDetails.oldPosition())
-                .withUntypedValue("newPosition", changeDetails.newPosition())
+                .withUntypedValue("shuntId", change.getElementId())
+                .withUntypedValue("oldPosition", change.getOldPosition())
+                .withUntypedValue("newPosition", change.getNewPosition())
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }

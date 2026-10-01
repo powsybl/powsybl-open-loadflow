@@ -19,7 +19,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
-import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChangeDetails;
+import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChange;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -93,7 +93,7 @@ public class AcIncrementalPhaseControlOuterLoop
 
     private void checkCurrentLimiterPhaseControls(AcSensitivityContext sensitivityContext, IncrementalContextData contextData,
                                                      List<TransformerPhaseControl> currentLimiterPhaseControls,
-                                                     List<DiscreteControllerChangeDetails> currentLimiterPstsThatChangedTap) {
+                                                     List<DiscreteControllerChange> currentLimiterPstsThatChangedTap) {
 
         for (TransformerPhaseControl phaseControl : currentLimiterPhaseControls) {
             LfBranch controllerBranch = phaseControl.getControllerBranch();
@@ -119,8 +119,8 @@ public class AcIncrementalPhaseControlOuterLoop
                     if (piModel.getTapPosition() != oldTapPosition) {
                         logger.debug("Controller branch '{}' changed tap from {} to {} to limit current (full range: {})", controllerBranch.getId(),
                                 oldTapPosition, piModel.getTapPosition(), tapPositionRange);
-                        DiscreteControllerChangeDetails changeDetails = new DiscreteControllerChangeDetails(controllerBranch.getId(), oldTapPosition, piModel.getTapPosition());
-                        currentLimiterPstsThatChangedTap.add(changeDetails);
+                        DiscreteControllerChange change = DiscreteControllerChange.ofTransformer(controllerBranch, oldTapPosition, piModel.getTapPosition());
+                        currentLimiterPstsThatChangedTap.add(change);
 
                         double discreteDa = piModel.getA1() - oldA1;
                         checkImpactOnOtherPhaseShifters(sensitivityContext, phaseControl, currentLimiterPhaseControls, discreteDa);
@@ -203,8 +203,8 @@ public class AcIncrementalPhaseControlOuterLoop
                                                         context.getLoadFlowContext().getJacobianMatrix());
 
         // for detailed reports
-        final List<DiscreteControllerChangeDetails> currentLimiterPstsThatChangedTap = new ArrayList<>();
-        final List<DiscreteControllerChangeDetails> activePowerControlPstsThatChangedTap = new ArrayList<>();
+        final List<DiscreteControllerChange> currentLimiterPstsThatChangedTap = new ArrayList<>();
+        final List<DiscreteControllerChange> activePowerControlPstsThatChangedTap = new ArrayList<>();
         if (!currentLimiterPhaseControls.isEmpty()) {
             checkCurrentLimiterPhaseControls(sensitivityContext, contextData, currentLimiterPhaseControls, currentLimiterPstsThatChangedTap);
         }
@@ -218,11 +218,11 @@ public class AcIncrementalPhaseControlOuterLoop
             ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
             if (!currentLimiterPstsThatChangedTap.isEmpty()) {
                 ReportNode summary = Reports.reportCurrentLimiterPstsChangedTaps(iterationReportNode, currentLimiterPstsThatChangedTap.size());
-                currentLimiterPstsThatChangedTap.forEach(changeDetails -> Reports.reportTransformerControlChangedTapsDetail(summary, changeDetails));
+                currentLimiterPstsThatChangedTap.forEach(change -> Reports.reportTransformerControlChangedTapsDetail(summary, change));
             }
             if (!activePowerControlPstsThatChangedTap.isEmpty()) {
                 ReportNode summary = Reports.reportActivePowerControlPstsChangedTaps(iterationReportNode, activePowerControlPstsThatChangedTap.size());
-                activePowerControlPstsThatChangedTap.forEach(changeDetails -> Reports.reportTransformerControlChangedTapsDetail(summary, changeDetails));
+                activePowerControlPstsThatChangedTap.forEach(change -> Reports.reportTransformerControlChangedTapsDetail(summary, change));
             }
         }
 
