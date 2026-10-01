@@ -339,7 +339,8 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
         DcLoadFlowResult result = new DcLoadFlowResult(network, runningContext.outerLoopTotalIterations,
             runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult, slackBusActivePowerMismatch, distributedActivePower);
-        String dcLoadflowCompleteMessage = "DC loadflow complete on network {} (result={})";
+
+        final String dcLoadflowCompleteMessage = "DC loadflow complete on network {} (result={})";
         if (result.isSuccess()) {
             LOGGER.info(dcLoadflowCompleteMessage, context.getNetwork(), result);
         } else {
