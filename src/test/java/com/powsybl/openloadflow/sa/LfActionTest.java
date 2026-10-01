@@ -297,9 +297,9 @@ class LfActionTest extends AbstractSerDeTest {
     }
 
     @Test
-    void testBoundaryActionActionNotFound() {
+    void testBoundaryActionNotFound() {
         Network network = BoundaryLineNetworkFactory.create();
-        BoundaryLineAction boundaryActionAction = new BoundaryLineActionBuilder()
+        BoundaryLineAction boundaryAction = new BoundaryLineActionBuilder()
                 .withId("action")
                 .withBoundaryLineId("UnexistingLine")
                 .withActivePowerValue(10)
@@ -312,15 +312,15 @@ class LfActionTest extends AbstractSerDeTest {
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
-            LfAction lfAction = LfActionUtils.createLfAction(boundaryActionAction, network, lfNetwork);
+            LfAction lfAction = LfActionUtils.createLfAction(boundaryAction, network, lfNetwork);
             assertFalse(lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
         }
     }
 
     @Test
-    void testBoundaryActionActionNotBoundaryActionBranch() {
+    void testBoundaryActionNotBoundaryActionBranch() {
         Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
-        BoundaryLineAction boundaryActionAction = new BoundaryLineActionBuilder()
+        BoundaryLineAction boundaryAction = new BoundaryLineActionBuilder()
                 .withId("action")
                 .withBoundaryLineId("l12")
                 .withActivePowerValue(10)
@@ -333,7 +333,7 @@ class LfActionTest extends AbstractSerDeTest {
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
-            LfAction lfAction = LfActionUtils.createLfAction(boundaryActionAction, network, lfNetwork);
+            LfAction lfAction = LfActionUtils.createLfAction(boundaryAction, network, lfNetwork);
             assertFalse(lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
         }
     }

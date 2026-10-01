@@ -1803,13 +1803,13 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     private Network createBoundaryLineNetwork(boolean withGeneration, boolean withVoltageRegulation, double afterGDisconnectionCurrent) {
-        // Create network with dangling Line and load L_2 -- BUS_2 -- G_2 ---------- LINE_12 --------- G -- BUS -- DL
+        // Create network with boundary Line and load L_2 -- BUS_2 -- G_2 ---------- LINE_12 --------- G -- BUS -- DL
         // add 1 generator, 1 load, 1 bus connected and create 1 line to connect the new bus to the already existing one
 
         // Current limit on LINE_12 (on both sides) that will provoke limit violations when generator G is disconnected
         double currentLimit = afterGDisconnectionCurrent - 2.0;
 
-        Network network = NetworkFactory.findDefault().createNetwork("dangling-line", "test");
+        Network network = NetworkFactory.findDefault().createNetwork("boundary-line", "test");
         Substation substation = ((SubstationAdder) network.newSubstation().setId("S")).setCountry(Country.FR).add();
         VoltageLevel voltageLevel = ((VoltageLevelAdder) substation.newVoltageLevel().setId("VL"))
                 .setNominalV(100.0).setLowVoltageLimit(80.0).setHighVoltageLimit(120.0).setTopologyKind(TopologyKind.BUS_BREAKER).add();
@@ -1867,7 +1867,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
         // Set contingency, action and operator strategy and parameters for the security analysis
         BoundaryLineAction boundaryLineAction = new BoundaryLineActionBuilder()
-                .withId("dangling_line_action")
+                .withId("boundary_line_action")
                 .withBoundaryLineId("DL")
                 .withActivePowerValue(boundaryLineActionP0)
                 .withReactivePowerValue(boundaryLineActionQ0)
@@ -1922,7 +1922,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertTrue(result.getOperatorStrategyResults().get(0).getNetworkResult().getBranchResult("LINE_12").getI1() < network.getLine("LINE_12").getCurrentLimits1().orElseThrow().getPermanentLimit());
         assertTrue(result.getOperatorStrategyResults().get(0).getNetworkResult().getBranchResult("LINE_12").getI2() < network.getLine("LINE_12").getCurrentLimits2().orElseThrow().getPermanentLimit());
 
-        // Compare with network modification (Contingency=disconnect G / action = set dangling line P0 and Q0) + loadflow
+        // Compare with network modification (Contingency=disconnect G / action = set boundary line P0 and Q0) + loadflow
         network.getGenerator("G").disconnect();
         network.getBoundaryLine("DL").setP0(boundaryLineActionP0);
         network.getBoundaryLine("DL").setQ0(boundaryLineActionQ0);

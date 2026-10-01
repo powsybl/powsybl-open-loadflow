@@ -30,9 +30,9 @@ public class LfBoundaryLineAction extends AbstractLfAction<BoundaryLineAction> {
         powerShift = createPowerShift(branch, action);
     }
 
-    private static PowerShift createPowerShift(BoundaryLine branch, BoundaryLineAction loadAction) {
-        double activePowerShift = loadAction.getActivePowerValue().stream().map(a -> loadAction.isRelativeValue() ? a : a - branch.getP0()).findAny().orElse(0);
-        double reactivePowerShift = loadAction.getReactivePowerValue().stream().map(r -> loadAction.isRelativeValue() ? r : r - branch.getQ0()).findAny().orElse(0);
+    private static PowerShift createPowerShift(BoundaryLine branch, BoundaryLineAction boundaryLineAction) {
+        double activePowerShift = boundaryLineAction.getActivePowerValue().stream().map(a -> boundaryLineAction.isRelativeValue() ? a : a - branch.getP0()).findAny().orElse(0);
+        double reactivePowerShift = boundaryLineAction.getReactivePowerValue().stream().map(r -> boundaryLineAction.isRelativeValue() ? r : r - branch.getQ0()).findAny().orElse(0);
         return new PowerShift(activePowerShift / PerUnit.SB,
                 0,
                 reactivePowerShift / PerUnit.SB);
@@ -46,10 +46,9 @@ public class LfBoundaryLineAction extends AbstractLfAction<BoundaryLineAction> {
     @Override
     public boolean apply(LfNetwork lfNetwork, LfContingency lfContingency, LfNetworkParameters lfNetworkParameters) {
         if (!isValid()) {
-            if(lfBranch == null) {
+            if (lfBranch == null) {
                 LOGGER.warn("Boundary line action {}: branch matching boundary line id {} not found", action.getId(), boundaryLineId);
-            }
-            else if (LfBranch.BranchType.BOUNDARY_LINE != lfBranch.getBranchType()) {
+            } else if (LfBranch.BranchType.BOUNDARY_LINE != lfBranch.getBranchType()) {
                 LOGGER.warn("Boundary line action {}: branch matching boundary line id {} is not a boundary line", action.getId(), boundaryLineId);
             }
             return false;

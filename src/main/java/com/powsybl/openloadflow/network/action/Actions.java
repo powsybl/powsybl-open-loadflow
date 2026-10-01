@@ -115,9 +115,9 @@ public final class Actions {
                 }
 
                 case BoundaryLineAction.NAME: {
-                    BoundaryLineAction danglingLineAction = (BoundaryLineAction) action;
-                    if (network.getBoundaryLine(danglingLineAction.getBoundaryLineId()) == null) {
-                        throw new PowsyblException("Dangling line '" + danglingLineAction.getBoundaryLineId() + "' not found");
+                    BoundaryLineAction boundaryLineAction = (BoundaryLineAction) action;
+                    if (network.getBoundaryLine(boundaryLineAction.getBoundaryLineId()) == null) {
+                        throw new PowsyblException("Boundary line '" + boundaryLineAction.getBoundaryLineId() + "' not found");
                     }
                     break;
                 }
