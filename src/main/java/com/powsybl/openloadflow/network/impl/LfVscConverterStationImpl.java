@@ -37,8 +37,9 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         this.lossFactor = station.getLossFactor();
 
         // local control only
-        if (station.isVoltageRegulatorOn()) {
-            setVoltageControl(station.getVoltageSetpoint(), station.getTerminal(), station.getRegulatingTerminal(), parameters, report);
+        // TODO MSA to be checked by Sylvestre
+        if (station.isRegulating()) {
+            setVoltageControl(station.getRegulatingTargetV(), station.getTerminal(), station.getRegulatingTerminal(), parameters, report);
         }
     }
 
@@ -101,7 +102,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     @Override
     public double getTargetQ() {
-        return Networks.zeroIfNan(getStation().getReactivePowerSetpoint()) / PerUnit.SB;
+        return Networks.zeroIfNan(getStation().getLocalTargetQ()) / PerUnit.SB;
     }
 
     @Override
