@@ -19,11 +19,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
-import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
-import com.powsybl.openloadflow.network.action.LfAction;
-import com.powsybl.openloadflow.network.action.LfGeneratorAction;
-import com.powsybl.openloadflow.network.action.LfLoadAction;
+import com.powsybl.openloadflow.network.action.*;
 
 import java.util.*;
 
@@ -150,6 +146,19 @@ public class WoodburyEngine {
                     .filter(a -> a.isValid() && !a.getLfLoad().isOriginalLoadDisabled(a.getLoadId()))
                     .forEach(loadAction -> {
                         LfBus bus = loadAction.getLfLoad().getBus();
+                        double deltaTargetP = -loadAction.getPowerShift().getActive();
+                        loadFlowContext.getEquationSystem().getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
+                                .filter(Equation::isActive)
+                                .ifPresent(eq -> targetVectorArray[eq.getColumn()] += deltaTargetP);
+                    });
+
+            // apply boundary line actions: a load increase reduces the bus net injection (generation - load)
+            lfActions.stream()
+                    .filter(LfBoundaryLineAction.class::isInstance)
+                    .map(LfBoundaryLineAction.class::cast)
+                    .filter(a -> a.isValid() && !a.getLfBoundaryLoad().isOriginalLoadDisabled(a.getBoundaryLineId()))
+                    .forEach(loadAction -> {
+                        LfBus bus = loadAction.getLfBoundaryLoad().getBus();
                         double deltaTargetP = -loadAction.getPowerShift().getActive();
                         loadFlowContext.getEquationSystem().getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
                                 .filter(Equation::isActive)

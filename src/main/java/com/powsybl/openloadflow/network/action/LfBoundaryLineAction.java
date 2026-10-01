@@ -38,6 +38,18 @@ public class LfBoundaryLineAction extends AbstractLfAction<BoundaryLineAction> {
                 reactivePowerShift / PerUnit.SB);
     }
 
+    public String getBoundaryLineId() {
+        return boundaryLineId;
+    }
+
+    public LfLoad getLfBoundaryLoad() {
+        return lfBoundaryLoad;
+    }
+
+    public PowerShift getPowerShift() {
+        return powerShift;
+    }
+
     @Override
     public boolean isValid() {
         return lfBranch != null && LfBranch.BranchType.BOUNDARY_LINE == lfBranch.getBranchType();
