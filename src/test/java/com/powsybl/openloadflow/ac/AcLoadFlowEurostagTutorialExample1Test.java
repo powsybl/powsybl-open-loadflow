@@ -14,6 +14,7 @@ import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.iidm.network.extensions.SlackTerminalAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -226,7 +227,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         // create a generator with a targetP to 0 and a minP > 0 so that the generator will be discarded from voltage
         // regulation
         // targetQ is not defined so value is NaN
-        Generator g1 = loadBus.getVoltageLevel().newGenerator()
+        loadBus.getVoltageLevel().newGenerator()
                 .setId("g1")
                 .setBus(loadBus.getId())
                 .setConnectableBus(loadBus.getId())
@@ -234,8 +235,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setMinP(10)
                 .setMaxP(200)
                 .setTargetP(0)
-                .setTargetV(150)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(150)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         // check that the issue that add an undefined targetQ (NaN) to bus generation sum is solved
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -289,7 +290,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
     @Test
     void noGeneratorPvTest() {
         // GEN is only generator with voltage control, disable it
-        network.getGenerator("GEN").setVoltageRegulatorOn(false);
+        network.getGenerator("GEN").getVoltageRegulation().setRegulating(false);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
@@ -422,8 +423,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setMinP(1)
                 .setMaxP(200)
                 .setTargetP(1)
-                .setTargetV(150)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(150)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
@@ -438,8 +439,10 @@ class AcLoadFlowEurostagTutorialExample1Test {
         network.getVoltageLevel("VLGEN").newGenerator().setId("GEN1")
                 .setBus("NGEN").setConnectableBus("NGEN")
                 .setMinP(-9999.99D).setMaxP(9999.99D)
-                .setVoltageRegulatorOn(true).setTargetV(24.5D)
-                .setTargetP(607.0D).setTargetQ(301.0D).add();
+                .setTargetP(607.0D)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetQ(301.0D).setLocalTargetV(24.5D)
+                .add();
         // GEN1 reactive limits are not plausible => fallback into split Q equally
         network.getGenerator("GEN1").newMinMaxReactiveLimits().setMinQ(-10000).setMaxQ(10000).add();
         LoadFlowParameters parameters = new LoadFlowParameters().setUseReactiveLimits(true)
@@ -466,9 +469,11 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setMinP(0)
                 .setMaxP(100)
                 .setTargetP(1)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(148)
-                .setRegulatingTerminal(network.getLoad("LOAD").getTerminal())
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(network.getLoad("LOAD").getTerminal())
+                    .withTargetValue(148)
+                    .add()
                 .add();
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)

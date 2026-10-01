@@ -887,7 +887,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createTransformerVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId,
                                                         LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        if (rtc == null || !rtc.isRegulating() || !rtc.hasLoadTapChangingCapabilities() || rtc.getRegulationMode() != RegulationMode.VOLTAGE) {
+        if (rtc == null || !rtc.hasLoadTapChangingCapabilities() || !rtc.isRegulatingWithMode(RegulationMode.VOLTAGE)) {
             return;
         }
         LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId);
@@ -896,15 +896,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             report.transformerVoltageControlDiscardedBecauseControllerBranchIsOpen++;
             return;
         }
-        LfBus controlledBus = getLfBus(rtc.getRegulationTerminal(), lfNetwork, parameters.isBreakers());
+        LfBus controlledBus = getLfBus(rtc.getRegulatingTerminal(), lfNetwork, parameters.isBreakers());
         if (controlledBus == null) {
             LOGGER.warn("Regulating terminal of voltage controller branch '{}' is out of voltage or in a different synchronous component: voltage control discarded", controllerBranch.getId());
             return;
         }
 
-        double regulatingTerminalNominalV = rtc.getRegulationTerminal().getVoltageLevel().getNominalV();
-        double targetValue = rtc.getTargetV() / regulatingTerminalNominalV;
-        Double targetDeadband = rtc.getTargetDeadband() > 0 ? rtc.getTargetDeadband() / regulatingTerminalNominalV : null;
+        double regulatingTerminalNominalV = rtc.getRegulatingTerminal().getVoltageLevel().getNominalV();
+        double targetValue = rtc.getRegulatingTargetV() / regulatingTerminalNominalV;
+        Double targetDeadband = rtc.getVoltageRegulation().getTargetDeadband() > 0 ? rtc.getVoltageRegulation().getTargetDeadband() / regulatingTerminalNominalV : null;
 
         if (!VoltageControl.checkTargetV(targetValue, controlledBus.getNominalV(), parameters)) {
             LOGGER.trace("RatioTapChanger on transformer '{}' has an inconsistent target voltage: {} pu: transformer voltage control discarded", controllerBranchId, targetValue);
@@ -949,7 +949,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createTransformerReactivePowerControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId,
                                                               LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        if (rtc == null || !rtc.isRegulating() || !rtc.hasLoadTapChangingCapabilities() || rtc.getRegulationMode() != RegulationMode.REACTIVE_POWER) {
+        if (rtc == null || !rtc.hasLoadTapChangingCapabilities() || !rtc.isRegulatingWithMode(RegulationMode.REACTIVE_POWER)) {
             return;
         }
         // Check on controller branch
@@ -961,9 +961,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         // Get controlled branch
-        String controlledBranchId = rtc.getRegulationTerminal().getConnectable().getId();
-        if (rtc.getRegulationTerminal().getConnectable() instanceof ThreeWindingsTransformer twt) {
-            controlledBranchId = LfLegBranch.getId(twt.getSide(rtc.getRegulationTerminal()), controlledBranchId);
+        String controlledBranchId = rtc.getRegulatingTerminal().getConnectable().getId();
+        if (rtc.getRegulatingTerminal().getConnectable() instanceof ThreeWindingsTransformer twt) {
+            controlledBranchId = LfLegBranch.getId(twt.getSide(rtc.getRegulatingTerminal()), controlledBranchId);
         }
         LfBranch controlledBranch = lfNetwork.getBranchById(controlledBranchId);
 
@@ -978,9 +978,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             return;
         }
 
-        TwoSides controlledSide = getLfBus(rtc.getRegulationTerminal(), lfNetwork, parameters.isBreakers()) == controlledBranch.getBus1() ? TwoSides.ONE : TwoSides.TWO;
-        double targetValue = rtc.getRegulationValue() / PerUnit.SB;
-        double targetDeadband = rtc.getTargetDeadband() / PerUnit.SB;
+        TwoSides controlledSide = getLfBus(rtc.getRegulatingTerminal(), lfNetwork, parameters.isBreakers()) == controlledBranch.getBus1() ? TwoSides.ONE : TwoSides.TWO;
+        double targetValue = rtc.getVoltageRegulation().getTargetValue() / PerUnit.SB;
+        double targetDeadband = rtc.getVoltageRegulation().getTargetDeadband() / PerUnit.SB;
 
         controlledBranch.getTransformerReactivePowerControl().ifPresentOrElse(transformerReactivePowerControl ->
                         LOGGER.warn("Controlled branch '{}' already has a transformer reactive power control: not implemented yet.", controlledBranch.getId()),
@@ -992,7 +992,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     private static void createShuntVoltageControl(LfNetwork lfNetwork, ShuntCompensator shuntCompensator, LfNetworkParameters parameters) {
-        if (!shuntCompensator.isVoltageRegulatorOn()) {
+        if (!shuntCompensator.isRegulatingWithMode(RegulationMode.VOLTAGE)) {
             return;
         }
         LfBus controllerBus = getLfBus(shuntCompensator.getTerminal(), lfNetwork, parameters.isBreakers());
@@ -1023,8 +1023,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         double regulatingTerminalNominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
-        double targetValue = shuntCompensator.getTargetV() / regulatingTerminalNominalV;
-        Double targetDeadband = shuntCompensator.getTargetDeadband() > 0 ? shuntCompensator.getTargetDeadband() / regulatingTerminalNominalV : null;
+        double targetValue = shuntCompensator.getRegulatingTargetV() / regulatingTerminalNominalV;
+        Double targetDeadband = shuntCompensator.getVoltageRegulation().getTargetDeadband() > 0 ? shuntCompensator.getVoltageRegulation().getTargetDeadband() / regulatingTerminalNominalV : null;
 
         controlledBus.getShuntVoltageControl()
             .ifPresentOrElse(voltageControl -> createShuntVoltageControlSharedControl(voltageControl, controllerShunt, controlledBus, targetValue, targetDeadband),
@@ -1477,10 +1477,10 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static boolean hasValidSecondaryVoltageControlTarget(Identifiable<?> identifiable) {
         if (identifiable instanceof Generator generator) {
-            return isValidSecondaryVoltageControlTarget(generator.getEquivalentLocalTargetV());
+            return isValidSecondaryVoltageControlTarget(generator.getLocalTargetV());
         }
         if (identifiable instanceof VscConverterStation vsc) {
-            return isValidSecondaryVoltageControlTarget(vsc.getVoltageSetpoint());
+            return isValidSecondaryVoltageControlTarget(vsc.getRegulatingTargetV());
         }
         return false;
     }

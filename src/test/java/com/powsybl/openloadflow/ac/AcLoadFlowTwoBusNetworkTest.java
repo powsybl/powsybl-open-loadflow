@@ -92,7 +92,7 @@ class AcLoadFlowTwoBusNetworkTest {
                 .setId("bt2")
                 .setBus("b2")
                 .setTargetP(-1)
-                .setTargetQ(-0.1)
+                .setLocalTargetQ(-0.1)
                 .setMinP(-1)
                 .setMaxP(0)
                 .add();
@@ -115,7 +115,7 @@ class AcLoadFlowTwoBusNetworkTest {
                 .setId("bt2")
                 .setBus("b2")
                 .setTargetP(-1)
-                .setTargetQ(-0.1)
+                .setLocalTargetQ(-0.1)
                 .setMinP(-2)
                 .setMaxP(2)
                 .add();
@@ -142,7 +142,7 @@ class AcLoadFlowTwoBusNetworkTest {
                 .setId("bt2")
                 .setBus("b2")
                 .setTargetP(-1)
-                .setTargetQ(-0.1)
+                .setLocalTargetQ(-0.1)
                 .setMinP(-2)
                 .setMaxP(2)
                 .add();

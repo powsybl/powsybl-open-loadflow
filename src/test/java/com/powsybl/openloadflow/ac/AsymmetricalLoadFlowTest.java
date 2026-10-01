@@ -14,6 +14,7 @@ import com.powsybl.iidm.network.extensions.GeneratorFortescueAdder;
 import com.powsybl.iidm.network.extensions.LineFortescue;
 import com.powsybl.iidm.network.extensions.LineFortescueAdder;
 import com.powsybl.iidm.network.extensions.LoadAsymmetricalAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -415,8 +416,8 @@ public class AsymmetricalLoadFlowTest {
                 .setMinP(0.0)
                 .setMaxP(200)
                 .setTargetP(10)
-                .setTargetV(100.0)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(100.0)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         // Bus 2

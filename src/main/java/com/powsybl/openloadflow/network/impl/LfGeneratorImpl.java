@@ -75,8 +75,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             participating = false;
         }
 
-        if (generator.isVoltageRegulatorOn()) {
-            setVoltageControl(generator.getTargetV(), generator.getTerminal(), generator.getRegulatingTerminal(), parameters,
+        if (generator.isRegulatingWithMode(RegulationMode.VOLTAGE)) {
+            setVoltageControl(generator.getRegulatingTargetV(), generator.getTerminal(), generator.getRegulatingTerminal(), parameters,
                     report);
         }
 
@@ -171,7 +171,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        double targetQ = Networks.zeroIfNan(getGenerator().getTargetQ()) / PerUnit.SB;
+        double targetQ = Networks.zeroIfNan(getGenerator().getLocalTargetQ()) / PerUnit.SB;
         if (forceTargetQInReactiveLimits) {
             double computedTargetQ = targetQ;
             double minQ = getMinQ();
@@ -259,14 +259,14 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public boolean hasEquivalentLocalTargetV() {
-        return !Double.isNaN(generatorRef.get().getEquivalentLocalTargetV());
+        return !Double.isNaN(generatorRef.get().getLocalTargetV()); // Local target V is NaN only if the generator is remote voltage controlled
     }
 
     @Override
     public boolean switchToLocalVoltageControl() {
         super.switchToLocalVoltageControl();
-        if (!Double.isNaN(generatorRef.get().getEquivalentLocalTargetV())) {
-            targetV = generatorRef.get().getEquivalentLocalTargetV() / getBus().getNominalV();
+        if (!Double.isNaN(generatorRef.get().getLocalTargetV())) {
+            targetV = generatorRef.get().getLocalTargetV() / getBus().getNominalV();
             return true;
         } else {
             // keep the same targetV in perUnit

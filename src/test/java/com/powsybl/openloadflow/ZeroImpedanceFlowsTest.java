@@ -529,8 +529,10 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b3, "l23", 0.0);
         createLine(network, b3, b4, "l34", 0.01);
         createLine(network, b1, b4, "l14", 0.01);
-        network.getGenerator("g1").setRegulatingTerminal(network.getLine("l12").getTerminal2()); // remote control g1 -> b2
-        network.getGenerator("g4").setRegulatingTerminal(network.getLine("l34").getTerminal1()); // remote control g4 -> b3
+        network.getGenerator("g1").getVoltageRegulation().setTerminal(network.getLine("l12").getTerminal2(),
+                network.getGenerator("g1").getRegulatingTargetV()); // remote control g1 -> b2
+        network.getGenerator("g4").getVoltageRegulation().setTerminal(network.getLine("l34").getTerminal1(),
+                network.getGenerator("g4").getRegulatingTargetV()); // remote control g4 -> b3
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
@@ -570,8 +572,10 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b3, "l23", 0.0);
         createLine(network, b3, b4, "l34", 0.01);
         createLine(network, b1, b4, "l14", 0.01);
-        network.getGenerator("g1").setRegulatingTerminal(network.getLine("l12").getTerminal2()); // remote control g1 -> b2
-        network.getGenerator("g3").setRegulatingTerminal(network.getLine("l34").getTerminal2()); // remote control g3 -> b4
+        network.getGenerator("g1").getVoltageRegulation().setTerminal(network.getLine("l12").getTerminal2(),
+                network.getGenerator("g1").getRegulatingTargetV()); // remote control g1 -> b2
+        network.getGenerator("g3").getVoltageRegulation().setTerminal(network.getLine("l34").getTerminal2(),
+                network.getGenerator("g3").getRegulatingTargetV()); // remote control g4 -> b3
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
                 new LoadFlowParameters(), new OpenLoadFlowParameters(), commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {

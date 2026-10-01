@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.DroopCurve;
 import com.powsybl.iidm.network.VoltageSourceConverter;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -41,11 +42,12 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         super(converter, network, dcBus1, dcBus2, bus1, vdcOverride);
         bus1.addConverter(this);
         this.converterRef = Ref.create(converter, parameters.isCacheEnabled());
-        this.isVoltageRegulatorOn = converter.isVoltageRegulatorOn();
+        // TODO MSA to be checked by Sylvestre
+        this.isVoltageRegulatorOn = converter.isRegulatingWithMode(RegulationMode.VOLTAGE);
         if (isVoltageRegulatorOn) {
-            this.targetVac = converter.getVoltageSetpoint() / bus1.getNominalV();
+            this.targetVac = converter.getLocalTargetV() / bus1.getNominalV();
         } else {
-            this.targetQ = converter.getReactivePowerSetpoint() / PerUnit.SB;
+            this.targetQ = converter.getLocalTargetQ() / PerUnit.SB;
         }
         this.droopBands = getControlMode() == AcDcConverter.ControlMode.DC_DROOP
                 ? buildDroopBands(converter, getDcVoltageBase())

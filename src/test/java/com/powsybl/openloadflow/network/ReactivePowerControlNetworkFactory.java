@@ -39,7 +39,7 @@ public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkF
         g1.setMaxP(10);
         g4.setMaxP(10);
         // disable voltage control on g4
-        g4.setTargetQ(0.0).setVoltageRegulatorOn(false);
+        g4.setLocalTargetQ(0.0).removeVoltageRegulation();
         // generator g4 regulates reactive power on line 4->3 (on side of g4)
         g4.newVoltageRegulation()
             .withMode(RegulationMode.REACTIVE_POWER)
@@ -57,7 +57,7 @@ public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkF
         g1.setMaxP(10);
         g4.setMaxP(10);
         // disable voltage control on g4
-        g4.setTargetQ(0.0).setVoltageRegulatorOn(false);
+        g4.setLocalTargetQ(0.0).removeVoltageRegulation();
         // generator g4 regulates reactive power on line 1->2 in 2
         g4.newVoltageRegulation()
             .withMode(RegulationMode.REACTIVE_POWER)
@@ -122,8 +122,11 @@ public class ReactivePowerControlNetworkFactory extends AbstractLoadFlowNetworkF
                 .setB(0.09090909090909092)
                 .endStep()
                 .setTapPosition(1)
-                .setRegulationValue(0.)
-                .setRegulationMode(RegulationMode.REACTIVE_POWER)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.REACTIVE_POWER)
+                    .withTargetValue(0.)
+                    .withRegulating(false)
+                    .add()
                 .add();
         createLine(network, b1, b3, "l13", 0.1f);
 
