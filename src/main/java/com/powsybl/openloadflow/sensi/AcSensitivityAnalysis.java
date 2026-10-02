@@ -734,9 +734,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     }
 
     private LfNetworkParameters overrideUnsupportedParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt) {
-        if (lfParameters.getComponentMode() != LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS) {
-            warnOverridenParameter("componentMode", lfParameters.getComponentMode().name(), LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS.name());
-        }
         if (lfParametersExt.getLowImpedanceBranchMode() != OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE) {
             warnOverridenParameter("lowImpedanceBranchMode", lfParametersExt.getLowImpedanceBranchMode().name(), OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_MIN_IMPEDANCE_LINE.name());
         }
@@ -751,7 +748,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         }
         return new LfNetworkParameters()
                 .setLoadFlowModel(LoadFlowModel.AC)
-                .setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS)
+                .setComponentMode(lfParameters.getComponentMode())
                 .setMinImpedance(true)
                 .setCacheEnabled(false) // force not caching as not supported in sensi analysis
                 .setSimulateAutomationSystems(false)
