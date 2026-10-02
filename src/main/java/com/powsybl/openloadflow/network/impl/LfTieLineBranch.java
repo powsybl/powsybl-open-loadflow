@@ -8,8 +8,9 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.sa.LimitReductionManager;
+import com.powsybl.openloadflow.sa.LimitScalingManager;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
@@ -112,14 +113,14 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimitsGroup> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits1(final LimitType type, LimitScalingManager limitScalingManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits, TwoSides.ONE), limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits, TwoSides.ONE), limitScalingManager);
             case APPARENT_POWER:
-                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits, TwoSides.ONE), limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits, TwoSides.ONE), limitScalingManager);
             case CURRENT:
-                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits, TwoSides.ONE), limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits, TwoSides.ONE), limitScalingManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -127,14 +128,14 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimitsGroup> getLimits2(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits2(final LimitType type, LimitScalingManager limitScalingManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits, TwoSides.TWO), limitReductionManager);
+                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits, TwoSides.TWO), limitScalingManager);
             case APPARENT_POWER:
-                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits, TwoSides.TWO), limitReductionManager);
+                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits, TwoSides.TWO), limitScalingManager);
             case CURRENT:
-                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits, TwoSides.TWO), limitReductionManager);
+                return getLimits2(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits, TwoSides.TWO), limitScalingManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -142,7 +143,7 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public double[] getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
+    public double[] getLimitScalings(TwoSides side, LimitScalingManager limitScalingManager, LoadingLimits limits) {
         return new double[] {};
     }
 
@@ -162,5 +163,10 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
     @Override
     public boolean hasPhaseControllerCapability() {
         return false;
+    }
+
+    @Override
+    public Optional<PhaseTapChanger> getPhaseTapChanger() {
+        return Optional.empty();
     }
 }

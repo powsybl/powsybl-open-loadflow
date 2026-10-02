@@ -11,7 +11,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -182,17 +182,19 @@ class FastDecoupledTest {
                 .setNewtonRaphsonConvEpsPerEq(1e-5);
 
         // first test: generator g4 regulates reactive power on line 4->3 (on side of g4)
-        g4.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(targetQ)
-                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
-                .withEnabled(true).add();
+        g4.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTargetValue(targetQ)
+            .withTerminal(l34.getTerminal(TwoSides.TWO))
+            .build();
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
 
         // second test: generator g4 regulates reactive power on line 4->3 (on opposite side)
-        g4.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(targetQ)
-                .withRegulatingTerminal(l34.getTerminal(TwoSides.ONE))
-                .withEnabled(true).add();
+        g4.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTargetValue(targetQ)
+            .withTerminal(l34.getTerminal(TwoSides.TWO))
+            .build();
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }
 
@@ -342,7 +344,7 @@ class FastDecoupledTest {
                 .setRegulating(true)
                 .setTapPosition(0)
                 .setRegulationTerminal(t2wt.getTerminal2())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
+                .setRegulationMode(RegulationMode.REACTIVE_POWER)
                 .setRegulationValue(-10.0);
 
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
