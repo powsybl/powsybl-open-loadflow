@@ -263,7 +263,7 @@ class LfActionTest extends AbstractSerDeTest {
     void testBoundaryLineAction(Network network, boolean relativeValue, double expectedModifiedP, double expectedModifiedQ, int generatorsCount, double expectedTargetV) {
         BoundaryLineAction boundaryLineAction = new BoundaryLineActionBuilder()
                 .withId("action")
-                .withBoundaryLineId("DL")
+                .withBoundaryLineId("BL")
                 .withActivePowerValue(10)
                 .withReactivePowerValue(5)
                 .withRelativeValue(relativeValue)
@@ -276,7 +276,7 @@ class LfActionTest extends AbstractSerDeTest {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
 
             // Checks before applying action
-            LfBranch lfBranch = lfNetwork.getBranchById("DL");
+            LfBranch lfBranch = lfNetwork.getBranchById("BL");
             assertNotNull(lfBranch);
             assertEquals(generatorsCount, lfBranch.getBus2().getGenerators().size());
             if (generatorsCount == 1) {
@@ -291,8 +291,8 @@ class LfActionTest extends AbstractSerDeTest {
                 assertEquals(expectedTargetV, lfBranch.getBus2().getGenerators().get(0).getTargetV());
             }
             assertTrue(lfAction.apply(lfNetwork, null, acParameters.getNetworkParameters()));
-            assertEquals(expectedModifiedP, lfBranch.getBus2().getLoadTargetP());
-            assertEquals(expectedModifiedQ, lfBranch.getBus2().getLoadTargetQ());
+            assertEquals(expectedModifiedP, lfBranch.getBus2().getLoadTargetP(), 1e-8);
+            assertEquals(expectedModifiedQ, lfBranch.getBus2().getLoadTargetQ(), 1e-8);
         }
     }
 
