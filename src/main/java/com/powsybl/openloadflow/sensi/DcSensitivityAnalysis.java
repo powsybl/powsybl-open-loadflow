@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sensi;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.action.Action;
+import com.powsybl.action.BoundaryLineAction;
 import com.powsybl.action.SwitchAction;
 import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.PowsyblException;
@@ -318,7 +319,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             boolean hasPstActions = actions.stream().anyMatch(AbstractLfTapChangerAction.class::isInstance);
             boolean hasGeneratorActions = actions.stream().anyMatch(LfGeneratorAction.class::isInstance);
             boolean hasLoadActions = actions.stream().anyMatch(LfLoadAction.class::isInstance);
-            if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty() || hasPstActions || hasGeneratorActions || hasLoadActions) {
+            boolean hasBoundaryLineActions = actions.stream().anyMatch(BoundaryLineAction.class::isInstance);
+            if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty() || hasPstActions || hasGeneratorActions || hasLoadActions || hasBoundaryLineActions) {
                 newFlowStates = calculateFlowStates(loadFlowContext, participatingElements, disabledNetwork, actions, reportNode);
             }
 
@@ -399,7 +401,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 if (!branchAction.getDisabledBranches().isEmpty()) {
                     disableBranchIds.addAll(branchAction.getDisabledBranches().stream().map(LfBranch::getId).toList());
                 }
-            } else if (!(action instanceof AbstractLfTapChangerAction<?>) && !(action instanceof LfGeneratorAction) && !(action instanceof LfLoadAction)) {
+            } else if (!(action instanceof AbstractLfTapChangerAction<?>) && !(action instanceof LfGeneratorAction) && !(action instanceof LfLoadAction) && !(action instanceof LfBoundaryLineAction)) {
                 throw new PowsyblException("Unexpected action type: " + action.getClass().getSimpleName());
             }
         }
