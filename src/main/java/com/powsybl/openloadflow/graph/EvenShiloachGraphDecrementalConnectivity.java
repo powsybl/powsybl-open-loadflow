@@ -22,6 +22,8 @@ import java.util.stream.Collectors;
  */
 public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGraphConnectivity<V, E, JGraphTModel<V, E>> {
 
+    private final MainComponent mainComponent = new MainComponent();
+
     private Map<V, Integer> vertexToConnectedComponent;
     private final List<Set<V>> newConnectedComponents = new ArrayList<>();
 
@@ -156,9 +158,11 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         int nbVerticesOut = newConnectedComponents.stream().mapToInt(Set::size).sum();
         Set<V> vertices = getGraph().getVertices();
 
+        mainComponent.reset(vertices.size() - nbVerticesOut);
+
         List<AbstractComponent<V>> componentSets = new ArrayList<>();
-        componentSets.add(new MainComponent(vertices.size() - nbVerticesOut)); // trying to avoid to compute main connected component
-        for (Set<V> newComponents : getSmallComponents()) {
+        componentSets.add(mainComponent);
+        for (Set<V> newComponents : newConnectedComponents) {
             componentSets.add(new SetComponent<>(newComponents, 0));
         }
 
@@ -385,19 +389,28 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
 
     private final class MainComponent extends AbstractComponent<V> {
 
-        private final int size;
+        private int size;
         private Set<V> component;
 
-        MainComponent(int size) {
+        public void reset(int size) {
             this.size = size;
+            this.component = null;
         }
 
         @Override
         public Set<V> intoSet() {
+            computeConnectivity();
+
             if (component == null) {
                 component = new HashSet<>(getGraph().getVertices());
-                getSmallComponents().forEach(component::removeAll);
+
+                for (Component<V> comp : componentSets) {
+                    if (comp.getNum() != getNum()) {
+                        component.removeAll(comp);
+                    }
+                }
             }
+
             return component;
         }
 
@@ -408,7 +421,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
 
         @Override
         public boolean contains(Object o) {
-            return getComponentNumber((V) o) == 0;
+            return getComponentNumber((V) o) == getNum();
         }
 
         @Override
