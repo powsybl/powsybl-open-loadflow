@@ -51,16 +51,21 @@ public class ComponentView<V, E> extends AbstractSetView<V> implements Component
     }
 
     void setIndex(int index) {
-        node.setIndex(index);
+        node.findRoot().setIndex(index);
     }
 
     @Override
     public int getNum() {
+        node.getGraph().buildAndSortComponents();
         return node.findRoot().getIndex();
     }
 
     @Override
     public Set<V> intoSet() {
         return new HashSet<>(this);
+    }
+
+    public DTNode<V, E> root() {
+        return node.findRoot();
     }
 }

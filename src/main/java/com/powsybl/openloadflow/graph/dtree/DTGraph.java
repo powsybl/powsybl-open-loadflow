@@ -39,6 +39,8 @@ public class DTGraph<V, E> {
 
     private Modifications<V, E> currentModificationsContext;
 
+    private List<ComponentView<V, E>> components;
+
     public long sumOfDistances() {
         long sum = 0;
 
@@ -81,6 +83,8 @@ public class DTGraph<V, E> {
             return false;
         }
 
+        components = null;
+
         DTNode<V, E> newNode = new DTNode<>(this, v);
         vertexToTreeNode.put(v, newNode);
         addRoot(newNode);
@@ -92,6 +96,8 @@ public class DTGraph<V, E> {
         if (!containsVertex(v)) {
             return false;
         }
+
+        components = null;
 
         for (E edge : getNeighborEdgesOf(v)) {
             removeEdge(edge);
@@ -106,6 +112,8 @@ public class DTGraph<V, E> {
         if (containsEdge(e)) {
             return false;
         }
+
+        components = null;
 
         DTNode<V, E> nodeU = getNodeOrThrow(u);
         DTNode<V, E> nodeV = getNodeOrThrow(v);
@@ -221,6 +229,8 @@ public class DTGraph<V, E> {
         if (edge == null) {
             return null;
         }
+
+        components = null;
 
         if (edge.isTreeEdge()) {
             removeTreeEdge(edge);
@@ -411,15 +421,19 @@ public class DTGraph<V, E> {
     }
 
     DTNode<V, E> getBiggestRoot() {
-        DTNode<V, E> biggestRoot = null;
+        if (components == null) {
+            DTNode<V, E> biggestRoot = null;
 
-        for (DTNode<V, E> root : roots) {
-            if (biggestRoot == null || root.size() > biggestRoot.size()) {
-                biggestRoot = root;
+            for (DTNode<V, E> root : roots) {
+                if (biggestRoot == null || root.size() > biggestRoot.size()) {
+                    biggestRoot = root;
+                }
             }
-        }
 
-        return biggestRoot;
+            return biggestRoot;
+        } else {
+            return components.getFirst().root();
+        }
     }
 
     /**
@@ -427,16 +441,17 @@ public class DTGraph<V, E> {
      *
      * @return a list of components sorted by size in reverse order.
      */
-    public List<Component<V>> allComponents() {
-        List<Component<V>> components = new ArrayList<>(roots.size());
-        for (DTNode<V, E> root : roots) {
-            components.add(root.componentView());
-        }
+    public List<ComponentView<V, E>> buildAndSortComponents() {
+        if (components == null) {
+            components = new ArrayList<>(roots.size());
+            for (DTNode<V, E> root : roots) {
+                components.add(root.componentView());
+            }
 
-        components.sort(Comparator.<Set<V>>comparingInt(Set::size).reversed());
-        for (int i = 0; i < components.size(); i++) {
-            ComponentView<V, E> comp = (ComponentView<V, E>) components.get(i);
-            comp.setIndex(i);
+            components.sort(Comparator.<Set<V>>comparingInt(Set::size).reversed());
+            for (int i = 0; i < components.size(); i++) {
+                components.get(i).setIndex(i);
+            }
         }
 
         return components;

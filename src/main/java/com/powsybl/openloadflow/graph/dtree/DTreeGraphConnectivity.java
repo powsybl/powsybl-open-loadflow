@@ -46,8 +46,6 @@ public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnecti
     private final Deque<Modifications<V, E>> modificationsStack = new ArrayDeque<>();
     private V defaultMainComponentVertex;
 
-    private List<Component<V>> components;
-
     @Override
     public void addVertex(V vertex) {
         Objects.requireNonNull(vertex);
@@ -59,8 +57,6 @@ public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnecti
             if (modifications != null) {
                 modifications.push(new VertexAdd<>(vertex));
             }
-
-            components = null;
         }
     }
 
@@ -77,8 +73,6 @@ public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnecti
             if (modifications != null) {
                 modifications.push(new EdgeAdd<>(vertex1, vertex2, edge));
             }
-
-            components = null;
         }
     }
 
@@ -94,8 +88,6 @@ public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnecti
             if (modifications != null) {
                 modifications.push(new EdgeRemove<>(e.nodeU().getVertex(), e.nodeV().getVertex(), e.edgeData()));
             }
-
-            components = null;
         }
     }
 
@@ -134,10 +126,7 @@ public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnecti
 
     @Override
     public int getComponentNumber(V vertex) {
-        checkSavedContext();
-        updateComponents();
-
-        return graph.rootOf(vertex).getIndex();
+        return getConnectedComponent(vertex).getNum();
     }
 
     @Override
@@ -164,12 +153,7 @@ public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnecti
     @Override
     public Component<V> getLargestConnectedComponent() {
         checkSavedContext();
-
-        if (components == null) {
-            return getGraph().getBiggestRoot().componentView();
-        } else {
-            return components.getFirst();
-        }
+        return getGraph().getBiggestRoot().componentView();
     }
 
     @Override
@@ -190,12 +174,6 @@ public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnecti
     @Override
     public Set<E> getEdgesAddedToMainComponent() {
         return checkSavedContext().getEdgesAddedToMainComponent();
-    }
-
-    private void updateComponents() {
-        if (components == null) {
-            components = graph.allComponents();
-        }
     }
 
     private Modifications<V, E> checkSavedContext() {

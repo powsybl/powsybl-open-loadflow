@@ -1085,7 +1085,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
 
         @Override
         public int getNum() {
-            return 0; // getComponentNumber(node.findRoot().vertex);
+            return node.dtree.getComponentNumber(node.vertex);
         }
 
         @Override
