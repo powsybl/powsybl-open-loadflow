@@ -53,7 +53,7 @@ class ComponentView<V, E> extends AbstractSetView<V> implements Component<V> {
     @Override
     public int getNumber() {
         node.getGraph().buildAndSortComponents();
-        return root().getIndex();
+        return getRoot().getIndex();
     }
 
     @Override
