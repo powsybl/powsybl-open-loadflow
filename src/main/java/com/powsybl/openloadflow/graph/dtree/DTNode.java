@@ -7,8 +7,6 @@
  */
 package com.powsybl.openloadflow.graph.dtree;
 
-import com.powsybl.openloadflow.graph.Component;
-
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
