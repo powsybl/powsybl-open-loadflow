@@ -118,14 +118,12 @@ public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>
 
     @Override
     public boolean connected(V vertex1, V vertex2) {
-        if (graph.containsVertex(vertex1) && graph.containsVertex(vertex2)) {
-            checkSavedContext();
-            updateComponents();
+        checkSavedContext();
+        updateComponents();
+        checkVertex(vertex1);
+        checkVertex(vertex2);
 
-            return getQuickComponentNumber(vertex1) == getQuickComponentNumber(vertex2);
-        }
-
-        return false;
+        return getQuickComponentNumber(vertex1) == getQuickComponentNumber(vertex2);
     }
 
     @Override
