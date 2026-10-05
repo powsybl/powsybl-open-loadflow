@@ -25,6 +25,12 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class ConnectivityTest {
 
+    <V> void assertComponentEquals(Set<V> expectedElements, int expectedNum, Component<V> component) {
+        assertEquals(expectedElements, component);
+        assertEquals(expectedElements, component.toOwnedSet());
+        assertEquals(expectedNum, component.getNumber());
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("provideNonRestrictedConnectivities")
     void setMainComponentVertexExceptionTest(GraphConnectivity<Integer, String> c) {
@@ -151,9 +157,9 @@ class ConnectivityTest {
         c.removeEdge(e12);
         c.removeEdge(e31);
         assertEquals(3, c.getNbConnectedComponents());
-        assertEquals(Set.of(v1), c.getConnectedComponent(v1));
-        assertEquals(Set.of(v2, v3, v6), c.getConnectedComponent(v2));
-        assertEquals(Set.of(v4, v5), c.getConnectedComponent(v5));
+        assertComponentEquals(Set.of(v1), 2, c.getConnectedComponent(v1));
+        assertComponentEquals(Set.of(v2, v3, v6), 0, c.getConnectedComponent(v2));
+        assertComponentEquals(Set.of(v4, v5), 1, c.getConnectedComponent(v5));
         assertEquals(Collections.emptySet(), c.getEdgesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesAddedToMainComponent());
         assertEquals(Set.of(v1), c.getVerticesRemovedFromMainComponent());
@@ -168,8 +174,8 @@ class ConnectivityTest {
         String e34 = "3-4";
         c.addEdge(v3, v4, e34);
         assertEquals(2, c.getNbConnectedComponents());
-        assertEquals(Set.of(v1, v2), c.getConnectedComponent(v1));
-        assertEquals(Set.of(v3, v4, v5, v6), c.getConnectedComponent(v5));
+        assertComponentEquals(Set.of(v1, v2), 1, c.getConnectedComponent(v1));
+        assertComponentEquals(Set.of(v3, v4, v5, v6), 0, c.getConnectedComponent(v5));
         assertEquals(Set.of(e34, e45), c.getEdgesAddedToMainComponent());
         assertEquals(Set.of(v4, v5), c.getVerticesAddedToMainComponent());
         assertEquals(Set.of(v2), c.getVerticesRemovedFromMainComponent());
@@ -178,9 +184,9 @@ class ConnectivityTest {
 
         c.undoTemporaryChanges();
         assertEquals(3, c.getNbConnectedComponents());
-        assertEquals(Set.of(v1), c.getConnectedComponent(v1));
-        assertEquals(Set.of(v2, v3, v6), c.getConnectedComponent(v2));
-        assertEquals(Set.of(v4, v5), c.getConnectedComponent(v5));
+        assertComponentEquals(Set.of(v1), 2, c.getConnectedComponent(v1));
+        assertComponentEquals(Set.of(v2, v3, v6), 0, c.getConnectedComponent(v2));
+        assertComponentEquals(Set.of(v4, v5), 1, c.getConnectedComponent(v5));
         assertEquals(Collections.emptySet(), c.getEdgesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesAddedToMainComponent());
         assertEquals(Set.of(v1), c.getVerticesRemovedFromMainComponent());
@@ -191,8 +197,8 @@ class ConnectivityTest {
         c.startTemporaryChanges();
         c.addEdge(v1, v2, e12);
         assertEquals(2, c.getNbConnectedComponents());
-        assertEquals(Set.of(v1, v2, v3, v6), c.getConnectedComponent(v2));
-        assertEquals(Set.of(v4, v5), c.getConnectedComponent(v5));
+        assertComponentEquals(Set.of(v1, v2, v3, v6), 0, c.getConnectedComponent(v2));
+        assertComponentEquals(Set.of(v4, v5), 1, c.getConnectedComponent(v5));
         assertEquals(Set.of(e11, e12), c.getEdgesAddedToMainComponent());
         assertEquals(Set.of(v1), c.getVerticesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesRemovedFromMainComponent());
@@ -202,9 +208,9 @@ class ConnectivityTest {
 
         c.undoTemporaryChanges();
         assertEquals(3, c.getNbConnectedComponents());
-        assertEquals(Set.of(v1), c.getConnectedComponent(v1));
-        assertEquals(Set.of(v2, v3, v6), c.getConnectedComponent(v2));
-        assertEquals(Set.of(v4, v5), c.getConnectedComponent(v5));
+        assertComponentEquals(Set.of(v1), 2, c.getConnectedComponent(v1));
+        assertComponentEquals(Set.of(v2, v3, v6), 0, c.getConnectedComponent(v2));
+        assertComponentEquals(Set.of(v4, v5), 1, c.getConnectedComponent(v5));
         assertEquals(Collections.emptySet(), c.getEdgesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesAddedToMainComponent());
         assertEquals(Set.of(v1), c.getVerticesRemovedFromMainComponent());
@@ -228,7 +234,7 @@ class ConnectivityTest {
         Integer v7 = 7;
         c.addVertex(v7);
         assertEquals(2, c.getNbConnectedComponents());
-        assertEquals(Set.of(v7), c.getConnectedComponent(v7));
+        assertComponentEquals(Set.of(v7), 1, c.getConnectedComponent(v7));
         assertEquals(Set.of(e11, e14, e34, e45), c.getEdgesAddedToMainComponent());
         assertEquals(Set.of(v1, v4, v5), c.getVerticesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesRemovedFromMainComponent());
@@ -242,8 +248,8 @@ class ConnectivityTest {
 
         c.startTemporaryChanges();
         assertEquals(2, c.getNbConnectedComponents());
-        assertEquals(Set.of(v1, v2, v3, v6), c.getConnectedComponent(v1));
-        assertEquals(Set.of(v4, v5), c.getConnectedComponent(v5));
+        assertComponentEquals(Set.of(v1, v2, v3, v6), 0, c.getConnectedComponent(v1));
+        assertComponentEquals(Set.of(v4, v5), 1, c.getConnectedComponent(v5));
         assertEquals(Collections.emptySet(), c.getEdgesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesAddedToMainComponent());
         assertEquals(Collections.emptySet(), c.getVerticesRemovedFromMainComponent());
@@ -495,6 +501,110 @@ class ConnectivityTest {
         assertEquals(Set.of(1, 2), c.getVerticesRemovedFromMainComponent());
         assertEquals(Set.of("1-2", "2-3"), c.getEdgesRemovedFromMainComponent());
         // 1---2   3---4---5   6
+    }
+
+    <V> void assertConnected(GraphConnectivity<V, ?> c, V u, V v) {
+        assertTrue(c.connected(u, v));
+        assertTrue(c.connected(v, u));
+    }
+
+    <V> void assertDisconnected(GraphConnectivity<V, ?> c, V u, V v) {
+        assertFalse(c.connected(u, v));
+        assertFalse(c.connected(v, u));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideAllConnectivities")
+    void testConnected(GraphConnectivity<Integer, String> c) {
+        c.addVertex(1);
+        c.addVertex(2);
+        c.addVertex(3);
+        c.addVertex(4);
+        c.addVertex(5);
+
+        if (!(c instanceof EvenShiloachGraphDecrementalConnectivity)) {
+            // step 1: graph growth
+            c.startTemporaryChanges();
+
+            assertDisconnected(c, 1, 2);
+            c.addEdge(1, 2, "1-2");
+            assertConnected(c, 1, 2);
+
+            assertDisconnected(c, 2, 3);
+            c.addEdge(2, 3, "2-3");
+            assertConnected(c, 2, 3);
+            assertConnected(c, 1, 2);
+
+            c.addEdge(3, 1, "3-1");
+            assertConnected(c, 2, 3);
+            assertConnected(c, 1, 2);
+
+            assertDisconnected(c, 4, 5);
+            c.addEdge(4, 5, "4-5");
+            assertConnected(c, 4, 5);
+
+            assertDisconnected(c, 3, 4);
+            c.addEdge(3, 4, "3-4");
+        } else {
+            // with EvenShiloach we can only test removal
+            c.addEdge(1, 2, "1-2");
+            c.addEdge(2, 3, "2-3");
+            c.addEdge(3, 1, "3-1");
+            c.addEdge(4, 5, "4-5");
+            c.addEdge(3, 4, "3-4");
+
+            c.startTemporaryChanges();
+        }
+
+        // 1---2---3---4---5
+        // |_______|
+
+        // fully connected
+        for (int i = 1; i < 5; i++) {
+            for (int j = 1; j <= i; j++) {
+                assertConnected(c, i, j);
+            }
+        }
+
+        // step 2: graph decline
+        c.removeEdge("3-4");
+        assertDisconnected(c, 1, 4);
+        assertDisconnected(c, 1, 5);
+        assertDisconnected(c, 2, 4);
+        assertDisconnected(c, 2, 5);
+        assertDisconnected(c, 3, 4);
+        assertDisconnected(c, 3, 5);
+        assertConnected(c, 1, 2);
+        assertConnected(c, 2, 3);
+        assertConnected(c, 4, 5);
+        // 1---2---3   4---5
+        // |_______|
+
+        c.removeEdge("1-2");
+        assertConnected(c, 1, 2);
+        assertConnected(c, 2, 3);
+        // 2---3---1   4---5
+
+        c.removeEdge("4-5");
+        assertDisconnected(c, 4, 5);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideAllConnectivities")
+    void testConnectedExceptions(GraphConnectivity<Integer, String> c) {
+        c.addVertex(1);
+        c.addVertex(2);
+        c.addEdge(1, 2, "1-2");
+        c.startTemporaryChanges();
+
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> c.connected(0, 1));
+        assertEquals("given vertex 0 is not in the graph", e.getMessage());
+        e = assertThrows(IllegalArgumentException.class, () -> c.connected(null, 1));
+        assertEquals("given vertex null is not in the graph", e.getMessage());
+        e = assertThrows(IllegalArgumentException.class, () -> c.connected(1, 3));
+        assertEquals("given vertex 3 is not in the graph", e.getMessage());
+        e = assertThrows(IllegalArgumentException.class, () -> c.connected(1, null));
+        assertEquals("given vertex null is not in the graph", e.getMessage());
     }
 
     private static Stream<Arguments> provideNonRestrictedConnectivities() {
