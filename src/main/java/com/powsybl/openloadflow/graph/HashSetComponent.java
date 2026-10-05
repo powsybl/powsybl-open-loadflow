@@ -27,7 +27,7 @@ public class HashSetComponent<V> extends AbstractComponent<V> {
     }
 
     @Override
-    public Set<V> intoSet() {
+    public Set<V> toOwnedSet() {
         return set;
     }
 

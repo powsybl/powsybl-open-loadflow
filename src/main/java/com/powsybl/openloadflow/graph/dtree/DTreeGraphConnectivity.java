@@ -84,7 +84,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     @Override
     public int getComponentNumber(V vertex) {
-        return getConnectedComponent(vertex).getNum();
+        return getConnectedComponent(vertex).getNumber();
     }
 
     @Override
