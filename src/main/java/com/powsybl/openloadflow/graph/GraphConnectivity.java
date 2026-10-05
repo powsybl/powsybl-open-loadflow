@@ -83,12 +83,12 @@ public interface GraphConnectivity<V, E> {
     /**
      * Return the connected component set of given vertex
      */
-    Set<V> getConnectedComponent(V vertex);
+    Component<V> getConnectedComponent(V vertex);
 
     /**
      * Return the largest connected component
      */
-    Set<V> getLargestConnectedComponent();
+    Component<V> getLargestConnectedComponent();
 
     /**
      * Return the vertices which were removed from main component by last temporary changes.
