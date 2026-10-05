@@ -7,12 +7,14 @@
  */
 package com.powsybl.openloadflow.graph;
 
+import java.util.Set;
+
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class HolmEtAlWithoutLevelGraphConnectivityFactory<V, E> implements GraphConnectivityFactory<V, E> {
-    @Override
-    public GraphConnectivity<V, E> create() {
-        return new HolmEtAlWithoutLevelGraphConnectivity<>();
-    }
+public interface Component<V> extends Set<V> {
+
+    int getNum();
+
+    Set<V> intoSet();
 }

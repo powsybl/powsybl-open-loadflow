@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.graph.dtreepr;
 
+import com.powsybl.openloadflow.graph.Component;
+
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -308,7 +310,7 @@ public class DTNode<V, E> {
         nonTreeEdges.remove(edge);
     }
 
-    public Set<V> componentView() {
+    public Component<V> componentView() {
         if (componentView == null) {
             componentView = new ComponentView<>(this);
         }

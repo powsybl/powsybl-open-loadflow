@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.graph.dtreepr;
 
+import com.powsybl.openloadflow.graph.Component;
 import com.powsybl.openloadflow.graph.GraphModel;
 
 import java.util.*;
@@ -377,7 +378,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         return roots.size();
     }
 
-    public Set<V> componentView(V vertex) {
+    public Component<V> componentView(V vertex) {
         return getNodeOrThrow(vertex).componentView();
     }
 
@@ -386,8 +387,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      *
      * @return a list of components sorted by size in reverse order.
      */
-    public List<Set<V>> allComponents() {
-        List<Set<V>> components = new ArrayList<>(roots.size());
+    public List<Component<V>> allComponents() {
+        List<Component<V>> components = new ArrayList<>(roots.size());
         for (DTNode<V, E> root : roots) {
             components.add(root.componentView());
         }

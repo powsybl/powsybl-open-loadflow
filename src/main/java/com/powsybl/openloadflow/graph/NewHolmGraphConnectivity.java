@@ -19,6 +19,7 @@ public class NewHolmGraphConnectivity<V, E> extends AbstractGraphConnectivity<V,
 
     public NewHolmGraphConnectivity() {
         super(new Graph<>());
+        getGraph().holm = this;
     }
 
     @Override
@@ -77,7 +78,7 @@ public class NewHolmGraphConnectivity<V, E> extends AbstractGraphConnectivity<V,
     }
 
     @Override
-    public Set<V> getConnectedComponent(V vertex) {
+    public Component<V> getConnectedComponent(V vertex) {
         checkSavedContext();
         checkVertex(vertex);
         Graph<V, E> graph = getGraph();
@@ -109,6 +110,8 @@ public class NewHolmGraphConnectivity<V, E> extends AbstractGraphConnectivity<V,
     }
 
     protected static final class Graph<V, E> implements GraphModel<V, E> {
+
+        private GraphConnectivity<V, E> holm;
 
         private final Map<V, AVLTree.TreeNode<Occurrence<V, E>>> activeOccurrences = new HashMap<>();
         private final Map<E, Edge<V, E>> edges = new HashMap<>();
@@ -573,10 +576,10 @@ public class NewHolmGraphConnectivity<V, E> extends AbstractGraphConnectivity<V,
             return new ComponentView(tree);
         }
 
-        private final class AllComponentsView extends AbstractList<Set<V>> {
+        private final class AllComponentsView extends AbstractList<Component<V>> {
 
             @Override
-            public Set<V> get(int index) {
+            public Component<V> get(int index) {
                 return new ComponentView(trees.get(index));
             }
 
@@ -586,7 +589,7 @@ public class NewHolmGraphConnectivity<V, E> extends AbstractGraphConnectivity<V,
             }
         }
 
-        private final class ComponentView extends AbstractSetView<V> {
+        private final class ComponentView extends AbstractSetView<V> implements Component<V> {
 
             private final AVLTree<Occurrence<V, E>> tree;
 
@@ -611,6 +614,16 @@ public class NewHolmGraphConnectivity<V, E> extends AbstractGraphConnectivity<V,
             @Override
             public int size() {
                 return (tree.getSize() + 1) / 2;
+            }
+
+            @Override
+            public int getNum() {
+                return holm.getComponentNumber(tree.getMin().getValue().vertex);
+            }
+
+            @Override
+            public Set<V> intoSet() {
+                return new HashSet<>(this);
             }
         }
 

@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.graph.benchmark.workload;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.powsybl.openloadflow.graph.Component;
 import com.powsybl.openloadflow.graph.benchmark.Aggregator;
 import com.powsybl.openloadflow.graph.benchmark.AverageStopWatch;
 import com.powsybl.openloadflow.graph.benchmark.GraphConnectivityMethod;
@@ -140,18 +141,18 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
     }
 
     @Override
-    public Set<V> getConnectedComponent(V vertex) {
+    public Component<V> getConnectedComponent(V vertex) {
         sw.start();
-        Set<V> vertices = delegate.getConnectedComponent(vertex);
+        Component<V> vertices = delegate.getConnectedComponent(vertex);
         sw.stop();
         current[GraphConnectivityMethod.GET_CONNECTED_COMPONENT.ordinal()].add(sw.elapsed());
         return vertices;
     }
 
     @Override
-    public Set<V> getLargestConnectedComponent() {
+    public Component<V> getLargestConnectedComponent() {
         sw.start();
-        Set<V> vertices = delegate.getLargestConnectedComponent();
+        Component<V> vertices = delegate.getLargestConnectedComponent();
         sw.stop();
         current[GraphConnectivityMethod.GET_LARGEST_CONNECTED_COMPONENT.ordinal()].add(sw.elapsed());
         return vertices;

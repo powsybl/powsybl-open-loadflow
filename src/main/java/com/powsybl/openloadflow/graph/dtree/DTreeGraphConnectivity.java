@@ -46,7 +46,7 @@ public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnecti
     private final Deque<Modifications<V, E>> modificationsStack = new ArrayDeque<>();
     private V defaultMainComponentVertex;
 
-    private List<Set<V>> components;
+    private List<Component<V>> components;
 
     @Override
     public void addVertex(V vertex) {
@@ -156,13 +156,13 @@ public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnecti
     }
 
     @Override
-    public Set<V> getConnectedComponent(V vertex) {
+    public Component<V> getConnectedComponent(V vertex) {
         checkSavedContext();
         return graph.componentView(vertex);
     }
 
     @Override
-    public Set<V> getLargestConnectedComponent() {
+    public Component<V> getLargestConnectedComponent() {
         checkSavedContext();
 
         if (components == null) {

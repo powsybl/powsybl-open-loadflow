@@ -37,17 +37,20 @@ public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         return true;
     }
 
-    private List<Set<V>> calculateConnectedSets() {
+    private List<SetComponent<V>> calculateConnectedSets() {
         TIntArrayList[] adjacencyList = getGraph().getAdjacencyList();
         GraphUtil.ConnectedComponentsComputationResult result = GraphUtil.computeConnectedComponents(adjacencyList);
-        List<Set<V>> connectedSets = new ArrayList<>();
-        for (int size : result.getComponentSize()) {
-            connectedSets.add(HashSet.newHashSet(size));
+        List<SetComponent<V>> connectedSets = new ArrayList<>();
+        int[] componentSize = result.getComponentSize();
+        for (int i = 0; i < componentSize.length; i++) {
+            int size = componentSize[i];
+            connectedSets.add(new SetComponent<>(HashSet.newHashSet(size), i));
         }
+
         int[] componentNum = result.getComponentNumber();
         for (V vertex : getGraph().getVertices()) {
             int v = numGetter.applyAsInt(vertex);
-            connectedSets.get(componentNum[v]).add(vertex);
+            connectedSets.get(componentNum[v]).set.add(vertex);
         }
         return connectedSets;
     }

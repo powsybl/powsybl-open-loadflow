@@ -555,14 +555,14 @@ public class IndexedDTreeStandalone<V, E> implements SpanningForestGraphConnecti
     }
 
     @Override
-    public Set<V> getConnectedComponent(V vertex) {
+    public Component<V> getConnectedComponent(V vertex) {
         checkSavedContext();
         DTNode node = getNodeOrThrow(vertex);
         return node.findRootOptReroot().componentView();
     }
 
     @Override
-    public Set<V> getLargestConnectedComponent() {
+    public Component<V> getLargestConnectedComponent() {
         checkSavedContext();
         sortTrees();
 
@@ -910,7 +910,7 @@ public class IndexedDTreeStandalone<V, E> implements SpanningForestGraphConnecti
         }
 
         // This DNode MUST be a root
-        public Set<V> componentView() {
+        public Component<V> componentView() {
             if (componentView == null) {
                 componentView = new ComponentView(this);
             }
@@ -953,7 +953,7 @@ public class IndexedDTreeStandalone<V, E> implements SpanningForestGraphConnecti
         }
     }
 
-    private final class ComponentView extends AbstractSetView<V> {
+    private final class ComponentView extends AbstractSetView<V> implements Component<V> {
 
         private final DTNode node;
 
@@ -982,6 +982,16 @@ public class IndexedDTreeStandalone<V, E> implements SpanningForestGraphConnecti
         @Override
         public int size() {
             return node.findRoot().size;
+        }
+
+        @Override
+        public int getNum() {
+            return getComponentNumber(node.findRoot().vertex);
+        }
+
+        @Override
+        public Set<V> intoSet() {
+            return new HashSet<>(this);
         }
     }
 

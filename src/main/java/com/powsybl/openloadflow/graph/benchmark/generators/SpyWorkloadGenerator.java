@@ -12,6 +12,7 @@ import com.powsybl.contingency.strategy.ConditionalActions;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.openloadflow.graph.Component;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
@@ -273,7 +274,7 @@ public class SpyWorkloadGenerator implements IGenerateWorkload {
         }
 
         @Override
-        public Set<LfBus> getConnectedComponent(LfBus vertex) {
+        public Component<LfBus> getConnectedComponent(LfBus vertex) {
             useful = true;
             try {
                 WorkloadUtils.write(bw, GET_CONNECTED_COMPONENT, vertex.getNum());
@@ -284,7 +285,7 @@ public class SpyWorkloadGenerator implements IGenerateWorkload {
         }
 
         @Override
-        public Set<LfBus> getLargestConnectedComponent() {
+        public Component<LfBus> getLargestConnectedComponent() {
             useful = true;
             try {
                 WorkloadUtils.write(bw, GET_LARGEST_CONNECTED_COMPONENT);

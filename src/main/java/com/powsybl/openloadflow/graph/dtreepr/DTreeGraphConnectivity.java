@@ -96,7 +96,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     }
 
     @Override
-    public Set<V> getConnectedComponent(V vertex) {
+    public Component<V> getConnectedComponent(V vertex) {
         checkSavedContext();
         checkVertex(vertex);
         return getGraph().componentView(vertex);

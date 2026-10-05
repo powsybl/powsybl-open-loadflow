@@ -186,6 +186,15 @@
             <artifactId>powsybl-matpower-converter</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-cgmes-conversion</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-triple-store-impl-rdf4j</artifactId>
+        </dependency>
 
         <!-- Test dependencies -->
         <dependency>

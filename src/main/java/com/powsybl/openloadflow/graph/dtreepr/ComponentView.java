@@ -7,9 +7,12 @@
  */
 package com.powsybl.openloadflow.graph.dtreepr;
 
+import com.powsybl.openloadflow.graph.Component;
 import com.powsybl.openloadflow.graph.dtree.AbstractSetView;
 
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 /**
  * A set view of a connected component in a graph. A component view is
@@ -20,7 +23,7 @@ import java.util.Iterator;
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class ComponentView<V, E> extends AbstractSetView<V> {
+public class ComponentView<V, E> extends AbstractSetView<V> implements Component<V> {
 
     private final DTNode<V, E> node;
 
@@ -50,5 +53,15 @@ public class ComponentView<V, E> extends AbstractSetView<V> {
 
     void setIndex(int index) {
         node.setIndex(index);
+    }
+
+    @Override
+    public int getNum() {
+        return node.findRoot().getIndex();
+    }
+
+    @Override
+    public Set<V> intoSet() {
+        return new HashSet<>(this);
     }
 }

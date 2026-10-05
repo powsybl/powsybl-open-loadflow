@@ -514,13 +514,13 @@ public class HolmStandalone<V, E> implements SpanningForestGraphConnectivity<V, 
     }
 
     @Override
-    public Set<V> getConnectedComponent(V vertex) {
+    public Component<V> getConnectedComponent(V vertex) {
         checkSavedContext();
         return new ComponentView(treeOf(vertex));
     }
 
     @Override
-    public Set<V> getLargestConnectedComponent() {
+    public Component<V> getLargestConnectedComponent() {
         checkSavedContext();
         sortTrees();
 
@@ -730,7 +730,7 @@ public class HolmStandalone<V, E> implements SpanningForestGraphConnectivity<V, 
         return sb.toString();
     }
 
-    private final class ComponentView extends AbstractSetView<V> {
+    private final class ComponentView extends AbstractSetView<V> implements Component<V> {
 
         private final AVLTree<Occurrence<V, E>> tree;
 
@@ -746,7 +746,7 @@ public class HolmStandalone<V, E> implements SpanningForestGraphConnectivity<V, 
         @Override
         public boolean contains(Object o) {
             if (o != null) {
-                return activeOccurrences.get(o).getRoot() == tree.getRoot();
+                return activeOccurrences.get(o).getTreeMin() == tree.getMin();
             }
 
             return false;
@@ -755,6 +755,16 @@ public class HolmStandalone<V, E> implements SpanningForestGraphConnectivity<V, 
         @Override
         public int size() {
             return (tree.getSize() + 1) / 2;
+        }
+
+        @Override
+        public int getNum() {
+            return getComponentNumber(tree.getMin().getValue().vertex);
+        }
+
+        @Override
+        public Set<V> intoSet() {
+            return new HashSet<>(this);
         }
     }
 

@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.graph;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
+import com.powsybl.openloadflow.graph.dtree.AbstractSetView;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 
@@ -58,7 +59,8 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
         }
 
         vertexToComponent = null;
-        componentSets = getGraph().spanningForests.getFirst().getComponents();
+        componentSets = getGraph().spanningForests.getFirst().getComponents()
+                .stream().map(MyComponent::new).toList();
 
         // gatherStatistics();
     }
@@ -130,10 +132,10 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
     }
 
     @Override
-    public Set<V> getConnectedComponent(V vertex) {
+    public Component<V> getConnectedComponent(V vertex) {
         checkSavedContext();
         checkVertex(vertex);
-        return getGraph().spanningForests.getFirst().getComponent(vertex);
+        return new MyComponent(getGraph().spanningForests.getFirst().getComponent(vertex));
     }
 
     @Override
@@ -146,6 +148,39 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
     @Override
     public boolean supportTemporaryChangesNesting() {
         return true;
+    }
+
+    private class MyComponent extends AbstractSetView<V> implements Component<V> {
+        private final Set<V> set;
+
+        MyComponent(Set<V> set) {
+            this.set = set;
+        }
+
+        @Override
+        public Iterator<V> iterator() {
+            return set.iterator();
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            return set.contains(o);
+        }
+
+        @Override
+        public int size() {
+            return set.size();
+        }
+
+        @Override
+        public int getNum() {
+            return getComponentNumber(set.iterator().next());
+        }
+
+        @Override
+        public Set<V> intoSet() {
+            return new HashSet<>(this);
+        }
     }
 
     public static final class Graph<V, E> implements GraphModel<V, E> {

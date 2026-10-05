@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.workload;
 
+import com.powsybl.openloadflow.graph.Component;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
@@ -98,17 +99,17 @@ public class ValidatorGraphConnectivity<V, E> extends AbstractSpyGraphConnectivi
     }
 
     @Override
-    public Set<V> getConnectedComponent(V vertex) {
-        Set<V> expected = checker.getConnectedComponent(vertex);
-        Set<V> current = delegate.getConnectedComponent(vertex);
+    public Component<V> getConnectedComponent(V vertex) {
+        Component<V> expected = checker.getConnectedComponent(vertex);
+        Component<V> current = delegate.getConnectedComponent(vertex);
         assertEquals(expected, current);
         return current;
     }
 
     @Override
-    public Set<V> getLargestConnectedComponent() {
-        Set<V> expected = checker.getLargestConnectedComponent();
-        Set<V> current = delegate.getLargestConnectedComponent();
+    public Component<V> getLargestConnectedComponent() {
+        Component<V> expected = checker.getLargestConnectedComponent();
+        Component<V> current = delegate.getLargestConnectedComponent();
         assertEquals(expected, current);
         return current;
     }

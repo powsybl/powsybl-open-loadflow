@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.workload;
 
+import com.powsybl.openloadflow.graph.Component;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.SpanningForestGraphConnectivity;
@@ -114,12 +115,12 @@ public abstract class AbstractSpyGraphConnectivity<V, E> implements ISpyGraphCon
     }
 
     @Override
-    public Set<V> getConnectedComponent(V vertex) {
+    public Component<V> getConnectedComponent(V vertex) {
         return delegate.getConnectedComponent(vertex);
     }
 
     @Override
-    public Set<V> getLargestConnectedComponent() {
+    public Component<V> getLargestConnectedComponent() {
         return delegate.getLargestConnectedComponent();
     }
 

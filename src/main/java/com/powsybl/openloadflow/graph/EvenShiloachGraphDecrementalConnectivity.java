@@ -141,36 +141,8 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
     }
 
     @Override
-    public Set<V> getConnectedComponent(V vertex) {
-        int componentNumber = getComponentNumber(vertex);
-        if (componentNumber == 0) {
-            computeMainConnectedComponent();
-        }
-        return componentSets.get(componentNumber);
-    }
-
-    @Override
-    public Set<V> getLargestConnectedComponent() {
-        checkSavedContext();
-        updateComponents();
-        computeMainConnectedComponent();
-        return componentSets.get(0);
-    }
-
-    private void computeMainConnectedComponent() {
-        if (componentSets.get(0) == null) {
-            Set<V> mainConnectedComponent = new HashSet<>(getGraph().getVertices());
-            getSmallComponents().forEach(mainConnectedComponent::removeAll);
-            componentSets.set(0, mainConnectedComponent);
-        }
-    }
-
-    @Override
     public Set<V> getNonConnectedVertices(V vertex) {
         int componentNumber = getComponentNumber(vertex);
-        if (componentNumber != 0) {
-            computeMainConnectedComponent();
-        }
         List<Set<V>> nonConnectedComponents = new ArrayList<>(componentSets);
         nonConnectedComponents.remove(componentNumber);
         return nonConnectedComponents.stream().flatMap(Collection::stream).collect(Collectors.toSet());
@@ -181,20 +153,23 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
             return;
         }
 
-        componentSets = new ArrayList<>();
-        componentSets.add(null); // trying to avoid to compute main connected component
-
-        newConnectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
-        componentSets.addAll(newConnectedComponents);
         int nbVerticesOut = newConnectedComponents.stream().mapToInt(Set::size).sum();
-        int maxNewComponentsSize = newConnectedComponents.stream().findFirst().map(Set::size).orElse(0);
         Set<V> vertices = getGraph().getVertices();
-        if (vertices.size() - nbVerticesOut < maxNewComponentsSize) {
-            // The initial connected component is smaller than some new connected components
-            // That is, the biggest connected component is among the new connected components list
-            computeMainConnectedComponent(); // it's therefore the initial and not the "main" connected component
-            componentSets.sort(Comparator.comparingInt(c -> -c.size()));
+
+        List<AbstractComponent<V>> componentSets = new ArrayList<>();
+        componentSets.add(new MainComponent(vertices.size() - nbVerticesOut)); // trying to avoid to compute main connected component
+        for (Set<V> newComponents : getSmallComponents()) {
+            componentSets.add(new SetComponent<>(newComponents, 0));
         }
+
+        componentSets.sort(Comparator.comparingInt(c -> -c.size()));
+
+        for (int i = 0; i < componentSets.size(); i++) {
+            AbstractComponent<V> component = componentSets.get(i);
+            component.setNum(i);
+        }
+
+        this.componentSets = componentSets;
     }
 
     private interface GraphProcess {
@@ -408,4 +383,37 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         }
     }
 
+    private final class MainComponent extends AbstractComponent<V> {
+
+        private final int size;
+        private Set<V> component;
+
+        MainComponent(int size) {
+            this.size = size;
+        }
+
+        @Override
+        public Set<V> intoSet() {
+            if (component == null) {
+                component = new HashSet<>(getGraph().getVertices());
+                getSmallComponents().forEach(component::removeAll);
+            }
+            return component;
+        }
+
+        @Override
+        public Iterator<V> iterator() {
+            return intoSet().iterator();
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            return getComponentNumber((V) o) == 0;
+        }
+
+        @Override
+        public int size() {
+            return size;
+        }
+    }
 }

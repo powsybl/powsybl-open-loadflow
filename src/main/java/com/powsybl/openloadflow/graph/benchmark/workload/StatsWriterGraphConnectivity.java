@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.workload;
 
+import com.powsybl.openloadflow.graph.Component;
 import com.powsybl.openloadflow.graph.benchmark.AverageStopWatch;
 import com.powsybl.openloadflow.graph.benchmark.GraphConnectivityMethod;
 import com.powsybl.openloadflow.graph.benchmark.generators.WorkloadUtils;
@@ -123,18 +124,18 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
     }
 
     @Override
-    public Set<V> getConnectedComponent(V vertex) {
+    public Component<V> getConnectedComponent(V vertex) {
         asw.start();
-        Set<V> set = super.getConnectedComponent(vertex);
+        Component<V> set = super.getConnectedComponent(vertex);
         asw.stop();
         writeLine(GraphConnectivityMethod.GET_CONNECTED_COMPONENT, asw.elapsed());
         return set;
     }
 
     @Override
-    public Set<V> getLargestConnectedComponent() {
+    public Component<V> getLargestConnectedComponent() {
         asw.start();
-        Set<V> set = super.getLargestConnectedComponent();
+        Component<V> set = super.getLargestConnectedComponent();
         asw.stop();
         writeLine(GraphConnectivityMethod.GET_LARGEST_CONNECTED_COMPONENT, asw.elapsed());
         return set;
