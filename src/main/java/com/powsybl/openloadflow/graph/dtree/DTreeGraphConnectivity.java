@@ -126,7 +126,7 @@ public class DTreeGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
 
     @Override
     public int getComponentNumber(V vertex) {
-        return getConnectedComponent(vertex).getNum();
+        return getConnectedComponent(vertex).getNumber();
     }
 
     @Override
