@@ -241,10 +241,11 @@ public final class ConnectivityBreakAnalysis {
                 int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
                 Set<LfBus> disabledBuses = connectivity.getVerticesRemovedFromMainComponent();
                 Set<LfHvdc> hvdcsWithoutPower = PropagatedContingency.getHvdcsWithoutPower(lfNetwork, disabledBuses, connectivity);
-                // FIXME: set copy may be useless (Naive / Even Shiloach), but mandatory for DTree
                 connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, operatorStrategy, lfNetwork, elementsToReconnect,
                         new DisabledElements(disabledBuses, connectivity.getEdgesRemovedFromMainComponent(), hvdcsWithoutPower),
-                        new HashSet<>(connectivity.getConnectedComponent(lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst())), createdSynchronousComponents);
+                        connectivity.getConnectedComponent(lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst())
+                                .toOwnedSet(),
+                        createdSynchronousComponents);
             }
         } finally {
             connectivity.undoTemporaryChanges();

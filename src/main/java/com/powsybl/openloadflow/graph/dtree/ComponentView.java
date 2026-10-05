@@ -11,6 +11,7 @@ import com.powsybl.openloadflow.graph.Component;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -67,5 +68,19 @@ public class ComponentView<V, E> extends AbstractSetView<V> implements Component
 
     public DTNode<V, E> root() {
         return node.findRoot();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o instanceof ComponentView<?, ?> that) {
+            return Objects.equals(root(), that.root());
+        } else {
+            return super.equals(o);
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
     }
 }
