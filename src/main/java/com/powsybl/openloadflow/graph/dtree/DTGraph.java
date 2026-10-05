@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.graph.dtree;
 
+import com.powsybl.openloadflow.graph.Component;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -28,6 +30,8 @@ public class DTGraph<V, E> {
     private final Map<E, Edge<V, E>> edges = new HashMap<>();
 
     private final Set<DTNode<V, E>> roots = new LinkedHashSet<>();
+
+    private List<ComponentView<V, E>> components;
 
     private Modifications<V, E> currentModificationsContext;
 
@@ -59,6 +63,8 @@ public class DTGraph<V, E> {
             return false;
         }
 
+        components = null;
+
         DTNode<V, E> newNode = new DTNode<>(this, v);
         vertexToTreeNode.put(v, newNode);
         addRoot(newNode);
@@ -70,6 +76,8 @@ public class DTGraph<V, E> {
         if (!containsVertex(v)) {
             return false;
         }
+
+        components = null;
 
         for (E edge : getNeighborEdgesOf(v)) {
             removeEdge(edge);
@@ -84,6 +92,8 @@ public class DTGraph<V, E> {
         if (containsEdge(e)) {
             return false;
         }
+
+        components = null;
 
         DTNode<V, E> nodeU = getNodeOrThrow(u);
         DTNode<V, E> nodeV = getNodeOrThrow(v);
@@ -199,6 +209,8 @@ public class DTGraph<V, E> {
         if (edge == null) {
             return null;
         }
+
+        components = null;
 
         if (edge.isTreeEdge()) {
             removeTreeEdge(edge);
@@ -383,20 +395,24 @@ public class DTGraph<V, E> {
         return roots.size();
     }
 
-    public Set<V> componentView(V vertex) {
+    public Component<V> componentView(V vertex) {
         return getNodeOrThrow(vertex).componentView();
     }
 
     DTNode<V, E> getBiggestRoot() {
-        DTNode<V, E> biggestRoot = null;
+        if (components == null) {
+            DTNode<V, E> biggestRoot = null;
 
-        for (DTNode<V, E> root : roots) {
-            if (biggestRoot == null || root.size() > biggestRoot.size()) {
-                biggestRoot = root;
+            for (DTNode<V, E> root : roots) {
+                if (biggestRoot == null || root.size() > biggestRoot.size()) {
+                    biggestRoot = root;
+                }
             }
-        }
 
-        return biggestRoot;
+            return biggestRoot;
+        } else {
+            return components.getFirst().getRoot();
+        }
     }
 
     /**
@@ -404,15 +420,17 @@ public class DTGraph<V, E> {
      *
      * @return a list of components sorted by size in reverse order.
      */
-    public List<Set<V>> allComponents() {
-        List<Set<V>> components = roots.stream()
-                .map(DTNode::componentView)
-                .sorted(Comparator.<Set<V>>comparingInt(Set::size).reversed())
-                .collect(Collectors.toCollection(ArrayList::new));
+    List<ComponentView<V, E>> buildAndSortComponents() {
+        if (components == null) {
+            components = roots.stream()
+                    .map(DTNode::componentView)
+                    .sorted(Comparator.<Set<V>>comparingInt(Set::size).reversed())
+                    .collect(Collectors.toCollection(ArrayList::new));
 
-        for (int i = 0; i < components.size(); i++) {
-            ComponentView<V, E> comp = (ComponentView<V, E>) components.get(i);
-            comp.getRoot().setIndex(i);
+            for (int i = 0; i < components.size(); i++) {
+                ComponentView<V, E> comp = components.get(i);
+                comp.getRoot().setIndex(i);
+            }
         }
 
         return components;
