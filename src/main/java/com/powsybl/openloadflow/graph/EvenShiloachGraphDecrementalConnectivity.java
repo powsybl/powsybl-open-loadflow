@@ -163,7 +163,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         List<AbstractComponent<V>> componentSets = new ArrayList<>();
         componentSets.add(mainComponent);
         for (Set<V> newComponents : newConnectedComponents) {
-            componentSets.add(new HashSetComponent<>(newComponents, 0));
+            componentSets.add(new HashSetComponent<>(newComponents));
         }
 
         componentSets.sort(Comparator.comparingInt(c -> -c.size()));
