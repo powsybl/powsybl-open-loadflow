@@ -583,24 +583,26 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         if (lfParametersExt.isNetworkCacheEnabled()) {
             var entry = NetworkCache.DC_SENSI_INSTANCE.get(network, new NetworkCache.DcSensiInput(lfParameters, topoConfig.toKeys()));
-            List<String> permanentContingencyBranchIds = Collections.emptyList();
             if (entry.getValues() == null) {
                 // create networks including all necessary switches
                 try (LfNetworkList lfNetworkList = Networks.loadWithReconnectableElements(network, topoConfig, lfNetworkParameters,
-                        new LfNetworkList.PoolVariantAcquirer(network, lfParametersExt.getNetworkVariantPoolSize()), LfNetworkList.WorkingVariantReverter::new, sensiReportNode)) {
+                        new LfNetworkList.PoolVariantAcquirer(network, lfParametersExt.getNetworkVariantPoolSize()), LfNetworkList.WorkingVariantReverter::new,
+                        sensiReportNode, true)) {
                     if (lfNetworkList.getList().isEmpty()) {
                         throw new PowsyblException("Empty network");
                     }
+                    // branches that reconnect small components are kept enabled and modeled as permanent contingencies
+                    // in Woodbury, exactly as in the non cached path
+                    List<String> permanentContingencyBranchIds = lfNetworkList.getPermanentContingencyBranchIds();
                     var values = lfNetworkList.getList()
                             .stream()
-                            .map(n -> new NetworkCache.DcSensiValue(new DcLoadFlowContext(n, dcLoadFlowParameters)))
+                            .map(n -> new NetworkCache.DcSensiValue(new DcLoadFlowContext(n, dcLoadFlowParameters), permanentContingencyBranchIds))
                             .toList();
                     entry.setValues(values);
                     LfNetworkList.VariantCleaner variantCleaner = lfNetworkList.getVariantCleaner();
                     if (variantCleaner != null) {
                         entry.setVariantCleaner(new LfNetworkList.PoolVariantReleaser(network, entry.getWorkingVariantId(), variantCleaner.getTmpVariantId()));
                     }
-                    permanentContingencyBranchIds = lfNetworkList.getPermanentContingencyBranchIds();
                 }
             }
             NetworkCache.DcSensiValue value = entry.getValues().getFirst();
@@ -608,7 +610,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             DcLoadFlowContext loadFlowContext = value.getContext();
             analyseNetwork(network, contingencies, variableSets, factorReader, resultWriter, sensiReportNode, lfNetwork,
                     propagatedContingencies, actions, operatorStrategies, breakers, loadFlowContext, lfParameters, lfParametersExt,
-                    permanentContingencyBranchIds);
+                    value.getPermanentContingencyBranchIds());
         } else {
             // create networks including all necessary switches
             // branches that reconnect small components are kept enabled and modeled as permanent contingencies in Woodbury

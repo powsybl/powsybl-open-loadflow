@@ -254,8 +254,16 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
     public static class DcSensiValue extends AbstractDcValue {
 
-        public DcSensiValue(DcLoadFlowContext context) {
+        // branches reconnecting small components, kept enabled in the LF network and modelled as permanent contingencies
+        private final List<String> permanentContingencyBranchIds;
+
+        public DcSensiValue(DcLoadFlowContext context, List<String> permanentContingencyBranchIds) {
             super(context);
+            this.permanentContingencyBranchIds = List.copyOf(Objects.requireNonNull(permanentContingencyBranchIds));
+        }
+
+        public List<String> getPermanentContingencyBranchIds() {
+            return permanentContingencyBranchIds;
         }
     }
 
