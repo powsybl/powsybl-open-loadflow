@@ -472,6 +472,55 @@ class AcLoadFlowTransformerVoltageControlTest {
     }
 
     @Test
+    void voltageControlParallelT2wtNearbyBusesTest() throws IOException {
+        // T1 and T2 control the voltage of their own 225 kV bus, both buses being tied by a short line:
+        // initially 220.09 kV, target 225 kV (+/- 1 kV)
+        Network network = VoltageControlNetworkFactory.createWithTwoParallelTransformersControllingNearbyBuses(225, 2);
+        TwoWindingsTransformer t1 = network.getTwoWindingsTransformer("T1");
+        TwoWindingsTransformer t2 = network.getTwoWindingsTransformer("T2");
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+
+        // Each transformer alone would shift up to 3 taps (max tap shift) to reach its target. Not accounting for the
+        // influence of the other transformer on its controlled bus, both would move and overshoot to about 227 kV,
+        // then oscillate between taps 11 and 13 until the maximum number of direction changes is reached, ending
+        // outside of the deadband.
+        // Accounting for it, T2 only completes the move of T1 and target is reached in one outer loop iteration.
+        assertEquals(13, t1.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(11, t2.getRatioTapChanger().getSolvedTapPosition());
+        assertVoltageEquals(224.872, network.getBusBreakerView().getBus("B3"));
+        assertVoltageEquals(224.525, network.getBusBreakerView().getBus("B4"));
+
+        assertTxtReportEquals("""
+                + Test Report
+                   + Load flow on network 'two-parallel-transformers-nearby-buses'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 3 buses and 3 branches
+                            Network balance: active generation=600 MW, active load=600 MW, reactive generation=0 MVar, reactive load=300 MVar
+                            Angle reference bus: VL1_0
+                            Slack bus: VL1_0
+                         Voltage initialization with method Uniform Values
+                         Outer loop ReactiveLimits
+                         + Outer loop IncrementalTransformerVoltageControl
+                            + Outer loop iteration 1
+                               2 voltage-controlled buses are outside of their target deadbands
+                               + 2 transformers changed tap position
+                                  Transformer T1 changed tap position from 10 to 13
+                                  Transformer T2 changed tap position from 10 to 11
+                         Outer loop ReactiveLimits
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """, reportNode);
+    }
+
+    @Test
     void voltageControlT2wtTest7() {
         selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt());
 
