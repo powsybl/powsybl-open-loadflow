@@ -143,9 +143,9 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
     }
 
     private void adjustB(ShuntVoltageControl voltageControl, List<LfShunt> sortedControllerShunts, LfBus controlledBus, IncrementalContextData contextData,
-                         SensitivityContext sensitivityContext, double diffV, List<DiscreteControllerChange> adjustedControllers) {
+                         SensitivityContext sensitivityContext, IncrementalContextData.MismatchPrediction<LfBus> prediction,
+                         List<DiscreteControllerChange> adjustedControllers) {
         // several shunts could control the same bus
-        double remainingDiffV = diffV;
         boolean hasChanged = true;
         Map<LfShunt.Controller, Integer> sectionShiftPerController = new HashMap<>();
         Map<LfShunt.Controller, Integer> initialSectionPerController = new HashMap<>();
@@ -158,6 +158,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
                     for (LfShunt.Controller controller : controllers) {
                         var controllerContext = contextData.getControllersContexts().get(controller.getId());
                         double halfTargetDeadband = getHalfTargetDeadband(voltageControl);
+                        double remainingDiffV = prediction.getMismatch(controlledBus);
                         if (Math.abs(remainingDiffV) > halfTargetDeadband) {
                             initialSectionPerController.computeIfAbsent(controller, LfShunt.Controller::getPosition);
                             int sectionShift = sectionShiftPerController.getOrDefault(controller, 0);
@@ -167,18 +168,24 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
                                     controllerShunt.getId());
                                 continue;
                             }
+                            int previousPosition = controller.getPosition();
                             double previousB = controller.getB();
                             double deltaB = remainingDiffV / sensitivity;
                             Direction direction = controller.updateSectionB(deltaB, 1, controllerContext.getAllowedDirection()).orElse(null);
                             if (direction != null) {
-                                sectionShiftPerController.put(controller, sectionShift + 1);
-                                controllerContext.updateAllowedDirection(direction);
-                                remainingDiffV -= (controller.getB() - previousB) * sensitivity;
-                                hasChanged = true;
+                                double discreteDeltaB = controller.getB() - previousB;
+                                if (prediction.applyIfImproved(bus -> discreteDeltaB * sensitivityContext.calculateSensitivityFromBToV(controllerShunt, bus))) {
+                                    sectionShiftPerController.put(controller, sectionShift + 1);
+                                    controllerContext.updateAllowedDirection(direction);
+                                    hasChanged = true;
+                                } else {
+                                    LOGGER.trace("Controller shunt '{}' is not adjusted because it would increase controlled voltages mismatches", controllerShunt.getId());
+                                    controller.updateSectionB(previousPosition);
+                                }
                             }
                         } else {
                             LOGGER.trace("Controller shunt '{}' is in its deadband: deadband {} vs voltage difference {}", controllerShunt.getId(),
-                                    halfTargetDeadband * controlledBus.getNominalV(), Math.abs(diffV) * controlledBus.getNominalV());
+                                    halfTargetDeadband * controlledBus.getNominalV(), Math.abs(remainingDiffV) * controlledBus.getNominalV());
                         }
                     }
                 }
@@ -232,14 +239,18 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerShuntsOutOfDeadband,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
-        controlledBusesOutOfDeadband.forEach(controlledBus -> {
+        var prediction = new IncrementalContextData.MismatchPrediction<>(
+                IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), VoltageControl.Type.SHUNT),
+                (LfBus bus) -> getDiffV(bus.getShuntVoltageControl().orElseThrow()),
+                (LfBus bus) -> getHalfTargetDeadband(bus.getShuntVoltageControl().orElseThrow()));
+
+        prediction.sortByDecreasingExcess(controlledBusesOutOfDeadband).forEach(controlledBus -> {
             ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();
-            double diffV = getDiffV(voltageControl);
             List<LfShunt> sortedControllers = voltageControl.getMergedControllerElements().stream()
                     .filter(shunt -> !shunt.isDisabled())
                     .sorted(Comparator.comparingDouble(LfShunt::getBMagnitude).reversed())
                     .toList();
-            adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, diffV, adjustedControllers);
+            adjustB(voltageControl, sortedControllers, controlledBus, contextData, sensitivityContext, prediction, adjustedControllers);
         });
 
         if (!adjustedControllers.isEmpty()) {
