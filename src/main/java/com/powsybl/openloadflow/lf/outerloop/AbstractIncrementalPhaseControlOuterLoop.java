@@ -113,11 +113,15 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
         }
     }
 
-    private static double getActivePowerMismatch(TransformerPhaseControl phaseControl) {
+    private static double getActivePower(TransformerPhaseControl phaseControl) {
         LfBranch controlledBranch = phaseControl.getControlledBranch();
         var p = phaseControl.getControlledSide() == TwoSides.ONE
                 ? controlledBranch.getP1() : controlledBranch.getP2();
-        return phaseControl.getTargetValue() - p.eval();
+        return p.eval();
+    }
+
+    private static double getActivePowerMismatch(TransformerPhaseControl phaseControl) {
+        return phaseControl.getTargetValue() - getActivePower(phaseControl);
     }
 
     protected void checkActivePowerControlPhaseControls(AbstractSensitivityContext<V, E> sensitivityContext, IncrementalContextData contextData,
@@ -132,16 +136,16 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
             LfBranch controllerBranch = phaseControl.getControllerBranch();
             LfBranch controlledBranch = phaseControl.getControlledBranch();
             var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
-            double pMismatch = getActivePowerMismatch(phaseControl);
-            double dp = prediction.getMismatch(phaseControl);
+            // includes the effect of the moves of the other phase shifters already decided in this outer loop iteration
+            double predictedMismatch = prediction.getMismatch(phaseControl);
             double halfTargetDeadband = getHalfTargetDeadband(phaseControl);
-            if (Math.abs(dp) > halfTargetDeadband) {
+            if (Math.abs(predictedMismatch) > halfTargetDeadband) {
                 double a2p = sensitivityContext.calculateSensitivityFromA2P(controllerBranch, controlledBranch, phaseControl.getControlledSide());
                 if (Math.abs(a2p) > SENSI_EPS) {
-                    double da = Math.toRadians(dp / a2p);
+                    double da = Math.toRadians(predictedMismatch / a2p);
                     logger.trace("Controlled branch '{}' active power is {} MW and predicted out of target value {} MW by {} MW (half deadband={} MW), a phase shift of {}° is required",
-                            controlledBranch.getId(), (phaseControl.getTargetValue() - pMismatch) * PerUnit.SB, phaseControl.getTargetValue() * PerUnit.SB,
-                            dp * PerUnit.SB, halfTargetDeadband * PerUnit.SB, Math.toDegrees(da));
+                            controlledBranch.getId(), getActivePower(phaseControl) * PerUnit.SB, phaseControl.getTargetValue() * PerUnit.SB,
+                            predictedMismatch * PerUnit.SB, halfTargetDeadband * PerUnit.SB, Math.toDegrees(da));
                     PiModel piModel = controllerBranch.getPiModel();
 
                     int oldTapPosition = piModel.getTapPosition();
