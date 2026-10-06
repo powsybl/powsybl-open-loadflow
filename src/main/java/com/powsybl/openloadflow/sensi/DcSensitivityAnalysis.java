@@ -9,8 +9,6 @@ package com.powsybl.openloadflow.sensi;
 
 import com.google.common.base.Stopwatch;
 import com.powsybl.action.Action;
-import com.powsybl.action.SwitchAction;
-import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
@@ -584,11 +582,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         var dcLoadFlowParameters = createDcLoadFlowParameters(lfNetworkParameters, matrixFactory, lfParameters, lfParametersExt);
 
         if (lfParametersExt.isNetworkCacheEnabled()) {
-            Set<String> topoActionIds = actions.stream()
-                    .filter(action -> action instanceof SwitchAction || action instanceof TerminalsConnectionAction)
-                    .map(Action::getId)
-                    .collect(Collectors.toSet());
-            var entry = NetworkCache.DC_SENSI_INSTANCE.get(network, new NetworkCache.DcSensiInput(lfParameters, topoActionIds));
+            var entry = NetworkCache.DC_SENSI_INSTANCE.get(network, new NetworkCache.DcSensiInput(lfParameters, topoConfig.toKeys()));
             if (entry.getValues() == null) {
                 // create networks including all necessary switches
                 try (LfNetworkList lfNetworkList = Networks.loadWithReconnectableElements(network, topoConfig, lfNetworkParameters,
