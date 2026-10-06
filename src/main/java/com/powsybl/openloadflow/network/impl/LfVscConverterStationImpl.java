@@ -47,7 +47,6 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         this.stationRef = other.stationRef;
         this.lossFactor = other.lossFactor;
         this.hvdcDanglingInIidm = other.hvdcDanglingInIidm;
-        // hvdc reference is wired when the copied LfHvdc is created
     }
 
     @Override

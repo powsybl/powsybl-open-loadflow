@@ -138,9 +138,8 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
         this.reactiveLimits = new SvcReactiveLimits();
         this.slope = other.slope;
         this.targetQ = other.targetQ;
-        this.standByAutomaton = other.standByAutomaton; // immutable value object
+        this.standByAutomaton = other.standByAutomaton;
         this.b0 = other.b0;
-        // standByAutomatonShunt is wired by the copied bus
     }
 
     private void setupVoltageControl(StaticVarCompensator svc, LfNetworkParameters parameters, LfNetworkLoadingReport report) {

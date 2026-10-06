@@ -25,14 +25,10 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
  * duplicating all the LF state, so that several copies can be simulated concurrently (each one
  * being confined to its own thread).
  *
- * <p>The copy can be taken on a freshly built network or on a solved one (the simulation state,
- * e.g. solved voltages, distributed targets and PV to PQ switches, is preserved), including
- * networks whose initial topology was restored after the load (elements built closed for a closing
- * remedial action then reopened: the disabled flags and the removed connectivity edges are
- * reproduced). Solver injected
- * evaluables are reset to their defaults and lazily computed structures (connectivity, zero
- * impedance networks, slack and reference bus selection, limits caches) are left to be recomputed
- * by the copy, exactly as on a freshly loaded network.</p>
+ * <p>The copy can be taken on a freshly built network or on a solved one (the simulation state is
+ * preserved). Solver injected evaluables are reset to their defaults and lazily computed structures
+ * (connectivity, zero impedance networks, slack and reference bus selection, limits caches) are
+ * left to be recomputed by the copy.</p>
  *
  * @author Gautier Bureau {@literal <gautier.bureau at rte-france.com>}
  */
@@ -70,26 +66,18 @@ public final class LfNetworkCopier {
     private static LfNetwork copyFlat(LfNetwork originalNetwork, ReportNode reportNode) {
         LfNetwork copyNetwork = new LfNetwork(originalNetwork, reportNode);
 
-        // buses (with their owned generators, loads and shunts); nums are reassigned in the same
-        // order by addBus, so they match the original ones. addBus also lazily recreates one
-        // synchronous network per synchronous component, so the copy ends up with the same set.
+        // bus nums are reassigned by addBus in the same order, so they match the original ones
         for (LfBus bus : originalNetwork.getBuses()) {
             copyNetwork.addBus(bus.copy(copyNetwork));
         }
 
-        // branches: addBranch rebuilds the bus to branches links in the same order
         for (LfBranch branch : originalNetwork.getBranches()) {
             copyNetwork.addBranch(branch.copy(copyNetwork));
         }
-        // branches whose connectivity edge was removed by the initial topology restoration (networks
-        // with elements disabled at build, e.g. switches built closed for a closing remedial action):
-        // the copy's lazily rebuilt connectivity excludes them, making it equivalent to the original's
         for (LfBranch branch : originalNetwork.getConnectivityRemovedBranches()) {
             copyNetwork.addConnectivityRemovedBranch(copyNetwork.getBranchById(branch.getId()));
         }
 
-        // DC part of AC/DC networks: DC buses first, then the DC lines connecting them, then the
-        // voltage source converters linking a DC bus to an AC bus (all owned by the same network now)
         for (LfDcBus dcBus : originalNetwork.getDcBuses()) {
             copyNetwork.addDcBus(dcBus.copy(copyNetwork));
         }
@@ -116,9 +104,8 @@ public final class LfNetworkCopier {
             copyBranchControls(branch, copyNetwork);
         }
 
-        // control wiring (addControllerElement / addControllerBus) forces some enabled flags and may
-        // invalidate the reactive target state: restore the raw copied state, which also preserves the
-        // simulation state of an already solved network (PV to PQ switched buses with frozen targets)
+        // control wiring forces some enabled flags and may invalidate the reactive target state:
+        // restore the copied state (e.g. PV to PQ switched buses of an already solved network)
         for (LfBus bus : originalNetwork.getBuses()) {
             ((AbstractLfBus) copyNetwork.getBusById(bus.getId())).copyReactiveStateFrom((AbstractLfBus) bus);
         }
@@ -135,8 +122,6 @@ public final class LfNetworkCopier {
             copyNetwork.addOverloadManagementSystem(overloadSystem.copy(copyNetwork));
         }
 
-        // reproduce the per synchronous component state (excluded slack buses); slack and reference
-        // selection is left to be lazily redone on the copy
         for (LfSynchronousNetwork originalSc : originalNetwork.getSynchronousNetworks()) {
             copyNetwork.getSynchronousNetwork(originalSc.getNumSC())
                     .setExcludedSlackBuses(originalSc.getExcludedSlackBuses()

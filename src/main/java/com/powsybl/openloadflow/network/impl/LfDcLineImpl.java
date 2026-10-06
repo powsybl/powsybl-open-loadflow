@@ -25,9 +25,6 @@ public class LfDcLineImpl extends AbstractLfDcLine {
         this.dcLineRef = Ref.create(dcLine, parameters.isCacheEnabled());
     }
 
-    /**
-     * Deep copy constructor (see {@link LfNetworkCopier}). DC buses must be the copied ones.
-     */
     private LfDcLineImpl(LfDcLineImpl other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2) {
         super(other, network, dcBus1, dcBus2);
         this.dcLineRef = other.dcLineRef;

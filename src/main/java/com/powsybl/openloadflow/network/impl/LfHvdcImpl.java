@@ -70,11 +70,6 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         }
     }
 
-    /**
-     * Deep copy constructor (see {@link LfNetworkCopier}). Buses and converter stations must be
-     * the copied ones; converter station back references are wired through
-     * {@link #setConverterStation1(LfVscConverterStation)} and {@link #setConverterStation2(LfVscConverterStation)}.
-     */
     private LfHvdcImpl(LfHvdcImpl other, LfNetwork network, LfBus bus1, LfBus bus2,
                        LfVscConverterStation converterStation1, LfVscConverterStation converterStation2) {
         super(network);

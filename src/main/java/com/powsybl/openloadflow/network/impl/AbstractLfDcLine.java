@@ -40,10 +40,6 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
         this.r = r;
     }
 
-    /**
-     * Deep copy constructor (see {@link LfNetworkCopier}). DC buses must be the copied ones.
-     * Solver injected evaluables are left at their default, as on a freshly built network.
-     */
     protected AbstractLfDcLine(AbstractLfDcLine other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2) {
         super(network);
         this.dcBus1 = dcBus1;

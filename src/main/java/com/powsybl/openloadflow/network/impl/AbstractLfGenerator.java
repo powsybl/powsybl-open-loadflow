@@ -68,10 +68,6 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         this.extrapolateReactiveLimits = parameters.isExtrapolateReactiveLimits();
     }
 
-    /**
-     * Deep copy constructor (see {@link LfNetworkCopier}). The bus is set when the copy is added
-     * to the copied bus; the asymmetrical data is an immutable value object, shared.
-     */
     protected AbstractLfGenerator(AbstractLfGenerator other, LfNetwork network) {
         super(other.initialTargetP, other.targetP);
         this.network = Objects.requireNonNull(network);

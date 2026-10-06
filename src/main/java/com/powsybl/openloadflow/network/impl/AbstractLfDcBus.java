@@ -27,9 +27,6 @@ public abstract class AbstractLfDcBus extends AbstractElement implements LfDcBus
         this.v = v;
     }
 
-    /**
-     * Deep copy constructor (see {@link LfNetworkCopier}).
-     */
     protected AbstractLfDcBus(AbstractLfDcBus other, LfNetwork network) {
         super(network);
         this.nominalV = other.nominalV;

@@ -44,7 +44,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfNetwork.class);
 
-    // JSON state field names (see writeJson / readJson)
     private static final String JSON_DISABLED = "disabled";
     private static final String JSON_GENERATOR_VOLTAGE_CONTROL_ENABLED = "generatorVoltageControlEnabled";
     private static final String JSON_GENERATOR_REACTIVE_POWER_CONTROL_ENABLED = "generatorReactivePowerControlEnabled";
@@ -130,10 +129,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     /**
      * Branches whose connectivity edge was removed when the initial topology was restored after the
-     * load (see {@code Networks.restoreInitialTopology}: branches built closed so that a contingency
-     * or an action can close them, then reopened). A lazily rebuilt connectivity (e.g. on a deep
-     * copy) must exclude them to be equivalent to the connectivity those removals were applied to.
-     * Insertion-ordered so that copies iterate it deterministically.
+     * load (see {@code Networks.restoreInitialTopology}), to be excluded from a lazily rebuilt connectivity.
      */
     private final Set<LfBranch> connectivityRemovedBranches = new LinkedHashSet<>();
 
@@ -927,9 +923,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     /**
      * Restore on this network a state previously written by {@link #writeJson(Writer)}. The network
-     * must have been built from the same case with the same parameters (elements are matched by id);
-     * only the simulation state is applied (targets, solved voltages and angles, tap positions,
-     * control enable flags, disabled statuses...), mirroring the semantics of {@link NetworkState}.
+     * must have been built from the same case with the same parameters (elements are matched by id).
      */
     public void readJson(Path file) {
         Objects.requireNonNull(file);
@@ -1195,10 +1189,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         return connectivity;
     }
 
-    /**
-     * Record that the connectivity edge of this branch was removed by the initial topology
-     * restoration, so that a lazily rebuilt connectivity excludes it (see {@link #getConnectivity()}).
-     */
     public void addConnectivityRemovedBranch(LfBranch branch) {
         connectivityRemovedBranches.add(Objects.requireNonNull(branch));
     }

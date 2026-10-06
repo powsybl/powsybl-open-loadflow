@@ -83,8 +83,7 @@ class LfNetworkCopierTest {
 
         Network automationNetwork = createNetworkWithOverloadManagementAndVoltageAngleLimit();
         LfTopoConfig automationTopoConfig = new LfTopoConfig();
-        // retain the switch operated by the overload management system so it becomes an LfSwitch the
-        // automation system can trip (otherwise the system is dropped, leaving the OMS copy loop uncovered)
+        // retain the switch operated by the overload management system, otherwise the system is dropped
         automationTopoConfig.getSwitchesToOpen().add(automationNetwork.getSwitch("br1"));
 
         return Stream.of(
@@ -100,8 +99,6 @@ class LfNetworkCopierTest {
                 new Case("staticVarCompensator", createNetworkWithRegulatingSvc(), p -> { }, new LfTopoConfig()),
                 new Case("danglingLine", BoundaryFactory.create(), p -> { }, new LfTopoConfig()),
                 new Case("hvdcAcEmulation", HvdcNetworkFactory.createWithHvdcInAcEmulation(), p -> p.setHvdcAcEmulation(true), new LfTopoConfig()),
-                // the symmetric factory actually carries the HvdcAngleDroopActivePowerControl extension, so the
-                // copied LfHvdc gets a non-null acEmulationControl (exercises the AcEmulationControl copy constructor)
                 new Case("hvdcAcEmulationDroop", HvdcNetworkFactory.createHvdcInAcEmulationInSymetricNetwork(),
                         p -> p.setHvdcAcEmulation(true), new LfTopoConfig()),
                 new Case("svcStandbyAutomaton", createSvcWithStandbyAutomaton(),
@@ -111,8 +108,6 @@ class LfNetworkCopierTest {
                         new LfTopoConfig()),
                 new Case("transformerVoltageControlRegulating", createNetworkWithRegulatingT2wt(),
                         p -> p.setTransformerVoltageControlOn(true), new LfTopoConfig()),
-                // an overload management system (automation system) plus a voltage angle limit: exercises the
-                // overload management system and voltage angle limit copy loops
                 new Case("automationAndVoltageAngleLimit", automationNetwork,
                         p -> OpenLoadFlowParameters.create(p).setSimulateAutomationSystems(true), automationTopoConfig),
                 new Case("areas", MultiAreaNetworkFactory.createTwoAreasWithTieLine(),
@@ -261,7 +256,6 @@ class LfNetworkCopierTest {
         for (LfNetwork original : originals) {
             LfNetwork copy = LfNetworkCopier.copy(original, LoadFlowModel.AC, ReportNode.NO_OP);
 
-            // identical structure
             assertEquals(original.getValidity(), copy.getValidity());
             assertEquals(original.getBuses().size(), copy.getBuses().size());
             assertEquals(original.getBranches().size(), copy.getBranches().size());
@@ -276,7 +270,6 @@ class LfNetworkCopierTest {
                 continue;
             }
 
-            // same slack and reference selection, per synchronous component
             assertEquals(original.getSynchronousNetworks().size(), copy.getSynchronousNetworks().size());
             for (LfSynchronousNetwork originalSc : original.getSynchronousNetworks()) {
                 LfSynchronousNetwork copySc = copy.getSynchronousNetwork(originalSc.getNumSC());
@@ -285,10 +278,8 @@ class LfNetworkCopierTest {
                         copySc.getSlackBuses().stream().map(LfBus::getId).toList());
             }
 
-            // identical JSON dump (includes pi models, controls, targets, limits)
             assertEquals(dump(original), dump(copy), "different LfNetwork json dump for " + c.name());
 
-            // identical AC load flow behavior and results
             AcLoadFlowResult originalResult = run(original, acParameters);
             AcLoadFlowResult copyResult = run(copy, acParameters);
             assertEquals(originalResult.getSolverStatus(), copyResult.getSolverStatus());
@@ -301,7 +292,6 @@ class LfNetworkCopierTest {
                 assertEquals(bus.getAngle(), copiedBus.getAngle(), 1e-12, "angle mismatch at " + bus.getId());
             }
 
-            // a post run dump must match too (state, controls, tap positions)
             assertEquals(dump(original), dump(copy), "different post load flow json dump for " + c.name());
         }
     }
@@ -309,8 +299,7 @@ class LfNetworkCopierTest {
     @org.junit.jupiter.api.Test
     void testCopyOfRestoredTopologyNetwork() {
         // switches built closed (so that a remedial action can close them) then reopened by the
-        // initial topology restoration: the network carries disabled elements and removed
-        // connectivity edges, which the copy must reproduce
+        // initial topology restoration
         Network network = NodeBreakerNetworkFactory.create3Bars();
         network.getSwitch("C1").setOpen(true);
         network.getSwitch("C2").setOpen(true);
@@ -320,8 +309,7 @@ class LfNetworkCopierTest {
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
-        // naive connectivity: supports the direct component queries below (the security analysis
-        // engine always opens its own temporary changes level before querying)
+        // naive connectivity: supports the direct component queries below
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
                 new DenseMatrixFactory(), new com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory<>(LfBus::getNum));
         acParameters.getNetworkParameters().setBreakers(true);
@@ -336,8 +324,7 @@ class LfNetworkCopierTest {
             LfNetwork copy = LfNetworkCopier.copy(original, LoadFlowModel.AC, ReportNode.NO_OP);
 
             assertEquals(dump(original), dump(copy));
-            // the rebuilt connectivity of the copy must be equivalent to the original one: same
-            // component for every bus, in particular the reopened couplers must not join the busbars
+            // the reopened couplers must not join the busbars in the rebuilt connectivity of the copy
             original.getConnectivity(); // make sure both are initialized
             copy.getConnectivity();
             for (LfBus bus : original.getBuses()) {
@@ -359,8 +346,6 @@ class LfNetworkCopierTest {
 
     @org.junit.jupiter.api.Test
     void testAcDcNetworksAreCopyable() {
-        // AC/DC networks (composite of AC and DC children plus converters) are supported by the copy,
-        // including the bipolar model
         Network acDcNetwork = com.powsybl.openloadflow.network.AcDcNetworkFactory.createAcDcNetworkBipolarModel();
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters).setAcDcNetwork(true);
@@ -380,9 +365,6 @@ class LfNetworkCopierTest {
 
     @org.junit.jupiter.api.Test
     void testCopyOfSolvedNetwork() {
-        // a copy of an already solved network must preserve the full simulation state (solved voltages,
-        // distributed targets, PV to PQ switched buses with frozen reactive targets), so that a warm
-        // started run on the copy converges immediately, exactly like on the original
         Network network = IeeeCdfNetworkFactory.create300();
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
@@ -412,8 +394,7 @@ class LfNetworkCopierTest {
     @org.junit.jupiter.api.Test
     void testCopyOfNetworkWithExcludedSlackBuses() {
         // the excluded slack bus set is only populated at runtime (e.g. by a contingency relocating the
-        // slack bus during a security analysis); here we set it directly on a built network and check the
-        // copy reproduces it so the same buses stay excluded from slack selection
+        // slack bus), so it is set directly on the built network
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedCurrentLimits());
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);

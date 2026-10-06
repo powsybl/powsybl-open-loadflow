@@ -119,7 +119,6 @@ public class LfShuntImpl extends AbstractLfShunt {
                     otherController.getSectionsB(), otherController.getSectionsG(), otherController.getPosition(), otherController.getMinPosition()));
         }
         this.disabled = other.disabled;
-        // voltageControl object is wired at network level, p and q stay solver injected defaults
     }
 
     public LfShunt copy(LfBus copyBus) {

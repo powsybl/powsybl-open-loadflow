@@ -86,13 +86,6 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
-    /**
-     * Deep copy constructor (see {@link LfNetworkCopier}). Buses must be the copied buses.
-     * Controls are wired at network level; limits caches and solver injected evaluables are
-     * left to be recomputed; spanning tree flags are recomputed with the zero impedance networks.
-     * The asymmetrical line data (per sequence pi models and the admittance matrix derived from
-     * them at construction) is immutable after the load, shared.
-     */
     protected AbstractLfBranch(AbstractLfBranch other, LfNetwork network, LfBus bus1, LfBus bus2) {
         super(network);
         this.bus1 = bus1;

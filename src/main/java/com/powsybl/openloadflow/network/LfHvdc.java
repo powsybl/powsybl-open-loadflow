@@ -39,9 +39,6 @@ public interface LfHvdc extends LfElement, LfCopyable<LfHvdc, LfNetwork> {
             this.pMaxFromCS2toCS1 = pMaxFromCS2toCS1 / PerUnit.SB;
         }
 
-        /**
-         * Copy constructor: fields of {@code other} are already in per unit.
-         */
         public AcEmulationControl(LfHvdc hvdc, AcEmulationControl other) {
             this.hvdc = hvdc;
             this.droop = other.droop;

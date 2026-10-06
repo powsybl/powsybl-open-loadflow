@@ -29,9 +29,6 @@ public class LfDcBusImpl extends AbstractLfDcBus {
         this.dcBusRef = Ref.create(dcBus, parameters.isCacheEnabled());
     }
 
-    /**
-     * Deep copy constructor (see {@link LfNetworkCopier}).
-     */
     private LfDcBusImpl(LfDcBusImpl other, LfNetwork network) {
         super(other, network);
         this.dcBusRef = other.dcBusRef;
