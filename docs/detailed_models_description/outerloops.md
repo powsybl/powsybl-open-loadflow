@@ -162,6 +162,16 @@ As the prediction relies on sensitivities, it is a linearization: the remaining 
 The transformer reactive power control incremental outer loop does not use this prediction: each transformer corrects
 its own mismatch independently of the others.
 
+### Phase shifter control
+
+Phase shifters controlling an active power flow (active power control mode) are moved to the tap whose phase shift is the
+closest to the estimated one, without limitation of the number of taps changed in a single outer loop iteration.
+This applies to both AC and DC load flows.
+
+Phase shifters limiting the current of their own branch (current limiter mode, AC only) are only adjusted when the current
+is above the limit: the tap is then shifted until the estimated current is below the limit, the limit being a one-sided
+constraint. These phase shifters are not part of the combined influence prediction.
+
 ### Shunt voltage control
 
 The shunt compensators controlling the same bus are adjusted in successive passes within the same outer loop iteration:
@@ -179,7 +189,7 @@ taps in a single outer loop iteration.
 When several transformers control the same bus, they are adjusted in successive passes within the same outer loop iteration:
 at each pass, each transformer can change by one tap. Passes are repeated until the bus voltage is predicted within its
 deadband or no transformer can improve it anymore, so that the tap changes are distributed among all the transformers.
-In this case, the number of taps changed in a single outer loop iteration is not limited by
+The number of taps a transformer can change in a single outer loop iteration is also limited by
 [parameter `incrementalTransformerRatioTapControlOuterLoopMaxTapShift`](../loadflow/parameters.md#incrementaltransformerratiotapcontrolouterloopmaxtapshift).
 
 Transformers whose ratio has almost no influence on the controlled voltage (sensitivity of the voltage to the ratio lower than 0.05 per unit)
@@ -194,13 +204,3 @@ The controlling transformer can change up to
 [parameter `incrementalTransformerRatioTapControlOuterLoopMaxTapShift`](../loadflow/parameters.md#incrementaltransformerratiotapcontrolouterloopmaxtapshift)
 taps in a single outer loop iteration, to bring the reactive power flow at the controlled side of the branch within its deadband.
 If a generator also controls the reactive power flow of the same branch, the generator target is used.
-
-### Phase shifter control
-
-Phase shifters controlling an active power flow (active power control mode) are moved to the tap whose phase shift is the
-closest to the estimated one, without limitation of the number of taps changed in a single outer loop iteration.
-This applies to both AC and DC load flows.
-
-Phase shifters limiting the current of their own branch (current limiter mode, AC only) are only adjusted when the current
-is above the limit: the tap is then shifted until the estimated current is below the limit, the limit being a one-sided
-constraint. These phase shifters are not part of the combined influence prediction.

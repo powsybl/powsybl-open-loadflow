@@ -195,7 +195,13 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         MutableBoolean hasChanged = new MutableBoolean(true);
         while (hasChanged.booleanValue()) {
             hasChanged.setValue(false);
-            for (LfBranch controllerBranch : controllerBranches) {
+            for (int i = 0; i < controllerBranches.size(); i++) {
+                LfBranch controllerBranch = controllerBranches.get(i);
+                if (Math.abs(controllerBranch.getPiModel().getTapPosition() - previousTapPositions.get(i)) >= maxTapShift) {
+                    LOGGER.debug("Controller branch '{}' will not be adjusted further because reached max tap shift in this outer loop iteration",
+                            controllerBranch.getId());
+                    continue;
+                }
                 adjustController(controlledBus, contextData, sensitivityContext, prediction, halfTargetDeadband, controllerBranch, hasChanged);
             }
         }
