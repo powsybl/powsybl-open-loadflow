@@ -15,6 +15,7 @@ import com.powsybl.iidm.network.extensions.ControlUnit;
 import com.powsybl.iidm.network.extensions.ControlZone;
 import com.powsybl.iidm.network.extensions.PilotPoint;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -646,9 +647,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         LfBus lfBus1 = getLfBus(acDcConverter.getTerminal1(), lfNetwork, parameters.isBreakers());
-        if (lfBus1 != null) {
-            LfDcBus lfDcBus1 = getLfDcBus(acDcConverter.getDcTerminal1(), lfNetwork);
-            LfDcBus lfDcBus2 = getLfDcBus(acDcConverter.getDcTerminal2(), lfNetwork);
+        LfDcBus lfDcBus1 = getLfDcBus(acDcConverter.getDcTerminal1(), lfNetwork);
+        LfDcBus lfDcBus2 = getLfDcBus(acDcConverter.getDcTerminal2(), lfNetwork);
+        if (lfBus1 != null && lfDcBus1 != null && lfDcBus2 != null) { // The converter is fully connected
             if (acDcConverter instanceof VoltageSourceConverter voltageSourceConverter) {
                 LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, lfDcBus1, lfDcBus2, lfBus1, parameters, vdcOverride);
 
@@ -886,7 +887,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createTransformerVoltageControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId,
                                                         LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        if (rtc == null || !rtc.isRegulating() || !rtc.hasLoadTapChangingCapabilities() || rtc.getRegulationMode() != RatioTapChanger.RegulationMode.VOLTAGE) {
+        if (rtc == null || !rtc.isRegulating() || !rtc.hasLoadTapChangingCapabilities() || rtc.getRegulationMode() != RegulationMode.VOLTAGE) {
             return;
         }
         LfBranch controllerBranch = lfNetwork.getBranchById(controllerBranchId);
@@ -948,7 +949,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createTransformerReactivePowerControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId,
                                                               LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        if (rtc == null || !rtc.isRegulating() || !rtc.hasLoadTapChangingCapabilities() || rtc.getRegulationMode() != RatioTapChanger.RegulationMode.REACTIVE_POWER) {
+        if (rtc == null || !rtc.isRegulating() || !rtc.hasLoadTapChangingCapabilities() || rtc.getRegulationMode() != RegulationMode.REACTIVE_POWER) {
             return;
         }
         // Check on controller branch

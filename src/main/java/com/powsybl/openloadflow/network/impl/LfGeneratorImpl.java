@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -79,9 +80,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
                     report);
         }
 
-        RemoteReactivePowerControl reactivePowerControl = generator.getExtension(RemoteReactivePowerControl.class);
-        if (reactivePowerControl != null && reactivePowerControl.isEnabled() && !generator.isVoltageRegulatorOn() && parameters.isGeneratorReactivePowerRemoteControl()) {
-            setRemoteReactivePowerControl(reactivePowerControl.getRegulatingTerminal(), reactivePowerControl.getTargetQ());
+        if (generator.isRegulatingWithMode(RegulationMode.REACTIVE_POWER) && generator.hasRegulatingTerminal() && parameters.isGeneratorReactivePowerRemoteControl()) {
+            setRemoteReactivePowerControl(generator.getRegulatingTerminal(), generator.getVoltageRegulation().getTargetValue());
         }
 
         CoordinatedReactiveControl coordinatedReactiveControl = getGenerator().getExtension(CoordinatedReactiveControl.class);
@@ -93,6 +93,26 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
                 qPercent = coordinatedReactiveControl.getQPercent();
             }
         }
+    }
+
+    private LfGeneratorImpl(LfGeneratorImpl other, LfNetwork network) {
+        super(other, network);
+        this.generatorRef = other.generatorRef;
+        this.initialParticipating = other.initialParticipating;
+        this.participating = other.participating;
+        this.droop = other.droop;
+        this.participationFactor = other.participationFactor;
+        this.qPercent = other.qPercent;
+        this.isTargetQForcedInReactiveLimits = other.isTargetQForcedInReactiveLimits;
+        this.forceVoltageControl = other.forceVoltageControl;
+        this.maxTargetP = other.maxTargetP;
+        this.minTargetP = other.minTargetP;
+        this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
+    }
+
+    @Override
+    public LfGenerator copy(LfBus copyBus) {
+        return new LfGeneratorImpl(this, copyBus.getNetwork());
     }
 
     @Override

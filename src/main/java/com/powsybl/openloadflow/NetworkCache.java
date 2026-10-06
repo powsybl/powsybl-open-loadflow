@@ -29,6 +29,8 @@ import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -191,17 +193,17 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
     public static class DcSensiInput implements Input<DcSensiInput> {
 
         private final LoadFlowParameters parameters;
-        // this is what impact TopoConfig
-        private final Set<String> topoActionIds;
+        // keys of the topo config the networks have been loaded with (see LfTopoConfig.toKeys)
+        private final Set<String> topoConfigKeys;
 
-        public DcSensiInput(LoadFlowParameters parameters, Set<String> topoActionIds) {
+        public DcSensiInput(LoadFlowParameters parameters, Set<String> topoConfigKeys) {
             this.parameters = Objects.requireNonNull(parameters);
-            this.topoActionIds = Objects.requireNonNull(topoActionIds);
+            this.topoConfigKeys = Objects.requireNonNull(topoConfigKeys);
         }
 
         @Override
         public DcSensiInput copy() {
-            return new DcSensiInput(OpenLoadFlowParameters.clone(parameters), topoActionIds);
+            return new DcSensiInput(OpenLoadFlowParameters.clone(parameters), topoConfigKeys);
         }
 
         @Override
@@ -210,8 +212,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             if (!OpenLoadFlowParameters.equals(parameters, other.parameters)) {
                 return "parameters";
             }
-            if (!topoActionIds.equals(other.topoActionIds)) {
-                return "actions";
+            if (!topoConfigKeys.equals(other.topoConfigKeys)) {
+                return "topology configuration";
             }
             return null;
         }
@@ -252,8 +254,16 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
     public static class DcSensiValue extends AbstractDcValue {
 
-        public DcSensiValue(DcLoadFlowContext context) {
+        // branches reconnecting small components, kept enabled in the LF network and modelled as permanent contingencies
+        private final List<String> permanentContingencyBranchIds;
+
+        public DcSensiValue(DcLoadFlowContext context, List<String> permanentContingencyBranchIds) {
             super(context);
+            this.permanentContingencyBranchIds = List.copyOf(Objects.requireNonNull(permanentContingencyBranchIds));
+        }
+
+        public List<String> getPermanentContingencyBranchIds() {
+            return permanentContingencyBranchIds;
         }
     }
 
@@ -519,7 +529,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         private CacheUpdateResult<V> onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue,
                                                        V value, LfBus lfBus) {
-            if ("targetV".equals(attribute)) {
+            if ("localTargetV".equals(attribute)) {
                 double valueShift = (double) newValue - (double) oldValue;
                 GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
                 double nominalV = voltageControl.getControlledBus().getNominalV();
@@ -537,7 +547,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                 return CacheUpdateResult.elementUpdated(value);
             } else if ("targetP".equals(attribute)) {
                 return updateLfGeneratorTargetP(generator.getId(), (double) oldValue, (double) newValue, value, lfBus);
-            } else if ("targetQ".equals(attribute)) {
+            } else if ("localTargetQ".equals(attribute)) {
                 return updateLfGeneratorTargetQ(value, lfBus);
             }
             return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(generator, attribute));
@@ -702,7 +712,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             }
 
             // Merging two values (that can be in two different LfNetworks) in one CacheUpdateResult
-            return CacheUpdateResult.multipleElementsUpdated(Set.of(result1.values.iterator().next(), result2.values.iterator().next()));
+            return CacheUpdateResult.multipleElementsUpdated(Stream.concat(result1.values.stream(), result2.values.stream()).collect(Collectors.toSet()));
         }
 
         private CacheUpdateResult<V> onHvdcLineWithVscActiveSetpointUpdate(HvdcLine hvdcLine, String attribute, Object oldValue, Object newValue) {
@@ -739,7 +749,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             }
 
             // Merging two values (that can be in two different LfNetworks) in one CacheUpdateResult
-            return CacheUpdateResult.multipleElementsUpdated(Set.of(result1.values.iterator().next(), result2.values.iterator().next()));
+            return CacheUpdateResult.multipleElementsUpdated(Stream.concat(result1.values.stream(), result2.values.stream()).collect(Collectors.toSet()));
         }
 
         private CacheUpdateResult<V> onHvdcLineUpdate(HvdcLine hvdcLine, String attribute, Object oldValue, Object newValue) {
@@ -795,7 +805,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                      "q3" -> result = CacheUpdateResult.ignoreUpdate(); // ignore because it is related to state update and won't affect LF calculation
                 default -> {
                     if (identifiable.getType() == IdentifiableType.GENERATOR) {
-                        // supports attribute: "targetV", "targetP", "targetQ"
+                        // supports attribute: "localTargetV", "targetP", "targetQ"
                         Generator generator = (Generator) identifiable;
                         result = onGeneratorUpdate(generator, attribute, oldValue, newValue);
                     } else if (identifiable.getType() == IdentifiableType.BATTERY) {
@@ -821,14 +831,16 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                     } else if (identifiable.getType() == IdentifiableType.SWITCH && "open".equals(attribute)) {
                         result = onSwitchUpdate(identifiable.getId(), (boolean) newValue);
                     } else if (identifiable.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER) {
-                        if ("ratioTapChanger.regulationValue".equals(attribute)) {
+                        if ("ratioTapChanger.VoltageRegulation.TargetValue".equals(attribute) ||
+                                "ratioTapChanger.regulationValue".equals(attribute)) {
                             result = onTransformerTargetVoltageUpdate(identifiable.getId(), (double) newValue);
                         } else if ("ratioTapChanger.tapPosition".equals(attribute)) {
                             result = onTransformerTapPositionUpdate(identifiable.getId(), (int) newValue);
                         }
                     } else if (identifiable.getType() == IdentifiableType.THREE_WINDINGS_TRANSFORMER) {
                         for (ThreeSides side : ThreeSides.values()) {
-                            if (("ratioTapChanger" + side.getNum() + ".regulationValue").equals(attribute)) {
+                            if (("ratioTapChanger" + side.getNum() + ".VoltageRegulation.TargetValue").equals(attribute) ||
+                                    ("ratioTapChanger" + side.getNum() + ".regulationValue").equals(attribute)) {
                                 result = onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (double) newValue);
                                 break;
                             } else if (("ratioTapChanger" + side.getNum() + ".tapPosition").equals(attribute)) {

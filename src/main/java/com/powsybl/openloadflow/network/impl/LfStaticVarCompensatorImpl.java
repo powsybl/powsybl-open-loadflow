@@ -12,7 +12,7 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.ReactiveLimitsKind;
 import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.iidm.network.extensions.StandbyAutomaton;
-import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControl;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -45,79 +45,85 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
     private LfShunt standByAutomatonShunt;
 
-    private LfStaticVarCompensatorImpl(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, LfNetworkParameters parameters,
+    /**
+     * Reactive limits depending on the current voltage of the SVC bus
+     * (uses the generator bus field so that it stays correct on a deep copy).
+     */
+    private final class SvcReactiveLimits implements MinMaxReactiveLimits {
+
+        @Override
+        public double getMinQ() {
+            double v = bus.getV() * nominalV;
+            return svcRef.get().getBmin() * v * v;
+        }
+
+        @Override
+        public double getMaxQ() {
+            double v = bus.getV() * nominalV;
+            return svcRef.get().getBmax() * v * v;
+        }
+
+        @Override
+        public ReactiveLimitsKind getKind() {
+            return ReactiveLimitsKind.MIN_MAX;
+        }
+
+        @Override
+        public double getMinQ(double p) {
+            return getMinQ();
+        }
+
+        @Override
+        public double getMaxQ(double p) {
+            return getMaxQ();
+        }
+
+        @Override
+        public boolean hasProperty() {
+            throw new UnsupportedOperationException("No property management");
+        }
+
+        @Override
+        public String getProperty(String key) {
+            throw new UnsupportedOperationException("No property management");
+        }
+
+        @Override
+        public String setProperty(String key, String value) {
+            throw new UnsupportedOperationException("No property management");
+        }
+
+        @Override
+        public Set<String> getPropertyNames() {
+            throw new UnsupportedOperationException("No property management");
+        }
+
+        @Override
+        public String getProperty(String key, String defaultValue) {
+            throw new UnsupportedOperationException("No property management");
+        }
+
+        @Override
+        public boolean hasProperty(String key) {
+            throw new UnsupportedOperationException("No property management");
+        }
+
+        @Override
+        public boolean removeProperty(String key) {
+            throw new UnsupportedOperationException("No property management");
+        }
+    }
+
+    private LfStaticVarCompensatorImpl(StaticVarCompensator svc, LfNetwork network, LfNetworkParameters parameters,
                                        LfNetworkLoadingReport report) {
         super(network, 0, parameters);
         this.svcRef = Ref.create(svc, parameters.isCacheEnabled());
         this.nominalV = svc.getTerminal().getVoltageLevel().getNominalV();
-        this.reactiveLimits = new MinMaxReactiveLimits() {
-
-            @Override
-            public double getMinQ() {
-                double v = bus.getV() * nominalV;
-                return svcRef.get().getBmin() * v * v;
-            }
-
-            @Override
-            public double getMaxQ() {
-                double v = bus.getV() * nominalV;
-                return svcRef.get().getBmax() * v * v;
-            }
-
-            @Override
-            public ReactiveLimitsKind getKind() {
-                return ReactiveLimitsKind.MIN_MAX;
-            }
-
-            @Override
-            public double getMinQ(double p) {
-                return getMinQ();
-            }
-
-            @Override
-            public double getMaxQ(double p) {
-                return getMaxQ();
-            }
-
-            @Override
-            public boolean hasProperty() {
-                throw new UnsupportedOperationException("No property management");
-            }
-
-            @Override
-            public String getProperty(String key) {
-                throw new UnsupportedOperationException("No property management");
-            }
-
-            @Override
-            public String setProperty(String key, String value) {
-                throw new UnsupportedOperationException("No property management");
-            }
-
-            @Override
-            public Set<String> getPropertyNames() {
-                throw new UnsupportedOperationException("No property management");
-            }
-
-            @Override
-            public String getProperty(String key, String defaultValue) {
-                throw new UnsupportedOperationException("No property management");
-            }
-
-            @Override
-            public boolean hasProperty(String key) {
-                throw new UnsupportedOperationException("No property management");
-            }
-
-            @Override
-            public boolean removeProperty(String key) {
-                throw new UnsupportedOperationException("No property management");
-            }
-        };
+        this.reactiveLimits = new SvcReactiveLimits();
 
         if (svc.isRegulating()) {
             switch (svc.getRegulationMode()) {
-                case VOLTAGE -> setupVoltageControl(svc, parameters, report);
+                case VOLTAGE, VOLTAGE_PER_REACTIVE_POWER -> setupVoltageControl(svc, parameters, report);
                 case REACTIVE_POWER -> targetQ = -svc.getReactivePowerSetpoint() / PerUnit.SB;
             }
         } else {
@@ -125,12 +131,23 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
         }
     }
 
+    private LfStaticVarCompensatorImpl(LfStaticVarCompensatorImpl other, LfNetwork network) {
+        super(other, network);
+        this.svcRef = other.svcRef;
+        this.nominalV = other.nominalV;
+        this.reactiveLimits = new SvcReactiveLimits();
+        this.slope = other.slope;
+        this.targetQ = other.targetQ;
+        this.standByAutomaton = other.standByAutomaton;
+        this.b0 = other.b0;
+    }
+
     private void setupVoltageControl(StaticVarCompensator svc, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         setVoltageControl(svc.getVoltageSetpoint(), svc.getTerminal(), svc.getRegulatingTerminal(), parameters, report);
 
-        // slope model: check if to be applied based on 1/ option and 2/ this SVC extension
-        VoltagePerReactivePowerControl voltagePerReactivePowerControl = svc.getExtension(VoltagePerReactivePowerControl.class);
-        boolean svcWithVoltagePerReactivePowerControl = parameters.isVoltagePerReactivePowerControl() && voltagePerReactivePowerControl != null;
+        // slope model: check if to be applied based on 1/ option and 2/ the regulation mode
+        boolean svcWithVoltagePerReactivePowerControl = parameters.isVoltagePerReactivePowerControl()
+            && svc.isWithMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER);
 
         // standby automaton: same, check if to be applied based on 1/ option and 2/ this SVC extension
         StandbyAutomaton standbyAutomaton = svc.getExtension(StandbyAutomaton.class);
@@ -138,13 +155,13 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
         // we can't do both slope model & standby automaton. Keep only standby automaton if both present.
         if (svcWithStandbyAutomaton && svcWithVoltagePerReactivePowerControl) {
-            LOGGER.warn("Static var compensator {} has VoltagePerReactivePowerControl" +
-                    " and StandbyAutomaton extensions: VoltagePerReactivePowerControl extension ignored", svc.getId());
+            LOGGER.warn("Static var compensator {} has VOLTAGE_PER_REACTIVE_POWER regulation mode" +
+                    " and StandbyAutomaton extensions: VOLTAGE_PER_REACTIVE_POWER regulation mode ignored", svc.getId());
             svcWithVoltagePerReactivePowerControl = false;
         }
 
         if (svcWithVoltagePerReactivePowerControl) {
-            this.slope = voltagePerReactivePowerControl.getSlope() * PerUnit.SB / nominalV;
+            this.slope = svc.getVoltageRegulation().getSlope() * PerUnit.SB / nominalV;
         }
         if (svcWithStandbyAutomaton) {
             if (standbyAutomaton.getB0() != 0.0) {
@@ -162,6 +179,11 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
         }
     }
 
+    @Override
+    public LfGenerator copy(LfBus copyBus) {
+        return new LfStaticVarCompensatorImpl(this, copyBus.getNetwork());
+    }
+
     public static LfStaticVarCompensatorImpl create(StaticVarCompensator svc, LfNetwork network, AbstractLfBus bus, LfNetworkParameters parameters,
                                                     LfNetworkLoadingReport report) {
         Objects.requireNonNull(svc);
@@ -169,7 +191,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
         Objects.requireNonNull(bus);
         Objects.requireNonNull(parameters);
         Objects.requireNonNull(report);
-        return new LfStaticVarCompensatorImpl(svc, network, bus, parameters, report);
+        return new LfStaticVarCompensatorImpl(svc, network, parameters, report);
     }
 
     private StaticVarCompensator getSvc() {

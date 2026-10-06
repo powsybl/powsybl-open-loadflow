@@ -9,10 +9,8 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Battery;
 import com.powsybl.iidm.network.ReactiveLimits;
-import com.powsybl.iidm.network.extensions.VoltageRegulation;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
+import com.powsybl.iidm.network.regulation.RegulationMode;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
@@ -53,11 +51,25 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
             participating = false;
         }
 
-        // get voltage control from extension
-        VoltageRegulation voltageRegulation = battery.getExtension(VoltageRegulation.class);
-        if (voltageRegulation != null && voltageRegulation.isVoltageRegulatorOn()) {
-            setVoltageControl(voltageRegulation.getTargetV(), battery.getTerminal(), voltageRegulation.getRegulatingTerminal(), parameters, report);
+        if (battery.isRegulatingWithMode(RegulationMode.VOLTAGE)) {
+            setVoltageControl(battery.getRegulatingTargetV(), battery.getTerminal(), battery.getRegulatingTerminal(), parameters, report);
         }
+    }
+
+    private LfBatteryImpl(LfBatteryImpl other, LfNetwork network) {
+        super(other, network);
+        this.batteryRef = other.batteryRef;
+        this.initialParticipating = other.initialParticipating;
+        this.participating = other.participating;
+        this.droop = other.droop;
+        this.participationFactor = other.participationFactor;
+        this.maxTargetP = other.maxTargetP;
+        this.minTargetP = other.minTargetP;
+    }
+
+    @Override
+    public LfGenerator copy(LfBus copyBus) {
+        return new LfBatteryImpl(this, copyBus.getNetwork());
     }
 
     public static LfBatteryImpl create(Battery battery, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
@@ -79,7 +91,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return getBattery().getTargetQ() / PerUnit.SB;
+        return getBattery().getRegulatingTargetQ() / PerUnit.SB;
     }
 
     @Override
