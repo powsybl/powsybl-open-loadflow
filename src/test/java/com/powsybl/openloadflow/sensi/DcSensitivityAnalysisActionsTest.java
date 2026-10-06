@@ -19,6 +19,8 @@ import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.CommonTestConfig;
+import com.powsybl.openloadflow.NetworkCache;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
@@ -988,5 +990,55 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         // reference flow on curative C opened, all the flow goes though L2: 600 MW
         assertEquals(0, result.getFunctionReferenceValue(openCState, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
         assertEquals(600d, result.getFunctionReferenceValue(openCState, "L2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testReconnectingSmallComponentWithFastRestart() {
+        // with the network cache, the LF network is loaded once and reused: the branches reconnecting a small component
+        // must be kept enabled and modelled as permanent contingencies exactly as in the non cached path, otherwise the
+        // buses of the small component are disabled and the reclosing action fails ("Row index out of bound")
+        NetworkCache.DC_SENSI_INSTANCE.clear();
+
+        Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedByTwoLinesWithAdditionnalGens();
+        network.getLine("l24").disconnect();
+        network.getLine("l35").disconnect();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters()
+                .setLoadFlowParameters(new LoadFlowParameters().setDc(true))
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+        OpenLoadFlowParameters.create(sensiParameters.getLoadFlowParameters())
+                .setNetworkCacheEnabled(true);
+
+        List<Contingency> contingencies = List.of(new Contingency("l23", new BranchContingency("l23")));
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g2")),
+                network.getBranchStream().toList());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("reclose l35",
+                ContingencyContext.all(),
+                new TrueCondition(), List.of("reclose l35")));
+        List<Action> actions = List.of(new TerminalsConnectionAction("reclose l35", "l35", false));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions);
+
+        var contSimpleState = SensitivityState.postContingency("l23");
+        var contAndOpStratState = new SensitivityState("l23", "reclose l35");
+        // first run creates the cache entry, second one reuses it
+        for (int run = 0; run < 2; run++) {
+            SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+            assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+            assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contSimpleState));
+            assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contAndOpStratState));
+            assertEquals(-2.4d, result.getFunctionReferenceValue(contSimpleState, "l12", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+            assertEquals(1.4d, result.getFunctionReferenceValue(contSimpleState, "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+            assertEquals(-2.4d, result.getFunctionReferenceValue(contAndOpStratState, "l12", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+            assertEquals(1.4d, result.getFunctionReferenceValue(contAndOpStratState, "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+            assertEquals(0.4d,
+                result.getSensitivityValue(contAndOpStratState, "g2", "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1,
+                    SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        }
+        NetworkCache.DC_SENSI_INSTANCE.clear();
     }
 }
