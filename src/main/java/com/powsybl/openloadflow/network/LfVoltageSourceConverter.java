@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public interface LfVoltageSourceConverter extends LfAcDcConverter {
+public interface LfVoltageSourceConverter extends LfAcDcConverter, LfCopyable<LfVoltageSourceConverter, LfNetwork> {
 
     /**
      * @return If true, the voltage source converter controls AC voltage magnitude. Else it controls reactive power.

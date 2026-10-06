@@ -19,6 +19,8 @@ import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.CommonTestConfig;
+import com.powsybl.openloadflow.NetworkCache;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
@@ -988,5 +990,148 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         // reference flow on curative C opened, all the flow goes though L2: 600 MW
         assertEquals(0, result.getFunctionReferenceValue(openCState, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
         assertEquals(600d, result.getFunctionReferenceValue(openCState, "L2", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testPstActionWithFastRestart() {
+        // a cached network loaded for a run without PST action must not be reused for a run operating that PST:
+        // its tap changer was not retained (single tap), the PST action was failing with "only one tap in branch"
+        NetworkCache.DC_SENSI_INSTANCE.clear();
+
+        Network network = MetrixTutorialSixBusesFactory.create();
+        // a non regulating PST is modelled with a single tap unless an action on it is declared when loading
+        network.getTwoWindingsTransformer("NE_NO_1").getPhaseTapChanger().setRegulating(false);
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+        OpenLoadFlowParameters.get(sensiParameters.getLoadFlowParameters())
+                .setNetworkCacheEnabled(true);
+
+        List<Contingency> contingencies = List.of(new Contingency("S_SO_1", new BranchContingency("S_SO_1")));
+        List<SensitivityFactor> factors = createFactorMatrix(
+                List.of(network.getGenerator("SO_G1")),
+                network.getBranchStream().toList());
+
+        // first run without any action: creates the cache entry
+        SensitivityAnalysisResult resultWithoutAction = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters));
+        assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, resultWithoutAction.getStateStatus(new SensitivityState("S_SO_1", null)));
+
+        // second run with a PST action: the cached networks must be evicted and reloaded with the PST retained
+        List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pstChange", "NE_NO_1", false, 1));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyPstChange",
+                ContingencyContext.all(),
+                new TrueCondition(), List.of("pstChange")));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions));
+        assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        var opStratState = new SensitivityState("S_SO_1", "strategyPstChange");
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(opStratState));
+
+        // and the same run again reuses the cache
+        var cachedValues = NetworkCache.DC_SENSI_INSTANCE.findEntry(network).orElseThrow().getValues();
+        SensitivityAnalysisResult resultAgain = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions));
+        assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertSame(cachedValues, NetworkCache.DC_SENSI_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, resultAgain.getStateStatus(opStratState));
+
+        // an action with another id operating the same PST leads to the same topo config: the cache is reused too
+        List<Action> otherActions = List.of(new PhaseTapChangerTapPositionAction("pstChange2", "NE_NO_1", false, 1));
+        List<OperatorStrategy> otherOperatorStrategies = List.of(new OperatorStrategy("strategyPstChange2",
+                ContingencyContext.all(),
+                new TrueCondition(), List.of("pstChange2")));
+        SensitivityAnalysisResult resultOtherId = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(otherOperatorStrategies)
+                .setActions(otherActions));
+        assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertSame(cachedValues, NetworkCache.DC_SENSI_INSTANCE.findEntry(network).orElseThrow().getValues());
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, resultOtherId.getStateStatus(new SensitivityState("S_SO_1", "strategyPstChange2")));
+
+        // build reference: apply contingency and PST action to a cloned variant, then run classical sensi
+        String modifiedVariantId = "contingencyAndPst";
+        network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, modifiedVariantId);
+        network.getVariantManager().setWorkingVariant(modifiedVariantId);
+        network.getLine("S_SO_1").getTerminal1().disconnect();
+        network.getLine("S_SO_1").getTerminal2().disconnect();
+        network.getTwoWindingsTransformer("NE_NO_1").getPhaseTapChanger().setTapPosition(1);
+        SensitivityAnalysisResult refResult = sensiRunner.run(network, modifiedVariantId, factors,
+                new SensitivityAnalysisRunParameters().setParameters(createParameters(true)));
+        network.getVariantManager().setWorkingVariant(VariantManagerConstants.INITIAL_VARIANT_ID);
+        network.getVariantManager().removeVariant(modifiedVariantId);
+
+        for (String branchId : network.getBranchStream().map(Identifiable::getId).toList()) {
+            double refFlow = refResult.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, branchId, SensitivityFunctionType.BRANCH_ACTIVE_POWER_1);
+            for (SensitivityAnalysisResult r : List.of(result, resultAgain)) { // resultOtherId has another state id, checked above
+                double opStratFlow = r.getFunctionReferenceValue(opStratState, branchId, SensitivityFunctionType.BRANCH_ACTIVE_POWER_1);
+                if (Double.isNaN(refFlow)) {
+                    assertTrue(Double.isNaN(opStratFlow), "Branch " + branchId + " flow should be NaN in operator strategy state");
+                } else {
+                    assertEquals(refFlow, opStratFlow, LoadFlowAssert.DELTA_POWER, "Branch " + branchId + " reference flow mismatch");
+                }
+            }
+        }
+        NetworkCache.DC_SENSI_INSTANCE.clear();
+    }
+
+    @Test
+    void testReconnectingSmallComponentWithFastRestart() {
+        // with the network cache, the LF network is loaded once and reused: the branches reconnecting a small component
+        // must be kept enabled and modelled as permanent contingencies exactly as in the non cached path, otherwise the
+        // buses of the small component are disabled and the reclosing action fails ("Row index out of bound")
+        NetworkCache.DC_SENSI_INSTANCE.clear();
+
+        Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedByTwoLinesWithAdditionnalGens();
+        network.getLine("l24").disconnect();
+        network.getLine("l35").disconnect();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = new SensitivityAnalysisParameters()
+                .setLoadFlowParameters(new LoadFlowParameters().setDc(true))
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+        OpenLoadFlowParameters.create(sensiParameters.getLoadFlowParameters())
+                .setNetworkCacheEnabled(true);
+
+        List<Contingency> contingencies = List.of(new Contingency("l23", new BranchContingency("l23")));
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g2")),
+                network.getBranchStream().toList());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("reclose l35",
+                ContingencyContext.all(),
+                new TrueCondition(), List.of("reclose l35")));
+        List<Action> actions = List.of(new TerminalsConnectionAction("reclose l35", "l35", false));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions);
+
+        var contSimpleState = SensitivityState.postContingency("l23");
+        var contAndOpStratState = new SensitivityState("l23", "reclose l35");
+        // first run creates the cache entry, second one reuses it
+        for (int run = 0; run < 2; run++) {
+            SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+            assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+            assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contSimpleState));
+            assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contAndOpStratState));
+            assertEquals(-2.4d, result.getFunctionReferenceValue(contSimpleState, "l12", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+            assertEquals(1.4d, result.getFunctionReferenceValue(contSimpleState, "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+            assertEquals(-2.4d, result.getFunctionReferenceValue(contAndOpStratState, "l12", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+            assertEquals(1.4d, result.getFunctionReferenceValue(contAndOpStratState, "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+            assertEquals(0.4d,
+                result.getSensitivityValue(contAndOpStratState, "g2", "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1,
+                    SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+        }
+        NetworkCache.DC_SENSI_INSTANCE.clear();
     }
 }
