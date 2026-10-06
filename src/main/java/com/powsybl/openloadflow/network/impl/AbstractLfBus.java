@@ -117,6 +117,53 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         this.forceTargetQInReactiveLimits = parameters.isForceTargetQInReactiveLimits() && parameters.isReactiveLimits();
     }
 
+    protected AbstractLfBus(AbstractLfBus other, LfNetwork network) {
+        super(network);
+        this.numSC = other.numSC;
+        this.v = other.v;
+        this.angle = other.angle;
+        this.distributedOnConformLoad = other.distributedOnConformLoad;
+        this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
+
+        for (LfGenerator otherGenerator : other.generators) {
+            add(otherGenerator.copy(this));
+        }
+        for (LfLoad otherLoad : other.loads) {
+            loads.add(otherLoad.copy(this));
+        }
+        if (other.shunt != null) {
+            shunt = other.shunt.copy(this);
+        }
+        if (other.controllerShunt != null) {
+            controllerShunt = other.controllerShunt.copy(this);
+        }
+        if (other.svcShunt != null) {
+            svcShunt = other.svcShunt.copy(this);
+        }
+        if (other.asym != null) {
+            setAsym(other.asym.copy(network));
+        }
+
+        // scalar state, copied after child registration as add() invalidates some of these caches
+        this.disabled = other.disabled;
+        this.hasGeneratorsWithSlope = other.hasGeneratorsWithSlope;
+        copyReactiveStateFrom(other);
+        this.generationTargetP = other.generationTargetP;
+        this.qLimitType = other.qLimitType;
+        this.loadTargetP = other.loadTargetP;
+        this.loadTargetQ = other.loadTargetQ;
+        // slack and reference flags are not copied: selection is lazily re-run on the copied network
+    }
+
+    void copyReactiveStateFrom(AbstractLfBus other) {
+        this.generatorVoltageControlEnabled = other.generatorVoltageControlEnabled;
+        this.generatorReactivePowerControlEnabled = other.generatorReactivePowerControlEnabled;
+        this.generationTargetQ = other.generationTargetQ;
+        this.invalidatedGenerationTargetQ = other.invalidatedGenerationTargetQ;
+        this.isGenerationTargetQFrozen = other.isGenerationTargetQFrozen;
+        this.remoteControlReactivePercent = other.remoteControlReactivePercent;
+    }
+
     @Override
     public ElementType getType() {
         return ElementType.BUS;
