@@ -364,7 +364,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         if (result.isSuccess()) {
             LOGGER.info(acLoadflowCompleteMessage, context.getNetwork(), result);
         } else {
-            LOGGER.warn(acLoadflowCompleteMessage, context.getNetwork(), result);
+            LOGGER.error(acLoadflowCompleteMessage, context.getNetwork(), result);
         }
 
         if (result.isSuccess()) {

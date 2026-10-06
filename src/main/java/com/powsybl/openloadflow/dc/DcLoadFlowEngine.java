@@ -344,7 +344,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         if (result.isSuccess()) {
             LOGGER.info(dcLoadflowCompleteMessage, context.getNetwork(), result);
         } else {
-            LOGGER.warn(dcLoadflowCompleteMessage, context.getNetwork(), result);
+            LOGGER.error(dcLoadflowCompleteMessage, context.getNetwork(), result);
         }
         return result;
     }
