@@ -792,9 +792,21 @@ class AcLoadFlowShuntTest {
                          Outer loop ReactiveLimits
                          + Outer loop IncrementalShuntVoltageControl
                             + Outer loop iteration 1
-                               2 shunts changed section
+                               + 2 shunts changed section
+                                  Shunt s4 changed section from 0 to 3
+                                  Shunt s5 changed section from 0 to 3
                             + Outer loop iteration 2
-                               2 shunts changed section
+                               + 2 shunts changed section
+                                  Shunt s4 changed section from 3 to 6
+                                  Shunt s5 changed section from 3 to 6
+                            + Outer loop iteration 3
+                               + 2 shunts changed section
+                                  Shunt s4 changed section from 6 to 9
+                                  Shunt s5 changed section from 6 to 9
+                            + Outer loop iteration 4
+                               + 2 shunts changed section
+                                  Shunt s4 changed section from 9 to 8
+                                  Shunt s5 changed section from 9 to 8
                          Outer loop DistributedSlack
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
@@ -832,13 +844,21 @@ class AcLoadFlowShuntTest {
                          Outer loop ReactiveLimits
                          + Outer loop IncrementalShuntVoltageControl
                             + Outer loop iteration 1
-                               2 shunts changed section
+                               + 2 shunts changed section
+                                  Shunt s4 changed section from 0 to 16
+                                  Shunt s5 changed section from 0 to 16
                             + Outer loop iteration 2
-                               2 shunts changed section
+                               + 2 shunts changed section
+                                  Shunt s4 changed section from 16 to 2
+                                  Shunt s5 changed section from 16 to 2
                             + Outer loop iteration 3
-                               2 shunts changed section
+                               + 2 shunts changed section
+                                  Shunt s4 changed section from 2 to 14
+                                  Shunt s5 changed section from 2 to 14
                             + Outer loop iteration 4
-                               2 shunts changed section
+                               + 2 shunts changed section
+                                  Shunt s4 changed section from 14 to 4
+                                  Shunt s5 changed section from 14 to 4
                          Outer loop DistributedSlack
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)

@@ -158,6 +158,7 @@ public final class Networks {
             LfBranch branch = network.getBranchById(id);
             if (branch != null) {
                 connectivity.removeEdge(branch);
+                network.addConnectivityRemovedBranch(branch);
                 toRemove.add(id);
             }
         });
