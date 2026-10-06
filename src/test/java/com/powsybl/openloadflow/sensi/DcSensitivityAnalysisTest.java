@@ -1513,8 +1513,8 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         // same parameters and same actions: nothing has changed
         assertNull(input.hasChanged(new NetworkCache.DcSensiInput(parameters, Set.of("a"))));
 
-        // topo actions differ
-        assertEquals("actions", input.hasChanged(new NetworkCache.DcSensiInput(parameters, Set.of("b"))));
+        // topo config differs
+        assertEquals("topology configuration", input.hasChanged(new NetworkCache.DcSensiInput(parameters, Set.of("b"))));
 
         // parameters differ
         LoadFlowParameters otherParameters = new LoadFlowParameters();

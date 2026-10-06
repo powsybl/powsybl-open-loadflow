@@ -193,17 +193,17 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
     public static class DcSensiInput implements Input<DcSensiInput> {
 
         private final LoadFlowParameters parameters;
-        // this is what impact TopoConfig
-        private final Set<String> topoActionIds;
+        // keys of the topo config the networks have been loaded with (see LfTopoConfig.toKeys)
+        private final Set<String> topoConfigKeys;
 
-        public DcSensiInput(LoadFlowParameters parameters, Set<String> topoActionIds) {
+        public DcSensiInput(LoadFlowParameters parameters, Set<String> topoConfigKeys) {
             this.parameters = Objects.requireNonNull(parameters);
-            this.topoActionIds = Objects.requireNonNull(topoActionIds);
+            this.topoConfigKeys = Objects.requireNonNull(topoConfigKeys);
         }
 
         @Override
         public DcSensiInput copy() {
-            return new DcSensiInput(OpenLoadFlowParameters.clone(parameters), topoActionIds);
+            return new DcSensiInput(OpenLoadFlowParameters.clone(parameters), topoConfigKeys);
         }
 
         @Override
@@ -212,8 +212,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             if (!OpenLoadFlowParameters.equals(parameters, other.parameters)) {
                 return "parameters";
             }
-            if (!topoActionIds.equals(other.topoActionIds)) {
-                return "actions";
+            if (!topoConfigKeys.equals(other.topoConfigKeys)) {
+                return "topology configuration";
             }
             return null;
         }
