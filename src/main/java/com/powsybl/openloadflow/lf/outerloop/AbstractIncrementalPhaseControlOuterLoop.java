@@ -115,7 +115,7 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
 
     protected void checkActivePowerControlPhaseControls(AbstractSensitivityContext<V, E> sensitivityContext, IncrementalContextData contextData,
                                                            List<TransformerPhaseControl> activePowerControlPhaseControls,
-                                                           List<DiscreteControllerChangeDetails> activePowerControlPstsThatChangedTap) {
+                                                           List<DiscreteControllerChange> activePowerControlPstsThatChangedTap) {
 
         for (TransformerPhaseControl phaseControl : activePowerControlPhaseControls) {
             LfBranch controllerBranch = phaseControl.getControllerBranch();
@@ -142,8 +142,8 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
                     if (piModel.getTapPosition() != oldTapPosition) {
                         logger.debug("Controller branch '{}' change tap from {} to {} to reach active power target (full range: {})", controllerBranch.getId(),
                                 oldTapPosition, piModel.getTapPosition(), tapPositionRange);
-                        DiscreteControllerChangeDetails changeDetails = new DiscreteControllerChangeDetails(controllerBranch.getId(), oldTapPosition, piModel.getTapPosition());
-                        activePowerControlPstsThatChangedTap.add(changeDetails);
+                        DiscreteControllerChange change = DiscreteControllerChange.ofTransformer(controllerBranch, oldTapPosition, piModel.getTapPosition());
+                        activePowerControlPstsThatChangedTap.add(change);
                     }
                 }
             }

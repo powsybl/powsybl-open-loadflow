@@ -17,7 +17,7 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
-import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChangeDetails;
+import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChange;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -143,7 +143,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
     }
 
     private void adjustB(ShuntVoltageControl voltageControl, List<LfShunt> sortedControllerShunts, LfBus controlledBus, IncrementalContextData contextData,
-                         SensitivityContext sensitivityContext, double diffV, List<DiscreteControllerChangeDetails> adjustedControllers) {
+                         SensitivityContext sensitivityContext, double diffV, List<DiscreteControllerChange> adjustedControllers) {
         // several shunts could control the same bus
         double remainingDiffV = diffV;
         boolean hasChanged = true;
@@ -161,7 +161,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
                         if (Math.abs(remainingDiffV) > halfTargetDeadband) {
                             initialSectionPerController.computeIfAbsent(controller, LfShunt.Controller::getPosition);
                             int sectionShift = sectionShiftPerController.getOrDefault(controller, 0);
-                            if (sectionShift > maxSectionShift) {
+                            if (sectionShift >= maxSectionShift) {
                                 // already changed by maximum allowed number of sections shift in this outerloop
                                 LOGGER.debug("Controller shunt '{}' is not in its deadband but will not be adjusted further because reached max section shift in this outerloop",
                                     controllerShunt.getId());
@@ -185,7 +185,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
             }
         }
         sectionShiftPerController.keySet().forEach(controller -> adjustedControllers.add(
-                new DiscreteControllerChangeDetails(controller.getId(), initialSectionPerController.get(controller), controller.getPosition())));
+                DiscreteControllerChange.ofShunt(controller, initialSectionPerController.get(controller), controller.getPosition())));
 
     }
 
@@ -227,7 +227,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
             return new OuterLoopResult(this, status.get());
         }
 
-        List<DiscreteControllerChangeDetails> adjustedControllers = new ArrayList<>();
+        List<DiscreteControllerChange> adjustedControllers = new ArrayList<>();
 
         SensitivityContext sensitivityContext = new SensitivityContext(network, controllerShuntsOutOfDeadband,
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
