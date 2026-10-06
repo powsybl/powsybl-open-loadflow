@@ -11,6 +11,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -23,6 +24,7 @@ import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
 import com.powsybl.openloadflow.ac.outerloop.IncrementalTransformerVoltageControlOuterLoop;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -966,6 +968,41 @@ class AcLoadFlowTransformerVoltageControlTest {
         assertVoltageEquals(28.147, bus3);
         assertEquals(2, t3wt.getLeg2().getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, t3wt.getLeg2().getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void incrementalVoltageControlT3wtReportTest() throws IOException {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
+
+        t3wt.getLeg2().getRatioTapChanger()
+                .newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withTargetValue(28.)
+                .withTargetDeadband(0)
+                .withRegulating(true)
+                .withTerminal(t3wt.getLeg2().getTerminal())
+                .build();
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters()
+                .setParameters(parameters)
+                .setReportNode(reportNode);
+
+        LoadFlowResult result = loadFlowRunner.run(network, runParameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, t3wt.getLeg2().getRatioTapChanger().getSolvedTapPosition());
+
+        String expected = """
+                               + 1 transformers changed tap position
+                                  Transformer T3wT on side 2 changed tap position from 0 to 2
+                """;
+        assertReportContainsMultiline(expected, reportNode);
     }
 
     @Test
