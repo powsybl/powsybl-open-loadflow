@@ -363,13 +363,9 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         final String acLoadflowCompleteMessage = "AC loadflow complete on network {} (result={})";
         if (result.isSuccess()) {
             LOGGER.info(acLoadflowCompleteMessage, context.getNetwork(), result);
-        } else {
-            LOGGER.error(acLoadflowCompleteMessage, context.getNetwork(), result);
-        }
-
-        if (result.isSuccess()) {
             Reports.reportAcLfCompleteWithSuccess(context.getNetwork().getReportNode(), result.getSolverStatus().name(), result.getOuterLoopResult().status().name());
         } else {
+            LOGGER.error(acLoadflowCompleteMessage, context.getNetwork(), result);
             Reports.reportAcLfCompleteWithError(context.getNetwork().getReportNode(), result.getSolverStatus().name(), result.getOuterLoopResult().status().name());
         }
 
