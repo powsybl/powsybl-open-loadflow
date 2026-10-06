@@ -255,10 +255,6 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         // branches reconnecting small components, kept enabled in the LF network and modelled as permanent contingencies
         private final List<String> permanentContingencyBranchIds;
 
-        public DcSensiValue(DcLoadFlowContext context) {
-            this(context, Collections.emptyList());
-        }
-
         public DcSensiValue(DcLoadFlowContext context, List<String> permanentContingencyBranchIds) {
             super(context);
             this.permanentContingencyBranchIds = List.copyOf(Objects.requireNonNull(permanentContingencyBranchIds));
