@@ -16,10 +16,20 @@ import java.util.function.ToDoubleFunction;
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
-public class GeneratorVoltageControl extends VoltageControl<LfBus> {
+public class GeneratorVoltageControl extends VoltageControl<LfBus> implements LfCopyable<GeneratorVoltageControl, LfNetwork> {
 
     public GeneratorVoltageControl(LfBus controlledBus, int targetPriority, double targetValue) {
         super(targetValue, Type.GENERATOR, targetPriority, controlledBus);
+    }
+
+    @Override
+    public GeneratorVoltageControl copy(LfNetwork copyNetwork) {
+        LfBus copiedBus = copyNetwork.getBusById(controlledBus.getId());
+        GeneratorVoltageControl copiedVc = new GeneratorVoltageControl(copiedBus, targetPriority, targetValue);
+        for (LfBus controllerBus : controllerElements) {
+            copiedVc.addControllerElement(copyNetwork.getBusById(controllerBus.getId()));
+        }
+        return copiedVc;
     }
 
     @Override

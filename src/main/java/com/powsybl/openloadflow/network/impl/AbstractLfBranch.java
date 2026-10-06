@@ -86,6 +86,23 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
+    protected AbstractLfBranch(AbstractLfBranch other, LfNetwork network, LfBus bus1, LfBus bus2) {
+        super(network);
+        this.bus1 = bus1;
+        this.bus2 = bus2;
+        this.asymLine = other.asymLine;
+        this.piModel = other.piModel.copy();
+        this.piModel.setBranch(this);
+        for (LoadFlowModel loadFlowModel : LoadFlowModel.values()) {
+            ZeroImpedanceContext context = new ZeroImpedanceContext();
+            context.zeroImpedance = other.zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance;
+            zeroImpedanceContextByModel.put(loadFlowModel, context);
+        }
+        this.disabled = other.disabled;
+        this.phaseControlEnabled = other.phaseControlEnabled;
+        this.voltageControlEnabled = other.voltageControlEnabled;
+    }
+
     @Override
     public Optional<ThreeSides> getOriginalSide() {
         return Optional.empty();

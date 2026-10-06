@@ -71,6 +71,20 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         this.qAc = converter.getTerminal1().getQ();
     }
 
+    protected AbstractLfAcDcConverter(AbstractLfAcDcConverter other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
+        super(network);
+        this.dcBus1 = dcBus1;
+        this.dcBus2 = dcBus2;
+        this.bus1 = bus1;
+        this.lossFactors = other.lossFactors;
+        this.controlMode = other.controlMode;
+        this.targetP = other.targetP;
+        this.targetVdc = other.targetVdc;
+        this.pAc = other.pAc;
+        this.qAc = other.qAc;
+        this.disabled = other.disabled;
+    }
+
     @Override
     public LfBus getBus1() {
         return bus1;
