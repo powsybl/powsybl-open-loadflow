@@ -1,0 +1,126 @@
+{
+  "java_class": "OpenBranchFormulas",
+  "methods": [
+    {
+      "name": "p2",
+      "params": [
+        "y",
+        "cosKsi",
+        "sinKsi",
+        "g1",
+        "b1",
+        "g2",
+        "v2"
+      ],
+      "body": "R2 * R2 * v2 * v2 * (g2 + y * y * g1 / (shunt(y, cosKsi, sinKsi, g1, b1)) + (b1 * b1 + g1 * g1) * y * sinKsi / (shunt(y, cosKsi, sinKsi, g1, b1)))"
+    },
+    {
+      "name": "dp2dv2",
+      "params": [
+        "y",
+        "cosKsi",
+        "sinKsi",
+        "g1",
+        "b1",
+        "g2",
+        "v2"
+      ],
+      "body": "2 * R2 * R2 * v2 * (g2 + y * y * g1 / (shunt(y, cosKsi, sinKsi, g1, b1)) + (b1 * b1 + g1 * g1) * y * sinKsi / (shunt(y, cosKsi, sinKsi, g1, b1)))"
+    },
+    {
+      "name": "q2",
+      "params": [
+        "y",
+        "cosKsi",
+        "sinKsi",
+        "g1",
+        "b1",
+        "b2",
+        "v2"
+      ],
+      "body": "-R2 * R2 * v2 * v2 * (b2 + y * y * b1 / (shunt(y, cosKsi, sinKsi, g1, b1)) - (b1 * b1 + g1 * g1) * y * cosKsi / (shunt(y, cosKsi, sinKsi, g1, b1)))"
+    },
+    {
+      "name": "dq2dv2",
+      "params": [
+        "y",
+        "cosKsi",
+        "sinKsi",
+        "g1",
+        "b1",
+        "b2",
+        "v2"
+      ],
+      "body": "-2 * v2 * R2 * R2 * (b2 + y * y * b1 / (shunt(y, cosKsi, sinKsi, g1, b1)) - (b1 * b1 + g1 * g1) * y * cosKsi / (shunt(y, cosKsi, sinKsi, g1, b1)))"
+    },
+    {
+      "name": "p1",
+      "params": [
+        "y",
+        "cosKsi",
+        "sinKsi",
+        "g1",
+        "g2",
+        "b2",
+        "v1",
+        "r1"
+      ],
+      "body": "r1 * r1 * v1 * v1 * (g1 + y * y * g2 / (shunt(y, cosKsi, sinKsi, g2, b2)) + (b2 * b2 + g2 * g2) * y * sinKsi / (shunt(y, cosKsi, sinKsi, g2, b2)))"
+    },
+    {
+      "name": "dp1dv1",
+      "params": [
+        "y",
+        "cosKsi",
+        "sinKsi",
+        "g1",
+        "g2",
+        "b2",
+        "v1",
+        "r1"
+      ],
+      "body": "2 * r1 * r1 * v1 * (g1 + y * y * g2 / (shunt(y, cosKsi, sinKsi, g2, b2)) + (b2 * b2 + g2 * g2) * y * sinKsi / (shunt(y, cosKsi, sinKsi, g2, b2)))"
+    },
+    {
+      "name": "q1",
+      "params": [
+        "y",
+        "cosKsi",
+        "sinKsi",
+        "b1",
+        "g2",
+        "b2",
+        "v1",
+        "r1"
+      ],
+      "body": "-r1 * r1 * v1 * v1 * (b1 + y * y * b2 / (shunt(y, cosKsi, sinKsi, g2, b2)) - (b2 * b2 + g2 * g2) * y * cosKsi / (shunt(y, cosKsi, sinKsi, g2, b2)))"
+    },
+    {
+      "name": "dq1dv1",
+      "params": [
+        "y",
+        "cosKsi",
+        "sinKsi",
+        "b1",
+        "g2",
+        "b2",
+        "v1",
+        "r1"
+      ],
+      "body": "-2 * v1 * r1 * r1 * (b1 + y * y * b2 / (shunt(y, cosKsi, sinKsi, g2, b2)) - (b2 * b2 + g2 * g2) * y * cosKsi / (shunt(y, cosKsi, sinKsi, g2, b2)))"
+    }
+  ],
+  "helpers": [
+    {
+      "name": "shunt",
+      "params": [
+        "y",
+        "cosKsi",
+        "sinKsi",
+        "g1",
+        "b1"
+      ],
+      "body": "(g1 + y * sinKsi) * (g1 + y * sinKsi) + (-b1 + y * cosKsi) * (-b1 + y * cosKsi)"
+    }
+  ]
+}

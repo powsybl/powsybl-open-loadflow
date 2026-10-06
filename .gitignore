@@ -19,3 +19,8 @@ org.eclipse.jdt.groovy.core.prefs
 # Generated readthedocs pages
 /docs/_build
 build-docs/
+# CMake build tree for the GPU native library (native/build-gpu.sh)
+/native/build/
+
+# Local machine paths for cuDSS/CUDA + benchmark cases (sourced by build-gpu.sh / run_gpu_tests.sh)
+/native/local-env.sh

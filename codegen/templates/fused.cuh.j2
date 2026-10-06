@@ -1,0 +1,34 @@
+// Copyright (c) 2026, RTE (http://www.rte-france.com)
+// SPDX-License-Identifier: MPL-2.0
+//
+// {{ doc }}
+//
+// GENERATED — DO NOT EDIT. {{ regen }}
+//
+{{ fused_doc }}
+#pragma once
+#include <math.h>
+
+#ifndef {{ fn_macro }}
+#define {{ fn_macro }} __host__ __device__   // also compiles host-side for the diff test
+#endif
+
+{{ ns_open }}
+
+{{ consts_block }}{{ fn_macro }} void {{ routine }}(
+{%- for row in param_rows %}
+        {{ row }}
+{%- endfor %}
+        int i,
+        {%- for nm in outputs %}
+        double* {{ nm }}{{ "," if not loop.last else ") {" }}
+        {%- endfor %}
+    {%- for t in temps %}
+    double {{ t.sym }} = {{ t.expr }};
+    {%- endfor %}
+    {%- for nm in outputs %}
+    {{ nm }}[i] = {{ out[nm] }};
+    {%- endfor %}
+}
+
+{{ ns_close }}

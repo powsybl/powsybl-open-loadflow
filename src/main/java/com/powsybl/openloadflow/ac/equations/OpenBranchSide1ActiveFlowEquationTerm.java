@@ -15,8 +15,6 @@ import net.jafama.FastMath;
 
 import java.util.Objects;
 
-import static com.powsybl.openloadflow.network.PiModel.R2;
-
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -34,13 +32,11 @@ public class OpenBranchSide1ActiveFlowEquationTerm extends AbstractOpenSide1Bran
     }
 
     public static double p2(double y, double cosKsi, double sinKsi, double g1, double b1, double g2, double v2) {
-        double shunt = shunt(y, cosKsi, sinKsi, g1, b1);
-        return R2 * R2 * v2 * v2 * (g2 + y * y * g1 / shunt + (b1 * b1 + g1 * g1) * y * sinKsi / shunt);
+        return OpenBranchFormulas.p2(y, cosKsi, sinKsi, g1, b1, g2, v2);
     }
 
     public static double dp2dv2(double y, double cosKsi, double sinKsi, double g1, double b1, double g2, double v2) {
-        double shunt = shunt(y, cosKsi, sinKsi, g1, b1);
-        return 2 * R2 * R2 * v2 * (g2 + y * y * g1 / shunt + (b1 * b1 + g1 * g1) * y * sinKsi / shunt);
+        return OpenBranchFormulas.dp2dv2(y, cosKsi, sinKsi, g1, b1, g2, v2);
     }
 
     @Override

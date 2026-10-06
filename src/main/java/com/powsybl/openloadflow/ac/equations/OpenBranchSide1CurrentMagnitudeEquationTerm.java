@@ -15,8 +15,6 @@ import net.jafama.FastMath;
 
 import java.util.Objects;
 
-import static com.powsybl.openloadflow.network.PiModel.R2;
-
 /**
  * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
  */
@@ -41,46 +39,13 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
         return sv.get(ph2Var.getRow());
     }
 
-    private static double gres(double y, double sinKsi, double g1, double b1, double g2, double shunt) {
-        return g2 + (y * y * g1 + (b1 * b1 + g1 * g1) * y * sinKsi) / shunt;
-    }
-
-    private static double bres(double y, double cosKsi, double g1, double b1, double b2, double shunt) {
-        return b2 + (y * y * b1 - (b1 * b1 + g1 * g1) * y * cosKsi) / shunt;
-    }
-
-    private static double reI2(double y, double cosKsi, double sinKsi, double g1, double b1, double g2, double b2, double v2, double ph2) {
-        double shunt = shunt(y, cosKsi, sinKsi, g1, b1);
-        return R2 * R2 * v2 * (gres(y, sinKsi, g1, b1, g2, shunt) * FastMath.cos(ph2) - bres(y, cosKsi, g1, b1, b2, shunt) * FastMath.sin(ph2));
-    }
-
-    private static double imI2(double y, double cosKsi, double sinKsi, double g1, double b1, double g2, double b2, double v2, double ph2) {
-        double shunt = shunt(y, cosKsi, sinKsi, g1, b1);
-        return R2 * R2 * v2 * (gres(y, sinKsi, g1, b1, g2, shunt) * FastMath.sin(ph2) + bres(y, cosKsi, g1, b1, b2, shunt) * FastMath.cos(ph2));
-    }
-
-    private static double i2(double y, double cosKsi, double sinKsi, double g1, double b1, double g2, double b2, double v2, double ph2) {
-        return FastMath.hypot(reI2(y, cosKsi, sinKsi, g1, b1, g2, b2, v2, ph2), imI2(y, cosKsi, sinKsi, g1, b1, g2, b2, v2, ph2));
-    }
-
-    private static double dreI2dv2(double y, double cosKsi, double sinKsi, double g1, double b1, double g2, double b2, double ph2) {
-        double shunt = shunt(y, cosKsi, sinKsi, g1, b1);
-        return R2 * R2 * (gres(y, sinKsi, g1, b1, g2, shunt) * FastMath.cos(ph2) - bres(y, cosKsi, g1, b1, b2, shunt) * FastMath.sin(ph2));
-    }
-
-    private static double dimI2dv2(double y, double cosKsi, double sinKsi, double g1, double b1, double g2, double b2, double ph2) {
-        double shunt = shunt(y, cosKsi, sinKsi, g1, b1);
-        return R2 * R2 * (gres(y, sinKsi, g1, b1, g2, shunt) * FastMath.sin(ph2) + bres(y, cosKsi, g1, b1, b2, shunt) * FastMath.cos(ph2));
-    }
-
     public static double di2dv2(double y, double cosKsi, double sinKsi, double g1, double b1, double g2, double b2, double v2, double ph2) {
-        return (reI2(y, cosKsi, sinKsi, g1, b1, g2, b2, v2, ph2) * dreI2dv2(y, cosKsi, sinKsi, g1, b1, g2, b2, ph2)
-                + imI2(y, cosKsi, sinKsi, g1, b1, g2, b2, v2, ph2) * dimI2dv2(y, cosKsi, sinKsi, g1, b1, g2, b2, ph2)) / i2(y, cosKsi, sinKsi, g1, b1, g2, b2, v2, ph2);
+        return OpenBranchCurrentMagnitudeFormulas.di2dv2(y, cosKsi, sinKsi, g1, b1, g2, b2, v2, ph2);
     }
 
     @Override
     public double eval() {
-        return i2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, b2, v2(), ph2());
+        return OpenBranchCurrentMagnitudeFormulas.i2(y, FastMath.cos(ksi), FastMath.sin(ksi), g1, b1, g2, b2, v2(), ph2());
     }
 
     @Override

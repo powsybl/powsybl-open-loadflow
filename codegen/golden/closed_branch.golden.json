@@ -1,0 +1,327 @@
+{
+  "java_class": "ClosedBranchFormulas",
+  "methods": [
+    {
+      "name": "p1",
+      "params": [
+        "y",
+        "sinKsi",
+        "g1",
+        "v1",
+        "r1",
+        "v2",
+        "sinTheta"
+      ],
+      "body": "r1 * v1 * (g1 * r1 * v1 + y * r1 * v1 * sinKsi - y * R2 * v2 * sinTheta)"
+    },
+    {
+      "name": "dp1dv1",
+      "params": [
+        "y",
+        "sinKsi",
+        "g1",
+        "v1",
+        "r1",
+        "v2",
+        "sinTheta"
+      ],
+      "body": "r1 * (2 * g1 * r1 * v1 + 2 * y * r1 * v1 * sinKsi - y * R2 * v2 * sinTheta)"
+    },
+    {
+      "name": "dp1dv2",
+      "params": [
+        "y",
+        "v1",
+        "r1",
+        "sinTheta"
+      ],
+      "body": "-y * r1 * R2 * v1 * sinTheta"
+    },
+    {
+      "name": "dp1dph1",
+      "params": [
+        "y",
+        "v1",
+        "r1",
+        "v2",
+        "cosTheta"
+      ],
+      "body": "y * r1 * R2 * v1 * v2 * cosTheta"
+    },
+    {
+      "name": "dp1dph2",
+      "params": [
+        "y",
+        "v1",
+        "r1",
+        "v2",
+        "cosTheta"
+      ],
+      "body": "-dp1dph1(y, v1, r1, v2, cosTheta)"
+    },
+    {
+      "name": "dp1da1",
+      "params": [
+        "y",
+        "v1",
+        "r1",
+        "v2",
+        "cosTheta"
+      ],
+      "body": "dp1dph1(y, v1, r1, v2, cosTheta)"
+    },
+    {
+      "name": "dp1dr1",
+      "params": [
+        "y",
+        "sinKsi",
+        "g1",
+        "v1",
+        "r1",
+        "v2",
+        "sinTheta"
+      ],
+      "body": "v1 * (2 * r1 * v1 * (g1 + y * sinKsi) - y * R2 * v2 * sinTheta)"
+    },
+    {
+      "name": "q1",
+      "params": [
+        "y",
+        "cosKsi",
+        "b1",
+        "v1",
+        "r1",
+        "v2",
+        "cosTheta"
+      ],
+      "body": "r1 * v1 * (-b1 * r1 * v1 + y * r1 * v1 * cosKsi - y * R2 * v2 * cosTheta)"
+    },
+    {
+      "name": "dq1dv1",
+      "params": [
+        "y",
+        "cosKsi",
+        "b1",
+        "v1",
+        "r1",
+        "v2",
+        "cosTheta"
+      ],
+      "body": "r1 * (-2 * b1 * r1 * v1 + 2 * y * r1 * v1 * cosKsi - y * R2 * v2 * cosTheta)"
+    },
+    {
+      "name": "dq1dv2",
+      "params": [
+        "y",
+        "v1",
+        "r1",
+        "cosTheta"
+      ],
+      "body": "-y * r1 * R2 * v1 * cosTheta"
+    },
+    {
+      "name": "dq1dph1",
+      "params": [
+        "y",
+        "v1",
+        "r1",
+        "v2",
+        "sinTheta"
+      ],
+      "body": "-y * r1 * R2 * v1 * v2 * sinTheta"
+    },
+    {
+      "name": "dq1dph2",
+      "params": [
+        "y",
+        "v1",
+        "r1",
+        "v2",
+        "sinTheta"
+      ],
+      "body": "-dq1dph1(y, v1, r1, v2, sinTheta)"
+    },
+    {
+      "name": "dq1da1",
+      "params": [
+        "y",
+        "v1",
+        "r1",
+        "v2",
+        "sinTheta"
+      ],
+      "body": "dq1dph1(y, v1, r1, v2, sinTheta)"
+    },
+    {
+      "name": "dq1dr1",
+      "params": [
+        "y",
+        "cosKsi",
+        "b1",
+        "v1",
+        "r1",
+        "v2",
+        "cosTheta"
+      ],
+      "body": "v1 * (2 * r1 * v1 * (-b1 + y * cosKsi) - y * R2 * v2 * cosTheta)"
+    },
+    {
+      "name": "p2",
+      "params": [
+        "y",
+        "sinKsi",
+        "g2",
+        "v1",
+        "r1",
+        "v2",
+        "sinTheta"
+      ],
+      "body": "R2 * v2 * (g2 * R2 * v2 - y * r1 * v1 * sinTheta + y * R2 * v2 * sinKsi)"
+    },
+    {
+      "name": "dp2dv1",
+      "params": [
+        "y",
+        "r1",
+        "v2",
+        "sinTheta"
+      ],
+      "body": "-y * r1 * R2 * v2 * sinTheta"
+    },
+    {
+      "name": "dp2dv2",
+      "params": [
+        "y",
+        "sinKsi",
+        "g2",
+        "v1",
+        "r1",
+        "v2",
+        "sinTheta"
+      ],
+      "body": "R2 * (2 * g2 * R2 * v2 - y * r1 * v1 * sinTheta + 2 * y * R2 * v2 * sinKsi)"
+    },
+    {
+      "name": "dp2dph1",
+      "params": [
+        "y",
+        "v1",
+        "r1",
+        "v2",
+        "cosTheta"
+      ],
+      "body": "-y * r1 * R2 * v1 * v2 * cosTheta"
+    },
+    {
+      "name": "dp2dph2",
+      "params": [
+        "y",
+        "v1",
+        "r1",
+        "v2",
+        "cosTheta"
+      ],
+      "body": "-dp2dph1(y, v1, r1, v2, cosTheta)"
+    },
+    {
+      "name": "dp2da1",
+      "params": [
+        "y",
+        "v1",
+        "r1",
+        "v2",
+        "cosTheta"
+      ],
+      "body": "dp2dph1(y, v1, r1, v2, cosTheta)"
+    },
+    {
+      "name": "dp2dr1",
+      "params": [
+        "y",
+        "v1",
+        "v2",
+        "sinTheta"
+      ],
+      "body": "-y * R2 * v1 * v2 * sinTheta"
+    },
+    {
+      "name": "q2",
+      "params": [
+        "y",
+        "cosKsi",
+        "b2",
+        "v1",
+        "r1",
+        "v2",
+        "cosTheta"
+      ],
+      "body": "R2 * v2 * (-b2 * R2 * v2 - y * r1 * v1 * cosTheta + y * R2 * v2 * cosKsi)"
+    },
+    {
+      "name": "dq2dv1",
+      "params": [
+        "y",
+        "r1",
+        "v2",
+        "cosTheta"
+      ],
+      "body": "-y * r1 * R2 * v2 * cosTheta"
+    },
+    {
+      "name": "dq2dv2",
+      "params": [
+        "y",
+        "cosKsi",
+        "b2",
+        "v1",
+        "r1",
+        "v2",
+        "cosTheta"
+      ],
+      "body": "R2 * (-2 * b2 * R2 * v2 - y * r1 * v1 * cosTheta + 2 * y * R2 * v2 * cosKsi)"
+    },
+    {
+      "name": "dq2dph1",
+      "params": [
+        "y",
+        "v1",
+        "r1",
+        "v2",
+        "sinTheta"
+      ],
+      "body": "y * r1 * R2 * v1 * v2 * sinTheta"
+    },
+    {
+      "name": "dq2dph2",
+      "params": [
+        "y",
+        "v1",
+        "r1",
+        "v2",
+        "sinTheta"
+      ],
+      "body": "-dq2dph1(y, v1, r1, v2, sinTheta)"
+    },
+    {
+      "name": "dq2da1",
+      "params": [
+        "y",
+        "v1",
+        "r1",
+        "v2",
+        "sinTheta"
+      ],
+      "body": "dq2dph1(y, v1, r1, v2, sinTheta)"
+    },
+    {
+      "name": "dq2dr1",
+      "params": [
+        "y",
+        "v1",
+        "v2",
+        "cosTheta"
+      ],
+      "body": "-y * R2 * v1 * v2 * cosTheta"
+    }
+  ]
+}

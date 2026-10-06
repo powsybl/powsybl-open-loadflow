@@ -1,0 +1,79 @@
+{
+  "java_class": "HvdcAcEmulationFormulas",
+  "methods": [
+    {
+      "name": "p1",
+      "params": [
+        "p0",
+        "k",
+        "lossFactor1",
+        "lossFactor2",
+        "r",
+        "ph1",
+        "ph2"
+      ],
+      "body": "(((((p0) + (k) * ((ph1) - (ph2))))) >= 0) ? (((p0) + (k) * ((ph1) - (ph2)))) : -((1 - (lossFactor2)) * (((1 - (lossFactor1)) * abs(((((p0) + (k) * ((ph1) - (ph2))))))) - (getHvdcLineLosses((((1 - (lossFactor1)) * abs(((((p0) + (k) * ((ph1) - (ph2)))))))), 1, ((r))))))"
+    },
+    {
+      "name": "dp1dph1",
+      "params": [
+        "p0",
+        "k",
+        "lossFactor1",
+        "lossFactor2",
+        "ph1",
+        "ph2"
+      ],
+      "body": "(((((p0) + (k) * ((ph1) - (ph2))))) >= 0) ? k : k * ((1 - (lossFactor1)) * (1 - (lossFactor2)))"
+    },
+    {
+      "name": "dp1dph2",
+      "params": [
+        "p0",
+        "k",
+        "lossFactor1",
+        "lossFactor2",
+        "ph1",
+        "ph2"
+      ],
+      "body": "-dp1dph1(p0, k, lossFactor1, lossFactor2, ph1, ph2)"
+    },
+    {
+      "name": "p2",
+      "params": [
+        "p0",
+        "k",
+        "lossFactor1",
+        "lossFactor2",
+        "r",
+        "ph1",
+        "ph2"
+      ],
+      "body": "(((((p0) + (k) * ((ph1) - (ph2))))) < 0) ? -(((p0) + (k) * ((ph1) - (ph2)))) : -((1 - (lossFactor1)) * (((1 - (lossFactor2)) * abs(((((p0) + (k) * ((ph1) - (ph2))))))) - (getHvdcLineLosses((((1 - (lossFactor2)) * abs(((((p0) + (k) * ((ph1) - (ph2)))))))), 1, ((r))))))"
+    },
+    {
+      "name": "dp2dph1",
+      "params": [
+        "p0",
+        "k",
+        "lossFactor1",
+        "lossFactor2",
+        "ph1",
+        "ph2"
+      ],
+      "body": "(((((p0) + (k) * ((ph1) - (ph2))))) < 0) ? -k : -k * ((1 - (lossFactor1)) * (1 - (lossFactor2)))"
+    },
+    {
+      "name": "dp2dph2",
+      "params": [
+        "p0",
+        "k",
+        "lossFactor1",
+        "lossFactor2",
+        "ph1",
+        "ph2"
+      ],
+      "body": "-dp2dph1(p0, k, lossFactor1, lossFactor2, ph1, ph2)"
+    }
+  ]
+}
