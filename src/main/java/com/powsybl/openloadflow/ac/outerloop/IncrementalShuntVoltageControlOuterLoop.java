@@ -161,7 +161,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
                         if (Math.abs(remainingDiffV) > halfTargetDeadband) {
                             initialSectionPerController.computeIfAbsent(controller, LfShunt.Controller::getPosition);
                             int sectionShift = sectionShiftPerController.getOrDefault(controller, 0);
-                            if (sectionShift > maxSectionShift) {
+                            if (sectionShift >= maxSectionShift) {
                                 // already changed by maximum allowed number of sections shift in this outerloop
                                 LOGGER.debug("Controller shunt '{}' is not in its deadband but will not be adjusted further because reached max section shift in this outerloop",
                                     controllerShunt.getId());
