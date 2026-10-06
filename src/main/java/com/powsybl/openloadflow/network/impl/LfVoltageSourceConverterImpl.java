@@ -52,6 +52,16 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
                 : List.of();
     }
 
+    private LfVoltageSourceConverterImpl(LfVoltageSourceConverterImpl other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
+        super(other, network, dcBus1, dcBus2, bus1);
+        bus1.addConverter(this);
+        this.converterRef = other.converterRef;
+        this.isVoltageRegulatorOn = other.isVoltageRegulatorOn;
+        this.targetQ = other.targetQ;
+        this.targetVac = other.targetVac;
+        this.droopBands = other.droopBands;
+    }
+
     /**
      * Precompute the per-band droop reference points in per unit. The droop curve gives, per DC-voltage band, a
      * coefficient {@code k} that is the slope of {@code U_dc} versus {@code P}
@@ -128,6 +138,15 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
             }
         }
         return segments.size() - 1;
+    }
+
+    @Override
+    public LfVoltageSourceConverter copy(LfNetwork copyNetwork) {
+        return new LfVoltageSourceConverterImpl(this,
+                copyNetwork,
+                copyNetwork.getDcBusById(dcBus1.getId()),
+                copyNetwork.getDcBusById(dcBus2.getId()),
+                copyNetwork.getBusById(bus1.getId()));
     }
 
     public static LfVoltageSourceConverterImpl create(VoltageSourceConverter acDcConverter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1, LfNetworkParameters parameters,
