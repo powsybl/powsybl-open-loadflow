@@ -447,6 +447,46 @@ class DcLoadFlowTest {
     }
 
     @Test
+    void outerLoopPhaseShiftersInSeriesTest() throws IOException {
+        // PS1 and PS2 are in series and control the same flow: initially 50 MW, target 76 MW (+/- 2 MW)
+        Network network = PhaseControlFactory.createWithTwoT2wtInSeriesActivePowerControl(76);
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+        TwoWindingsTransformer ps2 = network.getTwoWindingsTransformer("PS2");
+        parameters.setPhaseShifterRegulationOn(true);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+
+        // Each phase shifter alone would shift 2 taps to reach the target. Not accounting for the influence of the other
+        // phase shifter, both would move and overshoot to about 100 MW.
+        // Accounting for it, only one phase shifter moves and target is reached.
+        assertEquals(12, ps1.getPhaseTapChanger().getSolvedTapPosition());
+        assertEquals(10, ps2.getPhaseTapChanger().getSolvedTapPosition());
+        assertActivePowerEquals(75.203, ps1.getTerminal1());
+        assertActivePowerEquals(75.203, ps2.getTerminal1());
+
+        assertTxtReportEquals("""
+                + Test Report
+                   + Load flow on network 'two-phase-tap-changers-test'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 3 buses and 4 branches
+                            Network balance: active generation=100 MW, active load=100 MW, reactive generation=0 MVar, reactive load=50 MVar
+                            Angle reference bus: VL1_0
+                            Slack bus: VL1_0
+                         + Outer loop IncrementalPhaseControl
+                            + Outer loop iteration 1
+                               + 1 active power control PST(s) changed taps
+                                  Transformer PS1 changed tap position from 10 to 12
+                         DC load flow completed (solverSuccess=true, outerloopStatus=STABLE)
+                """, reportNode);
+    }
+
+    @Test
     void multipleOuterLoopsTest() throws IOException {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithPhaseShifter();
         Line l1 = network.getLine("L1");
@@ -491,7 +531,10 @@ class DcLoadFlowTest {
                         Network balance: active generation=140 MW, active load=140 MW, reactive generation=0 MVar, reactive load=55 MVar
                         Angle reference bus: VL1_0
                         Slack bus: VL1_0
-                     Outer loop IncrementalPhaseControl
+                     + Outer loop IncrementalPhaseControl
+                        + Outer loop iteration 1
+                           + 1 active power control PST(s) changed taps
+                              Transformer PS1 changed tap position from 1 to 2
                      + Outer loop AreaInterchangeControl
                         + Outer loop iteration 2
                            Area A1 interchange mismatch (19.996807 MW) distributed in 1 distribution iteration(s)
@@ -574,6 +617,9 @@ class DcLoadFlowTest {
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
                          + Outer loop IncrementalPhaseControl
+                            + Outer loop iteration 1
+                               + 1 active power control PST(s) changed taps
+                                  Transformer PS1 changed tap position from 1 to 2
                             Outer loop unsuccessful with status: UNSTABLE
                          Maximum number of outerloop iterations reached: 1
                          DC load flow completed (solverSuccess=true, outerloopStatus=UNSTABLE)
