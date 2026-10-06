@@ -53,6 +53,20 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
     }
 
     /**
+     * Deep copy constructor (see {@link LfNetworkCopier}). Buses must be the copied ones; the
+     * converter registers itself on the copied AC bus, like the loading constructor does.
+     */
+    private LfVoltageSourceConverterImpl(LfVoltageSourceConverterImpl other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
+        super(other, network, dcBus1, dcBus2, bus1);
+        bus1.addConverter(this);
+        this.converterRef = other.converterRef;
+        this.isVoltageRegulatorOn = other.isVoltageRegulatorOn;
+        this.targetQ = other.targetQ;
+        this.targetVac = other.targetVac;
+        this.droopBands = other.droopBands;
+    }
+
+    /**
      * Precompute the per-band droop reference points in per unit. The droop curve gives, per DC-voltage band, a
      * coefficient {@code k} that is the slope of {@code U_dc} versus {@code P}
      * (see {@link com.powsybl.openloadflow.ac.equations.dcnetwork.ConverterDroopEquationTerm}).
@@ -128,19 +142,6 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
             }
         }
         return segments.size() - 1;
-    }
-
-    /**
-     * Deep copy constructor (see {@link LfNetworkCopier}). Buses must be the copied ones; the
-     * converter registers itself on the copied AC bus, like the loading constructor does.
-     */
-    private LfVoltageSourceConverterImpl(LfVoltageSourceConverterImpl other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
-        super(other, network, dcBus1, dcBus2, bus1);
-        bus1.addConverter(this);
-        this.converterRef = other.converterRef;
-        this.isVoltageRegulatorOn = other.isVoltageRegulatorOn;
-        this.targetQ = other.targetQ;
-        this.targetVac = other.targetVac;
     }
 
     @Override
