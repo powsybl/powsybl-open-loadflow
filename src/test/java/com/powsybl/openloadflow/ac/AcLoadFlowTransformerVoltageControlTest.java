@@ -11,6 +11,7 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -974,11 +975,13 @@ class AcLoadFlowTransformerVoltageControlTest {
         selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
 
         t3wt.getLeg2().getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
-                .setTapPosition(0)
-                .setRegulationTerminal(t3wt.getLeg2().getTerminal())
-                .setTargetV(28.);
+                .newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withTargetValue(28.)
+                .withTargetDeadband(0)
+                .withRegulating(true)
+                .withTerminal(t3wt.getLeg2().getTerminal())
+                .build();
 
         parameters.setTransformerVoltageControlOn(true);
         parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
