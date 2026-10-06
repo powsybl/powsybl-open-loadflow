@@ -110,3 +110,97 @@ Currently, computations involving zero-impedance branches used as boundary branc
 However, it is still possible to submit network models that include zero-impedance boundary branches.<br>
 If a terminal of a zero-impedance branch is designated as a boundary, Open LoadFlow will internally assign the branch
 an impedance value equal to the [`lowImpedanceThreshold`](../loadflow/parameters.md#lowimpedancethreshold) parameter.
+
+## Incremental outer loops
+
+Incremental outer loops adjust discrete controllers (shunt compensator sections, ratio and phase tap changer positions)
+step by step, the controllers always staying at one of their discrete positions:
+- `IncrementalShuntVoltageControl`: shunt compensators controlling a bus voltage, used when [parameter `shuntVoltageControlMode`](../loadflow/parameters.md#shuntvoltagecontrolmode) is `INCREMENTAL_VOLTAGE_CONTROL`.
+- `IncrementalTransformerVoltageControl`: ratio tap changers controlling a bus voltage, used when [parameter `transformerVoltageControlMode`](../loadflow/parameters.md#transformervoltagecontrolmode) is `INCREMENTAL_VOLTAGE_CONTROL`.
+- `IncrementalPhaseControl`: phase tap changers controlling an active power flow or limiting a current, used when [parameter `phaseShifterControlMode`](../loadflow/parameters.md#phaseshiftercontrolmode) is `INCREMENTAL`, and always in DC.
+- `IncrementalTransformerReactivePowerControl`: ratio tap changers controlling a reactive power flow (see [parameter `transformerReactivePowerControl`](../loadflow/parameters.md#transformerreactivepowercontrol)).
+
+### Incremental outer loops - principle
+
+The controlled values are not part of the equation system: the Newton-Raphson is solved with the controllers at their current position.
+Then, at each outer loop iteration:
+1. The controlled elements outside of their target deadband are identified.
+2. The sensitivities of the controlled values to the controller values (susceptance, ratio or phase shift) are computed
+   from the Jacobian matrix of the last Newton-Raphson resolution.
+3. From the mismatch to the target and the sensitivity, the required change of each controller value is estimated, and
+   the controller is moved to the discrete position whose value is the closest to the estimated one.
+4. If at least one controller has moved, the outer loop is unstable and a new Newton-Raphson is triggered.
+
+The outer loop is stable when all controlled values are within their deadband, or when no move can improve them anymore
+(for instance because controllers are at their limits).
+
+A controlled value is considered within its deadband when its distance to the target is lower than half of the target deadband.
+When no deadband is given, a minimal one is used: 0.1 kV for voltage controls, 0.1 MVar for reactive power controls and
+1 MW for active power controls.
+
+To avoid oscillations, the number of direction changes of each controller is limited: after 3 direction changes, a controller
+can only move again in the direction of its last move.
+
+### Combined influence of controllers
+
+When several controlled elements are close to each other (shunts on nearby buses, transformers feeding buses tied by a short line,
+phase shifters in series...), moving a controller also changes the values controlled by the others.
+If each controller corrected its own mismatch independently of the others, they would together overshoot their targets,
+then possibly oscillate until the maximum number of direction changes is reached, and end far from their targets.
+
+To avoid this, the shunt voltage control, transformer voltage control and phase shifter active power control incremental outer loops
+predict, within an outer loop iteration, the effect of the decided moves on all the controlled values of the outer loop:
+- The mismatches of all the controlled elements (whether within their deadband or not) are initialized from the last Newton-Raphson resolution.
+- Moves are decided one after the other. A move is evaluated on all the controlled elements, using the sensitivities of the
+  moved controller to each of them, and is accepted only if it reduces the sum of the squared mismatches exceeding the deadbands.
+  Otherwise, the controller is set back to its previous position.
+- Each accepted move updates the predicted mismatches, so that the following controllers only correct what remains.
+- Controlled elements are handled by decreasing mismatch exceeding their deadband: the most deviating elements are adjusted first.
+
+As the prediction relies on sensitivities, it is a linearization: the remaining error, if any, is corrected at the next outer loop iteration.
+
+The transformer reactive power control incremental outer loop does not use this prediction: each transformer corrects
+its own mismatch independently of the others.
+
+### Shunt voltage control
+
+The shunt compensators controlling the same bus are adjusted in successive passes within the same outer loop iteration:
+at each pass, each shunt compensator, from the one with the largest susceptance range to the smallest, can change by one section.
+Passes are repeated until the bus voltage is predicted within its deadband or no shunt compensator can improve it anymore.
+The number of sections a shunt compensator can change in a single outer loop iteration is limited by
+[parameter `incrementalShuntControlOuterLoopMaxSectionShift`](../loadflow/parameters.md#incrementalshuntcontrolouterloopmaxsectionshift).
+
+### Transformer voltage control
+
+When a single transformer controls a bus, it can change up to
+[parameter `incrementalTransformerRatioTapControlOuterLoopMaxTapShift`](../loadflow/parameters.md#incrementaltransformerratiotapcontrolouterloopmaxtapshift)
+taps in a single outer loop iteration.
+
+When several transformers control the same bus, they are adjusted in successive passes within the same outer loop iteration:
+at each pass, each transformer can change by one tap. Passes are repeated until the bus voltage is predicted within its
+deadband or no transformer can improve it anymore, so that the tap changes are distributed among all the transformers.
+In this case, the number of taps changed in a single outer loop iteration is not limited by
+[parameter `incrementalTransformerRatioTapControlOuterLoopMaxTapShift`](../loadflow/parameters.md#incrementaltransformerratiotapcontrolouterloopmaxtapshift).
+
+Transformers whose ratio has almost no influence on the controlled voltage (sensitivity of the voltage to the ratio lower than 0.05 per unit)
+are not adjusted. This status is kept for the following iterations, and reset when another outer loop has run in between
+(for instance after a generator has reached a reactive limit).
+
+### Transformer reactive power control
+
+Only one transformer can control the reactive power of a branch: if several transformers control the same branch, only
+the first one is kept, the others being ignored (they keep their initial tap position).
+The controlling transformer can change up to
+[parameter `incrementalTransformerRatioTapControlOuterLoopMaxTapShift`](../loadflow/parameters.md#incrementaltransformerratiotapcontrolouterloopmaxtapshift)
+taps in a single outer loop iteration, to bring the reactive power flow at the controlled side of the branch within its deadband.
+If a generator also controls the reactive power flow of the same branch, the generator target is used.
+
+### Phase shifter control
+
+Phase shifters controlling an active power flow (active power control mode) are moved to the tap whose phase shift is the
+closest to the estimated one, without limitation of the number of taps changed in a single outer loop iteration.
+This applies to both AC and DC load flows.
+
+Phase shifters limiting the current of their own branch (current limiter mode, AC only) are only adjusted when the current
+is above the limit: the tap is then shifted until the estimated current is below the limit, the limit being a one-sided
+constraint. These phase shifters are not part of the combined influence prediction.
