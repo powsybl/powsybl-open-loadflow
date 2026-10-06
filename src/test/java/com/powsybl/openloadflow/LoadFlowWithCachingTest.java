@@ -413,6 +413,34 @@ class LoadFlowWithCachingTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
     }
 
+    @ParameterizedTest(name = "isDc : {0}, type : {1}")
+    @MethodSource("allModelAndHvdcTypes")
+    void testHvdcActivePowerSetpointWithBothStationsInSameComponent(boolean isDc, HvdcConverterStation.HvdcType type) {
+        // both converter stations are in the same synchronous component, so the same LfNetwork is updated twice
+        parameters.setDc(isDc)
+                .setHvdcAcEmulation(false);
+        Network network = HvdcNetworkFactory.createHvdcLinkedByTwoLinesAndSwitch(type);
+        HvdcLine hvdcLine = network.getHvdcLine("hvdc23");
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
+
+        hvdcLine.setActivePowerSetpoint(100); // must not throw and must keep the cache
+        assertNotNull(findEntryFunction.apply(network, isDc).getValues());
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertActivePowerEquals(100.0, hvdcLine.getConverterStation2().getTerminal()); // rectifier (SIDE_1_INVERTER_SIDE_2_RECTIFIER)
+    }
+
+    static Stream<Arguments> allModelAndHvdcTypes() {
+        return Stream.of(
+                Arguments.of(true, HvdcConverterStation.HvdcType.LCC),
+                Arguments.of(true, HvdcConverterStation.HvdcType.VSC),
+                Arguments.of(false, HvdcConverterStation.HvdcType.LCC),
+                Arguments.of(false, HvdcConverterStation.HvdcType.VSC)
+        );
+    }
+
     @Test
     void testUnsupportedACEmulationUpdate() {
         Network network = HvdcNetworkFactory.createVsc(true);

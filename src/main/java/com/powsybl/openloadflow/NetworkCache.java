@@ -29,6 +29,8 @@ import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -702,7 +704,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             }
 
             // Merging two values (that can be in two different LfNetworks) in one CacheUpdateResult
-            return CacheUpdateResult.multipleElementsUpdated(Set.of(result1.values.iterator().next(), result2.values.iterator().next()));
+            return CacheUpdateResult.multipleElementsUpdated(Stream.concat(result1.values.stream(), result2.values.stream()).collect(Collectors.toSet()));
         }
 
         private CacheUpdateResult<V> onHvdcLineWithVscActiveSetpointUpdate(HvdcLine hvdcLine, String attribute, Object oldValue, Object newValue) {
@@ -739,7 +741,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             }
 
             // Merging two values (that can be in two different LfNetworks) in one CacheUpdateResult
-            return CacheUpdateResult.multipleElementsUpdated(Set.of(result1.values.iterator().next(), result2.values.iterator().next()));
+            return CacheUpdateResult.multipleElementsUpdated(Stream.concat(result1.values.stream(), result2.values.stream()).collect(Collectors.toSet()));
         }
 
         private CacheUpdateResult<V> onHvdcLineUpdate(HvdcLine hvdcLine, String attribute, Object oldValue, Object newValue) {
