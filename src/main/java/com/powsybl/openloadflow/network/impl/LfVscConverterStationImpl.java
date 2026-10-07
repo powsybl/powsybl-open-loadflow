@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.VscConverterStation;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -37,8 +38,8 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         this.lossFactor = station.getLossFactor();
 
         // local control only
-        if (station.isVoltageRegulatorOn()) {
-            setVoltageControl(station.getVoltageSetpoint(), station.getTerminal(), station.getRegulatingTerminal(), parameters, report);
+        if (station.isRegulatingWithMode(RegulationMode.VOLTAGE)) {
+            setVoltageControl(station.getRegulatingTargetV(), station.getTerminal(), station.getRegulatingTerminal(), parameters, report);
         }
     }
 
@@ -113,7 +114,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     @Override
     public double getTargetQ() {
-        return Networks.zeroIfNan(getStation().getReactivePowerSetpoint()) / PerUnit.SB;
+        return Networks.zeroIfNan(getStation().getLocalTargetQ()) / PerUnit.SB;
     }
 
     @Override

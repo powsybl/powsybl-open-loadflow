@@ -21,6 +21,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -121,7 +122,8 @@ public abstract class AbstractOpenSecurityAnalysisTest {
     }
 
     protected LoadFlowResult runLoadFlow(Network network, LoadFlowParameters parameters) {
-        return loadFlowProvider.run(network, computationManager, network.getVariantManager().getWorkingVariantId(), parameters, ReportNode.NO_OP)
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setComputationManager(computationManager).setParameters(parameters);
+        return loadFlowProvider.run(network, network.getVariantManager().getWorkingVariantId(), runParameters)
                 .join();
     }
 

@@ -444,8 +444,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     static boolean checkVoltageControl(ShuntCompensator shuntCompensator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         double nominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
-        double targetV = shuntCompensator.getTargetV();
-        if (!shuntCompensator.isVoltageRegulatorOn()) {
+        double targetV = shuntCompensator.getRegulatingTargetV();
+        if (!shuntCompensator.isRegulating()) {
             return false;
         }
         if (!VoltageControl.checkTargetV(targetV / nominalV, nominalV, parameters)) {

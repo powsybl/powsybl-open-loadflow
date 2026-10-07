@@ -85,8 +85,11 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .setMinP(0)
                 .setMaxP(2 * p)
                 .setTargetP(p)
-                .setTargetV(v)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(v)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
                 .add();
         g.getTerminal().setP(-p).setQ(0);
         return g;
@@ -229,9 +232,12 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .setId(id)
             .setConnectableBus(b.getId())
             .setBus(b.getId())
-            .setVoltageRegulatorOn(true)
-            .setVoltageSetpoint(voltageSetpoint)
-            .setReactivePowerSetpoint(reactivePowerSetpoint)
+            .setLocalTargetV(voltageSetpoint)
+            .setLocalTargetQ(reactivePowerSetpoint)
+            .newVoltageRegulation()
+                .withRegulating(true)
+                .withMode(RegulationMode.VOLTAGE)
+                .add()
             .setLossFactor(1.1f)
             .add();
     }
@@ -303,9 +309,12 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .setControlMode(mode)
             .setTargetP(targetP)
             .setTargetVdc(targetVdc)
-            .setVoltageRegulatorOn(voltageRegulatorOn)
-            .setVoltageSetpoint(targetVac)
-            .setReactivePowerSetpoint(targetQ)
+            .setLocalTargetV(targetVac)
+            .setLocalTargetQ(targetQ)
+            .newVoltageRegulation()
+                .withRegulating(voltageRegulatorOn)
+                .withMode(RegulationMode.VOLTAGE)
+                .add()
             .add();
     }
 
@@ -343,10 +352,13 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .endSection()
             .add()
             .add();
-        sh.setTargetV(v)
-            .setRegulatingTerminal(sh.getTerminal())
-            .setTargetDeadband(0.0)
-            .setVoltageRegulatorOn(voltageControl);
+        sh.newVoltageRegulation()
+                .withRegulating(voltageControl)
+                .withMode(RegulationMode.VOLTAGE)
+                .withTargetValue(v)
+                .withTargetDeadband(0.0)
+                .withTerminal(sh.getTerminal())
+                .build();
         return sh;
     }
 
@@ -359,15 +371,13 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .setConnectableBus(bus.getId())
             .setBmin(-1.0)
             .setBmax(1.0)
-            .setRegulating(false)
-            .setRegulationMode(RegulationMode.VOLTAGE)
+            .setLocalTargetV(vSetpoint)
+            .setLocalTargetQ(qSetpoint)
+            .newVoltageRegulation()
+                .withMode(regulationMode)
+                .withRegulating(true)
+                .add()
             .add();
-        svc.setRegulatingTerminal(svc.getTerminal())
-            .setVoltageSetpoint(vSetpoint)
-            .setReactivePowerSetpoint(qSetpoint)
-            .setRegulationMode(regulationMode)
-            .setRegulating(true);
-
         return svc;
     }
 }
