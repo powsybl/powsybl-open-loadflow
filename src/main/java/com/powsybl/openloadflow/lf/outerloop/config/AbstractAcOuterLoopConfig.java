@@ -106,11 +106,22 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
                                                                                     OpenLoadFlowParameters.TransformerVoltageControlMode controlMode,
                                                                                     int incrementalTransformerVoltageControlOuterLoopMaxTapShift,
                                                                                     double generatorVoltageControlMinNominalVoltage) {
+        return createTransformerVoltageControlOuterLoop(parameters, useInitialTapPosition, controlMode, incrementalTransformerVoltageControlOuterLoopMaxTapShift,
+                                                        generatorVoltageControlMinNominalVoltage, OpenLoadFlowParameters.INCREMENTAL_CONTROL_INTERACTION_SCOPE_DEFAULT_VALUE);
+    }
+
+    protected static Optional<AcOuterLoop> createTransformerVoltageControlOuterLoop(LoadFlowParameters parameters,
+                                                                                    boolean useInitialTapPosition,
+                                                                                    OpenLoadFlowParameters.TransformerVoltageControlMode controlMode,
+                                                                                    int incrementalTransformerVoltageControlOuterLoopMaxTapShift,
+                                                                                    double generatorVoltageControlMinNominalVoltage,
+                                                                                    OpenLoadFlowParameters.IncrementalControlInteractionScope incrementalControlInteractionScope) {
         if (parameters.isTransformerVoltageControlOn()) {
             AcOuterLoop outerLoop = switch (controlMode) {
                 case WITH_GENERATOR_VOLTAGE_CONTROL -> new SimpleTransformerVoltageControlOuterLoop();
                 case AFTER_GENERATOR_VOLTAGE_CONTROL -> new TransformerVoltageControlOuterLoop(useInitialTapPosition, generatorVoltageControlMinNominalVoltage);
-                case INCREMENTAL_VOLTAGE_CONTROL -> new IncrementalTransformerVoltageControlOuterLoop(incrementalTransformerVoltageControlOuterLoopMaxTapShift);
+                case INCREMENTAL_VOLTAGE_CONTROL -> new IncrementalTransformerVoltageControlOuterLoop(incrementalTransformerVoltageControlOuterLoopMaxTapShift,
+                                                                                                      incrementalControlInteractionScope);
             };
             return Optional.of(outerLoop);
         }
@@ -122,7 +133,8 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
                                                         parametersExt.isTransformerVoltageControlUseInitialTapPosition(),
                                                         parametersExt.getTransformerVoltageControlMode(),
                                                         parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift(),
-                                                        parametersExt.getGeneratorVoltageControlMinNominalVoltage());
+                                                        parametersExt.getGeneratorVoltageControlMinNominalVoltage(),
+                                                        parametersExt.getIncrementalControlInteractionScope());
     }
 
     protected static Optional<AcOuterLoop> createTransformerReactivePowerControlOuterLoop(OpenLoadFlowParameters parametersExt) {
@@ -133,10 +145,15 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     }
 
     protected static Optional<AcOuterLoop> createShuntVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.ShuntVoltageControlMode controlMode, int maxSectionShift) {
+        return createShuntVoltageControlOuterLoop(parameters, controlMode, maxSectionShift, OpenLoadFlowParameters.INCREMENTAL_CONTROL_INTERACTION_SCOPE_DEFAULT_VALUE);
+    }
+
+    protected static Optional<AcOuterLoop> createShuntVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.ShuntVoltageControlMode controlMode, int maxSectionShift,
+                                                                              OpenLoadFlowParameters.IncrementalControlInteractionScope incrementalControlInteractionScope) {
         if (parameters.isShuntCompensatorVoltageControlOn()) {
             AcOuterLoop outerLoop = switch (controlMode) {
                 case WITH_GENERATOR_VOLTAGE_CONTROL -> new ShuntVoltageControlOuterLoop();
-                case INCREMENTAL_VOLTAGE_CONTROL -> new IncrementalShuntVoltageControlOuterLoop(maxSectionShift);
+                case INCREMENTAL_VOLTAGE_CONTROL -> new IncrementalShuntVoltageControlOuterLoop(maxSectionShift, incrementalControlInteractionScope);
             };
             return Optional.of(outerLoop);
         }
@@ -144,14 +161,20 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     }
 
     protected static Optional<AcOuterLoop> createShuntVoltageControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        return createShuntVoltageControlOuterLoop(parameters, parametersExt.getShuntVoltageControlMode(), parametersExt.getIncrementalShuntControlOuterLoopMaxSectionShift());
+        return createShuntVoltageControlOuterLoop(parameters, parametersExt.getShuntVoltageControlMode(), parametersExt.getIncrementalShuntControlOuterLoopMaxSectionShift(),
+                                                  parametersExt.getIncrementalControlInteractionScope());
     }
 
     protected static Optional<AcOuterLoop> createPhaseControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.PhaseShifterControlMode controlMode) {
+        return createPhaseControlOuterLoop(parameters, controlMode, OpenLoadFlowParameters.INCREMENTAL_CONTROL_INTERACTION_SCOPE_DEFAULT_VALUE);
+    }
+
+    protected static Optional<AcOuterLoop> createPhaseControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters.PhaseShifterControlMode controlMode,
+                                                                       OpenLoadFlowParameters.IncrementalControlInteractionScope incrementalControlInteractionScope) {
         if (parameters.isPhaseShifterRegulationOn()) {
             AcOuterLoop outerLoop = switch (controlMode) {
                 case CONTINUOUS_WITH_DISCRETISATION -> new PhaseControlOuterLoop();
-                case INCREMENTAL -> new AcIncrementalPhaseControlOuterLoop();
+                case INCREMENTAL -> new AcIncrementalPhaseControlOuterLoop(incrementalControlInteractionScope);
             };
             return Optional.of(outerLoop);
         }
@@ -159,7 +182,7 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     }
 
     protected static Optional<AcOuterLoop> createPhaseControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt) {
-        return createPhaseControlOuterLoop(parameters, parametersExt.getPhaseShifterControlMode());
+        return createPhaseControlOuterLoop(parameters, parametersExt.getPhaseShifterControlMode(), parametersExt.getIncrementalControlInteractionScope());
     }
 
     protected static Optional<AcOuterLoop> createAutomationSystemOuterLoop(OpenLoadFlowParameters parametersExt) {

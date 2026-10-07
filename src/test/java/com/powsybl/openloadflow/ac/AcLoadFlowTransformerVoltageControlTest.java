@@ -480,7 +480,8 @@ class AcLoadFlowTransformerVoltageControlTest {
         TwoWindingsTransformer t2 = network.getTwoWindingsTransformer("T2");
 
         parameters.setTransformerVoltageControlOn(true);
-        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL)
+                .setIncrementalControlInteractionScope(OpenLoadFlowParameters.IncrementalControlInteractionScope.ALL_CONTROLLED_ELEMENTS);
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
@@ -518,6 +519,35 @@ class AcLoadFlowTransformerVoltageControlTest {
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """, reportNode);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "ALL_CONTROLLED_ELEMENTS, 13, 10, 223.808, 223.287",
+        "SAME_CONTROLLED_ELEMENT, 20, 2, 223.958, 220.834"
+    })
+    void voltageControlParallelT2wtNearbyBusesConflictingTargetsTest(OpenLoadFlowParameters.IncrementalControlInteractionScope interactionScope,
+                                                                       int t1TapPosition, int t2TapPosition, double v3, double v4) {
+        // T1 and T2 control the voltage of their own 225 kV bus, both buses being tied by a short line:
+        // initially 220.09 kV, conflicting targets 225 kV (+/- 1 kV) for B3 and 221 kV (+/- 1 kV) for B4.
+        // Accounting for the interactions with all controlled elements, T2 does not decrease the voltage of B4 as it would
+        // increase B3 mismatch: neither bus reaches its target. Accounting only for the interactions of the controllers of
+        // a same controlled element, the transformers fight, T2 reaching B4 target but both taps being pushed apart.
+        Network network = VoltageControlNetworkFactory.createWithTwoParallelTransformersControllingNearbyBuses(225, 2);
+        TwoWindingsTransformer t1 = network.getTwoWindingsTransformer("T1");
+        TwoWindingsTransformer t2 = network.getTwoWindingsTransformer("T2");
+        t2.getRatioTapChanger().getVoltageRegulation().setTargetValue(221);
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL)
+                .setIncrementalControlInteractionScope(interactionScope);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertEquals(t1TapPosition, t1.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(t2TapPosition, t2.getRatioTapChanger().getSolvedTapPosition());
+        assertVoltageEquals(v3, network.getBusBreakerView().getBus("B3"));
+        assertVoltageEquals(v4, network.getBusBreakerView().getBus("B4"));
     }
 
     @Test

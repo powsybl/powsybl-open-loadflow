@@ -719,7 +719,8 @@ class AcLoadFlowShuntTest {
         Bus b5 = network.getBusBreakerView().getBus("b5");
         parameters.setShuntCompensatorVoltageControlOn(true);
         parametersExt
-                .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+                .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL)
+                .setIncrementalControlInteractionScope(OpenLoadFlowParameters.IncrementalControlInteractionScope.ALL_CONTROLLED_ELEMENTS);
 
         // no shunt on voltage control
         s4.setVoltageRegulatorOn(false);
@@ -825,6 +826,27 @@ class AcLoadFlowShuntTest {
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """, reportNode);
+    }
+
+    @Test
+    void testMaxSectionShiftSameControlledElementInteractionScope() {
+        network = ShuntNetworkFactory.createTwinShuntCompensators();
+        ShuntCompensator s4 = network.getShuntCompensator("s4");
+        ShuntCompensator s5 = network.getShuntCompensator("s5");
+        Bus b4 = network.getBusBreakerView().getBus("b4");
+        Bus b5 = network.getBusBreakerView().getBus("b5");
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        parametersExt.setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL)
+                .setIncrementalControlInteractionScope(OpenLoadFlowParameters.IncrementalControlInteractionScope.SAME_CONTROLLED_ELEMENT);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        // each shunt does not account for the contribution of the other shunt nearby: both overshoot to 9 sections
+        // before coming back to 8 sections
+        assertEquals(8, s4.getSolvedSectionCount());
+        assertVoltageEquals(409.453248, b4); // at target within deadband (410 kV +/- 2 kV)
+        assertEquals(8, s5.getSolvedSectionCount());
+        assertVoltageEquals(409.453248, b5); // at target within deadband (410 kV +/- 2 kV)
     }
 
     @Test

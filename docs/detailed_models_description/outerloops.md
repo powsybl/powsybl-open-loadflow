@@ -121,7 +121,7 @@ The `IncrementalPhaseControl` outer loop adjusts phase tap changers step by step
 Phase shifters controlling an active power flow (active power control mode) are moved to the tap whose phase shift is the
 closest to the estimated one, without limitation of the number of taps changed in a single outer loop iteration.
 This applies to both AC and DC load flows. The [combined influence](#combined-influence-of-controllers) of these phase shifters
-is taken into account.
+is taken into account, depending on [parameter `incrementalControlInteractionScope`](../loadflow/parameters.md#incrementalcontrolinteractionscope).
 
 Phase shifters limiting the current of their own branch (current limiter mode, AC only) are only adjusted when the current
 is above the limit: the tap is then shifted until the estimated current is below the limit, the limit being a one-sided
@@ -132,7 +132,7 @@ constraint. These phase shifters are not part of the [combined influence](#combi
 The `IncrementalShuntVoltageControl` outer loop adjusts shunt compensator sections step by step, following the
 [incremental outer loops principle](#incremental-outer-loops-principle). It is used when
 [parameter `shuntVoltageControlMode`](../loadflow/parameters.md#shuntvoltagecontrolmode) is `INCREMENTAL_VOLTAGE_CONTROL`.
-The [combined influence](#combined-influence-of-controllers) of the shunt compensators is taken into account.
+The [combined influence](#combined-influence-of-controllers) of the shunt compensators is taken into account, depending on [parameter `incrementalControlInteractionScope`](../loadflow/parameters.md#incrementalcontrolinteractionscope).
 
 The shunt compensators controlling the same bus are adjusted in successive passes within the same outer loop iteration:
 at each pass, each shunt compensator, from the one with the largest susceptance range to the smallest, can change by one section.
@@ -145,7 +145,7 @@ The number of sections a shunt compensator can change in a single outer loop ite
 The `IncrementalTransformerVoltageControl` outer loop adjusts ratio tap changers controlling a bus voltage step by step,
 following the [incremental outer loops principle](#incremental-outer-loops-principle). It is used when
 [parameter `transformerVoltageControlMode`](../loadflow/parameters.md#transformervoltagecontrolmode) is `INCREMENTAL_VOLTAGE_CONTROL`.
-The [combined influence](#combined-influence-of-controllers) of the transformers is taken into account.
+The [combined influence](#combined-influence-of-controllers) of the transformers is taken into account, depending on [parameter `incrementalControlInteractionScope`](../loadflow/parameters.md#incrementalcontrolinteractionscope).
 
 When a single transformer controls a bus, it can change up to
 [parameter `incrementalTransformerRatioTapControlOuterLoopMaxTapShift`](../loadflow/parameters.md#incrementaltransformerratiotapcontrolouterloopmaxtapshift)
@@ -219,8 +219,10 @@ phase shifters in series...), moving a controller also changes the values contro
 If each controller corrected its own mismatch independently of the others, they would together overshoot their targets,
 then possibly oscillate until the maximum number of direction changes is reached, and end far from their targets.
 
-To avoid this, the incremental phase shifter control (active power control mode), shunt voltage control and transformer voltage
-control outer loops predict, within an outer loop iteration, the effect of the decided moves on all the controlled values of the outer loop:
+To avoid this, when [parameter `incrementalControlInteractionScope`](../loadflow/parameters.md#incrementalcontrolinteractionscope)
+is `ALL_CONTROLLED_ELEMENTS` (the default), the incremental phase shifter control (active power control mode), shunt voltage control
+and transformer voltage control outer loops predict, within an outer loop iteration, the effect of the decided moves on all the
+controlled values of the outer loop:
 - The mismatches of all the controlled elements (whether within their deadband or not) are initialized from the last Newton-Raphson resolution.
 - Moves are decided one after the other. A move is evaluated on all the controlled elements, using the sensitivities of the
   moved controller to each of them, and is accepted only if it reduces the following objective, i.e. the sum of the
@@ -244,3 +246,11 @@ Each phase shifter alone needs 2 steps to reach the target:
   They then move back and forth until the maximum number of direction changes is reached, ending at about 105 MW.
 - Accounting for it, once the first phase shifter has moved by 2 steps, the flow is predicted within its deadband and the
   second one does not move: the flow is about 78 MW after a single outer loop iteration.
+
+As a move is only accepted if it reduces the mismatches of all the controlled elements, a controller may not reach its own
+target when this would worsen another controlled element, for instance when nearby controlled elements have conflicting targets:
+the controlled values then end at a compromise, possibly outside of their deadbands.
+When [parameter `incrementalControlInteractionScope`](../loadflow/parameters.md#incrementalcontrolinteractionscope) is
+`SAME_CONTROLLED_ELEMENT`, a move is only evaluated on its own controlled element, and only the moves of the other controllers
+of the same controlled element are accounted for: each controller tries to reach its own target, at the risk of the overshoots
+and oscillations described above.

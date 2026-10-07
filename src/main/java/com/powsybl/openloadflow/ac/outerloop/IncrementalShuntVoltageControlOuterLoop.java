@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
@@ -32,6 +33,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 /**
@@ -54,8 +56,15 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
 
     private final int maxSectionShift;
 
+    private final OpenLoadFlowParameters.IncrementalControlInteractionScope interactionScope;
+
     public IncrementalShuntVoltageControlOuterLoop(int maxSectionShift) {
+        this(maxSectionShift, OpenLoadFlowParameters.INCREMENTAL_CONTROL_INTERACTION_SCOPE_DEFAULT_VALUE);
+    }
+
+    public IncrementalShuntVoltageControlOuterLoop(int maxSectionShift, OpenLoadFlowParameters.IncrementalControlInteractionScope interactionScope) {
         this.maxSectionShift = maxSectionShift;
+        this.interactionScope = Objects.requireNonNull(interactionScope);
     }
 
     @Override
@@ -174,7 +183,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
                             Direction direction = controller.updateSectionB(deltaB, 1, controllerContext.getAllowedDirection()).orElse(null);
                             if (direction != null) {
                                 double discreteDeltaB = controller.getB() - previousB;
-                                if (prediction.applyIfImproved(bus -> discreteDeltaB * sensitivityContext.calculateSensitivityFromBToV(controllerShunt, bus))) {
+                                if (prediction.applyIfImproved(controlledBus, bus -> discreteDeltaB * sensitivityContext.calculateSensitivityFromBToV(controllerShunt, bus))) {
                                     sectionShiftPerController.put(controller, sectionShift + 1);
                                     controllerContext.updateAllowedDirection(direction);
                                     hasChanged = true;
@@ -242,7 +251,8 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
         var prediction = new IncrementalContextData.MismatchPrediction<>(
                 IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), VoltageControl.Type.SHUNT),
                 (LfBus bus) -> getDiffV(bus.getShuntVoltageControl().orElseThrow()),
-                (LfBus bus) -> getHalfTargetDeadband(bus.getShuntVoltageControl().orElseThrow()));
+                (LfBus bus) -> getHalfTargetDeadband(bus.getShuntVoltageControl().orElseThrow()),
+                interactionScope);
 
         prediction.sortByDecreasingExcess(controlledBusesOutOfDeadband).forEach(controlledBus -> {
             ShuntVoltageControl voltageControl = controlledBus.getShuntVoltageControl().orElseThrow();

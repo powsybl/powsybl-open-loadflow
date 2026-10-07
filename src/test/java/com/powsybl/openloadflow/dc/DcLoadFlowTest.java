@@ -453,6 +453,7 @@ class DcLoadFlowTest {
         TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
         TwoWindingsTransformer ps2 = network.getTwoWindingsTransformer("PS2");
         parameters.setPhaseShifterRegulationOn(true);
+        parametersExt.setIncrementalControlInteractionScope(OpenLoadFlowParameters.IncrementalControlInteractionScope.ALL_CONTROLLED_ELEMENTS);
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
@@ -484,6 +485,25 @@ class DcLoadFlowTest {
                                   Transformer PS1 changed tap position from 10 to 12
                          DC load flow completed (solverSuccess=true, outerloopStatus=STABLE)
                 """, reportNode);
+    }
+
+    @Test
+    void outerLoopPhaseShiftersInSeriesSameControlledElementInteractionScopeTest() {
+        // PS1 and PS2 are in series and control the same flow: initially 50 MW, target 76 MW (+/- 2 MW)
+        Network network = PhaseControlFactory.createWithTwoT2wtInSeriesActivePowerControl(76);
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+        TwoWindingsTransformer ps2 = network.getTwoWindingsTransformer("PS2");
+        parameters.setPhaseShifterRegulationOn(true);
+        parametersExt.setIncrementalControlInteractionScope(OpenLoadFlowParameters.IncrementalControlInteractionScope.SAME_CONTROLLED_ELEMENT);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // each phase shifter does not account for the influence of the other one: both move and overshoot
+        assertEquals(12, ps1.getPhaseTapChanger().getSolvedTapPosition());
+        assertEquals(12, ps2.getPhaseTapChanger().getSolvedTapPosition());
+        assertActivePowerEquals(100.405, ps1.getTerminal1());
+        assertActivePowerEquals(100.405, ps2.getTerminal1());
     }
 
     @Test

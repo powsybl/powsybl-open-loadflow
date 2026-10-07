@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.lf.outerloop;
 
+import com.powsybl.openloadflow.OpenLoadFlowParameters.IncrementalControlInteractionScope;
 import com.powsybl.openloadflow.network.*;
 import org.apache.commons.lang3.mutable.MutableInt;
 
@@ -68,10 +69,14 @@ public class IncrementalContextData {
      * Discrete controller moves are decided one after the other, so a move is only accepted if, with the cross effects
      * of the moves already accepted in the same outer loop iteration, it reduces the mismatches outside of deadbands.
      * Otherwise, controllers controlling close elements would each correct their own mismatch and together overshoot.
+     * With {@link IncrementalControlInteractionScope#SAME_CONTROLLED_ELEMENT} scope, a move is only evaluated on, and
+     * only updates the prediction of, the controlled element it is done for.
      */
     public static final class MismatchPrediction<T> {
 
         private final List<T> elements;
+
+        private final IncrementalControlInteractionScope interactionScope;
 
         private final double[] mismatches;
 
@@ -79,8 +84,10 @@ public class IncrementalContextData {
 
         private final Map<T, Integer> indexes = new HashMap<>();
 
-        public MismatchPrediction(List<T> elements, ToDoubleFunction<T> mismatchGetter, ToDoubleFunction<T> halfDeadbandGetter) {
+        public MismatchPrediction(List<T> elements, ToDoubleFunction<T> mismatchGetter, ToDoubleFunction<T> halfDeadbandGetter,
+                                  IncrementalControlInteractionScope interactionScope) {
             this.elements = Objects.requireNonNull(elements);
+            this.interactionScope = Objects.requireNonNull(interactionScope);
             mismatches = new double[elements.size()];
             halfDeadbands = new double[elements.size()];
             for (int i = 0; i < elements.size(); i++) {
@@ -110,20 +117,34 @@ public class IncrementalContextData {
                     .toList();
         }
 
+        private double getSquaredExcess(double mismatch, int i) {
+            double excess = Math.max(0, Math.abs(mismatch) - halfDeadbands[i]);
+            return excess * excess;
+        }
+
         private double getObjective(double[] mismatches) {
             double objective = 0;
             for (int i = 0; i < mismatches.length; i++) {
-                double excess = Math.max(0, Math.abs(mismatches[i]) - halfDeadbands[i]);
-                objective += excess * excess;
+                objective += getSquaredExcess(mismatches[i], i);
             }
             return objective;
         }
 
         /**
+         * @param controlledElement the controlled element the move is done for
          * @param valueChange predicted change of each controlled element value caused by the move
          * @return true, and predicted mismatches are updated, if the move reduces the mismatches outside of deadbands
          */
-        public boolean applyIfImproved(ToDoubleFunction<T> valueChange) {
+        public boolean applyIfImproved(T controlledElement, ToDoubleFunction<T> valueChange) {
+            if (interactionScope == IncrementalControlInteractionScope.SAME_CONTROLLED_ELEMENT) {
+                int i = indexes.get(controlledElement);
+                double newMismatch = mismatches[i] - valueChange.applyAsDouble(controlledElement);
+                if (getSquaredExcess(newMismatch, i) < getSquaredExcess(mismatches[i], i)) {
+                    mismatches[i] = newMismatch;
+                    return true;
+                }
+                return false;
+            }
             double[] newMismatches = new double[mismatches.length];
             for (int i = 0; i < mismatches.length; i++) {
                 newMismatches[i] = mismatches[i] - valueChange.applyAsDouble(elements.get(i));

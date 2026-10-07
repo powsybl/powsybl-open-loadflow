@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.lf.outerloop;
 
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
@@ -41,8 +42,11 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
     public static final String NAME = "IncrementalPhaseControl";
     protected final Logger logger;
 
-    protected AbstractIncrementalPhaseControlOuterLoop(Logger logger) {
+    private final OpenLoadFlowParameters.IncrementalControlInteractionScope interactionScope;
+
+    protected AbstractIncrementalPhaseControlOuterLoop(Logger logger, OpenLoadFlowParameters.IncrementalControlInteractionScope interactionScope) {
         this.logger = Objects.requireNonNull(logger);
+        this.interactionScope = Objects.requireNonNull(interactionScope);
     }
 
     @Override
@@ -130,7 +134,8 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
 
         var prediction = new IncrementalContextData.MismatchPrediction<>(activePowerControlPhaseControls,
                 AbstractIncrementalPhaseControlOuterLoop::getActivePowerMismatch,
-                AbstractIncrementalPhaseControlOuterLoop::getHalfTargetDeadband);
+                AbstractIncrementalPhaseControlOuterLoop::getHalfTargetDeadband,
+                interactionScope);
 
         for (TransformerPhaseControl phaseControl : prediction.sortByDecreasingExcess(activePowerControlPhaseControls)) {
             LfBranch controllerBranch = phaseControl.getControllerBranch();
@@ -153,7 +158,7 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
                     Range<Integer> tapPositionRange = piModel.getTapPositionRange();
                     piModel.updateTapPositionToReachNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
                         double discreteDa = Math.toDegrees(piModel.getA1() - oldA1);
-                        if (prediction.applyIfImproved(otherPhaseControl -> discreteDa * sensitivityContext.calculateSensitivityFromA2P(controllerBranch,
+                        if (prediction.applyIfImproved(phaseControl, otherPhaseControl -> discreteDa * sensitivityContext.calculateSensitivityFromA2P(controllerBranch,
                                 otherPhaseControl.getControlledBranch(), otherPhaseControl.getControlledSide()))) {
                             controllerContext.updateAllowedDirection(direction);
                         } else {

@@ -659,7 +659,8 @@ class AcLoadFlowPhaseShifterTest {
         TwoWindingsTransformer ps2 = network.getTwoWindingsTransformer("PS2");
 
         parameters.setPhaseShifterRegulationOn(true);
-        parametersExt.setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
+        parametersExt.setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL)
+                .setIncrementalControlInteractionScope(OpenLoadFlowParameters.IncrementalControlInteractionScope.ALL_CONTROLLED_ELEMENTS);
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
@@ -692,6 +693,27 @@ class AcLoadFlowPhaseShifterTest {
                                   Transformer PS2 changed tap position from 10 to 12
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """, reportNode);
+    }
+
+    @Test
+    void incrementalPhaseShifterActivePowerControlInSeriesSameControlledElementInteractionScopeTest() {
+        // PS1 and PS2 are in series and control the same flow: initially 50 MW, target 76 MW (+/- 2 MW)
+        Network network = PhaseControlFactory.createWithTwoT2wtInSeriesActivePowerControl(76);
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+        TwoWindingsTransformer ps2 = network.getTwoWindingsTransformer("PS2");
+
+        parameters.setPhaseShifterRegulationOn(true);
+        parametersExt.setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL)
+                .setIncrementalControlInteractionScope(OpenLoadFlowParameters.IncrementalControlInteractionScope.SAME_CONTROLLED_ELEMENT);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // each phase shifter does not account for the influence of the other one: both move and overshoot, then oscillate
+        // until the maximum number of direction changes is reached
+        assertEquals(12, ps1.getPhaseTapChanger().getSolvedTapPosition());
+        assertEquals(12, ps2.getPhaseTapChanger().getSolvedTapPosition());
+        assertActivePowerEquals(105.220, ps1.getTerminal1());
+        assertActivePowerEquals(105.072, ps2.getTerminal1());
     }
 
     @Test

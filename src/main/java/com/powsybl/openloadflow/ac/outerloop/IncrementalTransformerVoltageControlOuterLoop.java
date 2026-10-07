@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
@@ -48,8 +49,15 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
 
     private final int maxTapShift;
 
+    private final OpenLoadFlowParameters.IncrementalControlInteractionScope interactionScope;
+
     public IncrementalTransformerVoltageControlOuterLoop(int maxTapShift) {
+        this(maxTapShift, OpenLoadFlowParameters.INCREMENTAL_CONTROL_INTERACTION_SCOPE_DEFAULT_VALUE);
+    }
+
+    public IncrementalTransformerVoltageControlOuterLoop(int maxTapShift, OpenLoadFlowParameters.IncrementalControlInteractionScope interactionScope) {
         this.maxTapShift = maxTapShift;
+        this.interactionScope = Objects.requireNonNull(interactionScope);
     }
 
     @Override
@@ -139,11 +147,11 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         return false;
     }
 
-    private static boolean applyIfImproved(LfBranch controllerBranch, int previousTapPosition, double previousR1,
+    private static boolean applyIfImproved(LfBranch controllerBranch, LfBus controlledBus, int previousTapPosition, double previousR1,
                                            SensitivityContext sensitivityContext, IncrementalContextData.MismatchPrediction<LfBus> prediction) {
         PiModel piModel = controllerBranch.getPiModel();
         double discreteDeltaR1 = piModel.getR1() - previousR1;
-        if (prediction.applyIfImproved(bus -> discreteDeltaR1 * sensitivityContext.calculateSensitivityFromRToV(controllerBranch, bus))) {
+        if (prediction.applyIfImproved(controlledBus, bus -> discreteDeltaR1 * sensitivityContext.calculateSensitivityFromRToV(controllerBranch, bus))) {
             return true;
         }
         LOGGER.trace("Controller branch '{}' is not adjusted because it would increase controlled voltages mismatches", controllerBranch.getId());
@@ -165,7 +173,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             return;
         }
         piModel.updateTapPositionToReachNewR1(deltaR1, maxTapShift, controllerContext.getAllowedDirection())
-                .filter(direction -> applyIfImproved(controllerBranch, previousTapPosition, previousR1, sensitivities, prediction))
+                .filter(direction -> applyIfImproved(controllerBranch, controlledBus, previousTapPosition, previousR1, sensitivities, prediction))
                 .ifPresent(direction -> {
                     controllerContext.updateAllowedDirection(direction);
                     Range<Integer> tapPositionRange = piModel.getTapPositionRange();
@@ -223,7 +231,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
             double previousR1 = piModel.getR1();
             double deltaR1 = remainingDiffV / sensitivity;
             piModel.updateTapPositionToReachNewR1(deltaR1, 1, controllerContext.getAllowedDirection())
-                    .filter(direction -> applyIfImproved(controllerBranch, previousTapPosition, previousR1, sensitivityContext, prediction))
+                    .filter(direction -> applyIfImproved(controllerBranch, controlledBus, previousTapPosition, previousR1, sensitivityContext, prediction))
                     .ifPresent(direction -> {
                         controllerContext.updateAllowedDirection(direction);
                         hasChanged.setValue(true);
@@ -309,7 +317,8 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         var prediction = new IncrementalContextData.MismatchPrediction<>(
                 IncrementalContextData.getControlledBuses(contextData.getCandidateControlledBuses(), VoltageControl.Type.TRANSFORMER),
                 (LfBus bus) -> getDiffV(bus.getTransformerVoltageControl().orElseThrow()),
-                (LfBus bus) -> getHalfTargetDeadband(bus.getTransformerVoltageControl().orElseThrow()));
+                (LfBus bus) -> getHalfTargetDeadband(bus.getTransformerVoltageControl().orElseThrow()),
+                interactionScope);
 
         prediction.sortByDecreasingExcess(controlledBusesOutOfDeadband).forEach(controlledBus -> checkAndAdjustControlledBus(controlledBus, contextData,
                 sensitivityContext, prediction, controllerBranchesAdjusted, controlledBusesWithAllItsControllersToLimit));
