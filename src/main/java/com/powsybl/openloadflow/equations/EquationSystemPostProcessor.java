@@ -7,18 +7,20 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import org.apache.commons.compress.utils.Lists;
+import com.powsybl.commons.util.ServiceLoaderCache;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.ServiceLoader;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public interface EquationSystemPostProcessor {
 
+    ServiceLoaderCache<EquationSystemPostProcessor> SERVICE_LOADER_CACHE = new ServiceLoaderCache<>(EquationSystemPostProcessor.class);
+
     static List<EquationSystemPostProcessor> findAll() {
-        return Lists.newArrayList(ServiceLoader.load(EquationSystemPostProcessor.class, EquationSystemPostProcessor.class.getClassLoader()).iterator());
+        return Collections.unmodifiableList(SERVICE_LOADER_CACHE.getServices());
     }
 
     void onCreate(EquationSystem<?, ?> equationSystem);
