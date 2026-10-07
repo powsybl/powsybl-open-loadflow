@@ -8,6 +8,9 @@
 package com.powsybl.openloadflow.reduction;
 
 
+import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
+
 import java.util.Set;
 
 /**
@@ -29,6 +32,81 @@ public class ReductionUtil {
 
     public static Set<String> getIEEE118BoundaryVlIds() {
         return Set.of("VL24", "VL37", "VL43", "VL65");
+    }
+
+    public static Network create4BusNetwork() {
+        Network network = NetworkFactory.findDefault().createNetwork("network", "test");
+
+        createSubstation(network, 1);
+        createSubstation(network, 2);
+        createSubstation(network, 3);
+        createSubstation(network, 4);
+
+        createGenerator(network, 1);
+        createLoad(network, 4);
+
+        createLine(network, 1, 2, 0.12, -1.2);
+        createLine(network, 1, 3, 0.13, -1.3);
+        createLine(network, 2, 3, 0.23, -2.3);
+        createLine(network, 2, 4, 0.24, -2.4);
+        createLine(network, 3, 4, 0.34, -3.4);
+
+        return network;
+    }
+
+    private static void createSubstation(Network network, int num) {
+        Substation substation1 = network.newSubstation()
+            .setId("ST" + num)
+            .add();
+        VoltageLevel voltageLevel1 = substation1.newVoltageLevel()
+            .setId("VL" + num)
+            .setNominalV(10.0)
+            .setTopologyKind(TopologyKind.BUS_BREAKER)
+            .add();
+        voltageLevel1.getBusBreakerView().newBus()
+            .setId("BUS" + num)
+            .add();
+    }
+
+    private static void createGenerator(Network network, int num) {
+        network.getVoltageLevel("VL" + num)
+            .newGenerator()
+            .setId("GEN" + num)
+            .setBus("BUS" + num)
+            .setTargetP(10.0)
+            .setMinP(0.0)
+            .setMaxP(200.0)
+            .setLocalTargetV(10.0)
+            .newVoltageRegulation()
+            .withMode(RegulationMode.VOLTAGE)
+            .add()
+            .add();
+    }
+
+    private static void createLoad(Network network, int num) {
+        network.getVoltageLevel("VL" + num).newLoad()
+            .setId("LOAD" + num)
+            .setBus("BUS" + num)
+            .setP0(10.0)
+            .setQ0(1.0)
+            .add();
+    }
+
+    private static void createLine(Network network, int from, int to, double g, double b) {
+        double ySquare = g * g + b * b;
+        network.newLine()
+            .setId("L-" + from + to)
+            .setR(g / ySquare)
+            .setX(-b / ySquare)
+            .setG1(0.0)
+            .setG2(0.0)
+            .setB1(0.0)
+            .setB2(0.0)
+            .setVoltageLevel1("VL" + from)
+            .setVoltageLevel2("VL" + to)
+            .setBus1("BUS" + from)
+            .setBus2("BUS" + to)
+            .add();
     }
 
 }

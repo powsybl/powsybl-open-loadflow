@@ -7,7 +7,18 @@
  */
 package com.powsybl.openloadflow.reduction;
 
+import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
+import com.powsybl.iidm.network.*;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.reduction.WardReductionParameters.ReductionType;
 import org.junit.jupiter.api.Test;
+
+import java.util.*;
+
+import static com.powsybl.openloadflow.reduction.ReductionUtil.create4BusNetwork;
+import static com.powsybl.openloadflow.reduction.ReductionUtil.getIEEE118InternalVlIds;
 
 /**
  * @author Romain Courtier {@literal <romain.courtier at rte-france.com>}
@@ -15,7 +26,35 @@ import org.junit.jupiter.api.Test;
 class WardEquivalentTest {
 
     @Test
-    void testWith3Nodes() {
+    void testWithIEEE118() {
+        Network network = IeeeCdfNetworkFactory.create118();
+        Set<String> internalVlIds = getIEEE118InternalVlIds();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParametersExt = OpenLoadFlowParameters.create(lfParameters);
 
+        WardReductionParameters parameters = new WardReductionParameters()
+            .setInternalVoltageLevelIds(internalVlIds)
+            .setLoadFlowParameters(lfParameters)
+            .setMatrixFactory(new DenseMatrixFactory())
+            .setReductionType(ReductionType.WARD_ADMITTANCE);
+
+        new WardEquivalent().reduce(network, parameters);
+    }
+
+    @Test
+    void testWith4BusNetwork() {
+        Network network = create4BusNetwork();
+
+        Set<String> internalVlIds = Set.of("VL1");
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParametersExt = OpenLoadFlowParameters.create(lfParameters);
+
+        WardReductionParameters parameters = new WardReductionParameters()
+            .setInternalVoltageLevelIds(internalVlIds)
+            .setLoadFlowParameters(lfParameters)
+            .setReductionType(ReductionType.WARD_ADMITTANCE);
+
+        new WardEquivalent().reduce(network, parameters);
     }
 }

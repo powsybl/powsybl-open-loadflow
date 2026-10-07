@@ -14,19 +14,13 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
-import com.powsybl.openloadflow.adm.AdmittanceEquationSystem;
-import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.adm.*;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
-import com.powsybl.openloadflow.reduction.WardReductionParameters.ReductionType;
-import com.powsybl.openloadflow.reduction.ZonesDecomposition.Zone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-
-import static com.powsybl.openloadflow.reduction.ZonesDecomposition.computeZones;
 
 /**
  * @author Romain Courtier {@literal <romain.courtier at rte-france.com>}
@@ -57,14 +51,14 @@ public class WardEquivalent {
         }
 
         // Compute internal, boundary and external zones
-        Map<LfBus, Zone> busToZone = computeZones(lfNetwork, wardParameters.getInternalVoltageLevelIds());
+        ZoneDecomposition zones = new ZoneDecomposition(lfNetwork, wardParameters.getInternalVoltageLevelIds());
 
-        // Create admittance matrix
-        createAdmittanceMatrix(lfNetwork, wardParameters.getReductionType());
+        // Create the ward admittance matrix
+        WardAdmittance wardAdmittance = new WardAdmittance(lfNetwork, zones, wardParameters.getReductionType(), wardParameters.getMatrixFactory());
+
+        // Reduce the network with equivalents
+        Reducer reducer = new Reducer(network, lfNetwork, zones, wardAdmittance);
+        reducer.reduce();
     }
 
-    private void createAdmittanceMatrix(LfNetwork lfNetwork, ReductionType reductionType) {
-        // Create branches
-        AdmittanceEquationSystem ySystem = AdmittanceEquationSystem.create(lfNetwork, new VariableSet<>());
-    }
 }
