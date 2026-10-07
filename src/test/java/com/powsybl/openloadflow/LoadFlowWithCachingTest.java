@@ -662,8 +662,7 @@ class LoadFlowWithCachingTest {
 
         // Unsupported change
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // cache has not been invalidated but updated
-        // TODO MSA powsybl-core setLocalTargetV method doesn't notify this event (need to be fix in core)
-        shunt.setTargetV(392);
+        shunt.setLocalTargetV(392);
         assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // cache has been invalidated but updated
     }
 

@@ -42,12 +42,11 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         super(converter, network, dcBus1, dcBus2, bus1, vdcOverride);
         bus1.addConverter(this);
         this.converterRef = Ref.create(converter, parameters.isCacheEnabled());
-        // TODO MSA to be checked by Sylvestre
         this.isVoltageRegulatorOn = converter.isRegulatingWithMode(RegulationMode.VOLTAGE);
         if (isVoltageRegulatorOn) {
-            this.targetVac = converter.getLocalTargetV() / bus1.getNominalV();
+            this.targetVac = converter.getRegulatingTargetV() / bus1.getNominalV();
         } else {
-            this.targetQ = converter.getLocalTargetQ() / PerUnit.SB;
+            this.targetQ = converter.getRegulatingTargetQ() / PerUnit.SB;
         }
         this.droopBands = getControlMode() == AcDcConverter.ControlMode.DC_DROOP
                 ? buildDroopBands(converter, getDcVoltageBase())

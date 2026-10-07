@@ -38,7 +38,6 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         this.lossFactor = station.getLossFactor();
 
         // local control only
-        // TODO MSA to be checked by Sylvestre
         if (station.isRegulatingWithMode(RegulationMode.VOLTAGE)) {
             setVoltageControl(station.getRegulatingTargetV(), station.getTerminal(), station.getRegulatingTerminal(), parameters, report);
         }
