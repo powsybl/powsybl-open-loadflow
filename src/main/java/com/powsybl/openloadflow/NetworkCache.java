@@ -786,7 +786,9 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
 
         private boolean skipUpdate(String variantId) {
-            return values == null || pause || !variantId.equals(workingVariantId);
+            return values == null // no update to perform if there is no network cache
+                    || pause // no update to perform is the network cache is paused (during network updating with result at the end of the load flow)
+                    || variantId != null && !variantId.equals(workingVariantId); // no update to perform if happening in another variant
         }
 
         @Override
