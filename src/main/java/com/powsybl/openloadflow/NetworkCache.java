@@ -530,7 +530,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         private CacheUpdateResult<V> onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue,
                                                        V value, LfBus lfBus) {
-            if (("VoltageRegulation.TargetValue".equals(attribute) && generator.isWithMode(RegulationMode.VOLTAGE)) || "localTargetV".equals(attribute)) {
+            if ("VoltageRegulation.TargetValue".equals(attribute) && generator.isWithMode(RegulationMode.VOLTAGE) || "localTargetV".equals(attribute)) {
                 double valueShift = (double) newValue - (double) oldValue;
                 GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
                 if (voltageControl.isLocalControl()) {
