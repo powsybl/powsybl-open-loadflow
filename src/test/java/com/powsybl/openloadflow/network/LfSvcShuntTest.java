@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-class LfStandbyAutomatonShuntTest {
+class LfSvcShuntTest {
 
     @Test
     void test() {
@@ -25,17 +25,27 @@ class LfStandbyAutomatonShuntTest {
         LfBus bus = Mockito.mock(LfBus.class);
         Mockito.when(bus.getNetwork()).thenReturn(network);
         Mockito.when(bus.getNominalV()).thenReturn(380d);
-        LfStaticVarCompensator svc = Mockito.mock(LfStaticVarCompensator.class);
-        Mockito.when(svc.getBus()).thenReturn(bus);
-        Mockito.when(svc.getId()).thenReturn("svc");
-        Mockito.when(svc.getOriginalId()).thenReturn("svc");
-        Mockito.when(svc.getB0()).thenReturn(0.001);
-        LfStandbyAutomatonShunt shunt = LfStandbyAutomatonShunt.create(svc);
-        assertEquals("svc_standby_automaton_b0", shunt.getId());
-        assertEquals(List.of("svc"), shunt.getOriginalIds());
+        Mockito.when(bus.getId()).thenReturn("bus");
+        LfStaticVarCompensator svc1 = Mockito.mock(LfStaticVarCompensator.class);
+        Mockito.when(svc1.getOriginalId()).thenReturn("svc1");
+        Mockito.when(svc1.getB()).thenReturn(0.001);
+        LfStaticVarCompensator svc2 = Mockito.mock(LfStaticVarCompensator.class);
+        Mockito.when(svc2.getOriginalId()).thenReturn("svc2");
+        Mockito.when(svc2.getB()).thenReturn(-0.003);
+        LfStaticVarCompensator svc3 = Mockito.mock(LfStaticVarCompensator.class);
+        Mockito.when(svc3.getOriginalId()).thenReturn("svc3");
+        Mockito.when(svc3.getB()).thenReturn(0.005);
+        Mockito.when(svc3.isDisabled()).thenReturn(true);
+        Mockito.when(bus.getGenerators()).thenReturn(List.of(svc1, svc2, svc3));
+        LfSvcShunt shunt = new LfSvcShunt(bus);
+        assertEquals("bus_svc_shunt", shunt.getId());
+        assertEquals(List.of("svc1", "svc2", "svc3"), shunt.getOriginalIds());
         assertEquals(ElementType.SHUNT_COMPENSATOR, shunt.getType());
         assertEquals(0, shunt.getG(), 0);
-        assertEquals(0, shunt.getB(), 1.444);
+        assertEquals(0, shunt.getB(), 0);
+        // sum of the susceptances of the enabled SVCs
+        shunt.update();
+        assertEquals((0.001 - 0.003) * 380 * 380 / 100, shunt.getB(), 1e-12);
         assertTrue(shunt.getVoltageControl().isEmpty());
         assertFalse(shunt.isVoltageControlEnabled());
         assertFalse(shunt.hasVoltageControlCapability());

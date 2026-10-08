@@ -670,6 +670,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             jsonGenerator.writeNumberField(JSON_TARGET_Q, generator.getTargetQ());
         }
         jsonGenerator.writeStringField(JSON_CONTROL_TYPE, generator.getGeneratorControlType().name());
+        if (generator instanceof LfStaticVarCompensator svc && svc.getQLimitType().isPresent()) {
+            jsonGenerator.writeStringField(JSON_Q_LIMIT_TYPE, svc.getQLimitType().get().name());
+        }
         jsonGenerator.writeBooleanField(JSON_PARTICIPATING, generator.isParticipating());
         if (generator.isDisabled()) {
             jsonGenerator.writeBooleanField(JSON_DISABLED, true);
@@ -1098,8 +1101,13 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         for (JsonNode generatorNode : busNode.path(JSON_GENERATORS)) {
             if (generatorNode.hasNonNull(JSON_CONTROL_TYPE)) {
                 String generatorId = generatorNode.path("id").asText();
-                bus.getGenerators().stream().filter(g -> g.getId().equals(generatorId)).findFirst().orElseThrow()
-                        .setGeneratorControlType(LfGenerator.GeneratorControlType.valueOf(generatorNode.get(JSON_CONTROL_TYPE).asText()));
+                LfGenerator generator = bus.getGenerators().stream().filter(g -> g.getId().equals(generatorId)).findFirst().orElseThrow();
+                generator.setGeneratorControlType(LfGenerator.GeneratorControlType.valueOf(generatorNode.get(JSON_CONTROL_TYPE).asText()));
+                if (generator instanceof LfStaticVarCompensator svc) {
+                    svc.setQLimitType(generatorNode.hasNonNull(JSON_Q_LIMIT_TYPE)
+                            ? LfBus.QLimitType.valueOf(generatorNode.get(JSON_Q_LIMIT_TYPE).asText())
+                            : null);
+                }
             }
         }
     }

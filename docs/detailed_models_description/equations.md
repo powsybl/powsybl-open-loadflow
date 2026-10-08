@@ -101,6 +101,14 @@ $$v_{b_1} + s \cdot q_{svc} = V^{c}_{b_1}$$
 
 Where $s$ is the slope of the static var compensator.
 
+#### Static var compensator at reactive limit
+
+The reactive limits of a static var compensator depend on the voltage at its bus: $B_{min} \cdot v^2$ and $B_{max} \cdot v^2$.
+When a controller bus is switched from PV to PQ because its reactive limit is reached, the static var compensators of the bus
+controlling voltage are not modeled with a fixed reactive power but with a fixed susceptance $B_{min}$ or $B_{max}$ (on top of their
+standby automaton susceptance $B_0$ if any). This way, their reactive power follows the voltage and is at the limit whatever the
+solved voltage, without requiring additional outer loop iterations. Other generators of the bus remain at a fixed reactive power.
+
 ### Computing HVDC power flow
 
 #### LCC converters

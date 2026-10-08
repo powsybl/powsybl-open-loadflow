@@ -16,6 +16,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.PilotPoint;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -29,6 +30,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfSecondaryVoltageControl;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysisProvider;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.security.SecurityAnalysisParameters;
@@ -287,6 +289,49 @@ class SecondaryVoltageControlTest {
                 """;
 
         assertReportEquals(new ByteArrayInputStream(expected.getBytes()), node);
+    }
+
+    @Test
+    void testReEnableHelpfulControllerBusWithStaticVarCompensatorAtLimit() throws IOException {
+        modifyNetworkToUnblockGeneratorFromLimit();
+        // a static var compensator sharing B6-G bus: at limit when the bus is switched PQ, it has to be released when
+        // the secondary voltage control re-enables the bus
+        b6.getVoltageLevel().newStaticVarCompensator()
+                .setId("B6-SVC")
+                .setBus("B6")
+                .setConnectableBus("B6")
+                .setRegulationMode(RegulationMode.VOLTAGE)
+                .setRegulating(true)
+                .setVoltageSetpoint(g6.getTargetV())
+                .setBmin(-0.02)
+                .setBmax(0.02)
+                .add();
+        parametersExt.setPlausibleActivePowerLimit(5000);
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        parametersExt.setSecondaryVoltageControl(true);
+
+        ReportNode node = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+        loadFlowRunParameters.setReportNode(node);
+        var result = loadFlowRunner.run(network, loadFlowRunParameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        // B6 bus has been switched PQ 3 times so re-enabled in between by the secondary voltage control
+        assertEquals(3, reportToString(node).split("Switch bus 'VL6_0' PV -> PQ", -1).length - 1);
+        assertVoltageEquals(15, b10);
+        assertVoltageEquals(14.650, b6);
+        StaticVarCompensator svc = network.getStaticVarCompensator("B6-SVC");
+        assertReactivePowerEquals(-svc.getBmax() * b6.getV() * b6.getV(), svc.getTerminal());
+        assertReactivePowerEquals(-23.087, g6.getTerminal());
+
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
+                commonTestConfig.matrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        LfNetwork lfNetwork = Networks.load(network, acParameters.getNetworkParameters()).getFirst();
+        try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
+            new AcloadFlowEngine(context).run();
+        }
+        assertStaticVarCompensatorsConsistent(lfNetwork);
     }
 
     @Test

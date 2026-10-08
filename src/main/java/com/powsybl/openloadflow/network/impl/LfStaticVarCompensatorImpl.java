@@ -43,7 +43,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
     private double b0 = 0.0;
 
-    private LfShunt standByAutomatonShunt;
+    private LfBus.QLimitType qLimitType;
 
     /**
      * Reactive limits depending on the current voltage of the SVC bus
@@ -140,6 +140,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
         this.targetQ = other.targetQ;
         this.standByAutomaton = other.standByAutomaton;
         this.b0 = other.b0;
+        this.qLimitType = other.qLimitType;
     }
 
     private void setupVoltageControl(StaticVarCompensator svc, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
@@ -227,11 +228,9 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         double vSquare = bus.getV() * bus.getV() * nominalV * nominalV;
         double q = (Double.isNaN(calculatedQ) ? -targetQ : -calculatedQ) * PerUnit.SB;
-        // the shunt holds b0 and, when the SVC is at a reactive limit, the limit susceptance
-        double b = standByAutomatonShunt != null ? standByAutomatonShunt.getB() / PerUnit.zb(nominalV) : b0;
         getSvc().getTerminal()
                 .setP(0)
-                .setQ(q - b * vSquare);
+                .setQ(q - getB() * vSquare);
     }
 
     @Override
@@ -265,13 +264,35 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     }
 
     @Override
-    public Optional<LfShunt> getStandByAutomatonShunt() {
-        return Optional.ofNullable(standByAutomatonShunt);
+    public Optional<LfBus.QLimitType> getQLimitType() {
+        return Optional.ofNullable(qLimitType);
     }
 
     @Override
-    public void setStandByAutomatonShunt(LfShunt standByAutomatonShunt) {
-        this.standByAutomatonShunt = standByAutomatonShunt;
+    public void setQLimitType(LfBus.QLimitType qLimitType) {
+        if (qLimitType != null && qLimitType != LfBus.QLimitType.MIN_Q && qLimitType != LfBus.QLimitType.MAX_Q) {
+            throw new IllegalArgumentException("Unsupported reactive limit type for a static var compensator: " + qLimitType);
+        }
+        this.qLimitType = qLimitType;
+    }
+
+    @Override
+    public double getB() {
+        if (qLimitType == LfBus.QLimitType.MIN_Q) {
+            return b0 + getBmin();
+        } else if (qLimitType == LfBus.QLimitType.MAX_Q) {
+            return b0 + getBmax();
+        }
+        return b0;
+    }
+
+    @Override
+    public void setDisabled(boolean disabled) {
+        super.setDisabled(disabled);
+        // a disabled SVC no longer contributes to the bus SVC shunt
+        if (bus != null) {
+            bus.updateSvcShunt();
+        }
     }
 
     @Override

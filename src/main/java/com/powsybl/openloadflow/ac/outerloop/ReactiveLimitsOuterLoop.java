@@ -144,12 +144,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                 LfBus controllerBus = pvToPqBus.controllerBus;
 
                 // switch PV -> PQ
-                double generationTargetQ = pvToPqBus.qLimit;
-                if (pvToPqBus.limitType == LfBus.QLimitType.MIN_Q || pvToPqBus.limitType == LfBus.QLimitType.MAX_Q) {
-                    generationTargetQ -= switchSvcToSusceptanceAtLimit(controllerBus, pvToPqBus.limitType);
-                }
-                controllerBus.freezeGenerationTargetQAndDisableGeneratorVoltageControl(generationTargetQ);
-                controllerBus.setQLimitType(pvToPqBus.limitType);
+                controllerBus.freezeGenerationTargetQAtQLimit(pvToPqBus.qLimit, pvToPqBus.limitType);
                 // increment PV -> PQ switch counter
                 contextData.incrementPvPqSwitchCount(controllerBus.getId());
 
@@ -202,8 +197,6 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             } else {
                 controllerBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(true);
                 controllerBus.setQLimitType(null);
-                findSvcModeledAsSusceptanceAtLimit(controllerBus)
-                        .ifPresent(svc -> controllerBus.getSvcShunt().orElseThrow().setB(toPerUnit(svc.getB0(), controllerBus)));
                 pqPvSwitchCount++;
 
                 if (pqToPvBus.limitType.isMaxLimit()) {
@@ -317,51 +310,11 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                             boolean canSwitchPqToPv) {
         double minQ = controllerCapableBus.getMinQ(); // the actual minQ.
         double maxQ = controllerCapableBus.getMaxQ(); // the actual maxQ.
-        double svcQ = controllerCapableBus.getQLimitType()
-                .filter(qLimitType -> qLimitType == LfBus.QLimitType.MIN_Q || qLimitType == LfBus.QLimitType.MAX_Q)
-                .flatMap(qLimitType -> findSvcModeledAsSusceptanceAtLimit(controllerCapableBus)
-                        .map(svc -> qLimitType == LfBus.QLimitType.MIN_Q ? svc.getMinQ() : svc.getMaxQ()))
-                .orElse(0.0);
-        // SVC reactive power at limit is carried by its susceptance and so is not part of the frozen generation target
+        // reactive power of static var compensators at limit is carried by the bus SVC shunt, not part of the frozen generation target
+        double svcQ = controllerCapableBus.getStaticVarCompensatorsQAtLimit();
         double q = controllerCapableBus.getGenerationTargetQ() + svcQ;
         controllerCapableBus.getQLimitType().ifPresent(qLimitType -> checkPqBusWithQLimitType(controllerCapableBus, pqToPvBuses,
             busesWithUpdatedQLimits, canSwitchPqToPv, qLimitType, minQ, maxQ, q, svcQ));
-    }
-
-    /**
-     * A SVC reactive limit is B * V^2: freezing its reactive power at the limit would make it wrong as soon as voltage
-     * changes, requiring one outer loop iteration per voltage change. So when the SVC is the only voltage controlling
-     * generator of the bus, it is modeled at limit as a fixed susceptance through the bus SVC shunt.
-     */
-    private static Optional<LfStaticVarCompensator> findSvcModeledAsSusceptanceAtLimit(LfBus bus) {
-        LfShunt svcShunt = bus.getSvcShunt().orElse(null);
-        if (svcShunt == null) {
-            return Optional.empty();
-        }
-        List<LfGenerator> voltageControllers = bus.getGenerators().stream()
-                .filter(g -> !g.isDisabled() && g.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)
-                .toList();
-        if (voltageControllers.size() == 1
-                && voltageControllers.getFirst() instanceof LfStaticVarCompensator svc
-                && svc.getStandByAutomatonShunt().orElse(null) == svcShunt) {
-            return Optional.of(svc);
-        }
-        return Optional.empty();
-    }
-
-    private static double toPerUnit(double b, LfBus bus) {
-        return b * PerUnit.zb(bus.getNominalV());
-    }
-
-    /**
-     * Returns the SVC reactive power at limit now carried by the susceptance, to be removed from the generation target.
-     */
-    private static double switchSvcToSusceptanceAtLimit(LfBus bus, LfBus.QLimitType limitType) {
-        return findSvcModeledAsSusceptanceAtLimit(bus).map(svc -> {
-            double bLimit = limitType == LfBus.QLimitType.MIN_Q ? svc.getBmin() : svc.getBmax();
-            bus.getSvcShunt().orElseThrow().setB(toPerUnit(svc.getB0() + bLimit, bus));
-            return limitType == LfBus.QLimitType.MIN_Q ? svc.getMinQ() : svc.getMaxQ();
-        }).orElse(0.0);
     }
 
     private void checkPqBusWithQLimitType(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses, List<LfBus> busesWithUpdatedQLimits,

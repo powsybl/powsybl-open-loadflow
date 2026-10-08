@@ -207,13 +207,6 @@ public class LfContingency {
                 bus.getGeneratorVoltageControl().ifPresent(GeneratorVoltageControl::updateReactiveKeys);
                 bus.getGeneratorReactivePowerControl().ifPresent(GeneratorReactivePowerControl::updateReactiveKeys);
             }
-            if (generator instanceof LfStaticVarCompensator svc) {
-                svc.getStandByAutomatonShunt().ifPresent(svcShunt -> {
-                    // it means that the generator in contingency is a static var compensator with an active stand by automaton shunt
-                    shuntsShift.put(svcShunt, new AdmittanceShift(0, svcShunt.getB()));
-                    svcShunt.setB(0);
-                });
-            }
         }
 
         if (!updateAcQuantities) {

@@ -14,6 +14,9 @@ import com.powsybl.iidm.network.DcNode;
 import com.powsybl.iidm.network.DcTerminal;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfStaticVarCompensator;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -175,6 +178,27 @@ public final class LoadFlowAssert {
         if (!logExport.contains(normalizedExtract)) {
             // Then make an assertEquals Exception to facilitate debug
             assertEquals(normalizedExtract, logExport, "Report extract not found");
+        }
+    }
+
+    /**
+     * Checks static var compensators state: none is at a reactive limit on a PV bus, and the bus SVC shunt
+     * susceptance is the sum of the susceptances of the enabled static var compensators.
+     */
+    public static void assertStaticVarCompensatorsConsistent(LfNetwork network) {
+        for (LfBus bus : network.getBuses()) {
+            if (bus.isDisabled()) {
+                continue;
+            }
+            List<LfStaticVarCompensator> svcs = bus.getGenerators().stream()
+                    .filter(LfStaticVarCompensator.class::isInstance)
+                    .map(LfStaticVarCompensator.class::cast)
+                    .toList();
+            if (bus.isGeneratorVoltageControlEnabled()) {
+                svcs.forEach(svc -> assertTrue(svc.getQLimitType().isEmpty(), "SVC " + svc.getId() + " at limit on PV bus " + bus.getId()));
+            }
+            bus.getSvcShunt().ifPresent(shunt -> assertEquals(svcs.stream().filter(svc -> !svc.isDisabled()).mapToDouble(LfStaticVarCompensator::getB).sum()
+                    * PerUnit.zb(bus.getNominalV()), shunt.getB(), 1e-9, "SVC shunt of bus " + bus.getId()));
         }
     }
 }

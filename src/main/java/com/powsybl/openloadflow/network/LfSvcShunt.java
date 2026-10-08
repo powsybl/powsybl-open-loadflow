@@ -13,39 +13,48 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
+ * Shunt modeling the susceptance of the static var compensators of a bus: their standby automaton B0 and, when at a
+ * reactive limit, their Bmin or Bmax so that their reactive power follows the voltage.
+ *
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
-public final class LfStandbyAutomatonShunt extends AbstractLfShunt {
+public final class LfSvcShunt extends AbstractLfShunt {
 
-    private final LfStaticVarCompensator svc;
+    private final LfBus bus;
 
     private double b;
 
+    public LfSvcShunt(LfBus bus) {
+        super(bus.getNetwork());
+        this.bus = Objects.requireNonNull(bus);
+    }
+
     @Override
-    public LfShunt copy(LfBus copyBus) {
-        LfStaticVarCompensator copiedSvc = (LfStaticVarCompensator) copyBus.getGenerators().stream()
-                .filter(g -> g.getId().equals(svc.getId()))
-                .findFirst()
-                .orElseThrow();
-        LfStandbyAutomatonShunt svcShunt = LfStandbyAutomatonShunt.create(copiedSvc);
-        copiedSvc.setStandByAutomatonShunt(svcShunt);
-        svcShunt.setB(b);
+    public LfSvcShunt copy(LfBus copyBus) {
+        LfSvcShunt svcShunt = new LfSvcShunt(copyBus);
+        svcShunt.b = b;
         svcShunt.setDisabled(disabled);
         return svcShunt;
     }
 
-    private LfStandbyAutomatonShunt(LfStaticVarCompensator svc) {
-        super(svc.getBus().getNetwork());
-        this.svc = svc;
-        double zb = PerUnit.zb(svc.getBus().getNominalV());
-        b = svc.getB0() * zb;
+    private Stream<LfStaticVarCompensator> getSvcs() {
+        return bus.getGenerators().stream()
+                .filter(LfStaticVarCompensator.class::isInstance)
+                .map(LfStaticVarCompensator.class::cast);
     }
 
-    public static LfStandbyAutomatonShunt create(LfStaticVarCompensator svc) {
-        return new LfStandbyAutomatonShunt(Objects.requireNonNull(svc));
+    /**
+     * Recomputes the susceptance from the enabled static var compensators of the bus.
+     */
+    public void update() {
+        double zb = PerUnit.zb(bus.getNominalV());
+        setB(getSvcs().filter(svc -> !svc.isDisabled())
+                .mapToDouble(LfStaticVarCompensator::getB)
+                .sum() * zb);
     }
 
     @Override
@@ -55,12 +64,12 @@ public final class LfStandbyAutomatonShunt extends AbstractLfShunt {
 
     @Override
     public String getId() {
-        return svc.getId() + "_standby_automaton_b0";
+        return bus.getId() + "_svc_shunt";
     }
 
     @Override
     public List<String> getOriginalIds() {
-        return List.of(svc.getOriginalId());
+        return getSvcs().map(LfGenerator::getOriginalId).toList();
     }
 
     @Override
@@ -78,8 +87,8 @@ public final class LfStandbyAutomatonShunt extends AbstractLfShunt {
         }
     }
 
-    private static UnsupportedOperationException createUnsupportedForStandbyAutomatonShuntException() {
-        throw new UnsupportedOperationException("Unsupported for a SVC standby automaton shunt");
+    private static UnsupportedOperationException createUnsupportedForSvcShuntException() {
+        throw new UnsupportedOperationException("Unsupported for a SVC shunt");
     }
 
     @Override
@@ -89,7 +98,7 @@ public final class LfStandbyAutomatonShunt extends AbstractLfShunt {
 
     @Override
     public void setG(double g) {
-        throw createUnsupportedForStandbyAutomatonShuntException();
+        throw createUnsupportedForSvcShuntException();
     }
 
     @Override
@@ -99,7 +108,7 @@ public final class LfStandbyAutomatonShunt extends AbstractLfShunt {
 
     @Override
     public void setVoltageControlCapability(boolean voltageControlCapability) {
-        throw createUnsupportedForStandbyAutomatonShuntException();
+        throw createUnsupportedForSvcShuntException();
     }
 
     @Override
@@ -109,7 +118,7 @@ public final class LfStandbyAutomatonShunt extends AbstractLfShunt {
 
     @Override
     public void setVoltageControlEnabled(boolean voltageControlEnabled) {
-        throw createUnsupportedForStandbyAutomatonShuntException();
+        throw createUnsupportedForSvcShuntException();
     }
 
     @Override
@@ -119,12 +128,12 @@ public final class LfStandbyAutomatonShunt extends AbstractLfShunt {
 
     @Override
     public void setVoltageControl(ShuntVoltageControl voltageControl) {
-        throw createUnsupportedForStandbyAutomatonShuntException();
+        throw createUnsupportedForSvcShuntException();
     }
 
     @Override
     public double dispatchB() {
-        throw createUnsupportedForStandbyAutomatonShuntException();
+        throw createUnsupportedForSvcShuntException();
     }
 
     @Override
