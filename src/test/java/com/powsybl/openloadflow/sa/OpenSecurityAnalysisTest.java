@@ -2363,10 +2363,12 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
         network.newLine().setId("l2").setBus1("b1").setBus2("b2").setR(1).setX(3).add();
         StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");
-        svc1.setBmin(-0.002)
-                .setVoltageSetpoint(386.5)
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .setRegulating(true);
+        svc1.setBmin(-0.002);
+        svc1.setLocalTargetV(386.5);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
         SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
         loadFlowRunner.run(network, parameters.getLoadFlowParameters());
         Bus b2 = network.getBusBreakerView().getBus("b2");
@@ -2404,23 +2406,32 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
         network.getLine("l1").setX(100);
         StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");
-        svc1.setBmax(0.0015)
-                .setVoltageSetpoint(450)
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .setRegulating(true);
+        svc1.setBmax(0.0015);
+        svc1.setLocalTargetV(450);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
         VoltageLevel vl2 = network.getVoltageLevel("vl2");
         vl2.newStaticVarCompensator()
                 .setId("svc2")
                 .setConnectableBus("b2")
                 .setBus("b2")
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .setRegulating(true)
-                .setVoltageSetpoint(450)
+                .setLocalTargetV(450)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
                 .setBmin(-0.002)
                 .setBmax(0.0005)
                 .add();
-        Generator g2 = vl2.newGenerator().setId("g2").setBus("b2").setConnectableBus("b2").setTargetP(1).setTargetV(450)
-                .setMinP(0).setMaxP(10).setVoltageRegulatorOn(true)
+        Generator g2 = vl2.newGenerator().setId("g2").setBus("b2").setConnectableBus("b2").setTargetP(1)
+                .setMinP(0).setMaxP(10)
+                .setLocalTargetV(450)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
                 .add();
         g2.newMinMaxReactiveLimits().setMinQ(-10).setMaxQ(10).add();
         SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();

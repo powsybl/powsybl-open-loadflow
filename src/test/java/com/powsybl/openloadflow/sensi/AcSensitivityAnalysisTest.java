@@ -3577,10 +3577,12 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
         network.getLine("l1").setX(100);
         StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");
-        svc1.setBmax(0.002)
-                .setVoltageSetpoint(450)
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .setRegulating(true);
+        svc1.setBmax(0.002);
+        svc1.setLocalTargetV(450);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0");
         List<SensitivityFactor> factors = List.of(
                 new SensitivityFactor(SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, "l1", SensitivityVariableType.INJECTION_REACTIVE_POWER, "ld1", false, ContingencyContext.none()),

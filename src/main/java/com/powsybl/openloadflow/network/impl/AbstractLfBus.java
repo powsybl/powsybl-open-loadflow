@@ -547,7 +547,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public double getStaticVarCompensatorsQAtLimit() {
         return getStaticVarCompensators()
-                .mapToDouble(svc -> svc.getQLimitType().map(qLimitType -> getQAtLimit(svc, qLimitType)).orElse(0.0))
+                .mapToDouble(svc -> svc.getQLimitType().map(svcQLimitType -> getQAtLimit(svc, svcQLimitType)).orElse(0.0))
                 .sum();
     }
 

@@ -253,11 +253,13 @@ class LoadFlowWithCachingTest {
     private static Network createNetworkWithStaticVarCompensatorAtReactiveLimit() {
         Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
         network.getLine("l1").setX(100);
-        network.getStaticVarCompensator("svc1")
-                .setBmax(0.002)
-                .setVoltageSetpoint(450)
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .setRegulating(true);
+        StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");
+        svc1.setBmax(0.002);
+        svc1.setLocalTargetV(450);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
         return network;
     }
 
