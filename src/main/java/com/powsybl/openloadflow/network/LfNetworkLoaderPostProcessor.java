@@ -7,10 +7,10 @@
  */
 package com.powsybl.openloadflow.network;
 
-import org.apache.commons.compress.utils.Lists;
+import com.powsybl.commons.util.ServiceLoaderCache;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.ServiceLoader;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -22,8 +22,10 @@ public interface LfNetworkLoaderPostProcessor {
         SELECTION
     }
 
+    ServiceLoaderCache<LfNetworkLoaderPostProcessor> SERVICE_LOADER_CACHE = new ServiceLoaderCache<>(LfNetworkLoaderPostProcessor.class);
+
     static List<LfNetworkLoaderPostProcessor> findAll() {
-        return Lists.newArrayList(ServiceLoader.load(LfNetworkLoaderPostProcessor.class, LfNetworkLoaderPostProcessor.class.getClassLoader()).iterator());
+        return Collections.unmodifiableList(SERVICE_LOADER_CACHE.getServices());
     }
 
     String getName();
