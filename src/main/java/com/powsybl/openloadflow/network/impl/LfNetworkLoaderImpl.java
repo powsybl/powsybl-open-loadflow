@@ -949,7 +949,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createTransformerReactivePowerControl(LfNetwork lfNetwork, RatioTapChanger rtc, String controllerBranchId,
                                                               LfNetworkParameters parameters, LfNetworkLoadingReport report) {
-        if (rtc == null || !rtc.hasLoadTapChangingCapabilities() || !rtc.isRegulatingWithMode(RegulationMode.REACTIVE_POWER)) {
+        if (rtc == null || !rtc.hasLoadTapChangingCapabilities() || !(rtc.isWithMode(RegulationMode.REACTIVE_POWER) && rtc.isRegulating())) {
             return;
         }
         // Check on controller branch
