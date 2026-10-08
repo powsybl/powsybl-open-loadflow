@@ -26,7 +26,9 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfShunt;
+import com.powsybl.openloadflow.network.LfStaticVarCompensator;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -490,6 +492,55 @@ class AcLoadFlowSvcTest {
         String report = reportToString(reportNode);
         assertTrue(report.contains("Switch bus 'vl2_0' PV -> PQ, q=132.500951 > maxQ=79.3442"));
         assertFalse(report.contains("reactive limit changed"));
+    }
+
+    @Test
+    void shouldAdjustGeneratorPartOfReactiveLimitWhenSvcSharesBusAtMinLimit() throws IOException {
+        // svc1 and g2 at min reactive limit: slack distribution changes g2 active power, hence its min reactive limit,
+        // which has to be adjusted while svc1 remains modeled as a fixed susceptance
+        svc1.setBmin(-0.002)
+                .setVoltageSetpoint(380)
+                .setRegulationMode(RegulationMode.VOLTAGE)
+                .setRegulating(true);
+        Generator g2 = bus2.getVoltageLevel().newGenerator().setId("g2").setBus("b2").setConnectableBus("b2").setTargetP(50).setTargetV(380)
+                .setMinP(0).setMaxP(200).setVoltageRegulatorOn(true)
+                .add();
+        g2.newReactiveCapabilityCurve()
+                .beginPoint().setP(0).setMinQ(-100).setMaxQ(100).endPoint()
+                .beginPoint().setP(200).setMinQ(-20).setMaxQ(100).endPoint()
+                .add();
+        parameters.setDistributedSlack(true);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(385.606, bus2);
+        assertReactivePowerEquals(-svc1.getBmin() * bus2.getV() * bus2.getV(), svc1.getTerminal());
+        double g2MinQ = g2.getReactiveLimits().getMinQ(-g2.getTerminal().getP());
+        assertReactivePowerEquals(-g2MinQ, g2.getTerminal());
+        assertEquals(2, reportToString(reportNode).split("adjusted because the reactive limit changed", -1).length);
+    }
+
+    @Test
+    void shouldModelSvcAsSusceptanceOnlyAtMinOrMaxReactiveLimit() {
+        svc1.setVoltageSetpoint(385)
+                .setRegulationMode(RegulationMode.VOLTAGE)
+                .setRegulating(true);
+        LfNetwork lfNetwork = Networks.load(network, new LfNetworkParameters()).getFirst();
+        LfBus lfBus2 = lfNetwork.getBusById("vl2_0");
+        LfStaticVarCompensator lfSvc1 = (LfStaticVarCompensator) lfNetwork.getGeneratorById("svc1");
+        LfShunt svcShunt = lfBus2.getSvcShunt().orElseThrow();
+
+        // blocked because of an unrealistic voltage: not at a reactive limit
+        lfBus2.freezeGenerationTargetQAtQLimit(0, LfBus.QLimitType.MAX_REALISTIC_V);
+        assertTrue(lfSvc1.getQLimitType().isEmpty());
+        assertEquals(0, svcShunt.getB());
+
+        lfBus2.setQLimitType(LfBus.QLimitType.MIN_Q);
+        assertEquals(LfBus.QLimitType.MIN_Q, lfSvc1.getQLimitType().orElseThrow());
+        assertEquals(svc1.getBmin() * 400 * 400 / PerUnit.SB, svcShunt.getB(), 1e-12);
     }
 
     @Test

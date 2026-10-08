@@ -88,7 +88,7 @@ public final class LfSvcShunt extends AbstractLfShunt {
     }
 
     private static UnsupportedOperationException createUnsupportedForSvcShuntException() {
-        throw new UnsupportedOperationException("Unsupported for a SVC shunt");
+        return new UnsupportedOperationException("Unsupported for a SVC shunt");
     }
 
     @Override

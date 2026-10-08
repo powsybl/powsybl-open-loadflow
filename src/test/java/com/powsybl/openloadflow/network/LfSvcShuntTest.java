@@ -54,5 +54,16 @@ class LfSvcShuntTest {
         assertNotNull(assertThrows(UnsupportedOperationException.class, () -> shunt.setVoltageControlCapability(true)));
         assertNotNull(assertThrows(UnsupportedOperationException.class, () -> shunt.setVoltageControlEnabled(true)));
         assertNotNull(assertThrows(UnsupportedOperationException.class, shunt::dispatchB));
+        assertTrue(shunt.getControllers().isEmpty());
+        shunt.updateState(null);
+        shunt.reInit();
+        assertEquals((0.001 - 0.003) * 380 * 380 / 100, shunt.getB(), 1e-12);
+
+        LfBus copyBus = Mockito.mock(LfBus.class);
+        Mockito.when(copyBus.getNetwork()).thenReturn(network);
+        shunt.setDisabled(true);
+        LfSvcShunt copy = shunt.copy(copyBus);
+        assertEquals(shunt.getB(), copy.getB());
+        assertTrue(copy.isDisabled());
     }
 }

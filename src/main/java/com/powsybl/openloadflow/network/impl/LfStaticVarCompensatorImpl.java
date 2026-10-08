@@ -262,7 +262,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
     @Override
     public Optional<LfBus.QLimitType> getQLimitType() {
-        if (bus == null || isDisabled() || generatorControlType != GeneratorControlType.VOLTAGE || bus.isGeneratorVoltageControlEnabled()) {
+        if (isDisabled() || generatorControlType != GeneratorControlType.VOLTAGE || bus.isGeneratorVoltageControlEnabled()) {
             return Optional.empty();
         }
         return bus.getQLimitType().filter(qLimitType -> qLimitType == LfBus.QLimitType.MIN_Q || qLimitType == LfBus.QLimitType.MAX_Q);
@@ -278,17 +278,13 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     @Override
     public void setDisabled(boolean disabled) {
         super.setDisabled(disabled);
-        if (bus != null) {
-            bus.updateSvcShunt();
-        }
+        bus.updateSvcShunt();
     }
 
     @Override
     public void setGeneratorControlType(GeneratorControlType generatorControlType) {
         super.setGeneratorControlType(generatorControlType);
-        if (bus != null) {
-            bus.updateSvcShunt();
-        }
+        bus.updateSvcShunt();
     }
 
     @Override
