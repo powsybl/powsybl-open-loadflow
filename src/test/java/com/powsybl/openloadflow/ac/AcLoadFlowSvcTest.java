@@ -443,11 +443,8 @@ class AcLoadFlowSvcTest {
     @Test
     void shouldReachVoltageDependentReactiveLimitWithRemoteVoltageControl() throws IOException {
         // svc1 controls b3 voltage remotely: its reactive limit depends on the voltage of its own bus b2
-        Substation s3 = network.newSubstation().setId("S3").add();
-        VoltageLevel vl3 = s3.newVoltageLevel().setId("vl3").setNominalV(400).setTopologyKind(TopologyKind.BUS_BREAKER).add();
-        Bus bus3 = vl3.getBusBreakerView().newBus().setId("b3").add();
-        Load ld3 = vl3.newLoad().setId("ld3").setBus("b3").setConnectableBus("b3").setP0(50).setQ0(100).add();
-        network.newLine().setId("l3").setBus1("b2").setBus2("b3").setR(1).setX(30).add();
+        Load ld3 = addRemotelyControlledBus();
+        Bus bus3 = network.getBusBreakerView().getBus("b3");
         l1.setX(100);
         svc1.setBmax(0.002)
                 .setVoltageSetpoint(410)
@@ -466,6 +463,55 @@ class AcLoadFlowSvcTest {
         String report = reportToString(reportNode);
         assertTrue(report.contains("Switch bus 'vl2_0' PV -> PQ, q=371.069607 > maxQ=348.533884"));
         assertFalse(report.contains("reactive limit changed"));
+    }
+
+    private Load addRemotelyControlledBus() {
+        Substation s3 = network.newSubstation().setId("S3").add();
+        VoltageLevel vl3 = s3.newVoltageLevel().setId("vl3").setNominalV(400).setTopologyKind(TopologyKind.BUS_BREAKER).add();
+        vl3.getBusBreakerView().newBus().setId("b3").add();
+        Load ld3 = vl3.newLoad().setId("ld3").setBus("b3").setConnectableBus("b3").setP0(50).setQ0(100).add();
+        network.newLine().setId("l3").setBus1("b2").setBus2("b3").setR(1).setX(30).add();
+        return ld3;
+    }
+
+    private String runWithRemoteVoltageControlRobustMode(double bmax) throws IOException {
+        Load ld3 = addRemotelyControlledBus();
+        l1.setX(100);
+        svc1.setBmax(bmax)
+                .setVoltageSetpoint(420)
+                .setRegulatingTerminal(ld3.getTerminal())
+                .setRegulationMode(RegulationMode.VOLTAGE)
+                .setRegulating(true);
+        // svc1 bus voltage is unrealistic above 1.05 / 1.02 pu, i.e. 411.8 kV
+        parametersExt.setVoltageRemoteControlRobustMode(true)
+                .setMaxRealisticVoltage(1.05);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+        return reportToString(reportNode);
+    }
+
+    @Test
+    void shouldReachVoltageDependentReactiveLimitWithRemoteVoltageControlRobustMode() throws IOException {
+        // svc1 exceeds its max reactive limit with an unrealistic voltage at its bus b2 (427.3 kV): robust mode resets b2
+        // voltage to 1 pu before switching it PQ, which must not affect the frozen reactive power
+        String report = runWithRemoteVoltageControlRobustMode(0.002);
+        assertVoltageEquals(409.092, bus2);
+        assertReactivePowerEquals(-svc1.getBmax() * bus2.getV() * bus2.getV(), svc1.getTerminal());
+        assertTrue(report.contains("Switch bus 'vl2_0' PV -> PQ, q=415.574099 > maxQ=365.127364"));
+        assertFalse(report.contains("reactive limit changed"));
+    }
+
+    @Test
+    void shouldNotModelSvcAsSusceptanceWhenBlockedForUnrealisticVoltage() throws IOException {
+        // svc1 within its reactive limits but with an unrealistic voltage at its bus: robust mode blocks it at its
+        // initial reactive power target, not at a reactive limit
+        String report = runWithRemoteVoltageControlRobustMode(0.008);
+        assertReactivePowerEquals(0, svc1.getTerminal());
+        assertTrue(report.contains("Switch bus 'vl2_0' PV -> PQ, q set to 0 = targetQ - because V > 420kV when remote voltage target is maintained"));
     }
 
     @Test

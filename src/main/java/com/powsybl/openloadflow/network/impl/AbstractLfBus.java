@@ -533,8 +533,15 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     public void freezeGenerationTargetQAtQLimit(double qLimit, QLimitType qLimitType) {
         setGeneratorVoltageControlEnabled(false);
         setQLimitType(qLimitType);
-        // static var compensators now at limit are modeled through the bus SVC shunt, so not part of the frozen target
-        freezeGenerationTargetQAndDisableGeneratorVoltageControl(qLimit - getStaticVarCompensatorsQAtLimit());
+        // static var compensators now at limit are modeled through the bus SVC shunt, so not part of the frozen target.
+        // Their part of the limit depends on voltage, which may have changed since qLimit computation (robust mode
+        // resets voltage of buses with an unrealistic voltage): so limit and SVC part are both evaluated at current voltage.
+        double svcQ = getStaticVarCompensatorsQAtLimit();
+        double generationTargetQ = qLimit;
+        if (svcQ != 0) {
+            generationTargetQ = (qLimitType == QLimitType.MIN_Q ? getMinQ() : getMaxQ()) - svcQ;
+        }
+        freezeGenerationTargetQAndDisableGeneratorVoltageControl(generationTargetQ);
     }
 
     @Override
