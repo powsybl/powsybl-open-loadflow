@@ -10,7 +10,9 @@ package com.powsybl.openloadflow.graph.benchmark.workload;
 import com.powsybl.openloadflow.graph.Component;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.AbstractSetView;
 
+import java.util.Iterator;
 import java.util.Objects;
 import java.util.Set;
 
@@ -157,6 +159,54 @@ public class ValidatorGraphConnectivity<V, E> extends AbstractSpyGraphConnectivi
     private void assertEquals(Object obj1, Object obj2) {
         if (!Objects.equals(obj1, obj2)) {
             throw new AssertionError("%s != %s: %s and %s have inconsistent results at step %d".formatted(obj1, obj2, checker.getClass(), delegate.getClass(), step));
+        }
+    }
+
+    private class ComponentSpy extends AbstractSetView<V> implements Component<V> {
+
+        private final Component<V> checker;
+        private final Component<V> delegate;
+
+        ComponentSpy(Component<V> checker, Component<V> delegate) {
+            this.checker = checker;
+            this.delegate = delegate;
+        }
+
+        @Override
+        public int getNumber() {
+            int expected = checker.getNumber();
+            int current = delegate.getNumber();
+            assertEquals(expected, current);
+            return current;
+        }
+
+        @Override
+        public Set<V> toOwnedSet() {
+            Set<V> expected = checker.toOwnedSet();
+            Set<V> current = delegate.toOwnedSet();
+            assertEquals(expected, current);
+            return current;
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            boolean expected = checker.contains(o);
+            boolean current = delegate.contains(o);
+            assertEquals(expected, current);
+            return current;
+        }
+
+        @Override
+        public Iterator<V> iterator() {
+            return delegate.iterator();
+        }
+
+        @Override
+        public int size() {
+            int expected = checker.size();
+            int current = delegate.size();
+            assertEquals(expected, current);
+            return current;
         }
     }
 }

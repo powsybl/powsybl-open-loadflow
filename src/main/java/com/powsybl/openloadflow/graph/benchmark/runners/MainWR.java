@@ -46,7 +46,7 @@ public final class MainWR {
 
     public static void main(String[] args) throws IOException {
         WorkloadRunner wr = new WorkloadRunner();
-        wr.setRunParameters(performance());
+        wr.setRunParameters(validator());
 
         if (args.length >= 1) {
             switch (args[0]) {
@@ -61,11 +61,10 @@ public final class MainWR {
                 wr.addInput(Workload.inMemory(Path.of(args[i])));
             }
         } else {
-            // addAllWorkloadInFolder(wr, Path.of("workload/temp"));
+            addAllWorkloadInFolder(wr, Path.of("workload/final"));
             // wr.addInput(Workload.inMemory(Path.of("workload/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt")));
             // wr.addInput(Workload.inMemory(Path.of("workload/spy_5541_1_1_5541_1_1_2026-07-03T11:50:06.510031405Z.txt")));
             // wr.addInput(Workload.inMemory(Path.of("workload/spy_10000_10_10_10000_10_10_2026-08-07T07:59:16.649371906Z.zip")));
-            wr.addInput(Workload.inMemory(Path.of("workload/slackbus/SpyGraphConnectivity11731269742522195306.txt")));
         }
 
         // wr.addConnectivityFactory(new OldNaiveGraphConnectivity.Factory<>((Integer i) -> i));

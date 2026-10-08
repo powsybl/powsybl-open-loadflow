@@ -8,15 +8,19 @@
 package com.powsybl.openloadflow.graph.benchmark.workload;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.github.jsonldjava.utils.Obj;
 import com.powsybl.openloadflow.graph.Component;
 import com.powsybl.openloadflow.graph.benchmark.Aggregator;
 import com.powsybl.openloadflow.graph.benchmark.AverageStopWatch;
 import com.powsybl.openloadflow.graph.benchmark.BenchmarkMethod;
+import com.powsybl.openloadflow.graph.dtree.AbstractSetView;
+import com.powsybl.openloadflow.network.LfBus;
 import org.nocrala.tools.texttablefmt.BorderStyle;
 import org.nocrala.tools.texttablefmt.CellStyle;
 import org.nocrala.tools.texttablefmt.Table;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -155,7 +159,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         Component<V> vertices = delegate.getConnectedComponent(vertex);
         sw.stop();
         current[BenchmarkMethod.GET_CONNECTED_COMPONENT.ordinal()].add(sw.elapsed());
-        return vertices;
+        return new ComponentSpy(vertices);
     }
 
     @Override
@@ -164,7 +168,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         Component<V> vertices = delegate.getLargestConnectedComponent();
         sw.stop();
         current[BenchmarkMethod.GET_LARGEST_CONNECTED_COMPONENT.ordinal()].add(sw.elapsed());
-        return vertices;
+        return new ComponentSpy(vertices);
     }
 
     @Override
@@ -318,5 +322,55 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
     @Override
     public String toString() {
         return super.toString() + "[" + delegate.toString() + "]";
+    }
+
+    private final class ComponentSpy extends AbstractSetView<V> implements Component<V> {
+
+        private final Component<V> delegate;
+
+        ComponentSpy(Component<V> delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public int getNumber() {
+            sw.start();
+            int num = delegate.getNumber();
+            sw.stop();
+            current[BenchmarkMethod.COMP_GET_NUMBER.ordinal()].add(sw.elapsed());
+            return num;
+        }
+
+        @Override
+        public Set<V> toOwnedSet() {
+            sw.start();
+            Set<V> set = delegate.toOwnedSet();
+            sw.stop();
+            current[BenchmarkMethod.COMP_TO_OWNED_SET.ordinal()].add(sw.elapsed());
+            return set;
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            sw.start();
+            boolean contains = delegate.contains(o);
+            sw.stop();
+            current[BenchmarkMethod.COMP_CONTAINS.ordinal()].add(sw.elapsed());
+            return contains;
+        }
+
+        @Override
+        public Iterator<V> iterator() {
+            return delegate.iterator();
+        }
+
+        @Override
+        public int size() {
+            sw.start();
+            int size = delegate.size();
+            sw.stop();
+            current[BenchmarkMethod.COMP_SIZE.ordinal()].add(sw.elapsed());
+            return size;
+        }
     }
 }

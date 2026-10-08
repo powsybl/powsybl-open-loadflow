@@ -49,10 +49,10 @@ public sealed interface Operation {
                     yield new GetLargestConnectedComponent(null);
                 }
             }
-            case "comp_get_num" -> new ComponentGetNum(parts[0]);
-            case "comp_to_owned_set" -> new ComponentToOwnedSet(parts[0]);
-            case "comp_size" -> new ComponentSize(parts[0]);
-            case "comp_contains" -> new ComponentContains(parts[0], Integer.parseInt(parts[1]));
+            case "comp_get_num" -> new ComponentGetNum(parts[1]);
+            case "comp_to_owned_set" -> new ComponentToOwnedSet(parts[1]);
+            case "comp_size" -> new ComponentSize(parts[1]);
+            case "comp_contains" -> new ComponentContains(parts[1], Integer.parseInt(parts[2]));
             case "v_added" -> GetVerticesAddedToMainComponent.INSTANCE;
             case "e_added" -> GetEdgesAddedToMainComponent.INSTANCE;
             case "v_removed" -> GetVerticesRemovedFromMainComponent.INSTANCE;

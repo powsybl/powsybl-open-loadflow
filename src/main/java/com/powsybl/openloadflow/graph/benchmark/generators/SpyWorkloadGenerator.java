@@ -289,7 +289,7 @@ public class SpyWorkloadGenerator implements IGenerateWorkload {
             useful = true;
             String name = ComponentSpy.newUniqueName();
             try {
-                WorkloadUtils.write(bw, GET_CONNECTED_COMPONENT, vertex.getNum(), name);
+                WorkloadUtils.write(bw, GET_CONNECTED_COMPONENT, name, vertex.getNum());
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
