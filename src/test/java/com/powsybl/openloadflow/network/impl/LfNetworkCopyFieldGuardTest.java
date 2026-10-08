@@ -73,7 +73,7 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(LfGeneratorImpl.class, Set.of("generatorRef", "initialParticipating", "participating", "droop", "participationFactor", "qPercent",
                 "isTargetQForcedInReactiveLimits", "forceVoltageControl", "maxTargetP", "minTargetP", "forceTargetQInReactiveLimits"));
         expected.put(LfBatteryImpl.class, Set.of("batteryRef", "initialParticipating", "participating", "droop", "participationFactor", "maxTargetP", "minTargetP"));
-        expected.put(LfStaticVarCompensatorImpl.class, Set.of("svcRef", "reactiveLimits", "nominalV", "slope", "targetQ", "standByAutomaton", "b0", "qLimitType"));
+        expected.put(LfStaticVarCompensatorImpl.class, Set.of("svcRef", "reactiveLimits", "nominalV", "slope", "targetQ", "standByAutomaton", "b0"));
         expected.put(LfVscConverterStationImpl.class, Set.of("stationRef", "lossFactor", "hvdc", "hvdcDanglingInIidm"));
         expected.put(LfBoundaryLineGenerator.class, Set.of("boundaryLineRef"));
         expected.put(LfLoadImpl.class, Set.of("bus", "loadModel", "loadsRefs", "lccCsRefs", "targetQ", "ensurePowerFactorConstantByLoad", "loadsAbsVariableTargetP",

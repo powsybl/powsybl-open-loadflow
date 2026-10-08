@@ -43,8 +43,6 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
     private double b0 = 0.0;
 
-    private LfBus.QLimitType qLimitType;
-
     /**
      * Reactive limits depending on the current voltage of the SVC bus
      * (uses the generator bus field so that it stays correct on a deep copy).
@@ -140,7 +138,6 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
         this.targetQ = other.targetQ;
         this.standByAutomaton = other.standByAutomaton;
         this.b0 = other.b0;
-        this.qLimitType = other.qLimitType;
     }
 
     private void setupVoltageControl(StaticVarCompensator svc, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
@@ -265,31 +262,30 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
     @Override
     public Optional<LfBus.QLimitType> getQLimitType() {
-        return Optional.ofNullable(qLimitType);
-    }
-
-    @Override
-    public void setQLimitType(LfBus.QLimitType qLimitType) {
-        if (qLimitType != null && qLimitType != LfBus.QLimitType.MIN_Q && qLimitType != LfBus.QLimitType.MAX_Q) {
-            throw new IllegalArgumentException("Unsupported reactive limit type for a static var compensator: " + qLimitType);
+        if (bus == null || isDisabled() || generatorControlType != GeneratorControlType.VOLTAGE || bus.isGeneratorVoltageControlEnabled()) {
+            return Optional.empty();
         }
-        this.qLimitType = qLimitType;
+        return bus.getQLimitType().filter(qLimitType -> qLimitType == LfBus.QLimitType.MIN_Q || qLimitType == LfBus.QLimitType.MAX_Q);
     }
 
     @Override
     public double getB() {
-        if (qLimitType == LfBus.QLimitType.MIN_Q) {
-            return b0 + getBmin();
-        } else if (qLimitType == LfBus.QLimitType.MAX_Q) {
-            return b0 + getBmax();
-        }
-        return b0;
+        return b0 + getQLimitType().map(qLimitType -> qLimitType == LfBus.QLimitType.MIN_Q ? getBmin() : getBmax()).orElse(0.0);
     }
+
+    // the bus SVC shunt susceptance depends on the disabling status and the control type of the SVC
 
     @Override
     public void setDisabled(boolean disabled) {
         super.setDisabled(disabled);
-        // a disabled SVC no longer contributes to the bus SVC shunt
+        if (bus != null) {
+            bus.updateSvcShunt();
+        }
+    }
+
+    @Override
+    public void setGeneratorControlType(GeneratorControlType generatorControlType) {
+        super.setGeneratorControlType(generatorControlType);
         if (bus != null) {
             bus.updateSvcShunt();
         }

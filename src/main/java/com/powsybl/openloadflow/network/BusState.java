@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.network;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -30,7 +29,6 @@ public class BusState extends BusDcState {
     private final double svcShuntB;
     private final Map<String, LfGenerator.GeneratorControlType> generatorsControlType;
     private final LfBus.QLimitType qLimitType;
-    private final Map<String, LfBus.QLimitType> svcsQLimitType = new HashMap<>();
 
     private static final class LoadState extends LoadDcState {
 
@@ -69,11 +67,6 @@ public class BusState extends BusDcState {
         svcShuntB = svcShunt != null ? svcShunt.getB() : Double.NaN;
         this.generatorsControlType = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getGeneratorControlType));
         qLimitType = bus.getQLimitType().orElse(null);
-        for (LfGenerator generator : bus.getGenerators()) {
-            if (generator instanceof LfStaticVarCompensator svc) {
-                svcsQLimitType.put(svc.getId(), svc.getQLimitType().orElse(null));
-            }
-        }
     }
 
     @Override
@@ -105,11 +98,6 @@ public class BusState extends BusDcState {
         }
         if (!Double.isNaN(shuntG)) {
             element.getShunt().orElseThrow().setG(shuntG);
-        }
-        for (LfGenerator generator : element.getGenerators()) {
-            if (generator instanceof LfStaticVarCompensator svc) {
-                svc.setQLimitType(svcsQLimitType.get(svc.getId()));
-            }
         }
         if (!Double.isNaN(svcShuntB)) {
             element.getSvcShunt().orElseThrow().setB(svcShuntB);

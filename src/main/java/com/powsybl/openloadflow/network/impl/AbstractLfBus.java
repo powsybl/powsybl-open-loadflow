@@ -327,12 +327,14 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     }
 
     private void setGeneratorVoltageControlEnabled(boolean generatorVoltageControlEnabled) {
-        if (generatorVoltageControlEnabled) {
-            // whatever the reason the bus is PV again, its static var compensators are no longer blocked at a limit
-            clearStaticVarCompensatorsQLimitType();
-        }
         if (this.generatorVoltageControlEnabled != generatorVoltageControlEnabled) {
             this.generatorVoltageControlEnabled = generatorVoltageControlEnabled;
+            if (generatorVoltageControlEnabled) {
+                // a PV bus is not at a reactive limit, whatever the path re-enabling its voltage control
+                qLimitType = null;
+            }
+            // static var compensators at limit modeling depends on bus voltage control status
+            updateSvcShunt();
             for (LfNetworkListener listener : network.getListeners()) {
                 listener.onGeneratorVoltageControlChange(this, generatorVoltageControlEnabled);
             }
@@ -523,40 +525,21 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
                 .map(LfStaticVarCompensator.class::cast);
     }
 
-    private void clearStaticVarCompensatorsQLimitType() {
-        if (getStaticVarCompensators().anyMatch(svc -> svc.getQLimitType().isPresent())) {
-            getStaticVarCompensators().forEach(svc -> svc.setQLimitType(null));
-            updateSvcShunt();
-        }
-    }
-
     private static double getQAtLimit(LfStaticVarCompensator svc, QLimitType qLimitType) {
         return qLimitType == QLimitType.MIN_Q ? svc.getMinQ() : svc.getMaxQ();
     }
 
     @Override
     public void freezeGenerationTargetQAtQLimit(double qLimit, QLimitType qLimitType) {
-        double generationTargetQ = qLimit;
-        if (qLimitType == QLimitType.MIN_Q || qLimitType == QLimitType.MAX_Q) {
-            List<LfStaticVarCompensator> svcs = getStaticVarCompensators()
-                    .filter(svc -> !svc.isDisabled() && svc.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)
-                    .toList();
-            for (LfStaticVarCompensator svc : svcs) {
-                generationTargetQ -= getQAtLimit(svc, qLimitType);
-                svc.setQLimitType(qLimitType);
-            }
-            if (!svcs.isEmpty()) {
-                updateSvcShunt();
-            }
-        }
-        freezeGenerationTargetQAndDisableGeneratorVoltageControl(generationTargetQ);
+        setGeneratorVoltageControlEnabled(false);
         setQLimitType(qLimitType);
+        // static var compensators now at limit are modeled through the bus SVC shunt, so not part of the frozen target
+        freezeGenerationTargetQAndDisableGeneratorVoltageControl(qLimit - getStaticVarCompensatorsQAtLimit());
     }
 
     @Override
     public double getStaticVarCompensatorsQAtLimit() {
         return getStaticVarCompensators()
-                .filter(svc -> !svc.isDisabled())
                 .mapToDouble(svc -> svc.getQLimitType().map(qLimitType -> getQAtLimit(svc, qLimitType)).orElse(0.0))
                 .sum();
     }
@@ -645,6 +628,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void setQLimitType(QLimitType qLimitType) {
         this.qLimitType = qLimitType;
+        // static var compensators at limit modeling depends on bus reactive limit type
+        updateSvcShunt();
     }
 
     @Override

@@ -21,12 +21,15 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.network.BusState;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfShunt;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -254,6 +257,36 @@ class AcLoadFlowSvcTest {
         LfBus lfBus2 = lfNetwork.getBusById("vl2_0");
         assertTrue(lfBus2.isGeneratorVoltageControlEnabled());
         assertEquals(0, lfBus2.getSvcShunt().orElseThrow().getB());
+    }
+
+    @Test
+    void shouldUpdateSusceptanceAtLimitWithBusState() {
+        l1.setX(100);
+        svc1.setBmax(0.002)
+                .setVoltageSetpoint(450)
+                .setRegulationMode(RegulationMode.VOLTAGE)
+                .setRegulating(true);
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
+                commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfElement::getNum));
+        LfNetwork lfNetwork = Networks.load(network, acParameters.getNetworkParameters()).getFirst();
+        try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
+            new AcloadFlowEngine(context).run();
+        }
+        LfBus lfBus2 = lfNetwork.getBusById("vl2_0");
+        LfShunt svcShunt = lfBus2.getSvcShunt().orElseThrow();
+        double bmax = 0.002 * 400 * 400 / PerUnit.SB;
+        assertEquals(bmax, svcShunt.getB(), 1e-12);
+        BusState busState = BusState.save(lfBus2);
+
+        // whatever the path re-enabling voltage control, the susceptance at limit is released
+        lfBus2.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(true);
+        assertTrue(lfBus2.getQLimitType().isEmpty());
+        assertEquals(0, svcShunt.getB());
+        assertStaticVarCompensatorsConsistent(lfNetwork);
+
+        busState.restore();
+        assertEquals(bmax, svcShunt.getB(), 1e-12);
+        assertStaticVarCompensatorsConsistent(lfNetwork);
     }
 
     @Test
