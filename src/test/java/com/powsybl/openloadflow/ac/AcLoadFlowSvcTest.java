@@ -153,18 +153,14 @@ class AcLoadFlowSvcTest {
                             + Outer loop iteration 1
                                + 1 buses switched PV -> PQ (1 buses remain PV)
                                   Switch bus 'vl2_0' PV -> PQ, q=-457.896814 < minQ=-296.45
-                            + Outer loop iteration 2
-                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
-                            + Outer loop iteration 3
-                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """, reportNode);
     }
 
     @Test
-    void shouldIterateOnReactiveLimitChangedWithVoltage() throws IOException {
-        // SVC reactive limits are B * V^2: each outer loop iteration freezing Q at the limit changes V, hence the limit.
-        // On a weak network (high X) the fixed point converges slowly (ratio ~ 2 * Bmax * X), requiring many outer loop iterations.
+    void shouldReachVoltageDependentReactiveLimitInOneOuterLoopIteration() throws IOException {
+        // SVC reactive limits are B * V^2: with a frozen Q at limit, each voltage change would change the limit and,
+        // on a weak network (high X), require many outer loop iterations. Modeled as a fixed susceptance at limit, one is enough.
         l1.setX(100);
         svc1.setBmax(0.002)
                 .setVoltageSetpoint(450)
@@ -178,8 +174,7 @@ class AcLoadFlowSvcTest {
         assertTrue(result.isFullyConverged());
         Bus bus = svc1.getTerminal().getBusView().getBus();
         assertVoltageEquals(444.130, bus);
-        // outer loop stops when the limit change is below maxReactivePowerMismatch, hence the relaxed tolerance
-        assertEquals(-svc1.getBmax() * bus.getV() * bus.getV(), svc1.getTerminal().getQ(), 1e-2);
+        assertReactivePowerEquals(-svc1.getBmax() * bus.getV() * bus.getV(), svc1.getTerminal());
         assertTxtReportEquals("""
                 + Test Report
                    + Load flow on network 'svc'
@@ -194,20 +189,6 @@ class AcLoadFlowSvcTest {
                             + Outer loop iteration 1
                                + 1 buses switched PV -> PQ (1 buses remain PV)
                                   Switch bus 'vl2_0' PV -> PQ, q=424.07869 > maxQ=405
-                            + Outer loop iteration 2
-                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
-                            + Outer loop iteration 3
-                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
-                            + Outer loop iteration 4
-                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
-                            + Outer loop iteration 5
-                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
-                            + Outer loop iteration 6
-                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
-                            + Outer loop iteration 7
-                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
-                            + Outer loop iteration 8
-                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """, reportNode);
     }

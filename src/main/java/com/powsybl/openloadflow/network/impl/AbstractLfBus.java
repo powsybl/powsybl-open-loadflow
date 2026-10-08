@@ -405,7 +405,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         if (lfSvc.getSlope() != 0) {
             hasGeneratorsWithSlope = true;
         }
-        if (lfSvc.getB0() != 0) {
+        // also needed for voltage control so that the SVC can be modeled as a fixed susceptance when at a reactive limit
+        if (lfSvc.getB0() != 0 || svcShunt == null && lfSvc.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE) {
             svcShunt = LfStandbyAutomatonShunt.create(lfSvc);
             lfSvc.setStandByAutomatonShunt(svcShunt);
         }

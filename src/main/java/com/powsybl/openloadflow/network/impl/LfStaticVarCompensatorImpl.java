@@ -227,9 +227,11 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     public void updateState(LfNetworkStateUpdateParameters parameters) {
         double vSquare = bus.getV() * bus.getV() * nominalV * nominalV;
         double q = (Double.isNaN(calculatedQ) ? -targetQ : -calculatedQ) * PerUnit.SB;
+        // the shunt holds b0 and, when the SVC is at a reactive limit, the limit susceptance
+        double b = standByAutomatonShunt != null ? standByAutomatonShunt.getB() / PerUnit.zb(nominalV) : b0;
         getSvc().getTerminal()
                 .setP(0)
-                .setQ(q - b0 * vSquare);
+                .setQ(q - b * vSquare);
     }
 
     @Override
@@ -245,6 +247,16 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     @Override
     public double getB0() {
         return b0;
+    }
+
+    @Override
+    public double getBmin() {
+        return getSvc().getBmin();
+    }
+
+    @Override
+    public double getBmax() {
+        return getSvc().getBmax();
     }
 
     @Override
