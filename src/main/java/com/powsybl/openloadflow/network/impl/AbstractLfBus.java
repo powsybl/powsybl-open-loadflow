@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -445,7 +446,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     static boolean checkVoltageControl(ShuntCompensator shuntCompensator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         double nominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
         double targetV = shuntCompensator.getRegulatingTargetV();
-        if (!shuntCompensator.isRegulating()) {
+        if (!shuntCompensator.isRegulatingWithMode(RegulationMode.VOLTAGE)) {
             return false;
         }
         if (!VoltageControl.checkTargetV(targetV / nominalV, nominalV, parameters)) {
