@@ -19,11 +19,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
-import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
-import com.powsybl.openloadflow.network.action.LfAction;
-import com.powsybl.openloadflow.network.action.LfGeneratorAction;
-import com.powsybl.openloadflow.network.action.LfLoadAction;
+import com.powsybl.openloadflow.network.action.*;
 
 import java.util.*;
 

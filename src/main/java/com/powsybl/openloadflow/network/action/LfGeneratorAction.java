@@ -9,7 +9,10 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.GeneratorAction;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfContingency;
+import com.powsybl.openloadflow.network.LfGenerator;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Optional;

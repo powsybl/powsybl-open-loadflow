@@ -17,13 +17,14 @@ import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_1;
-import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_2;
-import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_3;
+import static com.powsybl.openloadflow.network.LfBranch.BranchType.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}

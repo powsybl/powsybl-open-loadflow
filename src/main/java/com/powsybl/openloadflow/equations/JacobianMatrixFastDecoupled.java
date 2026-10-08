@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.equations;
 
 import com.google.common.base.Stopwatch;
-import com.powsybl.math.matrix.*;
+import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.equations.fastdecoupled.*;
 import com.powsybl.openloadflow.ac.equations.vector.ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator;
@@ -16,7 +16,10 @@ import com.powsybl.openloadflow.ac.equations.vector.ClosedBranchSide1ReactiveFlo
 import com.powsybl.openloadflow.ac.equations.vector.ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator;
 import com.powsybl.openloadflow.ac.equations.vector.ClosedBranchSide2ReactiveFlowEquationTermArrayEvaluator;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static com.powsybl.openloadflow.ac.equations.AcEquationType.*;

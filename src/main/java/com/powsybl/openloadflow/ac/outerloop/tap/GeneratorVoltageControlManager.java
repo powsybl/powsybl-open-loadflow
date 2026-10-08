@@ -7,12 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.outerloop.tap;
 
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfVscConverterStation;
-import com.powsybl.openloadflow.network.TransformerVoltageControl;
-import com.powsybl.openloadflow.network.VoltageControl;
+import com.powsybl.openloadflow.network.*;
 
 import java.util.ArrayList;
 import java.util.List;

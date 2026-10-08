@@ -7,12 +7,15 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Area;
+import com.powsybl.iidm.network.BoundaryLine;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.util.SV;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
-import java.util.*;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}

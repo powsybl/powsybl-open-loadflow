@@ -43,7 +43,7 @@ public sealed interface Operation {
             case "e_added" -> GetEdgesAddedToMainComponent.INSTANCE;
             case "v_removed" -> GetVerticesRemovedFromMainComponent.INSTANCE;
             case "e_removed" -> GetEdgesRemovedFromMainComponent.INSTANCE;
-            case "q" -> new Query(Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+            case "q" -> new Connected(Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
             case "testpoint" -> new TestPoint(Integer.parseInt(parts[1]), Long.parseLong(parts[2]));
             case "Sd" -> ComputeSd.INSTANCE;
             case "new" -> New.INSTANCE;
@@ -180,16 +180,11 @@ public sealed interface Operation {
         }
     }
 
-    record Query(int u, int v) implements Operation {
+    record Connected(int u, int v) implements Operation {
 
         @Override
         public void execute(GraphConnectivity<Integer, Integer> connectivity) {
-            query(connectivity, u, v);
-        }
-
-        public static void query(GraphConnectivity<Integer, Integer> conn, int a, int b) {
-            conn.getComponentNumber(a);
-            conn.getComponentNumber(b);
+            connectivity.connected(u, v);
         }
     }
 
@@ -204,7 +199,7 @@ public sealed interface Operation {
 
                 for (int i = 0; i < vertexCount; i++) {
                     for (int j = 0; j < vertexCount; j++) {
-                        Query.query(connectivity, i, j);
+                        connectivity.connected(i, j);
                     }
                 }
 
@@ -214,7 +209,7 @@ public sealed interface Operation {
                 for (int i = 0; i < LIMIT; i++) {
                     int v1 = random.nextInt(vertexCount);
                     int v2 = random.nextInt(v1 + 1);
-                    Query.query(connectivity, v1, v2);
+                    connectivity.connected(v1, v2);
                 }
             }
         }

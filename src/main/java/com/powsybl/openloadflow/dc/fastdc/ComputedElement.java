@@ -7,21 +7,12 @@
  */
 package com.powsybl.openloadflow.dc.fastdc;
 
-import com.powsybl.action.GeneratorAction;
-import com.powsybl.action.LoadAction;
-import com.powsybl.action.PhaseTapChangerTapPositionAction;
-import com.powsybl.action.SwitchAction;
-import com.powsybl.action.TerminalsConnectionAction;
+import com.powsybl.action.*;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
-import com.powsybl.openloadflow.dc.equations.AbstractClosedBranchDcFlowEquationTerm;
-import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
-import com.powsybl.openloadflow.dc.equations.DcApproximationType;
-import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
-import com.powsybl.openloadflow.dc.equations.DcEquationType;
-import com.powsybl.openloadflow.dc.equations.DcVariableType;
+import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivity;

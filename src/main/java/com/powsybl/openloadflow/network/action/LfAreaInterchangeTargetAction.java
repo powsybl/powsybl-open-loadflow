@@ -8,7 +8,10 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.AreaInterchangeTargetAction;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfArea;
+import com.powsybl.openloadflow.network.LfContingency;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.util.PerUnit;
 
 /**

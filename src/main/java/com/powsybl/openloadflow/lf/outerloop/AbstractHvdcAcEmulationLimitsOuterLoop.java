@@ -16,7 +16,8 @@ import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 
-import static com.powsybl.openloadflow.network.LfHvdc.AcEmulationControl.AcEmulationStatus.*;
+import static com.powsybl.openloadflow.network.LfHvdc.AcEmulationControl.AcEmulationStatus.SATURATION_MODE_FROM_CS1_TO_CS2;
+import static com.powsybl.openloadflow.network.LfHvdc.AcEmulationControl.AcEmulationStatus.SATURATION_MODE_FROM_CS2_TO_CS1;
 
 /**
  * @author Sylvestre Prabakaran {@literal <sylvestre.prabakaran at rte-france.com>}

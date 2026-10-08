@@ -9,7 +9,10 @@
 package com.powsybl.openloadflow.network.action;
 
 import com.powsybl.action.ShuntCompensatorPositionAction;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfContingency;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfShunt;
 import com.powsybl.openloadflow.network.impl.LfShuntImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow;
 
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;

@@ -10,7 +10,10 @@ package com.powsybl.openloadflow.graph.dtree;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.*;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * D-Tree implementation from <cite>Qing Chen, Oded Lachish, Sven Helmer, and Michael H. Böhlen. Dynamic

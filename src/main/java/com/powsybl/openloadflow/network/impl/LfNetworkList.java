@@ -11,11 +11,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.NetworkVariantPool;
 import com.powsybl.openloadflow.network.LfNetwork;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}

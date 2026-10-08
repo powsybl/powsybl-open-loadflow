@@ -8,9 +8,7 @@
 package com.powsybl.openloadflow.graph.benchmark.generators;
 
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.graph.SpanningForestGraphConnectivity;
 import com.powsybl.openloadflow.graph.benchmark.GraphConnectivityMethod;
-import com.powsybl.openloadflow.graph.benchmark.workload.ISpyGraphConnectivity;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -64,45 +62,6 @@ public final class WorkloadUtils {
     public static void newConnectivity(BufferedWriter bw) throws IOException {
         bw.write("new");
         bw.newLine();
-    }
-
-    public static void executeFromLine(GraphConnectivity<Integer, Integer> conn, String line) {
-        String[] parts = line.split(" ");
-
-        switch (parts[0]) {
-            case "v" -> conn.addVertex(Integer.parseInt(parts[1]));
-            case "e" -> conn.addEdge(Integer.parseInt(parts[1]), Integer.parseInt(parts[2]), Integer.parseInt(parts[3]));
-            case "rm" -> conn.removeEdge(Integer.parseInt(parts[1]));
-            case "start" -> {
-                boolean quick = parts.length == 2 && parts[1].equals("true");
-                conn.startTemporaryChanges(quick);
-            }
-            case "undo" -> conn.undoTemporaryChanges();
-            case "get_num" -> conn.getComponentNumber(Integer.parseInt(parts[1]));
-            case "set_main" -> conn.setMainComponentVertex(Integer.parseInt(parts[1]));
-            case "count" -> conn.getNbConnectedComponents();
-            case "get_comp" -> conn.getConnectedComponent(Integer.parseInt(parts[1]));
-            case "largest" -> conn.getLargestConnectedComponent();
-            case "v_added" -> conn.getVerticesAddedToMainComponent();
-            case "e_added" -> conn.getEdgesAddedToMainComponent();
-            case "v_removed" -> conn.getVerticesRemovedFromMainComponent();
-            case "e_removed" -> conn.getEdgesRemovedFromMainComponent();
-            case "q" -> query(conn, Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
-            case "testpoint" -> testPoint(conn, Integer.parseInt(parts[1]), Long.parseLong(parts[2]));
-            case "Sd" -> {
-                if (conn instanceof SpanningForestGraphConnectivity<Integer, Integer> spanningForest) {
-                    spanningForest.computeSumOfDistances();
-                }
-            }
-            case "new" -> {
-                if (conn instanceof ISpyGraphConnectivity<Integer, Integer> spy) {
-                    spy.newDelegate();
-                }
-            }
-            default -> {
-                //System.err.println("Unexpected operation: " + parts[0]);
-            }
-        }
     }
 
     public static final int LIMIT = 1_000_000;

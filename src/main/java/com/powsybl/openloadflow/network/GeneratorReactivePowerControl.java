@@ -9,7 +9,10 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.TwoSides;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}

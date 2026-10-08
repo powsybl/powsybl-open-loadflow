@@ -12,9 +12,10 @@ import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ReactiveFlowEquati
 import com.powsybl.openloadflow.ac.equations.vector.ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator;
 import com.powsybl.openloadflow.equations.Variable;
 import net.jafama.FastMath;
+
 import java.util.Objects;
 
-import static com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ReactiveFlowEquationTerm.*;
+import static com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ReactiveFlowEquationTerm.dq1dv2;
 import static com.powsybl.openloadflow.network.PiModel.A2;
 import static com.powsybl.openloadflow.network.PiModel.R2;
 
