@@ -557,7 +557,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             return onInjectionUpdate(battery, (value, lfBus) -> {
                 if ("targetP".equals(attribute)) {
                     return updateLfGeneratorTargetP(battery.getId(), (double) oldValue, (double) newValue, value, lfBus);
-                } else if ("targetQ".equals(attribute)) {
+                } else if ("localTargetQ".equals(attribute)) {
                     return updateLfGeneratorTargetQ(value, lfBus);
                 }
                 return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(battery, attribute));
