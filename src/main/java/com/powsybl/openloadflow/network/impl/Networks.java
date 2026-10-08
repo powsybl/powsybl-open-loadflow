@@ -328,7 +328,7 @@ public final class Networks {
         return switch (identifiable.getType()) {
             case TWO_WINDINGS_TRANSFORMER -> {
                 RatioTapChanger rtc = ((TwoWindingsTransformer) identifiable).getRatioTapChanger();
-                if (rtc != null) {
+                if (rtc != null && rtc.isRegulating()) {
                     yield Optional.ofNullable(rtc.getRegulatingTerminal());
                 }
                 yield Optional.empty();
