@@ -439,6 +439,60 @@ class AcLoadFlowSvcTest {
     }
 
     @Test
+    void shouldReachVoltageDependentReactiveLimitWithRemoteVoltageControl() throws IOException {
+        // svc1 controls b3 voltage remotely: its reactive limit depends on the voltage of its own bus b2
+        Substation s3 = network.newSubstation().setId("S3").add();
+        VoltageLevel vl3 = s3.newVoltageLevel().setId("vl3").setNominalV(400).setTopologyKind(TopologyKind.BUS_BREAKER).add();
+        Bus bus3 = vl3.getBusBreakerView().newBus().setId("b3").add();
+        Load ld3 = vl3.newLoad().setId("ld3").setBus("b3").setConnectableBus("b3").setP0(50).setQ0(100).add();
+        network.newLine().setId("l3").setBus1("b2").setBus2("b3").setR(1).setX(30).add();
+        l1.setX(100);
+        svc1.setBmax(0.002)
+                .setVoltageSetpoint(410)
+                .setRegulatingTerminal(ld3.getTerminal())
+                .setRegulationMode(RegulationMode.VOLTAGE)
+                .setRegulating(true);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(409.092, bus2);
+        assertVoltageEquals(401.480, bus3); // target cannot be reached
+        assertReactivePowerEquals(-svc1.getBmax() * bus2.getV() * bus2.getV(), svc1.getTerminal());
+        String report = reportToString(reportNode);
+        assertTrue(report.contains("Switch bus 'vl2_0' PV -> PQ, q=371.069607 > maxQ=348.533884"));
+        assertFalse(report.contains("reactive limit changed"));
+    }
+
+    @Test
+    void shouldReachVoltageDependentReactiveLimitWithSharedVoltageControl() throws IOException {
+        // svc1 shares b1 voltage control with g1: svc1 bus is switched PQ at its limit while g1 keeps controlling b1
+        g1.newMinMaxReactiveLimits().setMinQ(-100.).setMaxQ(100.).add();
+        g1.setTargetV(400);
+        l1.setX(30);
+        svc1.setBmax(0.0005)
+                .setVoltageSetpoint(400)
+                .setRegulatingTerminal(g1.getRegulatingTerminal())
+                .setRegulationMode(RegulationMode.VOLTAGE)
+                .setRegulating(true);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(400, bus1);
+        assertVoltageEquals(394.170, bus2);
+        assertReactivePowerEquals(-svc1.getBmax() * bus2.getV() * bus2.getV(), svc1.getTerminal());
+        assertReactivePowerEquals(-75.295, g1.getTerminal());
+        String report = reportToString(reportNode);
+        assertTrue(report.contains("Switch bus 'vl2_0' PV -> PQ, q=132.500951 > maxQ=79.3442"));
+        assertFalse(report.contains("reactive limit changed"));
+    }
+
+    @Test
     void testSvcWithSlope() {
         svc1.setVoltageSetpoint(385);
         svc1.newVoltageRegulation()
