@@ -774,7 +774,9 @@ class AcLoadFlowSvcTest {
         assertAngleEquals(0, bus1);
         assertVoltageEquals(385, bus2);
         assertAngleEquals(0.116346, bus2);
-        // same behaviour as classical voltage control: the 457.896 MVar of the single SVC case shared by both SVCs
+        // same behaviour as classical voltage control
+        // both SVCs regulate at 385 kV (several monitors on a bus are switched to voltage control), as the single SVC in test():
+        // they absorb the same 457.896 MVar in total, shared equally
         assertReactivePowerEquals(228.948, svc1.getTerminal());
         assertReactivePowerEquals(228.948, svc2.getTerminal());
     }
