@@ -24,6 +24,7 @@ import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.BusState;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
+import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfShunt;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
@@ -285,6 +286,15 @@ class AcLoadFlowSvcTest {
         assertStaticVarCompensatorsConsistent(lfNetwork);
 
         busState.restore();
+        assertEquals(bmax, svcShunt.getB(), 1e-12);
+        assertStaticVarCompensatorsConsistent(lfNetwork);
+
+        // only a SVC controlling voltage is modeled at limit
+        LfGenerator lfSvc1 = lfNetwork.getGeneratorById("svc1");
+        lfSvc1.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+        assertEquals(0, svcShunt.getB());
+        assertStaticVarCompensatorsConsistent(lfNetwork);
+        lfSvc1.setGeneratorControlType(LfGenerator.GeneratorControlType.VOLTAGE);
         assertEquals(bmax, svcShunt.getB(), 1e-12);
         assertStaticVarCompensatorsConsistent(lfNetwork);
     }
