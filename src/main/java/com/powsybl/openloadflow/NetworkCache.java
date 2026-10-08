@@ -498,6 +498,34 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             return CacheUpdateResult.elementUpdated(value);
         }
 
+        private CacheUpdateResult<V> updateLfGeneratorTargetV(Generator generator, String attribute, double oldValue, double newValue, V value, LfBus lfBus) {
+            GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
+            if (!voltageControl.isLocalControl() && "localTargetV".equals(attribute)) {
+                // TODO: Equivalent localTargetV (when localTargetV is the backup in case of switching remote to local) is not supported yet
+                LOGGER.info("Generator {} is remote voltage controlled but equivalent localTargetV has been changed: not supported", generator.getId());
+                return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(generator, attribute));
+            }
+            if (voltageControl.isSharedControl()) {
+                // TODO: shared voltage control is not supported (because multiple changes could be wrongly summed for the same voltage control)
+                LOGGER.info("Generator {} voltage control is shared: not supported", generator.getId());
+                return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(generator, attribute));
+            }
+            double valueShift = newValue - oldValue;
+            double nominalV = voltageControl.getControlledBus().getNominalV();
+            double newTargetV = voltageControl.getTargetValue() + valueShift / nominalV;
+            LfNetworkParameters networkParameters = value.getNetworkParameters();
+            if (AbstractLfGenerator.checkTargetV(generator.getId(), newTargetV, nominalV, networkParameters, null)) {
+                voltageControl.setTargetValue(newTargetV);
+            } else {
+                value.getNetwork().getGeneratorById(generator.getId()).setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+                if (lfBus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
+                    lfBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(false);
+                }
+            }
+            value.getNetwork().validate(input.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC, null);
+            return CacheUpdateResult.elementUpdated(value);
+        }
+
         private static <V extends Value> CacheUpdateResult<V> updateLfLoadTargetP(String id, double oldValue, double newValue, V value, LfBus lfBus) {
             // Load active power distribution is not handled
             double valueShift = newValue - oldValue;
@@ -531,29 +559,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         private CacheUpdateResult<V> onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue,
                                                        V value, LfBus lfBus) {
             if ("VoltageRegulation.TargetValue".equals(attribute) && generator.isWithMode(RegulationMode.VOLTAGE) || "localTargetV".equals(attribute)) {
-                double valueShift = (double) newValue - (double) oldValue;
-                GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
-                if (!voltageControl.isLocalControl() && "localTargetV".equals(attribute)) {
-                    // TODO: Equivalent localTargetV (when localTargetV is the backup in case of switching remote to local) is not supported yet
-                    LOGGER.info("Generator {} is remote voltage controlled but equivalent localTargetV has been changed: not supported", generator.getId());
-                } else if (voltageControl.isSharedControl()) {
-                    // TODO: shared voltage control is not supported (because multiple changes could be wrongly summed for the same voltage control)
-                    LOGGER.info("Generator {} voltage control is shared: not supported", generator.getId());
-                } else {
-                    double nominalV = voltageControl.getControlledBus().getNominalV();
-                    double newTargetV = voltageControl.getTargetValue() + valueShift / nominalV;
-                    LfNetworkParameters networkParameters = value.getNetworkParameters();
-                    if (AbstractLfGenerator.checkTargetV(generator.getId(), newTargetV, nominalV, networkParameters, null)) {
-                        voltageControl.setTargetValue(newTargetV);
-                    } else {
-                        value.getNetwork().getGeneratorById(generator.getId()).setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
-                        if (lfBus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
-                            lfBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(false);
-                        }
-                    }
-                    value.getNetwork().validate(input.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC, null);
-                    return CacheUpdateResult.elementUpdated(value);
-                }
+                return updateLfGeneratorTargetV(generator, attribute, (double) oldValue, (double) newValue, value, lfBus);
             } else if ("targetP".equals(attribute)) {
                 return updateLfGeneratorTargetP(generator.getId(), (double) oldValue, (double) newValue, value, lfBus);
             } else if ("localTargetQ".equals(attribute)) {

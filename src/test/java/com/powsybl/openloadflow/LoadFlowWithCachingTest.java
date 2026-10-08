@@ -1119,7 +1119,7 @@ class LoadFlowWithCachingTest {
                 .withTargetValue(100)
                 .build();
         assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has been invalidated
-        result = loadFlowRunner.run(network, parameters);
+        loadFlowRunner.run(network, parameters);
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check new cache has been created
         twt.getRatioTapChanger().getVoltageRegulation().setTargetValue(120); // targetValue change is supported by cache only with mode VOLTAGE
         assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has been invalidated
@@ -1161,7 +1161,7 @@ class LoadFlowWithCachingTest {
                 .withTargetValue(100)
                 .build();
         assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has been invalidated
-        result = loadFlowRunner.run(network, parameters);
+        loadFlowRunner.run(network, parameters);
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check new cache has been created
         twt.getLeg2().getRatioTapChanger().getVoltageRegulation().setTargetValue(120); // targetValue change is supported by cache only with mode VOLTAGE
         assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has been invalidated
