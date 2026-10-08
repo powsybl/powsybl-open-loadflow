@@ -109,6 +109,30 @@ class AcLoadFlowVscTest {
     }
 
     @Test
+    void testReactivePowerRegulationWithNanLocalTargetQ() {
+        Network network = HvdcNetworkFactory.createVsc();
+        VscConverterStation cs2 = network.getVscConverterStation("cs2");
+        cs2.newVoltageRegulation()
+                .withMode(RegulationMode.REACTIVE_POWER)
+                .withTerminal(cs2.getTerminal())
+                .withTargetValue(-30) // load sign convention
+                .withRegulating(true)
+                .build();
+        // allowed by validation when regulating in REACTIVE_POWER mode with a terminal
+        cs2.setLocalTargetQ(Double.NaN);
+
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setUseReactiveLimits(false)
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(-30, cs2.getTerminal());
+    }
+
+    @Test
     void testRegulatingTerminal2() {
         Network network = HvdcNetworkFactory.createVsc();
         network.getGenerator("g1").setLocalTargetV(390);

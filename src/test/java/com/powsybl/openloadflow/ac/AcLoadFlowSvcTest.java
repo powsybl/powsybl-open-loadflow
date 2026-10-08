@@ -135,6 +135,22 @@ class AcLoadFlowSvcTest {
     }
 
     @Test
+    void testReactivePowerRegulationWithNanLocalTargetQ() {
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.REACTIVE_POWER)
+                .withTerminal(svc1.getTerminal())
+                .withTargetValue(50) // load sign convention
+                .withRegulating(true)
+                .build();
+        // localTargetQ is optional for static var compensators
+        svc1.setLocalTargetQ(Double.NaN);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(50, svc1.getTerminal());
+    }
+
+    @Test
     void testSvcWithSlope() {
         svc1.setLocalTargetV(385);
         svc1.newVoltageRegulation()

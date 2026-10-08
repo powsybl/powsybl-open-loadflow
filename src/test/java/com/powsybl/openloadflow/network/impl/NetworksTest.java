@@ -11,10 +11,12 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
+import com.powsybl.openloadflow.network.ReactivePowerControlNetworkFactory;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -38,5 +40,12 @@ class NetworksTest {
 
         Network network3wtWithoutTapChanger = EurostagTutorialExample1Factory.createWith3wTransformer();
         assertFalse(Networks.getEquipmentRegulatingTerminal(network3wtWithoutTapChanger, "NGEN_V2_NHV1").isPresent());
+    }
+
+    @Test
+    void testGetRegulatingTerminalT2wtRatioTapChangerWithoutRegulation() {
+        Network network = ReactivePowerControlNetworkFactory.create4BusNetworkWithRatioTapChanger();
+        network.getTwoWindingsTransformer("l34").getRatioTapChanger().removeVoltageRegulation();
+        assertTrue(Networks.getEquipmentRegulatingTerminal(network, "l34").isEmpty());
     }
 }

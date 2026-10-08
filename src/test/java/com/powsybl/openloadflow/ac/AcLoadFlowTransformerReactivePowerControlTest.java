@@ -94,6 +94,18 @@ class AcLoadFlowTransformerReactivePowerControlTest {
     }
 
     @Test
+    void testLoadTapChangingRatioTapChangerWithoutRegulation() {
+        Network network = ReactivePowerControlNetworkFactory.create4BusNetworkWithRatioTapChanger();
+        RatioTapChanger rtc = network.getTwoWindingsTransformer("l34").getRatioTapChanger();
+        rtc.removeVoltageRegulation();
+        rtc.setLoadTapChangingCapabilities(true);
+        parametersExt.setTransformerReactivePowerControl(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+    }
+
+    @Test
     void testGeneratorRemoteReactivePowerControlOutsideReactiveLimits() throws IOException {
         Network network = ReactivePowerControlNetworkFactory.create4BusNetworkWithRatioTapChanger();
 

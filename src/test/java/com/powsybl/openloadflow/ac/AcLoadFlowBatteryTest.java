@@ -98,4 +98,20 @@ class AcLoadFlowBatteryTest {
         assertActivePowerEquals(390.22, battery2.getTerminal());
         assertReactivePowerEquals(122.711, battery2.getTerminal());
     }
+
+    @Test
+    void testReactivePowerRegulationWithNanLocalTargetQ() {
+        battery1.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTerminal(battery1.getTerminal())
+            .withTargetValue(-50) // load sign convention
+            .withRegulating(true)
+            .build();
+        // allowed by validation when regulating in REACTIVE_POWER mode with a terminal
+        battery1.setLocalTargetQ(Double.NaN);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(-50, battery1.getTerminal());
+    }
 }
