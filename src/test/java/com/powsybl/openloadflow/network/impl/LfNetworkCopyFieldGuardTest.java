@@ -20,7 +20,7 @@ import com.powsybl.openloadflow.network.LfAsymLine;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfOverloadManagementSystem;
 import com.powsybl.openloadflow.network.LfSecondaryVoltageControl;
-import com.powsybl.openloadflow.network.LfStandbyAutomatonShunt;
+import com.powsybl.openloadflow.network.LfSvcShunt;
 import com.powsybl.openloadflow.network.LfSynchronousNetworkImpl;
 import com.powsybl.openloadflow.network.PiModelArray;
 import com.powsybl.openloadflow.network.ReactivePowerControl;
@@ -73,14 +73,14 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(LfGeneratorImpl.class, Set.of("generatorRef", "initialParticipating", "participating", "droop", "participationFactor", "qPercent",
                 "isTargetQForcedInReactiveLimits", "forceVoltageControl", "maxTargetP", "minTargetP", "forceTargetQInReactiveLimits"));
         expected.put(LfBatteryImpl.class, Set.of("batteryRef", "initialParticipating", "participating", "droop", "participationFactor", "maxTargetP", "minTargetP"));
-        expected.put(LfStaticVarCompensatorImpl.class, Set.of("svcRef", "reactiveLimits", "nominalV", "slope", "targetQ", "standByAutomaton", "b0", "standByAutomatonShunt"));
+        expected.put(LfStaticVarCompensatorImpl.class, Set.of("svcRef", "reactiveLimits", "nominalV", "slope", "targetQ", "standByAutomaton", "b0"));
         expected.put(LfVscConverterStationImpl.class, Set.of("stationRef", "lossFactor", "hvdc", "hvdcDanglingInIidm"));
         expected.put(LfBoundaryLineGenerator.class, Set.of("boundaryLineRef"));
         expected.put(LfLoadImpl.class, Set.of("bus", "loadModel", "loadsRefs", "lccCsRefs", "targetQ", "ensurePowerFactorConstantByLoad", "loadsAbsVariableTargetP",
                 "absVariableTargetP", "distributedOnConformLoad", "loadsDisablingStatus", "p", "q"));
         expected.put(LfShuntImpl.class, Set.of("shuntCompensatorsRefs", "bus", "voltageControl", "voltageControlCapability", "voltageControlEnabled", "controllers", "b", "zb", "g"));
         expected.put(AbstractLfShunt.class, Set.of("q", "p"));
-        expected.put(LfStandbyAutomatonShunt.class, Set.of("svc", "b"));
+        expected.put(LfSvcShunt.class, Set.of("bus", "b"));
         expected.put(AbstractLfBranch.class, Set.of("bus1", "bus2", "currentLimits1", "activePowerLimits1", "apparentPowerLimits1", "currentLimits2", "activePowerLimits2",
                 "apparentPowerLimits2", "piModel", "phaseControl", "phaseControlEnabled", "voltageControl", "voltageControlEnabled", "transformerReactivePowerControl",
                 "zeroImpedanceContextByModel", "a1", "generatorReactivePowerControl", "asymLine"));

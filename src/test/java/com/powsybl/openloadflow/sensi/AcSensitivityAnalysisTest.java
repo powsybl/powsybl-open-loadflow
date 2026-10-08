@@ -3569,4 +3569,41 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 busId, vActual, vPredictedY, Math.signum(vActual) == Math.signum(vPredictedY)));
         LOGGER.info("{}", out);
     }
+
+    @Test
+    void testStaticVarCompensatorAtReactiveLimit() {
+        // svc1 at max reactive limit, modeled as a fixed susceptance: its reactive power follows the voltage, which has
+        // to be reflected in sensitivities as with a finite difference
+        Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
+        network.getLine("l1").setX(100);
+        StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");
+        svc1.setBmax(0.002);
+        svc1.setLocalTargetV(450);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "vl1_0");
+        List<SensitivityFactor> factors = List.of(
+                new SensitivityFactor(SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, "l1", SensitivityVariableType.INJECTION_REACTIVE_POWER, "ld1", false, ContingencyContext.none()),
+                new SensitivityFactor(SensitivityFunctionType.BUS_VOLTAGE, "b2", SensitivityVariableType.INJECTION_REACTIVE_POWER, "ld1", false, ContingencyContext.none()));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, Collections.emptyList(), Collections.emptyList(), sensiParameters);
+
+        // finite difference
+        Load ld1 = network.getLoad("ld1");
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        loadFlowRunner.run(network, sensiParameters.getLoadFlowParameters());
+        double q1Before = network.getLine("l1").getTerminal1().getQ();
+        double vBefore = b2.getV();
+        assertReactivePowerEquals(-svc1.getBmax() * vBefore * vBefore, svc1.getTerminal());
+        ld1.setQ0(ld1.getQ0() + 1);
+        loadFlowRunner.run(network, sensiParameters.getLoadFlowParameters());
+        double q1After = network.getLine("l1").getTerminal1().getQ();
+        double vAfter = b2.getV();
+
+        assertEquals(q1Before, result.getFunctionReferenceValue("l1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
+        // load reactive power increase is a negative reactive power injection
+        assertEquals(q1Before - q1After, result.getSensitivityValue("ld1", "l1", SensitivityFunctionType.BRANCH_REACTIVE_POWER_1, SensitivityVariableType.INJECTION_REACTIVE_POWER), 1e-2);
+        assertEquals(vBefore - vAfter, result.getBusVoltageSensitivityValue("ld1", "b2", SensitivityVariableType.INJECTION_REACTIVE_POWER), 1e-3);
+    }
 }

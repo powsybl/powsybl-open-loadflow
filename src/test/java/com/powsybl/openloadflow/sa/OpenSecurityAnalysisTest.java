@@ -2356,6 +2356,114 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
+    void testStaticVarCompensatorAtReactiveLimitContingencies() {
+        // svc1 is at its min reactive limit in pre-contingency state, so modeled as a fixed susceptance: check that each
+        // contingency (svc1 lost, svc1 remaining at limit, svc1 switching back PV) starts from a correctly restored state
+        // and gives the same result as a simple load flow
+        Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
+        network.newLine().setId("l2").setBus1("b1").setBus2("b2").setR(1).setX(3).add();
+        StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");
+        svc1.setBmin(-0.002);
+        svc1.setLocalTargetV(386.5);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+        loadFlowRunner.run(network, parameters.getLoadFlowParameters());
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        assertReactivePowerEquals(-svc1.getBmin() * b2.getV() * b2.getV(), svc1.getTerminal());
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Contingency> contingencies = List.of(new Contingency("svc1", new StaticVarCompensatorContingency("svc1")),
+                new Contingency("ld1", new LoadContingency("ld1")),
+                new Contingency("l2", new BranchContingency("l2")));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
+
+        // compare with simple load flows
+        svc1.getTerminal().disconnect();
+        loadFlowRunner.run(network, parameters.getLoadFlowParameters());
+        assertBranchResultEquals(network.getLine("l1"), getPostContingencyResult(result, "svc1").getNetworkResult().getBranchResult("l1"));
+        svc1.getTerminal().connect();
+
+        network.getLoad("ld1").getTerminal().disconnect();
+        loadFlowRunner.run(network, parameters.getLoadFlowParameters());
+        assertReactivePowerEquals(-svc1.getBmin() * b2.getV() * b2.getV(), svc1.getTerminal());
+        assertBranchResultEquals(network.getLine("l1"), getPostContingencyResult(result, "ld1").getNetworkResult().getBranchResult("l1"));
+        network.getLoad("ld1").getTerminal().connect();
+
+        network.getLine("l2").disconnect();
+        loadFlowRunner.run(network, parameters.getLoadFlowParameters());
+        // svc1 has switched back PV
+        assertVoltageEquals(386.5, b2);
+        assertBranchResultEquals(network.getLine("l1"), getPostContingencyResult(result, "l2").getNetworkResult().getBranchResult("l1"));
+    }
+
+    @Test
+    void testSeveralStaticVarCompensatorsAndGeneratorAtReactiveLimitContingencies() {
+        // svc1, svc2 and g2 share the same bus at max reactive limit in pre-contingency state: losing one of them must
+        // keep the others at limit consistently, the SVCs being modeled as a fixed susceptance
+        Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
+        network.getLine("l1").setX(100);
+        StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");
+        svc1.setBmax(0.0015);
+        svc1.setLocalTargetV(450);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        vl2.newStaticVarCompensator()
+                .setId("svc2")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setLocalTargetV(450)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
+                .setBmin(-0.002)
+                .setBmax(0.0005)
+                .add();
+        Generator g2 = vl2.newGenerator().setId("g2").setBus("b2").setConnectableBus("b2").setTargetP(1)
+                .setMinP(0).setMaxP(10)
+                .setLocalTargetV(450)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
+                .add();
+        g2.newMinMaxReactiveLimits().setMinQ(-10).setMaxQ(10).add();
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+        loadFlowRunner.run(network, parameters.getLoadFlowParameters());
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        assertReactivePowerEquals(-svc1.getBmax() * b2.getV() * b2.getV(), svc1.getTerminal());
+        assertReactivePowerEquals(-10, g2.getTerminal());
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Contingency> contingencies = List.of(new Contingency("svc1", new StaticVarCompensatorContingency("svc1")),
+                new Contingency("svc2", new StaticVarCompensatorContingency("svc2")),
+                new Contingency("g2", new GeneratorContingency("g2")),
+                new Contingency("ld1", new LoadContingency("ld1")));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, ReportNode.NO_OP);
+
+        for (String id : List.of("svc1", "svc2", "g2", "ld1")) {
+            Terminal terminal = ((Injection<?>) network.getIdentifiable(id)).getTerminal();
+            terminal.disconnect();
+            loadFlowRunner.run(network, parameters.getLoadFlowParameters());
+            assertBranchResultEquals(network.getLine("l1"), getPostContingencyResult(result, id).getNetworkResult().getBranchResult("l1"));
+            terminal.connect();
+        }
+    }
+
+    private static void assertBranchResultEquals(Line line, BranchResult branchResult) {
+        assertEquals(line.getTerminal1().getP(), branchResult.getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(line.getTerminal2().getP(), branchResult.getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(line.getTerminal1().getQ(), branchResult.getQ1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(line.getTerminal2().getQ(), branchResult.getQ2(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testStaticVarCompensatorContingencyWithStandByAutomaton() {
         Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
         StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");

@@ -7,21 +7,38 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.network.BusState;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
+import com.powsybl.openloadflow.network.LfGenerator;
+import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.LfShunt;
+import com.powsybl.openloadflow.network.LfStaticVarCompensator;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import java.io.IOException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -118,16 +135,501 @@ class AcLoadFlowSvcTest {
     }
 
     @Test
-    void shouldReachReactiveMaxLimit() {
-        svc1.setBmin(-0.002)
-                .setVoltageSetpoint(385)
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .setRegulating(true);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+    void shouldReachReactiveMaxLimit() throws IOException {
+        svc1.setBmin(-0.002);
+        svc1.setLocalTargetV(385);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
         assertTrue(result.isFullyConverged());
         Bus bus = svc1.getTerminal().getBusView().getBus();
         assertVoltageEquals(386.256, bus);
         assertReactivePowerEquals(-svc1.getBmin() * bus.getV() * bus.getV(), svc1.getTerminal()); // min reactive limit has been correctly reached
+
+        assertTxtReportEquals("""
+                + Test Report
+                   + Load flow on network 'svc'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 2 buses and 1 branches
+                            Network balance: active generation=101.3664 MW, active load=101 MW, reactive generation=0 MVar, reactive load=150 MVar
+                            Angle reference bus: vl1_0
+                            Slack bus: vl1_0
+                         Voltage initialization with method Uniform Values
+                         + Outer loop ReactiveLimits
+                            + Outer loop iteration 1
+                               + 1 buses switched PV -> PQ (1 buses remain PV)
+                                  Switch bus 'vl2_0' PV -> PQ, q=-457.896814 < minQ=-296.45
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """, reportNode);
+    }
+
+    @Test
+    void shouldReachVoltageDependentReactiveLimitInOneOuterLoopIteration() throws IOException {
+        // SVC reactive limits are B * V^2: with a frozen Q at limit, each voltage change would change the limit and,
+        // on a weak network (high X), require many outer loop iterations. Modeled as a fixed susceptance at limit, one is enough.
+        l1.setX(100);
+        svc1.setBmax(0.002);
+        svc1.setLocalTargetV(450);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+        Bus bus = svc1.getTerminal().getBusView().getBus();
+        assertVoltageEquals(444.130, bus);
+        assertReactivePowerEquals(-svc1.getBmax() * bus.getV() * bus.getV(), svc1.getTerminal());
+        assertTxtReportEquals("""
+                + Test Report
+                   + Load flow on network 'svc'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 2 buses and 1 branches
+                            Network balance: active generation=101.3664 MW, active load=101 MW, reactive generation=0 MVar, reactive load=150 MVar
+                            Angle reference bus: vl1_0
+                            Slack bus: vl1_0
+                         Voltage initialization with method Uniform Values
+                         + Outer loop ReactiveLimits
+                            + Outer loop iteration 1
+                               + 1 buses switched PV -> PQ (1 buses remain PV)
+                                  Switch bus 'vl2_0' PV -> PQ, q=424.07869 > maxQ=405
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """, reportNode);
+    }
+
+    @Test
+    void shouldSwitchBackToPvAfterReachingLimitAsSusceptance() throws IOException {
+        // g1 and svc1 both reach their limit at first outer loop iteration: g1 can no longer hold voltage, so that voltage
+        // at svc1 bus decreases below its target and svc1 has to leave its susceptance at limit model to switch back PV
+        Substation s3 = network.newSubstation().setId("S3").add();
+        VoltageLevel vl3 = s3.newVoltageLevel().setId("vl3").setNominalV(400).setTopologyKind(TopologyKind.BUS_BREAKER).add();
+        vl3.getBusBreakerView().newBus().setId("b3").add();
+        vl3.newGenerator().setId("g3").setBus("b3").setConnectableBus("b3").setTargetP(0)
+                .setMinP(0).setMaxP(500)
+                .setLocalTargetV(400)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
+                .add();
+        network.newLine().setId("l3").setBus1("b3").setBus2("b1").setR(1).setX(30).add();
+        g1.setLocalTargetV(400);
+        g1.newMinMaxReactiveLimits().setMinQ(-100).setMaxQ(100).add();
+        svc1.setBmin(-0.002);
+        svc1.setLocalTargetV(395);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(395, bus2);
+        assertReactivePowerEquals(-2.711, svc1.getTerminal());
+        assertReactivePowerEquals(-100, g1.getTerminal());
+        assertTxtReportEquals("""
+                + Test Report
+                   + Load flow on network 'svc'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 3 buses and 2 branches
+                            Network balance: active generation=101.3664 MW, active load=101 MW, reactive generation=0 MVar, reactive load=150 MVar
+                            Angle reference bus: vl1_0
+                            Slack bus: vl1_0
+                         Voltage initialization with method Uniform Values
+                         + Outer loop ReactiveLimits
+                            + Outer loop iteration 1
+                               + 2 buses switched PV -> PQ (1 buses remain PV)
+                                  Switch bus 'vl1_0' PV -> PQ, q=632.253926 > maxQ=100
+                                  Switch bus 'vl2_0' PV -> PQ, q=-474.557598 < minQ=-312.05
+                            + Outer loop iteration 2
+                               + 1 buses switched PQ -> PV (0 buses blocked PQ due to the max number of switches)
+                                  Switch bus 'vl2_0' PQ -> PV, q=minQ and v=369.965982kV < targetV=395kV
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """, reportNode);
+
+        // a remaining susceptance at limit would not change the solution but would skew next reactive limits checks
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
+                commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfElement::getNum));
+        LfNetwork lfNetwork = Networks.load(network, acParameters.getNetworkParameters()).getFirst();
+        try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
+            new AcloadFlowEngine(context).run();
+        }
+        LfBus lfBus2 = lfNetwork.getBusById("vl2_0");
+        assertTrue(lfBus2.isGeneratorVoltageControlEnabled());
+        assertEquals(0, lfBus2.getSvcShunt().orElseThrow().getB());
+    }
+
+    @Test
+    void shouldUpdateSusceptanceAtLimitWithBusState() {
+        l1.setX(100);
+        svc1.setBmax(0.002);
+        svc1.setLocalTargetV(450);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
+                commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfElement::getNum));
+        LfNetwork lfNetwork = Networks.load(network, acParameters.getNetworkParameters()).getFirst();
+        try (AcLoadFlowContext context = new AcLoadFlowContext(lfNetwork, acParameters)) {
+            new AcloadFlowEngine(context).run();
+        }
+        LfBus lfBus2 = lfNetwork.getBusById("vl2_0");
+        LfShunt svcShunt = lfBus2.getSvcShunt().orElseThrow();
+        double bmax = 0.002 * 400 * 400 / PerUnit.SB;
+        assertEquals(bmax, svcShunt.getB(), 1e-12);
+        BusState busState = BusState.save(lfBus2);
+
+        // whatever the path re-enabling voltage control, the susceptance at limit is released
+        lfBus2.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(true);
+        assertTrue(lfBus2.getQLimitType().isEmpty());
+        assertEquals(0, svcShunt.getB());
+        assertStaticVarCompensatorsConsistent(lfNetwork);
+
+        busState.restore();
+        assertEquals(bmax, svcShunt.getB(), 1e-12);
+        assertStaticVarCompensatorsConsistent(lfNetwork);
+
+        // only a SVC controlling voltage is modeled at limit
+        LfGenerator lfSvc1 = lfNetwork.getGeneratorById("svc1");
+        lfSvc1.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+        assertEquals(0, svcShunt.getB());
+        assertStaticVarCompensatorsConsistent(lfNetwork);
+        lfSvc1.setGeneratorControlType(LfGenerator.GeneratorControlType.VOLTAGE);
+        assertEquals(bmax, svcShunt.getB(), 1e-12);
+        assertStaticVarCompensatorsConsistent(lfNetwork);
+    }
+
+    @Test
+    void shouldReachVoltageDependentReactiveLimitWhenSvcSharesBusWithGenerator() throws IOException {
+        // the generator part of the bus limit is frozen, the SVC part follows the voltage through its susceptance
+        l1.setX(100);
+        svc1.setBmax(0.002);
+        svc1.setLocalTargetV(450);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
+        Generator g2 = bus2.getVoltageLevel().newGenerator().setId("g2").setBus("b2").setConnectableBus("b2").setTargetP(1)
+                .setMinP(0).setMaxP(10)
+                .setLocalTargetV(450)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
+                .add();
+        g2.newMinMaxReactiveLimits().setMinQ(-10).setMaxQ(10).add();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(447.250, bus2);
+        assertReactivePowerEquals(-svc1.getBmax() * bus2.getV() * bus2.getV(), svc1.getTerminal());
+        assertReactivePowerEquals(-10, g2.getTerminal());
+        assertTxtReportEquals("""
+                + Test Report
+                   + Load flow on network 'svc'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 2 buses and 1 branches
+                            Network balance: active generation=102.3664 MW, active load=101 MW, reactive generation=0 MVar, reactive load=150 MVar
+                            Angle reference bus: vl1_0
+                            Slack bus: vl1_0
+                         Voltage initialization with method Uniform Values
+                         + Outer loop ReactiveLimits
+                            + Outer loop iteration 1
+                               + 1 buses switched PV -> PQ (1 buses remain PV)
+                                  Switch bus 'vl2_0' PV -> PQ, q=424.009726 > maxQ=415
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """, reportNode);
+    }
+
+    @Test
+    void shouldReachVoltageDependentReactiveLimitWithSeveralSvcsOnSameBus() throws IOException {
+        l1.setX(100);
+        svc1.setBmax(0.0015);
+        svc1.setLocalTargetV(450);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
+        StaticVarCompensator svc2 = bus2.getVoltageLevel().newStaticVarCompensator()
+                .setId("svc2")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setLocalTargetV(450)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
+                .setBmin(-0.002)
+                .setBmax(0.0005)
+                .add();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+        // same as a single SVC with Bmax = 0.002, each SVC at its own limit
+        assertVoltageEquals(444.130, bus2);
+        assertReactivePowerEquals(-svc1.getBmax() * bus2.getV() * bus2.getV(), svc1.getTerminal());
+        assertReactivePowerEquals(-svc2.getBmax() * bus2.getV() * bus2.getV(), svc2.getTerminal());
+        assertTxtReportEquals("""
+                + Test Report
+                   + Load flow on network 'svc'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 2 buses and 1 branches
+                            Network balance: active generation=101.3664 MW, active load=101 MW, reactive generation=0 MVar, reactive load=150 MVar
+                            Angle reference bus: vl1_0
+                            Slack bus: vl1_0
+                         Voltage initialization with method Uniform Values
+                         + Outer loop ReactiveLimits
+                            + Outer loop iteration 1
+                               + 1 buses switched PV -> PQ (1 buses remain PV)
+                                  Switch bus 'vl2_0' PV -> PQ, q=424.07869 > maxQ=405
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """, reportNode);
+    }
+
+    @Test
+    void shouldReachVoltageDependentReactiveLimitWithStandbyAutomatonB0() throws IOException {
+        // not in standby, so SVC is controlling voltage with B0 as susceptance offset: at limit, total susceptance is B0 + Bmax
+        l1.setX(100);
+        svc1.setBmax(0.003);
+        svc1.setLocalTargetV(450);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
+        svc1.newExtension(StandbyAutomatonAdder.class)
+                .withHighVoltageThreshold(460)
+                .withLowVoltageThreshold(380)
+                .withLowVoltageSetpoint(400)
+                .withHighVoltageSetpoint(450)
+                .withB0(-0.001f)
+                .withStandbyStatus(false)
+                .add();
+        parametersExt.setSvcVoltageMonitoring(true);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+        // same as a single SVC with Bmax = 0.002
+        assertVoltageEquals(444.130, bus2);
+        assertReactivePowerEquals(-(svc1.getBmax() - 0.001) * bus2.getV() * bus2.getV(), svc1.getTerminal());
+        String report = reportToString(reportNode);
+        assertTrue(report.contains("Switch bus 'vl2_0' PV -> PQ"));
+        assertFalse(report.contains("reactive limit changed"));
+    }
+
+    @Test
+    void shouldReachVoltageDependentReactiveLimitWithSlope() throws IOException {
+        l1.setX(100);
+        svc1.setBmax(0.002);
+        svc1.setLocalTargetV(450);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
+                .withSlope(0.01)
+                .withRegulating(true)
+                .build();
+        parametersExt.setVoltagePerReactivePowerControl(true);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+        // at limit, the slope no longer applies
+        assertVoltageEquals(444.128, bus2);
+        assertReactivePowerEquals(-svc1.getBmax() * bus2.getV() * bus2.getV(), svc1.getTerminal());
+        String report = reportToString(reportNode);
+        assertTrue(report.contains("Switch bus 'vl2_0' PV -> PQ, q=403.671565 > maxQ=397.766905"));
+        assertFalse(report.contains("reactive limit changed"));
+    }
+
+    @Test
+    void shouldReachVoltageDependentReactiveLimitWithRemoteVoltageControl() throws IOException {
+        // svc1 controls b3 voltage remotely: its reactive limit depends on the voltage of its own bus b2
+        Load ld3 = addRemotelyControlledBus();
+        Bus bus3 = network.getBusBreakerView().getBus("b3");
+        l1.setX(100);
+        svc1.setBmax(0.002);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withTargetValue(410)
+                .withTerminal(ld3.getTerminal())
+                .withRegulating(true)
+                .build();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(409.092, bus2);
+        assertVoltageEquals(401.480, bus3); // target cannot be reached
+        assertReactivePowerEquals(-svc1.getBmax() * bus2.getV() * bus2.getV(), svc1.getTerminal());
+        String report = reportToString(reportNode);
+        assertTrue(report.contains("Switch bus 'vl2_0' PV -> PQ, q=371.069607 > maxQ=348.533884"));
+        assertFalse(report.contains("reactive limit changed"));
+    }
+
+    private Load addRemotelyControlledBus() {
+        Substation s3 = network.newSubstation().setId("S3").add();
+        VoltageLevel vl3 = s3.newVoltageLevel().setId("vl3").setNominalV(400).setTopologyKind(TopologyKind.BUS_BREAKER).add();
+        vl3.getBusBreakerView().newBus().setId("b3").add();
+        Load ld3 = vl3.newLoad().setId("ld3").setBus("b3").setConnectableBus("b3").setP0(50).setQ0(100).add();
+        network.newLine().setId("l3").setBus1("b2").setBus2("b3").setR(1).setX(30).add();
+        return ld3;
+    }
+
+    private String runWithRemoteVoltageControlRobustMode(double bmax) throws IOException {
+        Load ld3 = addRemotelyControlledBus();
+        l1.setX(100);
+        svc1.setBmax(bmax);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withTargetValue(420)
+                .withTerminal(ld3.getTerminal())
+                .withRegulating(true)
+                .build();
+        // svc1 bus voltage is unrealistic above 1.05 / 1.02 pu, i.e. 411.8 kV
+        parametersExt.setVoltageRemoteControlRobustMode(true)
+                .setMaxRealisticVoltage(1.05);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+        return reportToString(reportNode);
+    }
+
+    @Test
+    void shouldReachVoltageDependentReactiveLimitWithRemoteVoltageControlRobustMode() throws IOException {
+        // svc1 exceeds its max reactive limit with an unrealistic voltage at its bus b2 (427.3 kV): robust mode resets b2
+        // voltage to 1 pu before switching it PQ, which must not affect the frozen reactive power
+        String report = runWithRemoteVoltageControlRobustMode(0.002);
+        assertVoltageEquals(409.092, bus2);
+        assertReactivePowerEquals(-svc1.getBmax() * bus2.getV() * bus2.getV(), svc1.getTerminal());
+        assertTrue(report.contains("Switch bus 'vl2_0' PV -> PQ, q=415.574099 > maxQ=365.127364"));
+        assertFalse(report.contains("reactive limit changed"));
+    }
+
+    @Test
+    void shouldNotModelSvcAsSusceptanceWhenBlockedForUnrealisticVoltage() throws IOException {
+        // svc1 within its reactive limits but with an unrealistic voltage at its bus: robust mode blocks it at its
+        // initial reactive power target, not at a reactive limit
+        String report = runWithRemoteVoltageControlRobustMode(0.008);
+        assertReactivePowerEquals(0, svc1.getTerminal());
+        assertTrue(report.contains("Switch bus 'vl2_0' PV -> PQ, q set to 0 = targetQ - because V > 420kV when remote voltage target is maintained"));
+    }
+
+    @Test
+    void shouldReachVoltageDependentReactiveLimitWithSharedVoltageControl() throws IOException {
+        // svc1 shares b1 voltage control with g1: svc1 bus is switched PQ at its limit while g1 keeps controlling b1
+        g1.newMinMaxReactiveLimits().setMinQ(-100.).setMaxQ(100.).add();
+        g1.setLocalTargetV(400);
+        l1.setX(30);
+        svc1.setBmax(0.0005);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withTargetValue(400)
+                .withTerminal(g1.getRegulatingTerminal())
+                .withRegulating(true)
+                .build();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(400, bus1);
+        assertVoltageEquals(394.170, bus2);
+        assertReactivePowerEquals(-svc1.getBmax() * bus2.getV() * bus2.getV(), svc1.getTerminal());
+        assertReactivePowerEquals(-75.295, g1.getTerminal());
+        String report = reportToString(reportNode);
+        assertTrue(report.contains("Switch bus 'vl2_0' PV -> PQ, q=132.500951 > maxQ=79.3442"));
+        assertFalse(report.contains("reactive limit changed"));
+    }
+
+    @Test
+    void shouldAdjustGeneratorPartOfReactiveLimitWhenSvcSharesBusAtMinLimit() throws IOException {
+        // svc1 and g2 at min reactive limit: slack distribution changes g2 active power, hence its min reactive limit,
+        // which has to be adjusted while svc1 remains modeled as a fixed susceptance
+        svc1.setBmin(-0.002);
+        svc1.setLocalTargetV(380);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
+        Generator g2 = bus2.getVoltageLevel().newGenerator().setId("g2").setBus("b2").setConnectableBus("b2").setTargetP(50)
+                .setMinP(0).setMaxP(200)
+                .setLocalTargetV(380)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
+                .add();
+        g2.newReactiveCapabilityCurve()
+                .beginPoint().setP(0).setMinQ(-100).setMaxQ(100).endPoint()
+                .beginPoint().setP(200).setMinQ(-20).setMaxQ(100).endPoint()
+                .add();
+        parameters.setDistributedSlack(true);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(385.606, bus2);
+        assertReactivePowerEquals(-svc1.getBmin() * bus2.getV() * bus2.getV(), svc1.getTerminal());
+        double g2MinQ = g2.getReactiveLimits().getMinQ(-g2.getTerminal().getP());
+        assertReactivePowerEquals(-g2MinQ, g2.getTerminal());
+        assertEquals(2, reportToString(reportNode).split("adjusted because the reactive limit changed", -1).length);
+    }
+
+    @Test
+    void shouldModelSvcAsSusceptanceOnlyAtMinOrMaxReactiveLimit() {
+        svc1.setLocalTargetV(385);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
+        LfNetwork lfNetwork = Networks.load(network, new LfNetworkParameters()).getFirst();
+        LfBus lfBus2 = lfNetwork.getBusById("vl2_0");
+        LfStaticVarCompensator lfSvc1 = (LfStaticVarCompensator) lfNetwork.getGeneratorById("svc1");
+        LfShunt svcShunt = lfBus2.getSvcShunt().orElseThrow();
+
+        // blocked because of an unrealistic voltage: not at a reactive limit
+        lfBus2.freezeGenerationTargetQAtQLimit(0, LfBus.QLimitType.MAX_REALISTIC_V);
+        assertTrue(lfSvc1.getQLimitType().isEmpty());
+        assertEquals(0, svcShunt.getB());
+
+        lfBus2.setQLimitType(LfBus.QLimitType.MIN_Q);
+        assertEquals(LfBus.QLimitType.MIN_Q, lfSvc1.getQLimitType().orElseThrow());
+        assertEquals(svc1.getBmin() * 400 * 400 / PerUnit.SB, svcShunt.getB(), 1e-12);
     }
 
     @Test
@@ -431,9 +933,11 @@ class AcLoadFlowSvcTest {
                 .setId("svc2")
                 .setConnectableBus("b2")
                 .setBus("b2")
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .setRegulating(true)
-                .setVoltageSetpoint(385)
+                .setLocalTargetV(385)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
                 .setBmin(-0.008)
                 .setBmax(0.008)
                 .add();
@@ -446,9 +950,11 @@ class AcLoadFlowSvcTest {
                 .withStandbyStatus(true)
                 .add();
 
-        svc1.setVoltageSetpoint(385)
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .setRegulating(true);
+        svc1.setLocalTargetV(385);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
         svc1.newExtension(StandbyAutomatonAdder.class)
                 .withHighVoltageThreshold(397)
                 .withLowVoltageThreshold(383)
@@ -466,8 +972,11 @@ class AcLoadFlowSvcTest {
         assertAngleEquals(0, bus1);
         assertVoltageEquals(385, bus2);
         assertAngleEquals(0.116346, bus2);
-        assertReactivePowerEquals(599.51, svc1.getTerminal()); // same behaviour as classical voltage control.
-        assertReactivePowerEquals(599.51, svc2.getTerminal()); // same behaviour as classical voltage control.
+        // same behaviour as classical voltage control
+        // both SVCs regulate at 385 kV (several monitors on a bus are switched to voltage control), as the single SVC in test():
+        // they absorb the same 457.896 MVar in total, shared equally
+        assertReactivePowerEquals(228.948, svc1.getTerminal());
+        assertReactivePowerEquals(228.948, svc2.getTerminal());
     }
 
     @Test

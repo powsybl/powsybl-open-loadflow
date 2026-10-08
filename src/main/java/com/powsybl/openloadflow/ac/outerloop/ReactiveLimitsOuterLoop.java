@@ -144,8 +144,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                 LfBus controllerBus = pvToPqBus.controllerBus;
 
                 // switch PV -> PQ
-                controllerBus.freezeGenerationTargetQAndDisableGeneratorVoltageControl(pvToPqBus.qLimit);
-                controllerBus.setQLimitType(pvToPqBus.limitType);
+                controllerBus.freezeGenerationTargetQAtQLimit(pvToPqBus.qLimit, pvToPqBus.limitType);
                 // increment PV -> PQ switch counter
                 contextData.incrementPvPqSwitchCount(controllerBus.getId());
 
@@ -311,20 +310,22 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                             boolean canSwitchPqToPv) {
         double minQ = controllerCapableBus.getMinQ(); // the actual minQ.
         double maxQ = controllerCapableBus.getMaxQ(); // the actual maxQ.
-        double q = controllerCapableBus.getGenerationTargetQ();
+        // reactive power of static var compensators at limit is carried by the bus SVC shunt, not part of the frozen generation target
+        double svcQ = controllerCapableBus.getStaticVarCompensatorsQAtLimit();
+        double q = controllerCapableBus.getGenerationTargetQ() + svcQ;
         controllerCapableBus.getQLimitType().ifPresent(qLimitType -> checkPqBusWithQLimitType(controllerCapableBus, pqToPvBuses,
-            busesWithUpdatedQLimits, canSwitchPqToPv, qLimitType, minQ, maxQ, q));
+            busesWithUpdatedQLimits, canSwitchPqToPv, qLimitType, minQ, maxQ, q, svcQ));
     }
 
     private void checkPqBusWithQLimitType(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses, List<LfBus> busesWithUpdatedQLimits,
-                                          boolean canSwitchPqToPv, LfBus.QLimitType qLimitType, double minQ, double maxQ, double q) {
+                                          boolean canSwitchPqToPv, LfBus.QLimitType qLimitType, double minQ, double maxQ, double q, double svcQ) {
         if (qLimitType.isMinLimit()) {
             if (getBusV(controllerCapableBus) < getBusTargetV(controllerCapableBus) && canSwitchPqToPv) {
                 // bus absorb too much reactive power
                 pqToPvBuses.add(new PqToPvBus(controllerCapableBus, LfBus.QLimitType.MIN_Q));
             } else if (qLimitType == LfBus.QLimitType.MIN_Q && Math.abs(minQ - q) > maxReactivePowerMismatch) {
                 LOGGER.trace("PQ bus {} with updated Q limits, previous minQ {} new minQ {}", controllerCapableBus.getId(), q, minQ);
-                controllerCapableBus.freezeGenerationTargetQAndDisableGeneratorVoltageControl(minQ);
+                controllerCapableBus.freezeGenerationTargetQAndDisableGeneratorVoltageControl(minQ - svcQ);
                 busesWithUpdatedQLimits.add(controllerCapableBus);
             }
         } else if (qLimitType.isMaxLimit()) {
@@ -333,7 +334,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                 pqToPvBuses.add(new PqToPvBus(controllerCapableBus, LfBus.QLimitType.MAX_Q));
             } else if (qLimitType == LfBus.QLimitType.MAX_Q && Math.abs(maxQ - q) > maxReactivePowerMismatch) {
                 LOGGER.trace("PQ bus {} with updated Q limits, previous maxQ {} new maxQ {}", controllerCapableBus.getId(), q, maxQ);
-                controllerCapableBus.freezeGenerationTargetQAndDisableGeneratorVoltageControl(maxQ);
+                controllerCapableBus.freezeGenerationTargetQAndDisableGeneratorVoltageControl(maxQ - svcQ);
                 busesWithUpdatedQLimits.add(controllerCapableBus);
             }
         }
