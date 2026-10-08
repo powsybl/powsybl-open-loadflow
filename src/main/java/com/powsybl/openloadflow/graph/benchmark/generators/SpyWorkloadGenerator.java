@@ -27,7 +27,7 @@ import java.nio.file.*;
 import java.time.Instant;
 import java.util.*;
 
-import static com.powsybl.openloadflow.graph.benchmark.GraphConnectivityMethod.*;
+import static com.powsybl.openloadflow.graph.benchmark.BenchmarkMethod.*;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -287,23 +287,25 @@ public class SpyWorkloadGenerator implements IGenerateWorkload {
         @Override
         public Component<LfBus> getConnectedComponent(LfBus vertex) {
             useful = true;
+            String name = ComponentSpy.newUniqueName();
             try {
-                WorkloadUtils.write(bw, GET_CONNECTED_COMPONENT, vertex.getNum());
+                WorkloadUtils.write(bw, GET_CONNECTED_COMPONENT, vertex.getNum(), name);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
-            return delegate.getConnectedComponent(vertex);
+            return new ComponentSpy(bw, name, delegate.getConnectedComponent(vertex));
         }
 
         @Override
         public Component<LfBus> getLargestConnectedComponent() {
             useful = true;
+            String name = ComponentSpy.newUniqueName();
             try {
-                WorkloadUtils.write(bw, GET_LARGEST_CONNECTED_COMPONENT);
+                WorkloadUtils.write(bw, GET_LARGEST_CONNECTED_COMPONENT, name);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
-            return delegate.getLargestConnectedComponent();
+            return new ComponentSpy(bw, name, delegate.getLargestConnectedComponent());
         }
 
         @Override

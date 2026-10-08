@@ -11,7 +11,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.powsybl.openloadflow.graph.Component;
 import com.powsybl.openloadflow.graph.benchmark.Aggregator;
 import com.powsybl.openloadflow.graph.benchmark.AverageStopWatch;
-import com.powsybl.openloadflow.graph.benchmark.GraphConnectivityMethod;
+import com.powsybl.openloadflow.graph.benchmark.BenchmarkMethod;
 import org.nocrala.tools.texttablefmt.BorderStyle;
 import org.nocrala.tools.texttablefmt.CellStyle;
 import org.nocrala.tools.texttablefmt.Table;
@@ -32,11 +32,11 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
     private final AverageStopWatch sw = new AverageStopWatch();
 
     // these aggregators count the time needed to build the initial graph
-    private final Aggregator[] initialGraphBuild = new Aggregator[GraphConnectivityMethod.values().length];
+    private final Aggregator[] initialGraphBuild = new Aggregator[BenchmarkMethod.values().length];
 
     // these aggregators count the time needed to perform query, insertion and removal request,
     // once the initial graph is build
-    private final Aggregator[] temporaryChanges = new Aggregator[GraphConnectivityMethod.values().length];
+    private final Aggregator[] temporaryChanges = new Aggregator[BenchmarkMethod.values().length];
 
     // these are the currently used aggregators
     private Aggregator[] current;
@@ -77,7 +77,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         sw.start();
         delegate.addVertex(vertex);
         sw.stop();
-        current[GraphConnectivityMethod.ADD_VERTEX.ordinal()].add(sw.elapsed());
+        current[BenchmarkMethod.ADD_VERTEX.ordinal()].add(sw.elapsed());
     }
 
     @Override
@@ -85,7 +85,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         sw.start();
         delegate.addEdge(vertex1, vertex2, edge);
         sw.stop();
-        current[GraphConnectivityMethod.ADD_EDGE.ordinal()].add(sw.elapsed());
+        current[BenchmarkMethod.ADD_EDGE.ordinal()].add(sw.elapsed());
     }
 
     @Override
@@ -93,7 +93,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         sw.start();
         delegate.removeEdge(edge);
         sw.stop();
-        current[GraphConnectivityMethod.REMOVE_EDGE.ordinal()].add(sw.elapsed());
+        current[BenchmarkMethod.REMOVE_EDGE.ordinal()].add(sw.elapsed());
     }
 
     @Override
@@ -101,7 +101,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         sw.start();
         delegate.startTemporaryChanges(quick);
         sw.stop();
-        current[GraphConnectivityMethod.START_TEMPORARY_CHANGES.ordinal()].add(sw.elapsed());
+        current[BenchmarkMethod.START_TEMPORARY_CHANGES.ordinal()].add(sw.elapsed());
 
         setInitialGraphBuildDone(true);
     }
@@ -111,7 +111,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         sw.start();
         delegate.undoTemporaryChanges();
         sw.stop();
-        current[GraphConnectivityMethod.UNDO_TEMPORARY_CHANGES.ordinal()].add(sw.elapsed());
+        current[BenchmarkMethod.UNDO_TEMPORARY_CHANGES.ordinal()].add(sw.elapsed());
     }
 
     @Override
@@ -119,7 +119,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         sw.start();
         int n = delegate.getComponentNumber(vertex);
         sw.stop();
-        current[GraphConnectivityMethod.GET_COMPONENT_NUMBER.ordinal()].add(sw.elapsed());
+        current[BenchmarkMethod.GET_COMPONENT_NUMBER.ordinal()].add(sw.elapsed());
         return n;
     }
 
@@ -128,7 +128,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         sw.start();
         boolean connected = delegate.connected(vertex1, vertex2);
         sw.stop();
-        current[GraphConnectivityMethod.CONNECTED.ordinal()].add(sw.elapsed());
+        current[BenchmarkMethod.CONNECTED.ordinal()].add(sw.elapsed());
         return connected;
     }
 
@@ -137,7 +137,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         sw.start();
         delegate.setMainComponentVertex(mainComponentVertex);
         sw.stop();
-        current[GraphConnectivityMethod.SET_MAIN_COMPONENT_VERTEX.ordinal()].add(sw.elapsed());
+        current[BenchmarkMethod.SET_MAIN_COMPONENT_VERTEX.ordinal()].add(sw.elapsed());
     }
 
     @Override
@@ -145,7 +145,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         sw.start();
         int n = delegate.getNbConnectedComponents();
         sw.stop();
-        current[GraphConnectivityMethod.GET_NB_CONNECTED_COMPONENTS.ordinal()].add(sw.elapsed());
+        current[BenchmarkMethod.GET_NB_CONNECTED_COMPONENTS.ordinal()].add(sw.elapsed());
         return n;
     }
 
@@ -154,7 +154,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         sw.start();
         Component<V> vertices = delegate.getConnectedComponent(vertex);
         sw.stop();
-        current[GraphConnectivityMethod.GET_CONNECTED_COMPONENT.ordinal()].add(sw.elapsed());
+        current[BenchmarkMethod.GET_CONNECTED_COMPONENT.ordinal()].add(sw.elapsed());
         return vertices;
     }
 
@@ -163,7 +163,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         sw.start();
         Component<V> vertices = delegate.getLargestConnectedComponent();
         sw.stop();
-        current[GraphConnectivityMethod.GET_LARGEST_CONNECTED_COMPONENT.ordinal()].add(sw.elapsed());
+        current[BenchmarkMethod.GET_LARGEST_CONNECTED_COMPONENT.ordinal()].add(sw.elapsed());
         return vertices;
     }
 
@@ -172,7 +172,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         sw.start();
         Set<V> vertices = delegate.getVerticesRemovedFromMainComponent();
         sw.stop();
-        current[GraphConnectivityMethod.GET_VERTICES_REMOVED_FROM_MAIN_COMPONENT.ordinal()].add(sw.elapsed());
+        current[BenchmarkMethod.GET_VERTICES_REMOVED_FROM_MAIN_COMPONENT.ordinal()].add(sw.elapsed());
         return vertices;
     }
 
@@ -181,7 +181,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         sw.start();
         Set<E> edges = delegate.getEdgesRemovedFromMainComponent();
         sw.stop();
-        current[GraphConnectivityMethod.GET_EDGES_REMOVED_FROM_MAIN_COMPONENT.ordinal()].add(sw.elapsed());
+        current[BenchmarkMethod.GET_EDGES_REMOVED_FROM_MAIN_COMPONENT.ordinal()].add(sw.elapsed());
         return edges;
     }
 
@@ -190,7 +190,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         sw.start();
         Set<V> vertices = delegate.getVerticesAddedToMainComponent();
         sw.stop();
-        current[GraphConnectivityMethod.GET_VERTICES_ADDED_TO_MAIN_COMPONENT.ordinal()].add(sw.elapsed());
+        current[BenchmarkMethod.GET_VERTICES_ADDED_TO_MAIN_COMPONENT.ordinal()].add(sw.elapsed());
         return vertices;
     }
 
@@ -199,7 +199,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         sw.start();
         Set<E> edges = delegate.getEdgesAddedToMainComponent();
         sw.stop();
-        current[GraphConnectivityMethod.GET_EDGES_ADDED_TO_MAIN_COMPONENT.ordinal()].add(sw.elapsed());
+        current[BenchmarkMethod.GET_EDGES_ADDED_TO_MAIN_COMPONENT.ordinal()].add(sw.elapsed());
         return edges;
     }
 
@@ -234,7 +234,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
     }
 
     private void serialize(JsonGenerator g, Aggregator[] aggregators) throws IOException {
-        for (GraphConnectivityMethod method : GraphConnectivityMethod.values()) {
+        for (BenchmarkMethod method : BenchmarkMethod.values()) {
             Aggregator agg = aggregators[method.ordinal()];
 
             if (agg.getCount() > 0) {
@@ -282,7 +282,7 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         }
         table.addCell("total (ms)");
 
-        for (GraphConnectivityMethod method : GraphConnectivityMethod.values()) {
+        for (BenchmarkMethod method : BenchmarkMethod.values()) {
             Aggregator tempChanges = temporaryChanges[method.ordinal()];
             Aggregator init = initialGraphBuild[method.ordinal()];
 

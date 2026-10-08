@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.graph.benchmark.workload;
 
 import com.powsybl.openloadflow.graph.Component;
 import com.powsybl.openloadflow.graph.benchmark.AverageStopWatch;
-import com.powsybl.openloadflow.graph.benchmark.GraphConnectivityMethod;
+import com.powsybl.openloadflow.graph.benchmark.BenchmarkMethod;
 import com.powsybl.openloadflow.graph.benchmark.generators.WorkloadUtils;
 
 import java.io.BufferedWriter;
@@ -35,7 +35,7 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         }
     }
 
-    private void writeLine(GraphConnectivityMethod method, long nanos) {
+    private void writeLine(BenchmarkMethod method, long nanos) {
         try {
             bw.write("%d %s %d %d%n".formatted(operation, method.shortName(), nanos, computeSumOfDistances()));
         } catch (IOException e) {
@@ -62,7 +62,7 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         asw.start();
         super.addVertex(vertex);
         asw.stop();
-        writeLine(GraphConnectivityMethod.ADD_VERTEX, asw.elapsed());
+        writeLine(BenchmarkMethod.ADD_VERTEX, asw.elapsed());
     }
 
     @Override
@@ -70,7 +70,7 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         asw.start();
         super.addEdge(vertex1, vertex2, edge);
         asw.stop();
-        writeLine(GraphConnectivityMethod.ADD_EDGE, asw.elapsed());
+        writeLine(BenchmarkMethod.ADD_EDGE, asw.elapsed());
     }
 
     @Override
@@ -78,7 +78,7 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         asw.start();
         super.removeEdge(edge);
         asw.stop();
-        writeLine(GraphConnectivityMethod.REMOVE_EDGE, asw.elapsed());
+        writeLine(BenchmarkMethod.REMOVE_EDGE, asw.elapsed());
     }
 
     @Override
@@ -86,7 +86,7 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         asw.start();
         super.startTemporaryChanges(computeComparisons);
         asw.stop();
-        writeLine(GraphConnectivityMethod.START_TEMPORARY_CHANGES, asw.elapsed());
+        writeLine(BenchmarkMethod.START_TEMPORARY_CHANGES, asw.elapsed());
     }
 
     @Override
@@ -94,7 +94,7 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         asw.start();
         super.undoTemporaryChanges();
         asw.stop();
-        writeLine(GraphConnectivityMethod.UNDO_TEMPORARY_CHANGES, asw.elapsed());
+        writeLine(BenchmarkMethod.UNDO_TEMPORARY_CHANGES, asw.elapsed());
     }
 
     @Override
@@ -102,7 +102,7 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         asw.start();
         int n = super.getComponentNumber(vertex);
         asw.stop();
-        writeLine(GraphConnectivityMethod.GET_COMPONENT_NUMBER, asw.elapsed());
+        writeLine(BenchmarkMethod.GET_COMPONENT_NUMBER, asw.elapsed());
         return n;
     }
 
@@ -111,7 +111,7 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         asw.start();
         boolean connected = super.connected(vertex1, vertex2);
         asw.stop();
-        writeLine(GraphConnectivityMethod.CONNECTED, asw.elapsed());
+        writeLine(BenchmarkMethod.CONNECTED, asw.elapsed());
         return connected;
     }
 
@@ -120,7 +120,7 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         asw.start();
         super.setMainComponentVertex(mainComponentVertex);
         asw.stop();
-        writeLine(GraphConnectivityMethod.SET_MAIN_COMPONENT_VERTEX, asw.elapsed());
+        writeLine(BenchmarkMethod.SET_MAIN_COMPONENT_VERTEX, asw.elapsed());
     }
 
     @Override
@@ -128,7 +128,7 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         asw.start();
         int n = super.getNbConnectedComponents();
         asw.stop();
-        writeLine(GraphConnectivityMethod.GET_NB_CONNECTED_COMPONENTS, asw.elapsed());
+        writeLine(BenchmarkMethod.GET_NB_CONNECTED_COMPONENTS, asw.elapsed());
         return n;
     }
 
@@ -137,7 +137,7 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         asw.start();
         Component<V> set = super.getConnectedComponent(vertex);
         asw.stop();
-        writeLine(GraphConnectivityMethod.GET_CONNECTED_COMPONENT, asw.elapsed());
+        writeLine(BenchmarkMethod.GET_CONNECTED_COMPONENT, asw.elapsed());
         return set;
     }
 
@@ -146,7 +146,7 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         asw.start();
         Component<V> set = super.getLargestConnectedComponent();
         asw.stop();
-        writeLine(GraphConnectivityMethod.GET_LARGEST_CONNECTED_COMPONENT, asw.elapsed());
+        writeLine(BenchmarkMethod.GET_LARGEST_CONNECTED_COMPONENT, asw.elapsed());
         return set;
     }
 
@@ -155,7 +155,7 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         asw.start();
         Set<V> set = super.getVerticesRemovedFromMainComponent();
         asw.stop();
-        writeLine(GraphConnectivityMethod.GET_VERTICES_REMOVED_FROM_MAIN_COMPONENT, asw.elapsed());
+        writeLine(BenchmarkMethod.GET_VERTICES_REMOVED_FROM_MAIN_COMPONENT, asw.elapsed());
         return set;
     }
 
@@ -164,7 +164,7 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         asw.start();
         Set<E> set = super.getEdgesRemovedFromMainComponent();
         asw.stop();
-        writeLine(GraphConnectivityMethod.GET_EDGES_REMOVED_FROM_MAIN_COMPONENT, asw.elapsed());
+        writeLine(BenchmarkMethod.GET_EDGES_REMOVED_FROM_MAIN_COMPONENT, asw.elapsed());
         return set;
     }
 
@@ -173,7 +173,7 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         asw.start();
         Set<V> set = super.getVerticesAddedToMainComponent();
         asw.stop();
-        writeLine(GraphConnectivityMethod.GET_VERTICES_ADDED_TO_MAIN_COMPONENT, asw.elapsed());
+        writeLine(BenchmarkMethod.GET_VERTICES_ADDED_TO_MAIN_COMPONENT, asw.elapsed());
         return set;
     }
 
@@ -182,7 +182,7 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
         asw.start();
         Set<E> set = super.getEdgesAddedToMainComponent();
         asw.stop();
-        writeLine(GraphConnectivityMethod.GET_EDGES_ADDED_TO_MAIN_COMPONENT, asw.elapsed());
+        writeLine(BenchmarkMethod.GET_EDGES_ADDED_TO_MAIN_COMPONENT, asw.elapsed());
         return set;
     }
 }

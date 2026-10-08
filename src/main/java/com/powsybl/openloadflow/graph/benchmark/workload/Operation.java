@@ -17,8 +17,6 @@ import java.util.Random;
  */
 public sealed interface Operation {
 
-    void execute(GraphConnectivity<Integer, Integer> connectivity);
-
     static Operation deserialize(String line) {
         String[] parts = line.split(" ");
 
@@ -37,8 +35,24 @@ public sealed interface Operation {
             case "get_num" -> new GetComponentNumber(Integer.parseInt(parts[1]));
             case "set_main" -> new SetMainComponentVertex(Integer.parseInt(parts[1]));
             case "count" -> GetNbConnectedComponents.INSTANCE;
-            case "get_comp" -> new GetConnectedComponent(Integer.parseInt(parts[1]));
-            case "largest" -> GetLargestConnectedComponent.INSTANCE;
+            case "get_comp" -> {
+                if (parts.length >= 3) {
+                    yield new GetConnectedComponent(parts[1], Integer.parseInt(parts[2]));
+                } else {
+                    yield new GetConnectedComponent(null, Integer.parseInt(parts[1]));
+                }
+            }
+            case "largest" -> {
+                if (parts.length >= 2) {
+                    yield new GetLargestConnectedComponent(parts[1]);
+                } else {
+                    yield new GetLargestConnectedComponent(null);
+                }
+            }
+            case "comp_get_num" -> new ComponentGetNum(parts[0]);
+            case "comp_to_owned_set" -> new ComponentToOwnedSet(parts[0]);
+            case "comp_size" -> new ComponentSize(parts[0]);
+            case "comp_contains" -> new ComponentContains(parts[0], Integer.parseInt(parts[1]));
             case "v_added" -> GetVerticesAddedToMainComponent.INSTANCE;
             case "e_added" -> GetEdgesAddedToMainComponent.INSTANCE;
             case "v_removed" -> GetVerticesRemovedFromMainComponent.INSTANCE;
@@ -51,10 +65,12 @@ public sealed interface Operation {
         };
     }
 
+    void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context);
+
     record AddVertex(int vertex) implements Operation {
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
             connectivity.addVertex(vertex);
         }
     }
@@ -62,7 +78,7 @@ public sealed interface Operation {
     record AddEdge(int u, int v, int e) implements Operation {
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
             connectivity.addEdge(u, v, e);
         }
     }
@@ -70,7 +86,7 @@ public sealed interface Operation {
     record RemoveEdge(int e) implements Operation {
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
             connectivity.removeEdge(e);
         }
     }
@@ -81,7 +97,7 @@ public sealed interface Operation {
         public static final Operation FALSE = new StartTemporaryChanges(false);
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
             connectivity.startTemporaryChanges(computeComparisons);
         }
     }
@@ -91,7 +107,7 @@ public sealed interface Operation {
         public static final UndoTemporaryChanges INSTANCE = new UndoTemporaryChanges();
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
             connectivity.undoTemporaryChanges();
         }
     }
@@ -99,7 +115,7 @@ public sealed interface Operation {
     record GetComponentNumber(int vertex) implements Operation {
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
             connectivity.getComponentNumber(vertex);
         }
     }
@@ -107,7 +123,7 @@ public sealed interface Operation {
     record SetMainComponentVertex(int vertex) implements Operation {
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
             connectivity.setMainComponentVertex(vertex);
         }
     }
@@ -117,26 +133,52 @@ public sealed interface Operation {
         public static final GetNbConnectedComponents INSTANCE = new GetNbConnectedComponents();
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
             connectivity.getNbConnectedComponents();
         }
     }
 
-    record GetConnectedComponent(int vertex) implements Operation {
+    record GetConnectedComponent(String name, int vertex) implements Operation {
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
-            connectivity.getConnectedComponent(vertex);
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
+            context.newComponent(connectivity.getConnectedComponent(vertex), name);
         }
     }
 
-    record GetLargestConnectedComponent() implements Operation {
-
-        public static final GetLargestConnectedComponent INSTANCE = new GetLargestConnectedComponent();
+    record GetLargestConnectedComponent(String name) implements Operation {
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
-            connectivity.getLargestConnectedComponent();
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
+            context.newComponent(connectivity.getLargestConnectedComponent(), name);
+        }
+    }
+
+    record ComponentGetNum(String compName) implements Operation {
+        @Override
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
+            context.getComponent(compName).getNumber();
+        }
+    }
+
+    record ComponentToOwnedSet(String compName) implements Operation {
+        @Override
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
+            context.getComponent(compName).toOwnedSet();
+        }
+    }
+
+    record ComponentSize(String compName) implements Operation {
+        @Override
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
+            context.getComponent(compName).size();
+        }
+    }
+
+    record ComponentContains(String compName, int element) implements Operation {
+        @Override
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
+            context.getComponent(compName).contains(element);
         }
     }
 
@@ -145,7 +187,7 @@ public sealed interface Operation {
         public static final GetVerticesAddedToMainComponent INSTANCE = new GetVerticesAddedToMainComponent();
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
             connectivity.getVerticesAddedToMainComponent();
         }
     }
@@ -155,7 +197,7 @@ public sealed interface Operation {
         public static final GetEdgesAddedToMainComponent INSTANCE = new GetEdgesAddedToMainComponent();
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
             connectivity.getEdgesAddedToMainComponent();
         }
     }
@@ -165,7 +207,7 @@ public sealed interface Operation {
         public static final GetEdgesRemovedFromMainComponent INSTANCE = new GetEdgesRemovedFromMainComponent();
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
             connectivity.getEdgesRemovedFromMainComponent();
         }
     }
@@ -175,7 +217,7 @@ public sealed interface Operation {
         public static final GetVerticesRemovedFromMainComponent INSTANCE = new GetVerticesRemovedFromMainComponent();
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
             connectivity.getVerticesRemovedFromMainComponent();
         }
     }
@@ -183,7 +225,7 @@ public sealed interface Operation {
     record Connected(int u, int v) implements Operation {
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
             connectivity.connected(u, v);
         }
     }
@@ -193,7 +235,7 @@ public sealed interface Operation {
         public static final int LIMIT = 1_000_000;
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
             if (vertexCount * (vertexCount - 1) / 2 <= LIMIT) {
                 // test connectivity for EVERY pair of vertices
 
@@ -220,7 +262,7 @@ public sealed interface Operation {
         public static final ComputeSd INSTANCE = new ComputeSd();
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
             if (connectivity instanceof SpanningForestGraphConnectivity<Integer, Integer> spanningForest) {
                 spanningForest.computeSumOfDistances();
             }
@@ -232,7 +274,7 @@ public sealed interface Operation {
         public static final New INSTANCE = new New();
 
         @Override
-        public void execute(GraphConnectivity<Integer, Integer> connectivity) {
+        public void execute(GraphConnectivity<Integer, Integer> connectivity, ExecutionContext context) {
             if (connectivity instanceof ISpyGraphConnectivity<Integer, Integer> spy) {
                 spy.newDelegate();
             }

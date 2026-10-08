@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.graph.benchmark;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public enum GraphConnectivityMethod {
+public enum BenchmarkMethod {
     ADD_VERTEX("v", 1),
     ADD_EDGE("e", 3),
     REMOVE_EDGE("rm", 1),
@@ -25,12 +25,16 @@ public enum GraphConnectivityMethod {
     GET_VERTICES_ADDED_TO_MAIN_COMPONENT("v_added", 0),
     GET_EDGES_ADDED_TO_MAIN_COMPONENT("e_added", 0),
     GET_VERTICES_REMOVED_FROM_MAIN_COMPONENT("v_removed", 0),
-    GET_EDGES_REMOVED_FROM_MAIN_COMPONENT("e_removed", 0);
+    GET_EDGES_REMOVED_FROM_MAIN_COMPONENT("e_removed", 0),
+    COMP_GET_NUMBER("comp_get_num", 0),
+    COMP_TO_OWNED_SET("comp_to_owned_set", 0),
+    COMP_SIZE("comp_size", 0),
+    COMP_CONTAINS("comp_contains", 1);
 
     private final String shortName;
     private final int argCount;
 
-    GraphConnectivityMethod(String shortName, int argCount) {
+    BenchmarkMethod(String shortName, int argCount) {
         this.shortName = shortName;
         this.argCount = argCount;
     }

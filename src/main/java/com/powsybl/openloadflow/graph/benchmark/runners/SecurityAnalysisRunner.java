@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.runners;
 
+import com.powsybl.computation.local.LocalComputationManager;
+import com.powsybl.iidm.network.ImportConfig;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -19,6 +21,7 @@ import com.powsybl.openloadflow.network.LfBus;
 
 import java.nio.file.Path;
 import java.util.Locale;
+import java.util.Properties;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -98,7 +101,10 @@ public class SecurityAnalysisRunner extends AbstractRunner<SecurityAnalysisRunne
                         int threadCount) {
 
         public SingleSecurityAnalysisRunner createSingleSecurityAnalysisRunner() {
-            Network network = Network.read(Path.of(this.network));
+            Properties parameters = new Properties();
+            parameters.setProperty("iidm.import.repair-invalid-reactive-curve-limits", "true");
+
+            Network network = Network.read(Path.of(this.network), LocalComputationManager.getDefault(), ImportConfig.CACHE.get(), parameters);
             SingleSecurityAnalysisRunner ssar = new SingleSecurityAnalysisRunner(network);
 
             if (lineToDisconnect > 0) {

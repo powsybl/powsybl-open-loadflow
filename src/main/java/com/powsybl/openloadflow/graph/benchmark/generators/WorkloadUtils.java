@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.graph.benchmark.generators;
 
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.graph.benchmark.GraphConnectivityMethod;
+import com.powsybl.openloadflow.graph.benchmark.BenchmarkMethod;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -17,8 +17,8 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.util.Random;
 
-import static com.powsybl.openloadflow.graph.benchmark.GraphConnectivityMethod.ADD_EDGE;
-import static com.powsybl.openloadflow.graph.benchmark.GraphConnectivityMethod.REMOVE_EDGE;
+import static com.powsybl.openloadflow.graph.benchmark.BenchmarkMethod.ADD_EDGE;
+import static com.powsybl.openloadflow.graph.benchmark.BenchmarkMethod.REMOVE_EDGE;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -41,7 +41,7 @@ public final class WorkloadUtils {
         WorkloadUtils.write(bw, REMOVE_EDGE, edge);
     }
 
-    public static void write(BufferedWriter bw, GraphConnectivityMethod method, Object... args) throws IOException {
+    public static void write(BufferedWriter bw, BenchmarkMethod method, Object... args) throws IOException {
         bw.write(method.shortName());
         for (Object o : args) {
             bw.write(" ");

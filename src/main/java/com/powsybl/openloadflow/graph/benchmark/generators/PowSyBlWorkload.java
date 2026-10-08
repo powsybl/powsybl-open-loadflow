@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
-import static com.powsybl.openloadflow.graph.benchmark.GraphConnectivityMethod.*;
+import static com.powsybl.openloadflow.graph.benchmark.BenchmarkMethod.*;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}

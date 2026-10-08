@@ -214,10 +214,12 @@ public class WorkloadRunner extends AbstractRunner<Workload, Integer, Integer> {
         spy.beginOperations(operations);
         operations.reset();
 
+        ExecutionContext ctx = new ExecutionContext();
+
         int n = 0;
         while (operations.hasNext()) {
             spy.notifyOperation(n + 1);
-            operations.next().execute(spy);
+            operations.next().execute(spy, ctx);
             n++;
 
             progress.newOperation(n, operations.size());
