@@ -99,6 +99,35 @@ class LoadFlowWithCachingTest {
 
     @Test
     void testRemoteTargetV() {
+        var network = VoltageControlNetworkFactory.createWithGeneratorRemoteControlAndSmallSeparatingImpedance();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        Generator g1 = network.getGenerator("g1");
+        Generator g2 = network.getGenerator("g2");
+        Generator g3 = network.getGenerator("g3");
+        Bus b5 = network.getBusBreakerView().getBus("b5");
+        assertEquals(1, NetworkCache.AC_LF_INSTANCE.getEntryCount());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(413.4, b5);
+
+        g1.getVoltageRegulation().setTargetValue(413.7);
+        g2.getVoltageRegulation().setTargetValue(413.7);
+        g3.getVoltageRegulation().setTargetValue(413.7);
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has not been invalidated
+        result = loadFlowRunner.run(network, parameters);
+        assertVoltageEquals(413.7, b5);
+
+        g1.setLocalTargetV(21);
+        g2.setLocalTargetV(22);
+        g3.setLocalTargetV(20);
+        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has been invalidated (because localTargetV change when lot local is not supported)
+        result = loadFlowRunner.run(network, parameters);
+        assertVoltageEquals(413.7, b5);
+    }
+
+    @Test
+    void testSharedRemoteTargetV() {
         var network = VoltageControlNetworkFactory.createWithGeneratorRemoteControl();
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
@@ -117,14 +146,7 @@ class LoadFlowWithCachingTest {
         g1.getVoltageRegulation().setTargetValue(413.7);
         g2.getVoltageRegulation().setTargetValue(413.7);
         g3.getVoltageRegulation().setTargetValue(413.7);
-        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has been invalidated because remote
-        result = loadFlowRunner.run(network, parameters);
-        assertVoltageEquals(413.7, b4);
-
-        g1.setLocalTargetV(21);
-        g2.setLocalTargetV(22);
-        g3.setLocalTargetV(20);
-        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has been invalidated
+        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has been invalidated (because shared remote control)
         result = loadFlowRunner.run(network, parameters);
         assertVoltageEquals(413.7, b4);
     }
