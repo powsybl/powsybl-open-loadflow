@@ -533,7 +533,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             if ("VoltageRegulation.TargetValue".equals(attribute) && generator.isWithMode(RegulationMode.VOLTAGE) || "localTargetV".equals(attribute)) {
                 double valueShift = (double) newValue - (double) oldValue;
                 GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
-                if (voltageControl.isLocalControl()) {
+                if (voltageControl.isLocalControl() && "localTargetV".equals(attribute) // apply "localTargetV" change only in case of local voltage control
+                || "VoltageRegulation.TargetValue".equals(attribute) && !voltageControl.isSharedControl()) { // TODO: shared voltage control is not supported (because multiple changes are wrongly summed for the same voltage control)
                     double nominalV = voltageControl.getControlledBus().getNominalV();
                     double newTargetV = voltageControl.getTargetValue() + valueShift / nominalV;
                     LfNetworkParameters networkParameters = value.getNetworkParameters();
