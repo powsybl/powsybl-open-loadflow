@@ -62,7 +62,7 @@ public class IDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V
     }
 
     private IDTNode rootOf(V vertex) {
-        return vertexToTreeNode.get(vertex).findRoot();
+        return getNodeOrThrow(vertex).findRoot();
     }
 
     private IDTNode rootOfOptReroot(V vertex) {
@@ -504,6 +504,11 @@ public class IDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V
     }
 
     @Override
+    public boolean connected(V vertex1, V vertex2) {
+        return rootOf(vertex1) == rootOf(vertex2);
+    }
+
+    @Override
     public void setMainComponentVertex(V mainComponentVertex) {
         if (!modificationsStack.isEmpty()) {
             Modifications modifications = modificationsStack.peek();
@@ -895,12 +900,12 @@ public class IDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V
         }
 
         @Override
-        public int getNum() {
+        public int getNumber() {
             return getComponentNumber(node.findRoot().vertex);
         }
 
         @Override
-        public Set<V> intoSet() {
+        public Set<V> toOwnedSet() {
             return new HashSet<>(this);
         }
     }

@@ -33,9 +33,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class ConnectivityTest {
 
     <V> void assertComponentEquals(Set<V> expectedElements, int expectedNum, Component<V> component) {
-        assertEquals(expectedNum, component.getNum());
         assertEquals(expectedElements, component);
-        assertEquals(expectedElements, component.intoSet());
+        assertEquals(expectedElements, component.toOwnedSet());
+        assertEquals(expectedNum, component.getNumber());
     }
 
     @ParameterizedTest(name = "{0}")
@@ -664,6 +664,110 @@ class ConnectivityTest {
         assertEquals(Set.of(), c.getVerticesRemovedFromMainComponent());
         assertEquals(Set.of(), c.getEdgesAddedToMainComponent());
         assertEquals(Set.of(), c.getEdgesRemovedFromMainComponent());
+    }
+
+    <V> void assertConnected(GraphConnectivity<V, ?> c, V u, V v) {
+        assertTrue(c.connected(u, v));
+        assertTrue(c.connected(v, u));
+    }
+
+    <V> void assertDisconnected(GraphConnectivity<V, ?> c, V u, V v) {
+        assertFalse(c.connected(u, v));
+        assertFalse(c.connected(v, u));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideAllConnectivities")
+    void testConnected(GraphConnectivity<Integer, String> c) {
+        c.addVertex(1);
+        c.addVertex(2);
+        c.addVertex(3);
+        c.addVertex(4);
+        c.addVertex(5);
+
+        if (!(c instanceof EvenShiloachGraphDecrementalConnectivity)) {
+            // step 1: graph growth
+            c.startTemporaryChanges();
+
+            assertDisconnected(c, 1, 2);
+            c.addEdge(1, 2, "1-2");
+            assertConnected(c, 1, 2);
+
+            assertDisconnected(c, 2, 3);
+            c.addEdge(2, 3, "2-3");
+            assertConnected(c, 2, 3);
+            assertConnected(c, 1, 2);
+
+            c.addEdge(3, 1, "3-1");
+            assertConnected(c, 2, 3);
+            assertConnected(c, 1, 2);
+
+            assertDisconnected(c, 4, 5);
+            c.addEdge(4, 5, "4-5");
+            assertConnected(c, 4, 5);
+
+            assertDisconnected(c, 3, 4);
+            c.addEdge(3, 4, "3-4");
+        } else {
+            // with EvenShiloach we can only test removal
+            c.addEdge(1, 2, "1-2");
+            c.addEdge(2, 3, "2-3");
+            c.addEdge(3, 1, "3-1");
+            c.addEdge(4, 5, "4-5");
+            c.addEdge(3, 4, "3-4");
+
+            c.startTemporaryChanges();
+        }
+
+        // 1---2---3---4---5
+        // |_______|
+
+        // fully connected
+        for (int i = 1; i < 5; i++) {
+            for (int j = 1; j <= i; j++) {
+                assertConnected(c, i, j);
+            }
+        }
+
+        // step 2: graph decline
+        c.removeEdge("3-4");
+        assertDisconnected(c, 1, 4);
+        assertDisconnected(c, 1, 5);
+        assertDisconnected(c, 2, 4);
+        assertDisconnected(c, 2, 5);
+        assertDisconnected(c, 3, 4);
+        assertDisconnected(c, 3, 5);
+        assertConnected(c, 1, 2);
+        assertConnected(c, 2, 3);
+        assertConnected(c, 4, 5);
+        // 1---2---3   4---5
+        // |_______|
+
+        c.removeEdge("1-2");
+        assertConnected(c, 1, 2);
+        assertConnected(c, 2, 3);
+        // 2---3---1   4---5
+
+        c.removeEdge("4-5");
+        assertDisconnected(c, 4, 5);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideAllConnectivities")
+    void testConnectedExceptions(GraphConnectivity<Integer, String> c) {
+        c.addVertex(1);
+        c.addVertex(2);
+        c.addEdge(1, 2, "1-2");
+        c.startTemporaryChanges();
+
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> c.connected(0, 1));
+        assertEquals("given vertex 0 is not in the graph", e.getMessage());
+        e = assertThrows(IllegalArgumentException.class, () -> c.connected(null, 1));
+        assertEquals("given vertex null is not in the graph", e.getMessage());
+        e = assertThrows(IllegalArgumentException.class, () -> c.connected(1, 3));
+        assertEquals("given vertex 3 is not in the graph", e.getMessage());
+        e = assertThrows(IllegalArgumentException.class, () -> c.connected(1, null));
+        assertEquals("given vertex null is not in the graph", e.getMessage());
     }
 
     private static Stream<Arguments> provideNonRestrictedConnectivities() {

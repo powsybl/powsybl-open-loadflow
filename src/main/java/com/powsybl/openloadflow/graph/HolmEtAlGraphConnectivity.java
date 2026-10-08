@@ -173,12 +173,12 @@ public class HolmEtAlGraphConnectivity<V, E> extends AbstractGraphConnectivity<V
         }
 
         @Override
-        public int getNum() {
+        public int getNumber() {
             return getComponentNumber(set.iterator().next());
         }
 
         @Override
-        public Set<V> intoSet() {
+        public Set<V> toOwnedSet() {
             return new HashSet<>(this);
         }
     }

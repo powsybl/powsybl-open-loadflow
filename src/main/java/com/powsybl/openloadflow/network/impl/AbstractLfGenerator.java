@@ -139,6 +139,14 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         return false;
     }
 
+    /**
+     * Returns true if an equivalent local target voltage is defined, meaning this generator can be switched from
+     * remote to local voltage control without having to rescale its target voltage.
+     */
+    public boolean hasEquivalentLocalTargetV() {
+        return false;
+    }
+
     @Override
     public GeneratorControlType getGeneratorControlType() {
         return generatorControlType;

@@ -617,12 +617,12 @@ public class NewHolmGraphConnectivity<V, E> extends AbstractGraphConnectivity<V,
             }
 
             @Override
-            public int getNum() {
+            public int getNumber() {
                 return holm.getComponentNumber(tree.getMin().getValue().vertex);
             }
 
             @Override
-            public Set<V> intoSet() {
+            public Set<V> toOwnedSet() {
                 return new HashSet<>(this);
             }
         }

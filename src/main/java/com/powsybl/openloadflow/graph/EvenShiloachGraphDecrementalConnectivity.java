@@ -163,7 +163,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         List<AbstractComponent<V>> componentSets = new ArrayList<>();
         componentSets.add(mainComponent);
         for (Set<V> newComponents : newConnectedComponents) {
-            componentSets.add(new SetComponent<>(newComponents, 0));
+            componentSets.add(new HashSetComponent<>(newComponents));
         }
 
         componentSets.sort(Comparator.comparingInt(c -> -c.size()));
@@ -398,14 +398,14 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         }
 
         @Override
-        public Set<V> intoSet() {
+        public Set<V> toOwnedSet() {
             computeConnectivity();
 
             if (component == null) {
                 component = new HashSet<>(getGraph().getVertices());
 
                 for (Component<V> comp : componentSets) {
-                    if (comp.getNum() != getNum()) {
+                    if (comp.getNumber() != getNumber()) {
                         component.removeAll(comp);
                     }
                 }
@@ -416,12 +416,12 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
 
         @Override
         public Iterator<V> iterator() {
-            return intoSet().iterator();
+            return toOwnedSet().iterator();
         }
 
         @Override
         public boolean contains(Object o) {
-            return getComponentNumber((V) o) == getNum();
+            return getComponentNumber((V) o) == getNumber();
         }
 
         @Override

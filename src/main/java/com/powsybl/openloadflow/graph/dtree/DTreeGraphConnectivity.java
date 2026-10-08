@@ -126,7 +126,12 @@ public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnecti
 
     @Override
     public int getComponentNumber(V vertex) {
-        return getConnectedComponent(vertex).getNum();
+        return getConnectedComponent(vertex).getNumber();
+    }
+
+    @Override
+    public boolean connected(V vertex1, V vertex2) {
+        return graph.rootOf(vertex1) == graph.rootOf(vertex2);
     }
 
     @Override
@@ -153,7 +158,7 @@ public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnecti
     @Override
     public Component<V> getLargestConnectedComponent() {
         checkSavedContext();
-        return getGraph().getBiggestRoot().componentView();
+        return graph.getBiggestRoot().componentView();
     }
 
     @Override

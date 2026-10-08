@@ -50,7 +50,7 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
     }
 
     private DTNode rootOf(V vertex) {
-        return vertexToTreeNode.get(vertex).findRoot();
+        return getNodeOrThrow(vertex).findRoot();
     }
 
     private void sortTrees() {
@@ -481,6 +481,11 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         sortTrees();
 
         return node.findRoot().rootIndex;
+    }
+
+    @Override
+    public boolean connected(V vertex1, V vertex2) {
+        return rootOf(vertex1) == rootOf(vertex2);
     }
 
     @Override
@@ -1140,12 +1145,12 @@ public class OptDTreeStandalone<V, E> implements SpanningForestGraphConnectivity
         }
 
         @Override
-        public int getNum() {
+        public int getNumber() {
             return getComponentNumber(node.findRoot().vertex);
         }
 
         @Override
-        public Set<V> intoSet() {
+        public Set<V> toOwnedSet() {
             return new HashSet<>(this);
         }
     }

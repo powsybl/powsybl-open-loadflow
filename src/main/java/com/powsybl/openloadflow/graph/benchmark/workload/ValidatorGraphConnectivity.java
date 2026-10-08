@@ -85,6 +85,14 @@ public class ValidatorGraphConnectivity<V, E> extends AbstractSpyGraphConnectivi
     }
 
     @Override
+    public boolean connected(V vertex1, V vertex2) {
+        boolean expected = checker.connected(vertex1, vertex2);
+        boolean current = delegate.connected(vertex1, vertex2);
+        assertEquals(expected, current);
+        return current;
+    }
+
+    @Override
     public void setMainComponentVertex(V mainComponentVertex) {
         checker.setMainComponentVertex(mainComponentVertex);
         delegate.setMainComponentVertex(mainComponentVertex);

@@ -30,16 +30,11 @@ public class DTGraph<V, E> {
      */
     private final Map<E, Edge<V, E>> edges = new HashMap<>();
 
-    /**
-     * the list of tree roots. Roots are maintained in a way such that
-     * the value of the attribute 'rootIndex' of the DTNode at index i is i.
-     * In other words: roots.get(i).rootIndex == i
-     */
     private final Set<DTNode<V, E>> roots = new LinkedHashSet<>();
 
-    private Modifications<V, E> currentModificationsContext;
-
     private List<ComponentView<V, E>> components;
+
+    private Modifications<V, E> currentModificationsContext;
 
     public long sumOfDistances() {
         long sum = 0;

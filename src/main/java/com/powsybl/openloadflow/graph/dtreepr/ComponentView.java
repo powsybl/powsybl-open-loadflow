@@ -56,12 +56,12 @@ public class ComponentView<V, E> extends AbstractSetView<V> implements Component
     }
 
     @Override
-    public int getNum() {
+    public int getNumber() {
         return node.findRoot().getIndex();
     }
 
     @Override
-    public Set<V> intoSet() {
+    public Set<V> toOwnedSet() {
         return new HashSet<>(this);
     }
 }

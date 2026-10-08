@@ -7,9 +7,6 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
-import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
-import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
 import org.jgrapht.Graph;
 import org.jgrapht.generate.ScaleFreeGraphGenerator;
@@ -18,7 +15,6 @@ import org.jgrapht.graph.DefaultUndirectedGraph;
 import org.jgrapht.util.SupplierUtil;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.provider.Arguments;
 
 import java.util.*;
 

@@ -252,6 +252,17 @@ public class SpyWorkloadGenerator implements IGenerateWorkload {
         }
 
         @Override
+        public boolean connected(LfBus vertex1, LfBus vertex2) {
+            useful = true;
+            try {
+                WorkloadUtils.write(bw, CONNECTED, vertex1.getNum(), vertex2.getNum());
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            return delegate.connected(vertex1, vertex2);
+        }
+
+        @Override
         public void setMainComponentVertex(LfBus mainComponentVertex) {
             useful = true;
             try {

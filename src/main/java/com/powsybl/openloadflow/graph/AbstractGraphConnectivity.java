@@ -117,6 +117,16 @@ public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>
     protected abstract int getQuickComponentNumber(V vertex);
 
     @Override
+    public boolean connected(V vertex1, V vertex2) {
+        checkSavedContext();
+        updateComponents();
+        checkVertex(vertex1);
+        checkVertex(vertex2);
+
+        return getQuickComponentNumber(vertex1) == getQuickComponentNumber(vertex2);
+    }
+
+    @Override
     public int getNbConnectedComponents() {
         checkSavedContext();
         updateComponents();
@@ -139,7 +149,7 @@ public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>
     public Component<V> getLargestConnectedComponent() {
         checkSavedContext();
         updateComponents();
-        return componentSets.get(0);
+        return componentSets.getFirst();
     }
 
     protected Set<V> getNonConnectedVertices(V vertex) {

@@ -7,14 +7,8 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.characteristics;
 
-import com.powsybl.iidm.network.DcBus;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.TopologyKind;
-import com.powsybl.iidm.network.VoltageLevel;
 import com.powsybl.openloadflow.graph.benchmark.log.Log;
-import com.powsybl.openloadflow.graph.benchmark.ng.BusBreakerGraph;
-import com.powsybl.openloadflow.graph.benchmark.ng.BusGraph;
-import com.powsybl.openloadflow.graph.benchmark.ng.NodeBreakerGraph;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;

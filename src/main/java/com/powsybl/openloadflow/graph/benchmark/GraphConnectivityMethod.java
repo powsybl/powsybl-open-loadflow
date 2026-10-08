@@ -17,6 +17,7 @@ public enum GraphConnectivityMethod {
     START_TEMPORARY_CHANGES("start", 0),
     UNDO_TEMPORARY_CHANGES("undo", 0),
     GET_COMPONENT_NUMBER("get_num", 1),
+    CONNECTED("q", 2),
     SET_MAIN_COMPONENT_VERTEX("set_main", 1),
     GET_NB_CONNECTED_COMPONENTS("count", 0),
     GET_CONNECTED_COMPONENT("get_comp", 1),

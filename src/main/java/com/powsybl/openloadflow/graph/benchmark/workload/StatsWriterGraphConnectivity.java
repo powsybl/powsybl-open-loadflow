@@ -107,6 +107,15 @@ public class StatsWriterGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
     }
 
     @Override
+    public boolean connected(V vertex1, V vertex2) {
+        asw.start();
+        boolean connected = super.connected(vertex1, vertex2);
+        asw.stop();
+        writeLine(GraphConnectivityMethod.CONNECTED, asw.elapsed());
+        return connected;
+    }
+
+    @Override
     public void setMainComponentVertex(V mainComponentVertex) {
         asw.start();
         super.setMainComponentVertex(mainComponentVertex);

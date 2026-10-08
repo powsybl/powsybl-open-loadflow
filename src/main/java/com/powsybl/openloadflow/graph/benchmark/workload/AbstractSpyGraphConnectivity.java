@@ -105,6 +105,11 @@ public abstract class AbstractSpyGraphConnectivity<V, E> implements ISpyGraphCon
     }
 
     @Override
+    public boolean connected(V vertex1, V vertex2) {
+        return delegate.connected(vertex1, vertex2);
+    }
+
+    @Override
     public void setMainComponentVertex(V mainComponentVertex) {
         delegate.setMainComponentVertex(mainComponentVertex);
     }

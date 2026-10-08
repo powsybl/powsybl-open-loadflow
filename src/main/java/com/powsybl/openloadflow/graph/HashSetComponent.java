@@ -13,15 +13,15 @@ import java.util.Set;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class SetComponent<V> extends AbstractComponent<V> {
+public class HashSetComponent<V> extends AbstractComponent<V> {
 
     final Set<V> set;
 
-    public SetComponent(Set<V> set) {
+    public HashSetComponent(Set<V> set) {
         this(set, -1);
     }
 
-    public SetComponent(Set<V> set, int num) {
+    public HashSetComponent(Set<V> set, int num) {
         this.set = set;
         setNum(num);
     }

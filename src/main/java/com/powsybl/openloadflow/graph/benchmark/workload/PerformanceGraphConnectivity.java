@@ -124,6 +124,15 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
     }
 
     @Override
+    public boolean connected(V vertex1, V vertex2) {
+        sw.start();
+        boolean connected = delegate.connected(vertex1, vertex2);
+        sw.stop();
+        current[GraphConnectivityMethod.CONNECTED.ordinal()].add(sw.elapsed());
+        return connected;
+    }
+
+    @Override
     public void setMainComponentVertex(V mainComponentVertex) {
         sw.start();
         delegate.setMainComponentVertex(mainComponentVertex);

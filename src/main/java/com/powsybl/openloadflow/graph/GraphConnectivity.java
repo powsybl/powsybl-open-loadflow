@@ -85,19 +85,7 @@ public interface GraphConnectivity<V, E> {
      */
     int getComponentNumber(V vertex);
 
-    default boolean connected(V vertex1, V vertex2) {
-        int num1 = getComponentNumber(vertex1);
-        int num2 = getComponentNumber(vertex2);
-
-        return num1 >= 0 && num1 == num2;
-    }
-
-    default boolean disconnected(V vertex1, V vertex2) {
-        int num1 = getComponentNumber(vertex1);
-        int num2 = getComponentNumber(vertex2);
-
-        return num1 >= 0 && num2 >= 0 && num1 != num2;
-    }
+    boolean connected(V vertex1, V vertex2);
 
     /**
      * Set the main component with given vertex.
@@ -109,40 +97,40 @@ public interface GraphConnectivity<V, E> {
     void setMainComponentVertex(V mainComponentVertex);
 
     /**
-     * Return the number of connected components
+     * @return the number of connected components
      */
     int getNbConnectedComponents();
 
     /**
-     * Return the connected component set of given vertex
+     * @return the connected component set of given vertex
      */
     Component<V> getConnectedComponent(V vertex);
 
     /**
-     * Return the largest connected component
+     * @return the largest connected component
      */
     Component<V> getLargestConnectedComponent();
 
     /**
-     * Return the vertices which were removed from main component by last temporary changes.
+     * @return the vertices which were removed from main component by last temporary changes.
      * The main component is set by calling setMainComponentVertex, or if not set it is the biggest connected component.
      */
     Set<V> getVerticesRemovedFromMainComponent();
 
     /**
-     * Return the edges which were removed from main component by last temporary changes.
+     * @return the edges which were removed from main component by last temporary changes.
      * The main component is set by calling setMainComponentVertex, or if not set it is the biggest connected component.
      */
     Set<E> getEdgesRemovedFromMainComponent();
 
     /**
-     * Return the vertices which were added to main component by last temporary changes.
+     * @return the vertices which were added to main component by last temporary changes.
      * The main component is set by calling setMainComponentVertex, or if not set it is the biggest connected component.
      */
     Set<V> getVerticesAddedToMainComponent();
 
     /**
-     * Return the edges which were added to main component by last temporary changes.
+     * @return the edges which were added to main component by last temporary changes.
      * The main component is set by calling setMainComponentVertex, or if not set it is the biggest connected component.
      */
     Set<E> getEdgesAddedToMainComponent();

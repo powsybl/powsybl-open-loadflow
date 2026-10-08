@@ -49,7 +49,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
     }
 
     private DTNode<V, E> rootOf(V vertex) {
-        return vertexToTreeNode.get(vertex).findRoot();
+        return getNodeOrThrow(vertex).findRoot();
     }
 
     private void sortTrees() {
@@ -610,6 +610,11 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
     }
 
     @Override
+    public boolean connected(V vertex1, V vertex2) {
+        return rootOf(vertex1) == rootOf(vertex2);
+    }
+
+    @Override
     public void setMainComponentVertex(V mainComponentVertex) {
         if (!modificationsStack.isEmpty()) {
             Modifications modifications = modificationsStack.peek();
@@ -1084,12 +1089,12 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         }
 
         @Override
-        public int getNum() {
+        public int getNumber() {
             return node.dtree.getComponentNumber(node.vertex);
         }
 
         @Override
-        public Set<V> intoSet() {
+        public Set<V> toOwnedSet() {
             return new HashSet<>(this);
         }
     }

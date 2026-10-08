@@ -209,7 +209,11 @@ public final class ConnectivityBreakAnalysis {
         GraphConnectivity<LfBus, LfBranch> connectivity = lfNetwork.getConnectivity();
 
         // concatenate all computed elements, to apply them on the connectivity
-        List<LfAction> lfActions = operatorStrategy == null ? Collections.emptyList() : operatorStrategy.getActions().stream().filter(LfAction::isValid).toList();
+        // only branch actions (line/switch open/close) can modify connectivity: other actions (e.g. PST tap, generator/load
+        // setpoint) have no associated branch and must not be considered here, otherwise they would be looked up in
+        // actionElementByBranch as connectivity-modifying elements and break the analysis
+        List<LfAction> lfActions = operatorStrategy == null ? Collections.emptyList()
+                : operatorStrategy.getActions().stream().filter(LfAction::isValid).filter(AbstractLfBranchAction.class::isInstance).toList();
         List<ComputedElement> modifyingConnectivityCandidates = Stream.concat(
                 contingency != null ? contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get) : Stream.empty(),
                 lfActions.stream().map(actionElementByBranch::get).flatMap(Collection::stream)
@@ -237,10 +241,11 @@ public final class ConnectivityBreakAnalysis {
                 int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
                 Set<LfBus> disabledBuses = connectivity.getVerticesRemovedFromMainComponent();
                 Set<LfHvdc> hvdcsWithoutPower = PropagatedContingency.getHvdcsWithoutPower(lfNetwork, disabledBuses, connectivity);
-                // FIXME: set copy may be useless (Naive / Even Shiloach), but mandatory for DTree
                 connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, operatorStrategy, lfNetwork, elementsToReconnect,
                         new DisabledElements(disabledBuses, connectivity.getEdgesRemovedFromMainComponent(), hvdcsWithoutPower),
-                        new HashSet<>(connectivity.getConnectedComponent(lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst())), createdSynchronousComponents);
+                        connectivity.getConnectedComponent(lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst())
+                                .toOwnedSet(),
+                        createdSynchronousComponents);
             }
         } finally {
             connectivity.undoTemporaryChanges();
@@ -250,7 +255,7 @@ public final class ConnectivityBreakAnalysis {
 
     private static boolean isBreakingConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity, ComputedElement element) {
         LfBranch lfBranch = element.getLfBranch();
-        return connectivity.getComponentNumber(lfBranch.getBus1()) != connectivity.getComponentNumber(lfBranch.getBus2());
+        return !connectivity.connected(lfBranch.getBus1(), lfBranch.getBus2());
     }
 
     /**
@@ -261,44 +266,72 @@ public final class ConnectivityBreakAnalysis {
                                                           int nbConnectedComponentsBefore) {
         Set<String> elementsToReconnect = new LinkedHashSet<>();
 
-        // We suppose we're reconnecting one by one each element breaking connectivity.
-        // At each step we look if the reconnection was needed on the connectivity level by maintaining a list of grouped connected components.
-        List<Set<Integer>> reconnectedCc = new ArrayList<>();
-        for (ComputedElement element : breakingConnectivityElements) {
-            int cc1 = connectivity.getComponentNumber(element.getLfBranch().getBus1());
-            int cc2 = connectivity.getComponentNumber(element.getLfBranch().getBus2());
+        if (connectivity.supportTemporaryChangesNesting()) {
+            connectivity.startTemporaryChanges(); // FIXME: disable comparisons
 
-            Set<Integer> recCc1 = reconnectedCc.stream().filter(s -> s.contains(cc1)).findFirst().orElseGet(() -> new HashSet<>(List.of(cc1)));
-            Set<Integer> recCc2 = reconnectedCc.stream().filter(s -> s.contains(cc2)).findFirst().orElseGet(() -> Set.of(cc2));
-            if (recCc1 != recCc2) {
-                // cc1 and cc2 are still separated:
-                // - mark the element as needed to reconnect all connected components together
-                // - update the list of grouped connected components
-                elementsToReconnect.add(element.getLfBranch().getId());
-                reconnectedCc.remove(recCc2);
-                if (recCc1.size() == 1) {
-                    // adding the new set (the list of grouped connected components is not initialized with the singleton sets)
-                    reconnectedCc.add(recCc1);
+            for (ComputedElement element : breakingConnectivityElements) {
+                LfBranch branch = element.getLfBranch();
+
+                if (!connectivity.connected(branch.getBus1(), branch.getBus2())) {
+                    connectivity.addEdge(branch.getBus1(), branch.getBus2(), branch);
+                    elementsToReconnect.add(branch.getId());
                 }
-                recCc1.addAll(recCc2);
             }
-        }
 
-        // !!! we can have more than one connected component on base case because of actions potentially reconnecting
-        // some elements
-        int createdConnectedComponents = connectivity.getNbConnectedComponents() - nbConnectedComponentsBefore;
-        if (reconnectedCc.size() != 1 || reconnectedCc.getFirst().size() - 1 != createdConnectedComponents) {
-            LOGGER.error("Elements to reconnect computed do not reconnect all connected components together");
+            connectivity.undoTemporaryChanges();
+        } else {
+            // We suppose we're reconnecting one by one each element breaking connectivity.
+            // At each step we look if the reconnection was needed on the connectivity level by maintaining a list of grouped connected components.
+            List<Set<Integer>> reconnectedCc = new ArrayList<>();
+            for (ComputedElement element : breakingConnectivityElements) {
+                int cc1 = connectivity.getComponentNumber(element.getLfBranch().getBus1());
+                int cc2 = connectivity.getComponentNumber(element.getLfBranch().getBus2());
+
+                Set<Integer> recCc1 = reconnectedCc.stream().filter(s -> s.contains(cc1)).findFirst().orElseGet(() -> new HashSet<>(List.of(cc1)));
+                Set<Integer> recCc2 = reconnectedCc.stream().filter(s -> s.contains(cc2)).findFirst().orElseGet(() -> Set.of(cc2));
+                if (recCc1 != recCc2) {
+                    // cc1 and cc2 are still separated:
+                    // - mark the element as needed to reconnect all connected components together
+                    // - update the list of grouped connected components
+                    elementsToReconnect.add(element.getLfBranch().getId());
+                    reconnectedCc.remove(recCc2);
+                    if (recCc1.size() == 1) {
+                        // adding the new set (the list of grouped connected components is not initialized with the singleton sets)
+                        reconnectedCc.add(recCc1);
+                    }
+                    recCc1.addAll(recCc2);
+                }
+            }
+
+            // !!! we can have more than one connected component on base case because of actions potentially reconnecting
+            // some elements
+            int createdConnectedComponents = connectivity.getNbConnectedComponents() - nbConnectedComponentsBefore;
+            if (reconnectedCc.size() != 1 || reconnectedCc.getFirst().size() - 1 != createdConnectedComponents) {
+                LOGGER.error("Elements to reconnect computed do not reconnect all connected components together");
+            }
         }
 
         return elementsToReconnect;
     }
 
     private static Map<String, ComputedContingencyElement> createContingencyElementsIndexByBranchId(List<PropagatedContingency> contingencies,
-                                                                                                    LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+                                                                                                    LfNetwork lfNetwork, EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                                                                                    List<String> additionalBranchIds) {
         Map<String, ComputedContingencyElement> contingencyElementByBranch =
-                contingencies.stream()
-                        .flatMap(contingency -> contingency.getBranchIdsToOpen().keySet().stream())
+                Stream.concat(
+                        contingencies.stream().flatMap(contingency -> contingency.getBranchIdsToOpen().keySet().stream()),
+                        additionalBranchIds.stream()
+                )
+                        // an id may not correspond to a branch of this connected component's LF network: a permanent
+                        // contingency (reconnectable) branch is global to the whole network and may belong to another
+                        // connected component. Such a branch carries no flow here, so it is safely ignored.
+                        .filter(branchId -> {
+                            if (lfNetwork.getBranchById(branchId) == null) {
+                                LOGGER.debug("Contingency or reconnectable branch '{}' is not in the LF network and is ignored in fast DC connectivity analysis", branchId);
+                                return false;
+                            }
+                            return true;
+                        })
                         .map(branch -> new ComputedContingencyElement(new BranchContingency(branch), lfNetwork, equationSystem))
                         .filter(element -> element.getLfBranchEquation() != null)
                         .collect(Collectors.toMap(
@@ -312,8 +345,14 @@ public final class ConnectivityBreakAnalysis {
     }
 
     public static ConnectivityBreakAnalysisResults run(DcLoadFlowContext loadFlowContext, List<PropagatedContingency> contingencies) {
-        // index contingency elements by branch id
-        Map<String, ComputedContingencyElement> contingencyElementByBranch = createContingencyElementsIndexByBranchId(contingencies, loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem());
+        return run(loadFlowContext, contingencies, Collections.emptyList());
+    }
+
+    public static ConnectivityBreakAnalysisResults run(DcLoadFlowContext loadFlowContext, List<PropagatedContingency> contingencies,
+                                                       List<String> permanentContingencyBranchIds) {
+        // index contingency elements by branch id (including permanent contingency branches)
+        Map<String, ComputedContingencyElement> contingencyElementByBranch = createContingencyElementsIndexByBranchId(contingencies,
+                loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem(), permanentContingencyBranchIds);
 
         // compute states with +1 -1 to model the contingencies
         DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(loadFlowContext, contingencyElementByBranch.values());

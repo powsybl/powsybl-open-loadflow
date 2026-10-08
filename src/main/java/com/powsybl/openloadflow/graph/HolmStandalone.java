@@ -476,6 +476,11 @@ public class HolmStandalone<V, E> implements SpanningForestGraphConnectivity<V, 
     }
 
     @Override
+    public boolean connected(V vertex1, V vertex2) {
+        return headOf(vertex1) == headOf(vertex2);
+    }
+
+    @Override
     public void setMainComponentVertex(V mainComponentVertex) {
         if (!modificationsStack.isEmpty()) {
             Modifications modifications = modificationsStack.peek();
@@ -758,12 +763,12 @@ public class HolmStandalone<V, E> implements SpanningForestGraphConnectivity<V, 
         }
 
         @Override
-        public int getNum() {
+        public int getNumber() {
             return getComponentNumber(tree.getMin().getValue().vertex);
         }
 
         @Override
-        public Set<V> intoSet() {
+        public Set<V> toOwnedSet() {
             return new HashSet<>(this);
         }
     }
