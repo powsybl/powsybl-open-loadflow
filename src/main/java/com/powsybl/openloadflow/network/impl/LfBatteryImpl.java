@@ -91,7 +91,7 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return getBattery().getLocalTargetQ() / PerUnit.SB;
+        return getBattery().getRegulatingTargetQ() / PerUnit.SB;
     }
 
     @Override
