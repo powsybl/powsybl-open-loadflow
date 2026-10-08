@@ -7,21 +7,27 @@
  */
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import java.io.IOException;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -118,16 +124,92 @@ class AcLoadFlowSvcTest {
     }
 
     @Test
-    void shouldReachReactiveMaxLimit() {
+    void shouldReachReactiveMaxLimit() throws IOException {
         svc1.setBmin(-0.002)
                 .setVoltageSetpoint(385)
                 .setRegulationMode(RegulationMode.VOLTAGE)
                 .setRegulating(true);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
         assertTrue(result.isFullyConverged());
         Bus bus = svc1.getTerminal().getBusView().getBus();
         assertVoltageEquals(386.256, bus);
         assertReactivePowerEquals(-svc1.getBmin() * bus.getV() * bus.getV(), svc1.getTerminal()); // min reactive limit has been correctly reached
+
+        assertTxtReportEquals("""
+                + Test Report
+                   + Load flow on network 'svc'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 2 buses and 1 branches
+                            Network balance: active generation=101.3664 MW, active load=101 MW, reactive generation=0 MVar, reactive load=150 MVar
+                            Angle reference bus: vl1_0
+                            Slack bus: vl1_0
+                         Voltage initialization with method Uniform Values
+                         + Outer loop ReactiveLimits
+                            + Outer loop iteration 1
+                               + 1 buses switched PV -> PQ (1 buses remain PV)
+                                  Switch bus 'vl2_0' PV -> PQ, q=-457.896814 < minQ=-296.45
+                            + Outer loop iteration 2
+                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
+                            + Outer loop iteration 3
+                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """, reportNode);
+    }
+
+    @Test
+    void shouldIterateOnReactiveLimitChangedWithVoltage() throws IOException {
+        // SVC reactive limits are B * V^2: each outer loop iteration freezing Q at the limit changes V, hence the limit.
+        // On a weak network (high X) the fixed point converges slowly (ratio ~ 2 * Bmax * X), requiring many outer loop iterations.
+        l1.setX(100);
+        svc1.setBmax(0.002)
+                .setVoltageSetpoint(450)
+                .setRegulationMode(RegulationMode.VOLTAGE)
+                .setRegulating(true);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+        Bus bus = svc1.getTerminal().getBusView().getBus();
+        assertVoltageEquals(444.130, bus);
+        // outer loop stops when the limit change is below maxReactivePowerMismatch, hence the relaxed tolerance
+        assertEquals(-svc1.getBmax() * bus.getV() * bus.getV(), svc1.getTerminal().getQ(), 1e-2);
+        assertTxtReportEquals("""
+                + Test Report
+                   + Load flow on network 'svc'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 2 buses and 1 branches
+                            Network balance: active generation=101.3664 MW, active load=101 MW, reactive generation=0 MVar, reactive load=150 MVar
+                            Angle reference bus: vl1_0
+                            Slack bus: vl1_0
+                         Voltage initialization with method Uniform Values
+                         + Outer loop ReactiveLimits
+                            + Outer loop iteration 1
+                               + 1 buses switched PV -> PQ (1 buses remain PV)
+                                  Switch bus 'vl2_0' PV -> PQ, q=424.07869 > maxQ=405
+                            + Outer loop iteration 2
+                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
+                            + Outer loop iteration 3
+                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
+                            + Outer loop iteration 4
+                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
+                            + Outer loop iteration 5
+                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
+                            + Outer loop iteration 6
+                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
+                            + Outer loop iteration 7
+                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
+                            + Outer loop iteration 8
+                               1 buses blocked at a reactive limit have been adjusted because the reactive limit changed
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """, reportNode);
     }
 
     @Test
