@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
@@ -497,6 +498,34 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
             return CacheUpdateResult.elementUpdated(value);
         }
 
+        private CacheUpdateResult<V> updateLfGeneratorTargetV(Generator generator, String attribute, double oldValue, double newValue, V value, LfBus lfBus) {
+            GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
+            if (!voltageControl.isLocalControl() && "localTargetV".equals(attribute)) {
+                // TODO: Equivalent localTargetV (when localTargetV is the backup in case of switching remote to local) is not supported yet
+                LOGGER.info("Generator {} is remote voltage controlled but equivalent localTargetV has been changed: not supported", generator.getId());
+                return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(generator, attribute));
+            }
+            if (voltageControl.isSharedControl()) {
+                // TODO: shared voltage control is not supported (because multiple changes could be wrongly summed for the same voltage control)
+                LOGGER.info("Generator {} voltage control is shared: not supported", generator.getId());
+                return CacheUpdateResult.unsupportedUpdate(createInvalidationReason(generator, attribute));
+            }
+            double valueShift = newValue - oldValue;
+            double nominalV = voltageControl.getControlledBus().getNominalV();
+            double newTargetV = voltageControl.getTargetValue() + valueShift / nominalV;
+            LfNetworkParameters networkParameters = value.getNetworkParameters();
+            if (AbstractLfGenerator.checkTargetV(generator.getId(), newTargetV, nominalV, networkParameters, null)) {
+                voltageControl.setTargetValue(newTargetV);
+            } else {
+                value.getNetwork().getGeneratorById(generator.getId()).setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+                if (lfBus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
+                    lfBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(false);
+                }
+            }
+            value.getNetwork().validate(input.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC, null);
+            return CacheUpdateResult.elementUpdated(value);
+        }
+
         private static <V extends Value> CacheUpdateResult<V> updateLfLoadTargetP(String id, double oldValue, double newValue, V value, LfBus lfBus) {
             // Load active power distribution is not handled
             double valueShift = newValue - oldValue;
@@ -529,22 +558,8 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
 
         private CacheUpdateResult<V> onGeneratorUpdate(Generator generator, String attribute, Object oldValue, Object newValue,
                                                        V value, LfBus lfBus) {
-            if ("localTargetV".equals(attribute)) {
-                double valueShift = (double) newValue - (double) oldValue;
-                GeneratorVoltageControl voltageControl = lfBus.getGeneratorVoltageControl().orElseThrow();
-                double nominalV = voltageControl.getControlledBus().getNominalV();
-                double newTargetV = voltageControl.getTargetValue() + valueShift / nominalV;
-                LfNetworkParameters networkParameters = value.getNetworkParameters();
-                if (AbstractLfGenerator.checkTargetV(generator.getId(), newTargetV, nominalV, networkParameters, null)) {
-                    voltageControl.setTargetValue(newTargetV);
-                } else {
-                    value.getNetwork().getGeneratorById(generator.getId()).setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
-                    if (lfBus.getGenerators().stream().noneMatch(gen -> gen.getGeneratorControlType() == LfGenerator.GeneratorControlType.VOLTAGE)) {
-                        lfBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(false);
-                    }
-                }
-                value.getNetwork().validate(input.getLoadFlowParameters().isDc() ? LoadFlowModel.DC : LoadFlowModel.AC, null);
-                return CacheUpdateResult.elementUpdated(value);
+            if ("VoltageRegulation.TargetValue".equals(attribute) && generator.isWithMode(RegulationMode.VOLTAGE) || "localTargetV".equals(attribute)) {
+                return updateLfGeneratorTargetV(generator, attribute, (double) oldValue, (double) newValue, value, lfBus);
             } else if ("targetP".equals(attribute)) {
                 return updateLfGeneratorTargetP(generator.getId(), (double) oldValue, (double) newValue, value, lfBus);
             } else if ("localTargetQ".equals(attribute)) {
@@ -783,7 +798,9 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
         }
 
         private boolean skipUpdate(String variantId) {
-            return values == null || pause || !variantId.equals(workingVariantId);
+            return values == null // no update to perform if there is no network cache
+                    || pause // no update to perform is the network cache is paused (during network updating with result at the end of the load flow)
+                    || variantId != null && !variantId.equals(workingVariantId); // no update to perform if happening in another variant
         }
 
         @Override
@@ -809,7 +826,7 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                         Generator generator = (Generator) identifiable;
                         result = onGeneratorUpdate(generator, attribute, oldValue, newValue);
                     } else if (identifiable.getType() == IdentifiableType.BATTERY) {
-                        // supports attribute: "targetP", "targetQ"
+                        // supports attribute: "targetP", "localTargetQ"
                         Battery battery = (Battery) identifiable;
                         result = onBatteryUpdate(battery, attribute, oldValue, newValue);
                     } else if (identifiable.getType() == IdentifiableType.LOAD) {
@@ -831,18 +848,22 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                     } else if (identifiable.getType() == IdentifiableType.SWITCH && "open".equals(attribute)) {
                         result = onSwitchUpdate(identifiable.getId(), (boolean) newValue);
                     } else if (identifiable.getType() == IdentifiableType.TWO_WINDINGS_TRANSFORMER) {
-                        if ("ratioTapChanger.VoltageRegulation.TargetValue".equals(attribute) ||
-                                "ratioTapChanger.regulationValue".equals(attribute)) {
-                            result = onTransformerTargetVoltageUpdate(identifiable.getId(), (double) newValue);
+                        if ("ratioTapChanger.VoltageRegulation.TargetValue".equals(attribute)) {
+                            RatioTapChanger rtc = ((TwoWindingsTransformer) identifiable).getRatioTapChanger();
+                            if (rtc.isWithMode(RegulationMode.VOLTAGE)) {
+                                result = onTransformerTargetVoltageUpdate(identifiable.getId(), (double) newValue);
+                            }
                         } else if ("ratioTapChanger.tapPosition".equals(attribute)) {
                             result = onTransformerTapPositionUpdate(identifiable.getId(), (int) newValue);
                         }
                     } else if (identifiable.getType() == IdentifiableType.THREE_WINDINGS_TRANSFORMER) {
                         for (ThreeSides side : ThreeSides.values()) {
-                            if (("ratioTapChanger" + side.getNum() + ".VoltageRegulation.TargetValue").equals(attribute) ||
-                                    ("ratioTapChanger" + side.getNum() + ".regulationValue").equals(attribute)) {
-                                result = onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (double) newValue);
-                                break;
+                            if (("ratioTapChanger" + side.getNum() + ".VoltageRegulation.TargetValue").equals(attribute)) {
+                                RatioTapChanger rtc = ((ThreeWindingsTransformer) identifiable).getLeg(side).getRatioTapChanger();
+                                if (rtc.isWithMode(RegulationMode.VOLTAGE)) {
+                                    result = onTransformerTargetVoltageUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (double) newValue);
+                                    break;
+                                }
                             } else if (("ratioTapChanger" + side.getNum() + ".tapPosition").equals(attribute)) {
                                 result = onTransformerTapPositionUpdate(LfLegBranch.getId(identifiable.getId(), side.getNum()), (int) newValue);
                                 break;
@@ -851,7 +872,6 @@ public class NetworkCache<I extends NetworkCache.Input<I>, V extends NetworkCach
                     }
                 }
             }
-
             processUpdateResult(identifiable, attribute, result);
         }
 
