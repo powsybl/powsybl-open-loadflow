@@ -151,6 +151,9 @@ class DTreeGraphConnectivityTest {
 
         assertTrue(zero.contains(1));
         assertTrue(one.contains(0));
+
+        assertFalse(zero.contains(null));
+        assertFalse(one.contains(null));
     }
 
     @Test
@@ -169,5 +172,23 @@ class DTreeGraphConnectivityTest {
         assertEquals(3, set.size());
         assertTrue(set.contains(2));
         assertEquals(Set.of(0, 1, 2), Sets.newHashSet(set));
+    }
+
+    @Test
+    void testComponentViewToOwnedSet() {
+        DTreeGraphConnectivity<Integer, String> connectivity = new DTreeGraphConnectivity<>();
+        connectivity.addVertex(0);
+        connectivity.addVertex(1);
+        connectivity.startTemporaryChanges();
+
+        Component<Integer> component = connectivity.getConnectedComponent(0);
+        Set<Integer> set = component.toOwnedSet();
+        assertEquals(Set.of(0), component);
+        assertEquals(Set.of(0), set);
+
+        connectivity.addEdge(0, 1, "0-1");
+
+        assertEquals(Set.of(0, 1), component); // the component should be updated as it is owned by DTree
+        assertEquals(Set.of(0), set); // the set isn't owned by DTree, so shouldn't be updated
     }
 }

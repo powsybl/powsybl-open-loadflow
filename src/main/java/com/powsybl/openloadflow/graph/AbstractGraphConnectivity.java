@@ -21,7 +21,7 @@ public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>
 
     private final Deque<ModificationsContext<V, E>> modificationsContexts = new ArrayDeque<>();
 
-    protected List<Set<V>> componentSets;
+    protected List<? extends Component<V>> componentSets;
 
     private V defaultMainComponentVertex;
 
@@ -117,29 +117,39 @@ public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>
     protected abstract int getQuickComponentNumber(V vertex);
 
     @Override
+    public boolean connected(V vertex1, V vertex2) {
+        checkSavedContext();
+        updateComponents();
+        checkVertex(vertex1);
+        checkVertex(vertex2);
+
+        return getQuickComponentNumber(vertex1) == getQuickComponentNumber(vertex2);
+    }
+
+    @Override
     public int getNbConnectedComponents() {
         checkSavedContext();
         updateComponents();
         return componentSets.size();
     }
 
-    protected Collection<Set<V>> getSmallComponents() {
+    protected Collection<? extends Component<V>> getSmallComponents() {
         checkSavedContext();
         updateComponents();
         return componentSets.subList(1, componentSets.size());
     }
 
     @Override
-    public Set<V> getConnectedComponent(V vertex) {
+    public Component<V> getConnectedComponent(V vertex) {
         int componentNumber = getComponentNumber(vertex);
         return componentSets.get(componentNumber);
     }
 
     @Override
-    public Set<V> getLargestConnectedComponent() {
+    public Component<V> getLargestConnectedComponent() {
         checkSavedContext();
         updateComponents();
-        return componentSets.get(0);
+        return componentSets.getFirst();
     }
 
     protected Set<V> getNonConnectedVertices(V vertex) {

@@ -313,7 +313,7 @@ public class DTNode<V, E> {
         nonTreeEdges.remove(edge);
     }
 
-    public Set<V> componentView() {
+    public ComponentView<V, E> componentView() {
         if (componentView == null) {
             componentView = new ComponentView<>(this);
         }

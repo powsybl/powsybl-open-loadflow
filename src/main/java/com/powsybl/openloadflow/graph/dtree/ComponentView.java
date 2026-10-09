@@ -7,7 +7,12 @@
  */
 package com.powsybl.openloadflow.graph.dtree;
 
+import com.powsybl.openloadflow.graph.Component;
+
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * A set view of a connected component in a graph. A component view is
@@ -18,7 +23,7 @@ import java.util.Iterator;
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class ComponentView<V, E> extends AbstractSetView<V> {
+public class ComponentView<V, E> extends AbstractSetView<V> implements Component<V> {
 
     private final DTNode<V, E> node;
 
@@ -28,14 +33,14 @@ public class ComponentView<V, E> extends AbstractSetView<V> {
 
     @Override
     public Iterator<V> iterator() {
-        return new DFSIterator<>(node.findRoot());
+        return new DFSIterator<>(root());
     }
 
     @Override
     public boolean contains(Object o) {
         if (o != null) {
             // node might not be the root anymore, so need to use findRoot on node.
-            return node.getGraph().rootOf((V) o) == node.findRoot();
+            return node.getGraph().rootOf((V) o) == root();
         }
 
         return false;
@@ -43,10 +48,39 @@ public class ComponentView<V, E> extends AbstractSetView<V> {
 
     @Override
     public int size() {
-        return node.findRoot().size();
+        return root().size();
     }
 
     void setIndex(int index) {
-        node.setIndex(index);
+        root().setIndex(index);
+    }
+
+    @Override
+    public int getNumber() {
+        node.getGraph().buildAndSortComponents();
+        return root().getIndex();
+    }
+
+    @Override
+    public Set<V> toOwnedSet() {
+        return new HashSet<>(this);
+    }
+
+    public DTNode<V, E> root() {
+        return node.findRoot();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o instanceof ComponentView<?, ?> that) {
+            return Objects.equals(root(), that.root());
+        } else {
+            return super.equals(o);
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
     }
 }

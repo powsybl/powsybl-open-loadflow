@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+ * Copyright (c) 2020-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGraphConnectivity<V, E, JGraphTModel<V, E>> {
+
+    private final MainComponent mainComponent = new MainComponent();
 
     private Map<V, Integer> vertexToConnectedComponent;
     private final List<Set<V>> newConnectedComponents = new ArrayList<>();
@@ -141,36 +143,8 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
     }
 
     @Override
-    public Set<V> getConnectedComponent(V vertex) {
-        int componentNumber = getComponentNumber(vertex);
-        if (componentNumber == 0) {
-            computeMainConnectedComponent();
-        }
-        return componentSets.get(componentNumber);
-    }
-
-    @Override
-    public Set<V> getLargestConnectedComponent() {
-        checkSavedContext();
-        updateComponents();
-        computeMainConnectedComponent();
-        return componentSets.get(0);
-    }
-
-    private void computeMainConnectedComponent() {
-        if (componentSets.get(0) == null) {
-            Set<V> mainConnectedComponent = new HashSet<>(getGraph().getVertices());
-            getSmallComponents().forEach(mainConnectedComponent::removeAll);
-            componentSets.set(0, mainConnectedComponent);
-        }
-    }
-
-    @Override
     public Set<V> getNonConnectedVertices(V vertex) {
         int componentNumber = getComponentNumber(vertex);
-        if (componentNumber != 0) {
-            computeMainConnectedComponent();
-        }
         List<Set<V>> nonConnectedComponents = new ArrayList<>(componentSets);
         nonConnectedComponents.remove(componentNumber);
         return nonConnectedComponents.stream().flatMap(Collection::stream).collect(Collectors.toSet());
@@ -181,20 +155,25 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
             return;
         }
 
-        componentSets = new ArrayList<>();
-        componentSets.add(null); // trying to avoid to compute main connected component
-
-        newConnectedComponents.sort(Comparator.comparingInt(c -> -c.size()));
-        componentSets.addAll(newConnectedComponents);
         int nbVerticesOut = newConnectedComponents.stream().mapToInt(Set::size).sum();
-        int maxNewComponentsSize = newConnectedComponents.stream().findFirst().map(Set::size).orElse(0);
         Set<V> vertices = getGraph().getVertices();
-        if (vertices.size() - nbVerticesOut < maxNewComponentsSize) {
-            // The initial connected component is smaller than some new connected components
-            // That is, the biggest connected component is among the new connected components list
-            computeMainConnectedComponent(); // it's therefore the initial and not the "main" connected component
-            componentSets.sort(Comparator.comparingInt(c -> -c.size()));
+
+        mainComponent.reset(vertices.size() - nbVerticesOut);
+
+        List<AbstractComponent<V>> componentSets = new ArrayList<>();
+        componentSets.add(mainComponent);
+        for (Set<V> newComponents : newConnectedComponents) {
+            componentSets.add(new HashSetComponent<>(newComponents));
         }
+
+        componentSets.sort(Comparator.comparingInt(c -> -c.size()));
+
+        for (int i = 0; i < componentSets.size(); i++) {
+            AbstractComponent<V> component = componentSets.get(i);
+            component.setNum(i);
+        }
+
+        this.componentSets = componentSets;
     }
 
     private interface GraphProcess {
@@ -408,4 +387,46 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         }
     }
 
+    private final class MainComponent extends AbstractComponent<V> {
+
+        private int size;
+        private Set<V> component;
+
+        public void reset(int size) {
+            this.size = size;
+            this.component = null;
+        }
+
+        @Override
+        public Set<V> toOwnedSet() {
+            computeConnectivity();
+
+            if (component == null) {
+                component = new HashSet<>(getGraph().getVertices());
+
+                for (Component<V> comp : componentSets) {
+                    if (comp.getNumber() != getNumber()) {
+                        component.removeAll(comp);
+                    }
+                }
+            }
+
+            return component;
+        }
+
+        @Override
+        public Iterator<V> iterator() {
+            return toOwnedSet().iterator();
+        }
+
+        @Override
+        public boolean contains(Object o) {
+            return getComponentNumber((V) o) == getNumber();
+        }
+
+        @Override
+        public int size() {
+            return size;
+        }
+    }
 }
