@@ -35,11 +35,11 @@ public final class Actions {
         // verify there is no other action than pst tap change, switching, generator or load action
         actions.stream()
                 .filter(action -> !(action instanceof PhaseTapChangerTapPositionAction || action instanceof TerminalsConnectionAction
-                    || action instanceof SwitchAction || action instanceof GeneratorAction || action instanceof LoadAction))
+                    || action instanceof SwitchAction || action instanceof GeneratorAction || action instanceof LoadAction || action instanceof BoundaryLineAction))
                 .findAny()
                 .ifPresent(e -> {
                     throw new IllegalStateException("For now, only PhaseTapChangerTapPositionAction, TerminalsConnectionAction, SwitchAction, " +
-                        "GeneratorAction and LoadAction are allowed in fast DC Security Analysis: " + e.getClass().getSimpleName());
+                        "GeneratorAction, LoadAction and BoundaryLineAction are allowed in fast DC Security Analysis: " + e.getClass().getSimpleName());
                 });
     }
 
@@ -110,6 +110,14 @@ public final class Actions {
                     AreaInterchangeTargetAction areaInterchangeAction = (AreaInterchangeTargetAction) action;
                     if (network.getArea(areaInterchangeAction.getAreaId()) == null) {
                         throw new PowsyblException("Area '" + areaInterchangeAction.getAreaId() + "' not found");
+                    }
+                    break;
+                }
+
+                case BoundaryLineAction.NAME: {
+                    BoundaryLineAction boundaryLineAction = (BoundaryLineAction) action;
+                    if (network.getBoundaryLine(boundaryLineAction.getBoundaryLineId()) == null) {
+                        throw new PowsyblException("Boundary line '" + boundaryLineAction.getBoundaryLineId() + "' not found");
                     }
                     break;
                 }
