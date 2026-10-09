@@ -141,9 +141,18 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             }
 
             @Override
-            public void writeStateStatus(int contingencyIndex, int operatorStrategyIndex,
-                                         SensitivityAnalysisResult.LoadFlowStatus loadFlowStatus, int numCC, int numCS) {
+            public void writeStateStatus(int contingencyIndex, int operatorStrategyIndex, int numCC, int numCS, LoadFlowResult.ComponentResult.Status status, String statusText) {
                 statusCallCount.incrementAndGet();
+            }
+
+            @Override
+            public void computationComplete() {
+
+            }
+
+            @Override
+            public boolean isComputationComplete() {
+                return true;
             }
         };
 
@@ -2227,14 +2236,14 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 .setParameters(sensiParameters);
         var result = sensiRunner.run(network, factors, runParameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED,
-                result.getStateStatuses().getFirst().getComponentsLoadFlowStatusList().getFirst().status().status());
+                result.getStateStatuses().getFirst().getComponentsLoadFlowStatusList().getFirst().status());
 
         olfParameters.setMaxNewtonRaphsonIterations(10)
                 .setSlackBusPMaxMismatch(0.00001)
                 .setMaxOuterLoopIterations(1);
         result = sensiRunner.run(network, factors, runParameters);
         assertEquals("OuterLoopStatus UNSTABLE",
-                result.getStateStatuses().getFirst().getComponentsLoadFlowStatusList().getFirst().status().statusText());
+                result.getStateStatuses().getFirst().getComponentsLoadFlowStatusList().getFirst().statusText());
     }
 
     @Test

@@ -8,7 +8,7 @@
 
 package com.powsybl.openloadflow.sensi.mt;
 
-import com.powsybl.sensitivity.SensitivityAnalysisResult;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.sensitivity.SensitivityResultWriter;
 
 import java.io.Closeable;
@@ -64,11 +64,21 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
 
     @Override
     public void writeStateStatus(int contingencyIndex, int operatorStrategyIndex,
-                          SensitivityAnalysisResult.LoadFlowStatus loadFlowStatus, int numCC, int numCS) {
+                                 int numCC, int numCS, LoadFlowResult.ComponentResult.Status status, String statusText) {
         flush(); // send all previous values to the writer in case it expects ordered data
 
         // Not called for the base case. No need to manage duplicate calls.
-        executor.execute(() -> sensitivityResultWriter.writeStateStatus(contingencyIndex, operatorStrategyIndex, loadFlowStatus, numCC, numCS));
+        executor.execute(() -> sensitivityResultWriter.writeStateStatus(contingencyIndex, operatorStrategyIndex, numCC, numCS, status, statusText));
+    }
+
+    @Override
+    public void computationComplete() {
+
+    }
+
+    @Override
+    public boolean isComputationComplete() {
+        return false;
     }
 
     @Override

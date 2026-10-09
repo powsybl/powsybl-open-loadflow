@@ -18,6 +18,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
@@ -978,8 +979,8 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setActions(actions));
 
         var openCState = new SensitivityState(null, "open C");
-        assertEquals(1, result.getStateStatuses().size());
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(openCState));
+        assertEquals(2, result.getStateStatuses().size());
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(openCState).getFirst().status());
 
         // reference flow N, 300MW on each
         assertEquals(300d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
