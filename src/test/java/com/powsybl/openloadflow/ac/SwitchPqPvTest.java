@@ -9,12 +9,12 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
-import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -62,6 +62,7 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
     private Generator g2;
     private Generator g3;
     private LoadFlow.Runner loadFlowRunner;
+    private LoadFlowRunParameters runParameters;
     private LoadFlowParameters parameters;
     private OpenLoadFlowParameters parametersExt;
 
@@ -119,8 +120,11 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(17)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(17)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
         g1.newMinMaxReactiveLimits()
                 .setMinQ(-179)
@@ -135,8 +139,11 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(21)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(21)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
         g2.newMinMaxReactiveLimits()
                 .setMinQ(-1000)
@@ -151,8 +158,11 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(20)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(20)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
         g3.newMinMaxReactiveLimits()
                 .setMinQ(-1000)
@@ -197,6 +207,7 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        runParameters = new LoadFlowRunParameters().setParameters(parameters);
     }
 
     @Test
@@ -215,12 +226,13 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setMinQ(-179)
                 .setMaxQ(700)
                 .add();
-        g2.setTargetV(22);
+        g2.setLocalTargetV(22);
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("test")
                 .build();
-        LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
+        runParameters.setReportNode(reportNode);
+        LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), runParameters);
         assertTrue(result.isFullyConverged());
         // bus 1 and 3 switch PQ at first outer loop, then at next outer loop bus 3 go back PV
         assertVoltageEquals(17.441, b1); // PQ => v != 17
@@ -255,9 +267,11 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setId("svc3")
                 .setBus("b3")
                 .setConnectableBus("b3")
-                .setVoltageSetpoint(20)
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .setRegulating(true)
+                .setLocalTargetV(20)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
                 .setBmax(30 / value)
                 .setBmin(-1000 / value)
                 .add();
@@ -270,8 +284,10 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetQ(0)
-                .setVoltageRegulatorOn(false)
+                .setLocalTargetQ(0)
+                .newVoltageRegulation()
+                    .withRegulating(false)
+                    .add()
                 .add();
         g3.newMinMaxReactiveLimits()
                 .setMinQ(0)
