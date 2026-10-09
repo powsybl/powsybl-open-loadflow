@@ -152,6 +152,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final boolean AC_DC_NETWORK_DEFAULT_VALUE = false;
 
+    public static final IncrementalControlInteractionScope INCREMENTAL_CONTROL_INTERACTION_SCOPE_DEFAULT_VALUE = IncrementalControlInteractionScope.ALL_CONTROLLED_ELEMENTS;
+
     public static final String SLACK_BUS_SELECTION_MODE_PARAM_NAME = "slackBusSelectionMode";
 
     public static final String SLACK_BUSES_IDS_PARAM_NAME = "slackBusesIds";
@@ -315,6 +317,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public static final String AC_DC_NETWORK_PARAM_NAME = "acDcNetwork";
 
     public static final String ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME = "allowNonLinearShuntZeroSection";
+
+    public static final String INCREMENTAL_CONTROL_INTERACTION_SCOPE_PARAM_NAME = "incrementalControlInteractionScope";
 
     public static final String NETWORK_VARIANT_POOL_SIZE_PARAM_NAME = "networkVariantPoolSize";
 
@@ -640,6 +644,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME, ParameterType.BOOLEAN,
             "Allow Non-Linear Shunt Compensator zero section position",
             LfNetworkParameters.ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
+        new Parameter(INCREMENTAL_CONTROL_INTERACTION_SCOPE_PARAM_NAME, ParameterType.STRING,
+            "Interactions between controllers accounted for by incremental outer loops: with all the controlled elements of the outer loop, or only between controllers of the same controlled element",
+            INCREMENTAL_CONTROL_INTERACTION_SCOPE_DEFAULT_VALUE.name(), getEnumPossibleValues(IncrementalControlInteractionScope.class), ParameterScope.FUNCTIONAL, OUTER_LOOPS_CATEGORY_KEY),
         new Parameter(NETWORK_VARIANT_POOL_SIZE_PARAM_NAME, ParameterType.INTEGER,
                 "Network variant pool size",
                 NETWORK_VARIANT_POOL_SIZE_DEFAULT_VALUE, ParameterScope.TECHNICAL, FAST_RESTART_CATEGORY_KEY),
@@ -668,6 +675,20 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     public enum PhaseShifterControlMode {
         CONTINUOUS_WITH_DISCRETISATION,
         INCREMENTAL
+    }
+
+    public enum IncrementalControlInteractionScope {
+        /**
+         * A controller move is accepted only if it reduces the mismatches of all the controlled elements of the outer
+         * loop, accounting for its effect on all of them: controllers of nearby elements do not overshoot together,
+         * but a controller may not fully reach its own target if this worsens another controlled element.
+         */
+        ALL_CONTROLLED_ELEMENTS,
+        /**
+         * A controller move only accounts for its effect on its own controlled element, and for the moves of the other
+         * controllers of the same controlled element.
+         */
+        SAME_CONTROLLED_ELEMENT
     }
 
     public enum ReportedFeatures {
@@ -855,6 +876,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private int networkVariantPoolSize = NETWORK_VARIANT_POOL_SIZE_DEFAULT_VALUE;
 
     private String networkCacheScope = NETWORK_CACHE_SCOPE_DEFAULT_VALUE;
+
+    private IncrementalControlInteractionScope incrementalControlInteractionScope = INCREMENTAL_CONTROL_INTERACTION_SCOPE_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1710,6 +1733,15 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public IncrementalControlInteractionScope getIncrementalControlInteractionScope() {
+        return incrementalControlInteractionScope;
+    }
+
+    public OpenLoadFlowParameters setIncrementalControlInteractionScope(IncrementalControlInteractionScope incrementalControlInteractionScope) {
+        this.incrementalControlInteractionScope = Objects.requireNonNull(incrementalControlInteractionScope);
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1852,6 +1884,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         config.getOptionalBooleanProperty(FIX_VOLTAGE_TARGETS_PARAM_NAME).ifPresent(this::setFixVoltageTargets);
         config.getOptionalBooleanProperty(AC_DC_NETWORK_PARAM_NAME).ifPresent(this::setAcDcNetwork);
         config.getOptionalBooleanProperty(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME).ifPresent(this::setAllowNonLinearShuntZeroSection);
+        config.getOptionalEnumProperty(INCREMENTAL_CONTROL_INTERACTION_SCOPE_PARAM_NAME, IncrementalControlInteractionScope.class)
+            .ifPresent(this::setIncrementalControlInteractionScope);
         config.getOptionalIntProperty(NETWORK_VARIANT_POOL_SIZE_PARAM_NAME).ifPresent(this::setNetworkVariantPoolSize);
         config.getOptionalStringProperty(NETWORK_CACHE_SCOPE_PARAM_NAME).ifPresent(this::setNetworkCacheScope);
     }
@@ -2030,6 +2064,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setAcDcNetwork(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME))
                 .ifPresent(prop -> this.setAllowNonLinearShuntZeroSection(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(INCREMENTAL_CONTROL_INTERACTION_SCOPE_PARAM_NAME))
+                .ifPresent(prop -> this.setIncrementalControlInteractionScope(IncrementalControlInteractionScope.valueOf(prop)));
         Optional.ofNullable(properties.get(NETWORK_VARIANT_POOL_SIZE_PARAM_NAME))
                 .ifPresent(prop -> this.setNetworkVariantPoolSize(Integer.parseInt(prop)));
         // network cache scope is nullable
@@ -2125,6 +2161,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME, allowNonLinearShuntZeroSection);
         map.put(NETWORK_VARIANT_POOL_SIZE_PARAM_NAME, networkVariantPoolSize);
         map.put(NETWORK_CACHE_SCOPE_PARAM_NAME, networkCacheScope);
+        map.put(INCREMENTAL_CONTROL_INTERACTION_SCOPE_PARAM_NAME, incrementalControlInteractionScope);
         return map;
     }
 
@@ -2560,6 +2597,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.isFixVoltageTargets() == extension2.isFixVoltageTargets() &&
                 extension1.isAcDcNetwork() == extension2.isAcDcNetwork() &&
                 extension1.isAllowNonLinearShuntZeroSection() == extension2.isAllowNonLinearShuntZeroSection() &&
+                extension1.getIncrementalControlInteractionScope() == extension2.getIncrementalControlInteractionScope() &&
                 extension1.getNetworkVariantPoolSize() == extension2.getNetworkVariantPoolSize() &&
                 Objects.equals(extension1.getNetworkCacheScope(), extension2.getNetworkCacheScope());
     }
@@ -2648,6 +2686,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setFixVoltageTargets(extension.isFixVoltageTargets())
                 .setAcDcNetwork(extension.isAcDcNetwork())
                 .setAllowNonLinearShuntZeroSection(extension.isAllowNonLinearShuntZeroSection())
+                .setIncrementalControlInteractionScope(extension.getIncrementalControlInteractionScope())
                 .setNetworkVariantPoolSize(extension.getNetworkVariantPoolSize())
                 .setNetworkCacheScope(extension.getNetworkCacheScope());
     }

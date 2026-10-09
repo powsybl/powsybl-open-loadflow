@@ -527,6 +527,37 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
     }
 
     /**
+     * Same network as {@link #createWithTwoT2wtTwoLines()}, but with PS1 and PS2 in series both controlling their
+     * active power to the same target, with 1° phase shift steps from -10° to 10° (tap 10 is 0°).
+     */
+    public static Network createWithTwoT2wtInSeriesActivePowerControl(double targetP) {
+        Network network = createWithTwoT2wtTwoLines();
+        for (String id : new String[] {"PS1", "PS2"}) {
+            TwoWindingsTransformer ps = network.getTwoWindingsTransformer(id);
+            ps.getPhaseTapChanger().remove();
+            PhaseTapChangerAdder adder = ps.newPhaseTapChanger()
+                    .setTapPosition(10)
+                    .setRegulationTerminal(ps.getTerminal1())
+                    .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                    .setRegulationValue(targetP)
+                    .setTargetDeadband(4)
+                    .setRegulating(true);
+            for (int alpha = -10; alpha <= 10; alpha++) {
+                adder.beginStep()
+                        .setAlpha(alpha)
+                        .setRho(1.0)
+                        .setR(0.0)
+                        .setX(0.0)
+                        .setG(0.0)
+                        .setB(0.0)
+                        .endStep();
+            }
+            adder.add();
+        }
+        return network;
+    }
+
+    /**
      * A very small network to test connectivity break and phase tap modification by remedial actions.
      * <pre>
      *     G1         LD2

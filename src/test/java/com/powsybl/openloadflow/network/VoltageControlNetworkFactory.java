@@ -1623,4 +1623,105 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
 
         return network;
     }
+
+    /**
+     * Two parallel 400/225 kV transformers, each controlling the voltage of its own 225 kV bus, the two 225 kV buses
+     * being nearby (tied by a short line), with 1% ratio steps from 0.9 to 1.1 (tap 10 is 1.0).
+     * <pre>
+     *            G1
+     *            |
+     *     -------B1------- 400 kV
+     *     |              |
+     *    T1             T2
+     *     |      L34     |
+     *     B3 ---------- B4 225 kV
+     *     |              |
+     *    LD3            LD4
+     * </pre>
+     */
+    public static Network createWithTwoParallelTransformersControllingNearbyBuses(double targetV, double targetDeadband) {
+        Network network = Network.create("two-parallel-transformers-nearby-buses", "test");
+        Substation s = network.newSubstation()
+                .setId("S")
+                .add();
+        VoltageLevel vl1 = s.newVoltageLevel()
+                .setId("VL1")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl1.getBusBreakerView().newBus()
+                .setId("B1")
+                .add();
+        vl1.newGenerator()
+                .setId("G1")
+                .setBus("B1")
+                .setConnectableBus("B1")
+                .setTargetP(600)
+                .setMinP(0)
+                .setMaxP(1000)
+                .setLocalTargetV(400)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
+                .add();
+        VoltageLevel vl2 = s.newVoltageLevel()
+                .setId("VL2")
+                .setNominalV(225)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        for (String busId : new String[] {"B3", "B4"}) {
+            vl2.getBusBreakerView().newBus()
+                    .setId(busId)
+                    .add();
+            vl2.newLoad()
+                    .setId("LD" + busId.substring(1))
+                    .setBus(busId)
+                    .setConnectableBus(busId)
+                    .setP0(300)
+                    .setQ0(150)
+                    .add();
+        }
+        network.newLine()
+                .setId("L34")
+                .setBus1("B3")
+                .setBus2("B4")
+                .setR(0.1)
+                .setX(1)
+                .add();
+        for (String[] t : new String[][] {{"T1", "B3"}, {"T2", "B4"}}) {
+            TwoWindingsTransformer twt = s.newTwoWindingsTransformer()
+                    .setId(t[0])
+                    .setBus1("B1")
+                    .setConnectableBus1("B1")
+                    .setBus2(t[1])
+                    .setConnectableBus2(t[1])
+                    .setRatedU1(400)
+                    .setRatedU2(225)
+                    .setR(0.5)
+                    .setX(6)
+                    .add();
+            RatioTapChangerAdder adder = twt.newRatioTapChanger()
+                    .setTapPosition(10)
+                    .setLoadTapChangingCapabilities(true)
+                    .newVoltageRegulation()
+                        .withMode(RegulationMode.VOLTAGE)
+                        .withTargetValue(targetV)
+                        .withTargetDeadband(targetDeadband)
+                        .withTerminal(twt.getTerminal2())
+                        .withRegulating(true)
+                        .add();
+            for (int i = 0; i <= 20; i++) {
+                adder.beginStep()
+                        .setRho(0.9 + i * 0.01)
+                        .setR(0)
+                        .setX(0)
+                        .setG(0)
+                        .setB(0)
+                        .endStep();
+            }
+            adder.add();
+        }
+        return network;
+    }
 }

@@ -719,7 +719,8 @@ class AcLoadFlowShuntTest {
         Bus b5 = network.getBusBreakerView().getBus("b5");
         parameters.setShuntCompensatorVoltageControlOn(true);
         parametersExt
-                .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+                .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL)
+                .setIncrementalControlInteractionScope(OpenLoadFlowParameters.IncrementalControlInteractionScope.ALL_CONTROLLED_ELEMENTS);
 
         // no shunt on voltage control
         s4.setVoltageRegulatorOn(false);
@@ -749,10 +750,10 @@ class AcLoadFlowShuntTest {
         result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(),
                 LoadFlowRunParameters.getDefault().setParameters(parameters).setReportNode(reportNode));
         assertTrue(result.isFullyConverged());
-        assertEquals(8, s4.getSolvedSectionCount()); // moved
-        assertVoltageEquals(409.45348, b4); // at target within deadband (410 kV +/- 2 kV)
-        assertEquals(8, s5.getSolvedSectionCount()); // moved
-        assertVoltageEquals(409.45348, b5); // at target within deadband (410 kV +/- 2 kV)
+        assertEquals(9, s4.getSolvedSectionCount()); // moved
+        assertVoltageEquals(409.660230, b4); // at target within deadband (410 kV +/- 2 kV)
+        assertEquals(7, s5.getSolvedSectionCount()); // moved
+        assertVoltageEquals(409.249130, b5); // at target within deadband (410 kV +/- 2 kV)
 
         LoadFlowAssert.assertTxtReportEquals("""
                 + Test Report
@@ -778,11 +779,7 @@ class AcLoadFlowShuntTest {
                             + Outer loop iteration 3
                                + 2 shunts changed section
                                   Shunt s4 changed section from 6 to 9
-                                  Shunt s5 changed section from 6 to 9
-                            + Outer loop iteration 4
-                               + 2 shunts changed section
-                                  Shunt s4 changed section from 9 to 8
-                                  Shunt s5 changed section from 9 to 8
+                                  Shunt s5 changed section from 6 to 7
                          Outer loop DistributedSlack
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
@@ -798,13 +795,12 @@ class AcLoadFlowShuntTest {
         result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(),
                 LoadFlowRunParameters.getDefault().setParameters(parameters).setReportNode(reportNode));
         assertTrue(result.isFullyConverged());
-        // Shunts are always overshooting and reversing direction,
-        // because each shunt cannot see the contribution of the other shunt nearby.
-        // until they stop due to hitting MAX_DIRECTION_CHANGE (3).
-        assertEquals(4, s4.getSolvedSectionCount()); // moved
-        assertVoltageEquals(398.46277, b4); // not at target within deadband (410 kV +/- 2 kV)
-        assertEquals(4, s5.getSolvedSectionCount()); // moved
-        assertVoltageEquals(398.46277, b5); // not at target within deadband (410 kV +/- 2 kV)
+        // Shunts moves account for the contribution of the other shunt nearby, so that they do not overshoot:
+        // first shunt alone brings both buses to target.
+        assertEquals(15, s4.getSolvedSectionCount()); // moved
+        assertEquals(1, s5.getSolvedSectionCount()); // moved
+        assertVoltageEquals(410.961783, b4); // at target within deadband (410 kV +/- 2 kV)
+        assertVoltageEquals(408.083612, b5); // at target within deadband (410 kV +/- 2 kV)
 
         LoadFlowAssert.assertTxtReportEquals("""
                 + Test Report
@@ -822,23 +818,35 @@ class AcLoadFlowShuntTest {
                             + Outer loop iteration 1
                                + 2 shunts changed section
                                   Shunt s4 changed section from 0 to 16
-                                  Shunt s5 changed section from 0 to 16
+                                  Shunt s5 changed section from 0 to 1
                             + Outer loop iteration 2
-                               + 2 shunts changed section
-                                  Shunt s4 changed section from 16 to 2
-                                  Shunt s5 changed section from 16 to 2
-                            + Outer loop iteration 3
-                               + 2 shunts changed section
-                                  Shunt s4 changed section from 2 to 14
-                                  Shunt s5 changed section from 2 to 14
-                            + Outer loop iteration 4
-                               + 2 shunts changed section
-                                  Shunt s4 changed section from 14 to 4
-                                  Shunt s5 changed section from 14 to 4
+                               + 1 shunts changed section
+                                  Shunt s4 changed section from 16 to 15
                          Outer loop DistributedSlack
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """, reportNode);
+    }
+
+    @Test
+    void testMaxSectionShiftSameControlledElementInteractionScope() {
+        network = ShuntNetworkFactory.createTwinShuntCompensators();
+        ShuntCompensator s4 = network.getShuntCompensator("s4");
+        ShuntCompensator s5 = network.getShuntCompensator("s5");
+        Bus b4 = network.getBusBreakerView().getBus("b4");
+        Bus b5 = network.getBusBreakerView().getBus("b5");
+        parameters.setShuntCompensatorVoltageControlOn(true);
+        parametersExt.setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL)
+                .setIncrementalControlInteractionScope(OpenLoadFlowParameters.IncrementalControlInteractionScope.SAME_CONTROLLED_ELEMENT);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        // each shunt does not account for the contribution of the other shunt nearby: both overshoot to 9 sections
+        // before coming back to 8 sections
+        assertEquals(8, s4.getSolvedSectionCount());
+        assertVoltageEquals(409.453248, b4); // at target within deadband (410 kV +/- 2 kV)
+        assertEquals(8, s5.getSolvedSectionCount());
+        assertVoltageEquals(409.453248, b5); // at target within deadband (410 kV +/- 2 kV)
     }
 
     @Test
