@@ -98,4 +98,23 @@ class AcLoadFlowBatteryTest {
         assertActivePowerEquals(390.22, battery2.getTerminal());
         assertReactivePowerEquals(122.711, battery2.getTerminal());
     }
+
+    @Test
+    void testNotRegulatingLocalReactivePowerRegulation() {
+        battery1.setLocalTargetQ(10)
+                .newVoltageRegulation() // local reactive injection target defined by VoltageRegulation
+                    .withRegulating(true)
+                    .withMode(RegulationMode.REACTIVE_POWER)
+                    .withTerminal(battery1.getTerminal())
+                    .withTargetValue(100)
+                    .build();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(100, battery1.getTerminal());
+
+        battery1.getVoltageRegulation().setRegulating(false); // local reactive injection target defined by localTargetQ
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(-10, battery1.getTerminal());
+    }
 }
