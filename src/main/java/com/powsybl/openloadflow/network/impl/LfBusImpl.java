@@ -76,6 +76,20 @@ public class LfBusImpl extends AbstractLfBus {
 
     }
 
+    private LfBusImpl(LfBusImpl other, LfNetwork network) {
+        super(other, network);
+        this.busRef = other.busRef;
+        this.nominalV = other.nominalV;
+        this.lowVoltageLimit = other.lowVoltageLimit;
+        this.highVoltageLimit = other.highVoltageLimit;
+        this.participating = other.participating;
+        this.breakers = other.breakers;
+        this.country = other.country;
+        this.bbsIds = other.bbsIds;
+        this.fictitiousInjectionTargetP = other.fictitiousInjectionTargetP;
+        this.fictitiousInjectionTargetQ = other.fictitiousInjectionTargetQ;
+    }
+
     private static void createAsym(Bus bus, LfBusImpl lfBus) {
         double totalDeltaPa = 0;
         double totalDeltaQa = 0;
@@ -95,6 +109,11 @@ public class LfBusImpl extends AbstractLfBus {
             }
         }
         lfBus.setAsym(new LfAsymBus(totalDeltaPa, totalDeltaQa, totalDeltaPb, totalDeltaQb, totalDeltaPc, totalDeltaQc));
+    }
+
+    @Override
+    public LfBus copy(LfNetwork copyNetwork) {
+        return new LfBusImpl(this, copyNetwork);
     }
 
     public static LfBusImpl create(Bus bus, LfNetwork network, LfNetworkParameters parameters, boolean participating) {

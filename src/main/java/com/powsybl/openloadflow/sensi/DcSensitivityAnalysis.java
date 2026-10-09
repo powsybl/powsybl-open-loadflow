@@ -10,8 +10,6 @@ package com.powsybl.openloadflow.sensi;
 import com.google.common.base.Stopwatch;
 import com.powsybl.action.Action;
 import com.powsybl.action.BoundaryLineAction;
-import com.powsybl.action.SwitchAction;
-import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
@@ -586,29 +584,27 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         var dcLoadFlowParameters = createDcLoadFlowParameters(lfNetworkParameters, matrixFactory, lfParameters, lfParametersExt);
 
         if (lfParametersExt.isNetworkCacheEnabled()) {
-            Set<String> topoActionIds = actions.stream()
-                    .filter(action -> action instanceof SwitchAction || action instanceof TerminalsConnectionAction)
-                    .map(Action::getId)
-                    .collect(Collectors.toSet());
-            var entry = NetworkCache.DC_SENSI_INSTANCE.get(network, new NetworkCache.DcSensiInput(lfParameters, topoActionIds));
-            List<String> permanentContingencyBranchIds = Collections.emptyList();
+            var entry = NetworkCache.DC_SENSI_INSTANCE.get(network, new NetworkCache.DcSensiInput(lfParameters, topoConfig.toKeys()));
             if (entry.getValues() == null) {
                 // create networks including all necessary switches
                 try (LfNetworkList lfNetworkList = Networks.loadWithReconnectableElements(network, topoConfig, lfNetworkParameters,
-                        new LfNetworkList.PoolVariantAcquirer(network, lfParametersExt.getNetworkVariantPoolSize()), LfNetworkList.WorkingVariantReverter::new, sensiReportNode)) {
+                        new LfNetworkList.PoolVariantAcquirer(network, lfParametersExt.getNetworkVariantPoolSize()), LfNetworkList.WorkingVariantReverter::new,
+                        sensiReportNode, true)) {
                     if (lfNetworkList.getList().isEmpty()) {
                         throw new PowsyblException("Empty network");
                     }
+                    // branches that reconnect small components are kept enabled and modeled as permanent contingencies
+                    // in Woodbury, exactly as in the non cached path
+                    List<String> permanentContingencyBranchIds = lfNetworkList.getPermanentContingencyBranchIds();
                     var values = lfNetworkList.getList()
                             .stream()
-                            .map(n -> new NetworkCache.DcSensiValue(new DcLoadFlowContext(n, dcLoadFlowParameters)))
+                            .map(n -> new NetworkCache.DcSensiValue(new DcLoadFlowContext(n, dcLoadFlowParameters), permanentContingencyBranchIds))
                             .toList();
                     entry.setValues(values);
                     LfNetworkList.VariantCleaner variantCleaner = lfNetworkList.getVariantCleaner();
                     if (variantCleaner != null) {
                         entry.setVariantCleaner(new LfNetworkList.PoolVariantReleaser(network, entry.getWorkingVariantId(), variantCleaner.getTmpVariantId()));
                     }
-                    permanentContingencyBranchIds = lfNetworkList.getPermanentContingencyBranchIds();
                 }
             }
             NetworkCache.DcSensiValue value = entry.getValues().getFirst();
@@ -616,7 +612,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             DcLoadFlowContext loadFlowContext = value.getContext();
             analyseNetwork(network, contingencies, variableSets, factorReader, resultWriter, sensiReportNode, lfNetwork,
                     propagatedContingencies, actions, operatorStrategies, breakers, loadFlowContext, lfParameters, lfParametersExt,
-                    permanentContingencyBranchIds);
+                    value.getPermanentContingencyBranchIds());
         } else {
             // create networks including all necessary switches
             // branches that reconnect small components are kept enabled and modeled as permanent contingencies in Woodbury

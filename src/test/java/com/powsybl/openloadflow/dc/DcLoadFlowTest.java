@@ -491,7 +491,10 @@ class DcLoadFlowTest {
                         Network balance: active generation=140 MW, active load=140 MW, reactive generation=0 MVar, reactive load=55 MVar
                         Angle reference bus: VL1_0
                         Slack bus: VL1_0
-                     Outer loop IncrementalPhaseControl
+                     + Outer loop IncrementalPhaseControl
+                        + Outer loop iteration 1
+                           + 1 active power control PST(s) changed taps
+                              Transformer PS1 changed tap position from 1 to 2
                      + Outer loop AreaInterchangeControl
                         + Outer loop iteration 2
                            Area A1 interchange mismatch (19.996807 MW) distributed in 1 distribution iteration(s)
@@ -574,6 +577,9 @@ class DcLoadFlowTest {
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
                          + Outer loop IncrementalPhaseControl
+                            + Outer loop iteration 1
+                               + 1 active power control PST(s) changed taps
+                                  Transformer PS1 changed tap position from 1 to 2
                             Outer loop unsuccessful with status: UNSTABLE
                          Maximum number of outerloop iterations reached: 1
                          DC load flow completed (solverSuccess=true, outerloopStatus=UNSTABLE)
