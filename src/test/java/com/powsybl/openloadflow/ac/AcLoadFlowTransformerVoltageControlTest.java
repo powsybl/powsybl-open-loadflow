@@ -474,7 +474,7 @@ class AcLoadFlowTransformerVoltageControlTest {
     @Test
     void voltageControlParallelT2wtSameControlledBusMaxTapShiftTest() throws IOException {
         // T1 and T2 both control the voltage of B3: initially 220.09 kV, target 235 kV (+/- 1 kV)
-        Network network = VoltageControlNetworkFactory.createWithTwoParallelTransformersControllingNearbyBuses(235, 2);
+        network = VoltageControlNetworkFactory.createWithTwoParallelTransformersControllingNearbyBuses(235, 2);
         TwoWindingsTransformer t1 = network.getTwoWindingsTransformer("T1");
         TwoWindingsTransformer t2 = network.getTwoWindingsTransformer("T2");
         t2.getRatioTapChanger().getVoltageRegulation().setTerminal(t1.getTerminal2(), 235);
