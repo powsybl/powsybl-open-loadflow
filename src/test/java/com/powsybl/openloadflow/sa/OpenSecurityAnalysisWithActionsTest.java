@@ -1938,6 +1938,21 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @Test
+    void testWrongBoundaryLineAction() {
+        Network network = createBoundaryLineNetwork(false, false, 100);
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        List<Contingency> contingencies = List.of(new Contingency("tr2", new TwoWindingsTransformerContingency("tr2")));
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        List<Action> actions = List.of(new BoundaryLineActionBuilder().withId("action").withBoundaryLineId("DUMMY").withActivePowerValue(10).withRelativeValue(true).build());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("tr2"), new TrueCondition(), List.of("action")));
+
+        CompletionException exception = assertThrows(CompletionException.class,
+                () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP));
+        assertEquals("Boundary line 'DUMMY' not found", exception.getCause().getMessage());
+    }
+
+    @Test
     void testVSCLossAcEmulation() {
         // contingency leads to the lost of one converter station.
         // contingency leads to zero active power transmission in the hvdc line.
