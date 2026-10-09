@@ -17,7 +17,7 @@ import java.util.*;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class HolmStandalone<V, E> implements SpanningForestGraphConnectivity<V, E> {
+public class ETTreeGraphConnectivity<V, E> implements SpanningForestGraphConnectivity<V, E> {
 
     private final Map<V, AVLTree.TreeNode<Occurrence<V, E>>> activeOccurrences = new HashMap<>();
     private final Map<E, Edge<V, E>> edges = new HashMap<>();

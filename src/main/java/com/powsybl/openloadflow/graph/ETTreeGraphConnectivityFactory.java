@@ -10,9 +10,9 @@ package com.powsybl.openloadflow.graph;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class HolmStandaloneFactory<V, E> implements GraphConnectivityFactory<V, E> {
+public class ETTreeGraphConnectivityFactory<V, E> implements GraphConnectivityFactory<V, E> {
     @Override
     public GraphConnectivity<V, E> create() {
-        return new HolmStandalone<>();
+        return new ETTreeGraphConnectivity<>();
     }
 }

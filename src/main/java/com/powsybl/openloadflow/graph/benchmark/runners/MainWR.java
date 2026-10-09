@@ -7,6 +7,10 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.runners;
 
+import com.powsybl.openloadflow.graph.ETTreeGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.HolmEtAlGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.benchmark.workload.Workload;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 
@@ -28,7 +32,7 @@ public final class MainWR {
                 .setWarmup(10)
                 .setMeasurement(10);
         perf.output()
-                .setOutputFormat(null) // "results/workload_multiedges/${workload}/${class}.${ext}")
+                .setOutputFormat("results/workload_final/${workload}/${class}.${ext}")
                 .setOverwrite(true); //.setReplacement("results/workload/${workload}/${class}_list_of_root.${ext}");
         return perf;
     }
@@ -46,7 +50,7 @@ public final class MainWR {
 
     public static void main(String[] args) throws IOException {
         WorkloadRunner wr = new WorkloadRunner();
-        wr.setRunParameters(validator());
+        wr.setRunParameters(performance());
 
         if (args.length >= 1) {
             switch (args[0]) {
@@ -68,17 +72,15 @@ public final class MainWR {
         }
 
         // wr.addConnectivityFactory(new OldNaiveGraphConnectivity.Factory<>((Integer i) -> i));
-        // wr.addConnectivityFactory(new NaiveGraphConnectivityFactory<>((Integer i) -> i));
+        wr.addConnectivityFactory(new NaiveGraphConnectivityFactory<>((Integer i) -> i));
         // wr.addConnectivityFactory(new NeighborNaiveGraphConnectivityFactory<>((Integer i) -> i));
         // wr.addConnectivityFactory(new AdjacencyListNaiveGraphConnectivityFactory<>((Integer i) -> i));
         // wr.addConnectivityFactory(new MinimumSpanningTreeGraphConnectivityFactory<>());
-        // wr.addConnectivityFactory(new EvenShiloachGraphDecrementalConnectivityFactory<>());
-        // wr.addConnectivityFactory(new HolmEtAlGraphConnectivityFactory<>());
+        wr.addConnectivityFactory(new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        wr.addConnectivityFactory(new HolmEtAlGraphConnectivityFactory<>());
         // wr.addConnectivityFactory(new HolmEtAlWithoutLevelGraphConnectivityFactory<>());
         // wr.addConnectivityFactory(new NewHolmGraphConnectivityFactory<>());
-        //wr.addConnectivityFactory(new HolmStandaloneFactory<>());
-        // wr.addConnectivityFactory(new DTreeSetRootGraphConnectivityFactory<>());
-        // wr.addConnectivityFactory(new DTreeNoOptRerootGraphConnectivityFactory<>());
+        wr.addConnectivityFactory(new ETTreeGraphConnectivityFactory<>());
         wr.addConnectivityFactory(new DTreeGraphConnectivityFactory<>());
         // wr.addConnectivityFactory(new DTreeStandaloneFactory<>());
         // wr.addConnectivityFactory(new Delta2DTreeStandalone.Factory<>());

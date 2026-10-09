@@ -71,19 +71,19 @@ public class GenerateWorkload {
         List<SecurityAnalysisRunner.Input> inputs = new ArrayList<>();
         inputs.add(new SARInputBuilder()
                 .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
-                .setLineToDisconnect(0).setContingencyCount(100).setLinePerContingency(1).setActionPerOp(0)
+                .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(0)
                 .setMode(DC).setThreadCount(1).createInput());
         inputs.add(new SARInputBuilder()
                 .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
-                .setLineToDisconnect(0).setContingencyCount(100).setLinePerContingency(1).setActionPerOp(1).
+                .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(1).
                 setMode(DC).setThreadCount(1).createInput());
         inputs.add(new SARInputBuilder()
                 .setNetwork("/home/carrezval/networks/case_SyntheticUSA.mat").setName("usa")
-                .setLineToDisconnect(5000).setContingencyCount(100).setLinePerContingency(10).setActionPerOp(0)
+                .setLineToDisconnect(5000).setContingencyCount(10000).setLinePerContingency(10).setActionPerOp(0)
                 .setMode(DC).setThreadCount(8).createInput());
         inputs.add(new SARInputBuilder()
                 .setNetwork("/home/carrezval/networks/case_SyntheticUSA.mat").setName("usa")
-                .setLineToDisconnect(5000).setContingencyCount(100).setLinePerContingency(10).setActionPerOp(10)
+                .setLineToDisconnect(5000).setContingencyCount(10000).setLinePerContingency(10).setActionPerOp(10)
                 .setMode(DC).setThreadCount(8).createInput());
 
         for (SecurityAnalysisRunner.Input input : inputs) {

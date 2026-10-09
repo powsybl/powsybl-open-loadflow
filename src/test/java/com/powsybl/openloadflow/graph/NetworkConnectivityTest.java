@@ -46,7 +46,7 @@ class NetworkConnectivityTest {
         testConnectivity(new EvenShiloachGraphDecrementalConnectivity<>());
         testConnectivity(new HolmEtAlGraphConnectivity<>());
         testConnectivity(new NewHolmGraphConnectivity<>());
-        testConnectivity(new HolmStandalone<>());
+        testConnectivity(new ETTreeGraphConnectivity<>());
         testConnectivity(new DTreeGraphConnectivity<>());
         testConnectivity(new DTreeStandalone<>());
         testConnectivity(new Delta2DTreeStandalone<>());
@@ -66,7 +66,7 @@ class NetworkConnectivityTest {
         testReducedMainComponent(new EvenShiloachGraphDecrementalConnectivity<>());
         testReducedMainComponent(new HolmEtAlGraphConnectivity<>());
         testReducedMainComponent(new NewHolmGraphConnectivity<>());
-        testReducedMainComponent(new HolmStandalone<>());
+        testReducedMainComponent(new ETTreeGraphConnectivity<>());
         testReducedMainComponent(new DTreeGraphConnectivity<>());
         testReducedMainComponent(new Delta2DTreeStandalone<>());
         testReducedMainComponent(new Delta2ReplaceWithBestDTreeStandalone<>());
@@ -85,7 +85,7 @@ class NetworkConnectivityTest {
         testReaddEdge(new EvenShiloachGraphDecrementalConnectivity<>(), false);
         testReaddEdge(new HolmEtAlGraphConnectivity<>(), true);
         testReaddEdge(new NewHolmGraphConnectivity<>(), true);
-        testReaddEdge(new HolmStandalone<>(), true);
+        testReaddEdge(new ETTreeGraphConnectivity<>(), true);
         testReaddEdge(new DTreeGraphConnectivity<>(), true);
         testReaddEdge(new DTreeStandalone<>(), true);
         testReaddEdge(new Delta2DTreeStandalone<>(), true);
@@ -127,7 +127,7 @@ class NetworkConnectivityTest {
         testConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
         testConnectedComponents(new HolmEtAlGraphConnectivity<>());
         testConnectedComponents(new NewHolmGraphConnectivity<>());
-        testConnectedComponents(new HolmStandalone<>());
+        testConnectedComponents(new ETTreeGraphConnectivity<>());
         testConnectedComponents(new DTreeGraphConnectivity<>());
         testConnectedComponents(new DTreeStandalone<>());
         testConnectedComponents(new Delta2DTreeStandalone<>());

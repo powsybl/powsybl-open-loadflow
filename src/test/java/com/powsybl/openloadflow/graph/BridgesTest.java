@@ -77,7 +77,7 @@ class BridgesTest {
                 Arguments.of(new EvenShiloachGraphDecrementalConnectivity<>(), "Even-Shiloach"),
                 Arguments.of(new HolmEtAlGraphConnectivity<>(), "Holm-et-al"),
                 Arguments.of(new NewHolmGraphConnectivity<>(), "Holm-et-al-2"),
-                Arguments.of(new HolmStandalone<>(), "Holm-et-al-standalone"),
+                Arguments.of(new ETTreeGraphConnectivity<>(), "Holm-et-al-standalone"),
                 Arguments.of(new DTreeGraphConnectivity<>(), "DTree"),
                 Arguments.of(new Delta2DTreeStandalone<>(), "Delta2DTree"),
                 Arguments.of(new Delta2ReplaceWithBestDTreeStandalone<>(), "Delta2ReplaceWithBestDTree"),
