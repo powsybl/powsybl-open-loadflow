@@ -121,8 +121,7 @@ class DcComponentValidatorTest {
                 .setBus1("b")
                 .setDcNode1("dnA")
                 .setDcNode2("dnB")
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         List<AcDcConverter<?>> converters = List.of(network.getVoltageSourceConverter("conv"));

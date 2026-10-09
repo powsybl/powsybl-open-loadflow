@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControl;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.extensions.HvdcOperatorActivePowerRangeAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -86,10 +87,14 @@ class AcLoadFlowVscTest {
     @Test
     void testRegulatingTerminal() {
         Network network = HvdcNetworkFactory.createVsc();
-        network.getGenerator("g1").setTargetQ(50).setVoltageRegulatorOn(false);
+        network.getGenerator("g1").setLocalTargetQ(50).getVoltageRegulation().setRegulating(false);
         VscConverterStation vscConverterStation = network.getVscConverterStation("cs2");
-        vscConverterStation.setRegulatingTerminal(network.getGenerator("g1").getTerminal()).setVoltageSetpoint(390);
-        vscConverterStation.setVoltageRegulatorOn(true); //FIXME
+        vscConverterStation.newVoltageRegulation()
+                .withRegulating(true)
+                .withTerminal(network.getGenerator("g1").getTerminal())
+                .withMode(RegulationMode.VOLTAGE)
+                .withTargetValue(390)
+                .build();
 
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters().setUseReactiveLimits(false)
@@ -106,10 +111,14 @@ class AcLoadFlowVscTest {
     @Test
     void testRegulatingTerminal2() {
         Network network = HvdcNetworkFactory.createVsc();
-        network.getGenerator("g1").setTargetV(390);
+        network.getGenerator("g1").setLocalTargetV(390);
         VscConverterStation vscConverterStation = network.getVscConverterStation("cs2");
-        vscConverterStation.setRegulatingTerminal(network.getVscConverterStation("cs3").getTerminal()).setVoltageSetpoint(400); // will be discarded.
-        vscConverterStation.setVoltageRegulatorOn(true); //FIXME
+        vscConverterStation.newVoltageRegulation()
+                .withTerminal(network.getVscConverterStation("cs3").getTerminal())
+                .withTargetValue(400) // will be discarded.
+                .withRegulating(true)
+                .withMode(RegulationMode.VOLTAGE)
+                .build();
 
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters()
@@ -183,8 +192,8 @@ class AcLoadFlowVscTest {
         assertActivePowerEquals(0.1166, cs4.getTerminal());
         assertReactivePowerEquals(-3.600, cs4.getTerminal());
 
-        network.getVscConverterStation("cs3").setVoltageRegulatorOn(false);
-        network.getVscConverterStation("cs4").setVoltageRegulatorOn(false);
+        network.getVscConverterStation("cs3").getVoltageRegulation().setRegulating(false);
+        network.getVscConverterStation("cs4").getVoltageRegulation().setRegulating(false);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
 
@@ -432,8 +441,8 @@ class AcLoadFlowVscTest {
         // Set specific voltage setPoints to the stations
         double vcs2 = 397;
         double vcs3 = 401;
-        network.getVscConverterStation("cs2").setVoltageSetpoint(vcs2);
-        network.getVscConverterStation("cs3").setVoltageSetpoint(vcs3);
+        network.getVscConverterStation("cs2").setLocalTargetV(vcs2);
+        network.getVscConverterStation("cs3").setLocalTargetV(vcs3);
 
         // shut down active power flow in HVDC
         network.getHvdcLine("hvdc23").setActivePowerSetpoint(0);
@@ -470,8 +479,8 @@ class AcLoadFlowVscTest {
         // Set specific voltage setPoints to the stations
         double vcs2 = 397;
         double vcs3 = 401;
-        network.getVscConverterStation("cs2").setVoltageSetpoint(vcs2);
-        network.getVscConverterStation("cs3").setVoltageSetpoint(vcs3);
+        network.getVscConverterStation("cs2").setLocalTargetV(vcs2);
+        network.getVscConverterStation("cs3").setLocalTargetV(vcs3);
 
         if (withFictiveLoad) {
             // Add a fictive load to the bus that will be disconnected
@@ -700,9 +709,12 @@ class AcLoadFlowVscTest {
                 .setId("cs2Bis")
                 .setConnectableBus("b2")
                 .setBus("b2")
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(385)
-                .setReactivePowerSetpoint(100)
+                .setLocalTargetV(385)
+                .setLocalTargetQ(100)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
                 .setLossFactor(1.1f)
                 .add();
         network.getVoltageLevel("vl3")
@@ -710,9 +722,12 @@ class AcLoadFlowVscTest {
                 .setId("cs3Bis")
                 .setConnectableBus("b3")
                 .setBus("b3")
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(383)
-                .setReactivePowerSetpoint(100)
+                .setLocalTargetV(383)
+                .setLocalTargetQ(100)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
                 .setLossFactor(0.2f)
                 .add();
 

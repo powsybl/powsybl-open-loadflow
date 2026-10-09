@@ -39,11 +39,11 @@ public class MetrixTutorialSixBusesSecurityAnalysisFactory extends AbstractLoadF
         network.getGenerator("SO_G2")
                 .setTargetP(120.0);
         network.getGenerator("N_G")
-                .setVoltageRegulatorOn(false)
-                .setTargetP(600.0);
+                .setTargetP(600.0)
+                .removeVoltageRegulation();
         network.getGenerator("SE_G")
-                .setVoltageRegulatorOn(false)
-                .setTargetP(50.0);
+                .setTargetP(50.0)
+                .removeVoltageRegulation();
         network.getLoad("SE_L1")
                 .setP0(300.0);
 

@@ -104,12 +104,14 @@ class AcLoadFlowReportTest {
         Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         var t2wt = network.getTwoWindingsTransformer("T2wT");
         t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal1())
-                .setRegulationMode(RegulationMode.REACTIVE_POWER)
-                .setRegulationValue(-0.55);
+                .newVoltageRegulation()
+                    .withTargetDeadband(0)
+                    .withRegulating(true)
+                    .withTerminal(t2wt.getTerminal1())
+                    .withMode(RegulationMode.REACTIVE_POWER)
+                    .withTargetValue(-0.55)
+                    .build();
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
@@ -136,7 +138,10 @@ class AcLoadFlowReportTest {
         network.getBusBreakerView().getBus("b4").getConnectedTerminalStream().forEach(Terminal::disconnect);
 
         // CC1 SC1 has generator but no voltage control. OK in DC, but KO in AC.
-        network.getGenerator("g6").setTargetQ(0.0).setVoltageRegulatorOn(false);
+        network.getGenerator("g6").setLocalTargetQ(0.0)
+                .newVoltageRegulation()
+                    .withRegulating(false)
+                    .build();
         // CC2 SC2 has no generator connected. Ignored in for DC and AC.
         network.getGenerator("g10").disconnect();
 
@@ -193,7 +198,7 @@ class AcLoadFlowReportTest {
 
         Network network = IeeeCdfNetworkFactory.create14();
         network.getGenerator("B1-G").setMaxP(200); // targetP > maxP, active power control and voltage control will be discarded
-        network.getGenerator("B2-G").setTargetV(10).setMaxP(4000); // not plausible targetV, voltage control will be discarded
+        network.getGenerator("B2-G").setLocalTargetV(10).setMaxP(4000); // not plausible targetV, voltage control will be discarded
         network.getGenerator("B3-G").setTargetP(10).setMaxP(10).setMinP(10); // minP ~= maxP, active power control will be discarded
         network.getGenerator("B6-G").setTargetP(10).setMinP(20); // targetP < minP active power control and voltage control will be discarded
         network.getGenerator("B8-G").newMinMaxReactiveLimits().setMinQ(10).setMaxQ(10).add(); // reactive range is too small, voltage control will be discarded
@@ -264,7 +269,7 @@ class AcLoadFlowReportTest {
     @Test
     void generatorVoltageControlDiscarded() throws IOException {
         Network network = FourBusNetworkFactory.create();
-        network.getGenerator("g2").setTargetV(10); // not plausible targetV, will be discarded and reported
+        network.getGenerator("g2").setLocalTargetV(10); // not plausible targetV, will be discarded and reported
 
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
@@ -289,12 +294,14 @@ class AcLoadFlowReportTest {
         Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         var t2wt = network.getTwoWindingsTransformer("T2wT");
         t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal1())
-                .setRegulationMode(RegulationMode.VOLTAGE)
-                .setTargetV(100); // not plausible, will be discarded and reported
+                .newVoltageRegulation()
+                    .withTargetDeadband(0)
+                    .withRegulating(true)
+                    .withTerminal(t2wt.getTerminal1())
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTargetValue(100) // not plausible, will be discarded and reported
+                    .build();
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
@@ -315,7 +322,8 @@ class AcLoadFlowReportTest {
     @Test
     void shuntVoltageControlDiscarded() throws IOException {
         Network network = ShuntNetworkFactory.createWithTwoShuntCompensators();
-        network.getShuntCompensator("SHUNT2").setVoltageRegulatorOn(true).setTargetV(600); // not plausible targetV, will be discarded and reported
+        network.getShuntCompensator("SHUNT2").setLocalTargetV(600) // not plausible targetV, will be discarded and reported
+                    .getVoltageRegulation().setRegulating(true);
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
@@ -336,7 +344,10 @@ class AcLoadFlowReportTest {
     @Test
     void testTransformerControlAlreadyExistsWithDifferentTargetV() throws IOException {
         Network network = VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl();
-        network.getTwoWindingsTransformer("T2wT2").getRatioTapChanger().setTargetV(34.5).setTargetDeadband(3.0);
+        network.getTwoWindingsTransformer("T2wT2").getRatioTapChanger()
+                .getVoltageRegulation()
+                .setTargetValue(34.5)
+                .setTargetDeadband(3.0);
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")

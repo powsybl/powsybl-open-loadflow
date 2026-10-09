@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 public final class NodeBreakerNetworkFactory {
 
@@ -100,10 +101,13 @@ public final class NodeBreakerNetworkFactory {
                 .setNode(4)
                 .setMinP(0.0)
                 .setMaxP(1000.0)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(398)
+                .setLocalTargetV(398)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
                 .setTargetP(603.77)
-                .setTargetQ(301.0)
+                .setLocalTargetQ(301.0)
                 .add();
 
         VoltageLevel vl2 = s.newVoltageLevel()
@@ -326,10 +330,10 @@ public final class NodeBreakerNetworkFactory {
             .setNode(node)
             .setMinP(-4999.99)
             .setMaxP(4999.99)
-            .setVoltageRegulatorOn(true)
-            .setTargetV(v)
+            .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+            .setLocalTargetV(v)
             .setTargetP(p)
-            .setTargetQ(q)
+            .setLocalTargetQ(q)
             .add();
     }
 
