@@ -19,4 +19,6 @@ public interface EquationSystemListener<V extends Enum<V> & Quantity, E extends 
     void onEquationArrayChange(EquationArray<V, E> equationArray, int elementNum, EquationEventType eventType);
 
     void onEquationTermArrayChange(EquationTermArray<V, E> equationTermArray, int termNum, EquationTermEventType eventType);
+
+    void onEquationTermConstantsChange();
 }

@@ -37,7 +37,7 @@ public class DcLoadFlowContext extends AbstractLoadFlowContext<DcVariableType, D
     @Override
     public JacobianMatrix<DcVariableType, DcEquationType> getJacobianMatrix() {
         if (jacobianMatrix == null) {
-            jacobianMatrix = new JacobianMatrix<>(getEquationSystem(), parameters.getMatrixFactory());
+            jacobianMatrix = new JacobianMatrix<>(getEquationSystem(), parameters.getMatrixFactory(), false);
         }
         return jacobianMatrix;
     }
