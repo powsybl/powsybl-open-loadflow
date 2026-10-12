@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.graph.benchmark;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -26,6 +27,16 @@ public class Aggregator {
         return sum;
     }
 
+    public static Aggregator fromJson(JsonNode node) {
+        Aggregator aggregator = new Aggregator();
+        aggregator.sum = node.get("sum").asLong();
+        aggregator.count = node.get("count").asInt();
+        aggregator.m2 = node.get("m2").asDouble();
+        aggregator.min = node.get("min").asLong();
+        aggregator.max = node.get("max").asLong();
+        return aggregator;
+    }
+
     private long sum = 0;
     private int count = 0;
 
@@ -36,6 +47,14 @@ public class Aggregator {
 
     public Aggregator() {
 
+    }
+
+    public Aggregator(Aggregator aggregator) {
+        this.sum = aggregator.sum;
+        this.count = aggregator.count;
+        this.m2 = aggregator.m2;
+        this.min = aggregator.min;
+        this.max = aggregator.max;
     }
 
     // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Welford's_online_algorithm

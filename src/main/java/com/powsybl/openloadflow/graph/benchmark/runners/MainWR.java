@@ -7,10 +7,7 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.runners;
 
-import com.powsybl.openloadflow.graph.ETTreeGraphConnectivityFactory;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.graph.HolmEtAlGraphConnectivityFactory;
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.*;
 import com.powsybl.openloadflow.graph.benchmark.workload.Workload;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 
@@ -88,7 +85,7 @@ public final class MainWR {
         // wr.addConnectivityFactory(new ReplaceWithBestDTreeStandalone.Factory<>());
         // wr.addConnectivityFactory(IDTreeStandalone::new);
         // wr.addConnectivityFactory(new IndexedDTreeStandalone2ndVerFactory<>((Integer i) -> i, (Integer i) -> i));
-        // wr.addConnectivityFactory(new DnDTreeStandaloneFactory<>());
+        wr.addConnectivityFactory(new DnDTreeStandaloneFactory<>());
         // wr.addConnectivityFactory(new OptDTreeStandaloneFactory<>());
 
         wr.run();

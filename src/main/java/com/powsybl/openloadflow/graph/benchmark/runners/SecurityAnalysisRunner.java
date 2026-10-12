@@ -77,13 +77,13 @@ public class SecurityAnalysisRunner extends AbstractRunner<SecurityAnalysisRunne
 
         AverageStopWatch asw = new AverageStopWatch();
         if (measurement > 0) {
-            RunnerContext measurementContext = new RunnerContext(warmup, input.threadCount, IterationType.MEASURE);
+            RunnerContext measurementContext = new RunnerContext(measurement, input.threadCount, IterationType.MEASURE);
 
             spy.beginIterations(measurementContext);
             for (int i = 0; i < measurement; i++) {
                 spy.beginIteration(measurementContext, i);
                 asw.merge(ssar.run(spy));
-                spy.beginIteration(measurementContext, i);
+                spy.endIteration(measurementContext, i);
             }
             spy.endIterations(measurementContext, asw);
         }
