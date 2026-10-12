@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.ToDoubleFunction;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -420,4 +421,15 @@ public class PiModelArray implements PiModel {
     public Range<Integer> getTapPositionRange() {
         return Range.of(lowTapPosition, lowTapPosition + models.size() - 1);
     }
+
+    @Override
+    public PiModelArray copy() {
+        List<PiModel> modelCopies = models.stream().map(PiModel::copy).collect(Collectors.toList());
+        PiModelArray c = new PiModelArray(modelCopies, lowTapPosition, lowTapPosition + tapPositionIndex);
+        c.a1 = a1;
+        c.r1 = r1;
+        c.continuousR1 = continuousR1;
+        return c;
+    }
+
 }
