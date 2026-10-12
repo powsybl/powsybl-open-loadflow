@@ -60,9 +60,6 @@ class AdmittanceMatrixTest {
     void testWithShunt() {
         Network network = ShuntNetworkFactory.create();
         network.getShuntCompensator("SHUNT").setSectionCount(1);
-        for (var shunt : network.getShuntCompensators()) {
-            System.out.println(shunt.getId() + " " + shunt.getB());
-        }
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
         var ySystem = AdmittanceEquationSystem.create(lfNetwork, new VariableSet<>());
         try (var y = AdmittanceMatrix.create(ySystem, new DenseMatrixFactory())) {

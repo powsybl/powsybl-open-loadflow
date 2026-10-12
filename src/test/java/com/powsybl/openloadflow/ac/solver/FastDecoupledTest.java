@@ -11,7 +11,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -31,14 +31,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
@@ -175,24 +175,26 @@ class FastDecoupledTest {
         double targetQ = 1.0;
 
         // disable voltage control on g4
-        g4.setTargetQ(0).setVoltageRegulatorOn(false);
+        g4.setLocalTargetQ(0).newVoltageRegulation().withRegulating(false);
         parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setGeneratorReactivePowerRemoteControl(true)
                 .setNewtonRaphsonConvEpsPerEq(1e-5);
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setGeneratorReactivePowerRemoteControl(true)
                 .setNewtonRaphsonConvEpsPerEq(1e-5);
 
         // first test: generator g4 regulates reactive power on line 4->3 (on side of g4)
-        g4.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(targetQ)
-                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
-                .withEnabled(true).add();
+        g4.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTargetValue(targetQ)
+            .withTerminal(l34.getTerminal(TwoSides.TWO))
+            .build();
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
 
         // second test: generator g4 regulates reactive power on line 4->3 (on opposite side)
-        g4.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(targetQ)
-                .withRegulatingTerminal(l34.getTerminal(TwoSides.ONE))
-                .withEnabled(true).add();
+        g4.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTargetValue(targetQ)
+            .withTerminal(l34.getTerminal(TwoSides.TWO))
+            .build();
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }
 
@@ -219,7 +221,7 @@ class FastDecoupledTest {
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
 
         shunt.setSectionCount(0);
-        shunt.setVoltageRegulatorOn(true);
+        shunt.getVoltageRegulation().setRegulating(true);
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
 
         // Incremental mode
@@ -227,7 +229,7 @@ class FastDecoupledTest {
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
 
         shunt.setSectionCount(0);
-        shunt.setVoltageRegulatorOn(true);
+        shunt.getVoltageRegulation().setRegulating(true);
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }
 
@@ -252,11 +254,14 @@ class FastDecoupledTest {
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
 
         t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal2())
-                .setTargetV(34.0);
+                .newVoltageRegulation()
+                    .withTargetDeadband(0)
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(t2wt.getTerminal2())
+                    .withTargetValue(34.0)
+                    .build();
 
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
 
@@ -265,11 +270,14 @@ class FastDecoupledTest {
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
 
         t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal2())
-                .setTargetV(34.0);
+                .newVoltageRegulation()
+                    .withTargetDeadband(0)
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(t2wt.getTerminal2())
+                    .withTargetValue(34.0)
+                    .build();
 
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }
@@ -292,7 +300,7 @@ class FastDecoupledTest {
         // Continuous mode
         parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.CONTINUOUS_WITH_DISCRETISATION);
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.CONTINUOUS_WITH_DISCRETISATION);
-            // Regulation on side 1
+        // Regulation on side 1
         TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("PS1");
         t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setTargetDeadband(1)
@@ -301,14 +309,14 @@ class FastDecoupledTest {
                 .setRegulationTerminal(t2wt.getTerminal1())
                 .setRegulationValue(83);
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
-            // Regulation on side 2
+        // Regulation on side 2
         t2wt.getPhaseTapChanger().setRegulationTerminal(t2wt.getTerminal2());
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
 
         // Incremental mode
         parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
-            // Regulation on side 1
+        // Regulation on side 1
         t2wt.getPhaseTapChanger().setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .setTargetDeadband(1)
                 .setRegulating(true)
@@ -316,7 +324,7 @@ class FastDecoupledTest {
                 .setRegulationTerminal(t2wt.getTerminal1())
                 .setRegulationValue(83);
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
-            // Regulation on side 2
+        // Regulation on side 2
         t2wt.getPhaseTapChanger().setRegulationTerminal(t2wt.getTerminal2());
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }
@@ -338,12 +346,14 @@ class FastDecoupledTest {
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setTransformerReactivePowerControl(true);
 
         t2wt.getRatioTapChanger()
-                .setTargetDeadband(3.0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal2())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
-                .setRegulationValue(-10.0);
+                .newVoltageRegulation()
+                    .withTargetDeadband(3.0)
+                    .withRegulating(true)
+                    .withMode(RegulationMode.REACTIVE_POWER)
+                    .withTerminal(t2wt.getTerminal2())
+                    .withTargetValue(-10.0)
+                    .build();
 
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }

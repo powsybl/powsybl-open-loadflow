@@ -150,13 +150,15 @@ class AreaInterchangeControlTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("allSlackDistributionFailureBehaviors")
-    void slackDistributionFailureBehaviorsTest(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior, double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
+    void slackDistributionFailureBehaviorsTest(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior,
+                                               double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
         runLfOneAreaSlackDistributionFailure(slackDistributionFailureBehavior, expectedGen1P, expectedMismatch, expectedDistributedP);
         parameters.setDc(true);
         runLfOneAreaSlackDistributionFailure(slackDistributionFailureBehavior, expectedGen1P, expectedMismatch, expectedDistributedP);
     }
 
-    private void runLfOneAreaSlackDistributionFailure(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior, double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
+    private void runLfOneAreaSlackDistributionFailure(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior,
+                                                      double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
         parametersExt.setSlackDistributionFailureBehavior(slackDistributionFailureBehavior);
         Network network = MultiAreaNetworkFactory.createOneAreaBase();
         network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target

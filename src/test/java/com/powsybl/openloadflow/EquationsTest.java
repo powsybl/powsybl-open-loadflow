@@ -161,17 +161,23 @@ class EquationsTest {
         var sv = new StateVector(new double[]{V_1, PH_1, V_2, PH_2, R_1, A_1, 0});
 
         // closed branch equations
-        assertArrayEquals(new double[]{41.78173051479356, 48.66261692116701, 138.21343172859858, 29.31710523088579, -138.21343172859858, 54.62161149356045, 138.21343172859858, Double.NaN, 270.81476537421185},
+        assertArrayEquals(new double[]{
+            41.78173051479356, 48.66261692116701, 138.21343172859858, 29.31710523088579, -138.21343172859858, 54.62161149356045, 138.21343172859858, Double.NaN, 270.81476537421185},
                 eval(new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[]{-3.500079625302254, 122.46444997806617, 31.42440177840898, -128.9449438332101, -31.42440177840898, 137.46086897280827, 31.42440177840898, Double.NaN, 162.40477689607334},
+        assertArrayEquals(new double[]{
+            -3.500079625302254, 122.46444997806617, 31.42440177840898, -128.9449438332101, -31.42440177840898, 137.46086897280827, 31.42440177840898, Double.NaN, 162.40477689607334},
                 eval(new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[]{39.13246485286217, -0.8052805161189096, 126.09926753871545, 37.31322159867258, -126.09926753871542, Double.NaN, 126.09926753871542, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[]{
+            39.13246485286217, -0.8052805161189096, 126.09926753871545, 37.31322159867258, -126.09926753871542, Double.NaN, 126.09926753871542, Double.NaN, Double.NaN},
                 eval(new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[]{-40.6365773800554, -48.52391742324069, -131.8614376204652, -27.319027760225953, 131.8614376204652, -54.4659275092331, -131.8614376204652, Double.NaN, -262.1703103131649},
+        assertArrayEquals(new double[]{
+            -40.6365773800554, -48.52391742324069, -131.8614376204652, -27.319027760225953, 131.8614376204652, -54.4659275092331, -131.8614376204652, Double.NaN, -262.1703103131649},
                 eval(new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[]{16.04980301110306, -123.06939783256767, 51.99045110393844, 152.96594042215764, -51.99045110393844, -138.1398958886022, 51.99045110393844, Double.NaN, -56.2529021950738},
+        assertArrayEquals(new double[]{
+            16.04980301110306, -123.06939783256767, 51.99045110393844, 152.96594042215764, -51.99045110393844, -138.1398958886022, 51.99045110393844, Double.NaN, -56.2529021950738},
                 eval(new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
-        assertArrayEquals(new double[]{40.7613721648136, -0.07246503940372644, 132.23571821183896, 38.10038077658943, -132.23571821183896, Double.NaN, 132.23571821183896, Double.NaN, Double.NaN},
+        assertArrayEquals(new double[]{
+            40.7613721648136, -0.07246503940372644, 132.23571821183896, 38.10038077658943, -132.23571821183896, Double.NaN, 132.23571821183896, Double.NaN, Double.NaN},
                 eval(new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv));
 
         // open branch equations
@@ -389,5 +395,46 @@ class EquationsTest {
         assertEquals("dc_i", new ConverterDcCurrentEquationTerm(converter, dcBus1, dcBus2, dcBus1.getNominalV(), variableSet).getName());
         assertArrayEquals(new double[]{655.5332962269079, 222991.01420562976, -222991.01420562976, 340.16733473206085, Double.NaN, Double.NaN},
                 eval(new ConverterDcCurrentEquationTerm(converter, dcBus1, dcBus2, dcBus1.getNominalV(), variableSet), variables, sv));
+    }
+
+    @Test
+    void converterDroopEquationTermTest() {
+        // Droop equation: a*(P_AC - refP) - b*(U_dc - refVdc) = 0, with a = k (from the droop curve) and b = 1,
+        // i.e. U_dc = refVdc + k*(P_AC - refP): k is the slope of U_dc versus P_AC.
+        var converter = Mockito.mock(LfVoltageSourceConverter.class, new RuntimeExceptionAnswer());
+        Mockito.doReturn(0).when(converter).getNum();
+        Mockito.doReturn(false).when(converter).isDisabled();
+        Mockito.doReturn(400.0).when(converter).getDcVoltageBase();
+        double k = 2.0;
+        double refVdc = 0.125;
+        double refP = 0.5;
+        Mockito.doReturn(List.of(new LfVoltageSourceConverter.LfDroopReference(k, refVdc, refP)))
+                .when(converter).getDroopCurve();
+
+        VariableSet<AcVariableType> variableSet = new VariableSet<>();
+        Variable<AcVariableType> v1Var = variableSet.getVariable(0, AcVariableType.DC_BUS_V);
+        Variable<AcVariableType> v2Var = variableSet.getVariable(1, AcVariableType.DC_BUS_V);
+        Variable<AcVariableType> pAcVar = variableSet.getVariable(0, AcVariableType.CONV_P_AC);
+        Variable<AcVariableType> unknownVar = variableSet.getVariable(999, AcVariableType.DUMMY_P);
+
+        var variables = List.of(v1Var, v2Var, pAcVar, unknownVar);
+        v1Var.setRow(0);
+        v2Var.setRow(1);
+        pAcVar.setRow(2);
+        unknownVar.setRow(3);
+
+        ConverterDroopEquationTerm term = new ConverterDroopEquationTerm(converter, dcBus1, dcBus2, variableSet);
+        assertEquals("conv_p_droop", term.getName());
+
+        // U_dc = 1.0 - 0.75 = 0.25, P_AC = 0.25: an arbitrary (non-solution) point.
+        // eval = k*(P_AC - refP) - (U_dc - refVdc) = -0.625.
+        // der(pAc) = k = 2.0 ; der(v1) = -b = -1.0 ; der(v2) = +b = 1.0.
+        var sv = new StateVector(new double[]{1.0, 0.75, 0.25, 0});
+        assertArrayEquals(new double[]{-0.625, -1.0, 1.0, 2.0, Double.NaN, Double.NaN},
+                eval(term, variables, sv));
+
+        // At U_dc = refVdc (0.125) and P_AC = refP (0.5), the residual is exactly zero.
+        term.setStateVector(new StateVector(new double[]{1.0, 0.875, 0.5, 0}));
+        assertEquals(0.0, term.eval());
     }
 }

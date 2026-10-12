@@ -8,8 +8,10 @@
 package com.powsybl.openloadflow.util;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.report.ReportNodeAdder;
 import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
+import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChange;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
@@ -17,6 +19,7 @@ import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -130,7 +133,8 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportBusAlreadyControlledWithDifferentTargetV(ReportNode reportNode, String controllerBusId, String controlledBusId, String busesId, Double keptTargetV, Double ignoredTargetV) {
+    public static void reportBusAlreadyControlledWithDifferentTargetV(ReportNode reportNode, String controllerBusId,
+                                                                      String controlledBusId, String busesId, Double keptTargetV, Double ignoredTargetV) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.busAlreadyControlledWithDifferentTargetV")
                 .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
@@ -442,7 +446,10 @@ public final class Reports {
                 .build();
     }
 
-    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(ReportNode firstRootReportNode, String generatorId, double targetP, double maxTargetP) {
+    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(ReportNode firstRootReportNode,
+                                                                                                                    String generatorId,
+                                                                                                                    double targetP,
+                                                                                                                    double maxTargetP) {
         return ReportNode.newRootReportNode()
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
@@ -454,7 +461,10 @@ public final class Reports {
                 .build();
     }
 
-    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP(ReportNode firstRootReportNode, String generatorId, double targetP, double minTargetP) {
+    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP(ReportNode firstRootReportNode,
+                                                                                                                  String generatorId,
+                                                                                                                  double targetP,
+                                                                                                                  double minTargetP) {
         return ReportNode.newRootReportNode()
                 .withLocale(firstRootReportNode.getTreeContext().getLocale())
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
@@ -576,23 +586,25 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportCurrentLimiterPstsChangedTaps(ReportNode reportNode, int numOfCurrentLimiterPstsThatChangedTap) {
-        reportNode.newReportNode()
+    public static ReportNode reportCurrentLimiterPstsChangedTaps(ReportNode reportNode, int numOfCurrentLimiterPstsThatChangedTap) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.currentLimiterPstsChangedTaps")
                 .withUntypedValue("numOfCurrentLimiterPstsThatChangedTap", numOfCurrentLimiterPstsThatChangedTap)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
 
-    public static void reportActivePowerControlPstsChangedTaps(ReportNode reportNode, int numOfActivePowerControlPstsThatChangedTap) {
-        reportNode.newReportNode()
+    public static ReportNode reportActivePowerControlPstsChangedTaps(ReportNode reportNode, int numOfActivePowerControlPstsThatChangedTap) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.activePowerControlPstsChangedTaps")
                 .withUntypedValue("numOfActivePowerControlPstsThatChangedTap", numOfActivePowerControlPstsThatChangedTap)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
 
-    public static void reportTransformerControlAlreadyExistsWithDifferentTargetV(ReportNode reportNode, String firstControllerId, String newControllerId, String controlledBusId, double vcTargetValue, double targetValue) {
+    public static void reportTransformerControlAlreadyExistsWithDifferentTargetV(ReportNode reportNode, String firstControllerId,
+                                                                                 String newControllerId, String controlledBusId,
+                                                                                 double vcTargetValue, double targetValue) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.transformerControlAlreadyExistsWithDifferentTargetV")
                 .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
@@ -604,7 +616,9 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportTransformerControlAlreadyExistsUpdateDeadband(ReportNode reportNode, String firstControllerId, String newControllerId, String controlledBusId, double newTargetDeadband, Double oldTargetDeadband) {
+    public static void reportTransformerControlAlreadyExistsUpdateDeadband(ReportNode reportNode, String firstControllerId,
+                                                                           String newControllerId, String controlledBusId,
+                                                                           double newTargetDeadband, Double oldTargetDeadband) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.transformerControlAlreadyExistsUpdateDeadband")
                 .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
@@ -632,11 +646,24 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportTransformerControlChangedTaps(ReportNode reportNode, int numTransformerControlAdjusted) {
-        reportNode.newReportNode()
+    public static ReportNode reportTransformerControlChangedTaps(ReportNode reportNode, int numTransformerControlAdjusted) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.transformerControlChangedTaps")
                 .withUntypedValue("numTransformerControlAdjusted", numTransformerControlAdjusted)
                 .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportTransformerControlChangedTapsDetail(ReportNode reportNode, DiscreteControllerChange change) {
+        ReportNodeAdder adder = reportNode.newReportNode();
+        change.getSide().ifPresentOrElse(
+            side -> adder.withMessageTemplate("olf.transformerControlChangedTapsDetailWithSide")
+                    .withUntypedValue("side", side.getNum()),
+            () -> adder.withMessageTemplate("olf.transformerControlChangedTapsDetail"));
+        adder.withUntypedValue("transformerId", change.getElementId())
+                .withUntypedValue("oldTapPosition", change.getOldPosition())
+                .withUntypedValue("newTapPosition", change.getNewPosition())
+                .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }
 
@@ -656,11 +683,21 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportShuntVoltageControlChangedSection(ReportNode reportNode, int numShuntVoltageControlAdjusted) {
-        reportNode.newReportNode()
+    public static ReportNode reportShuntVoltageControlChangedSection(ReportNode reportNode, int numShuntVoltageControlAdjusted) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.shuntVoltageControlChangedSection")
                 .withUntypedValue("numShuntVoltageControlAdjusted", numShuntVoltageControlAdjusted)
                 .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportShuntVoltageControlChangedSectionDetail(ReportNode reportNode, DiscreteControllerChange change) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.shuntVoltageControlChangedSectionDetail")
+                .withUntypedValue("shuntId", change.getElementId())
+                .withUntypedValue("oldPosition", change.getOldPosition())
+                .withUntypedValue("newPosition", change.getNewPosition())
+                .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }
 
@@ -862,18 +899,15 @@ public final class Reports {
     }
 
     /**
-     * Create a Root report node for a synchronous network. It is identified only by its synchronous component number.
-     * @param firstRootReportNode original root report node. Used to get locale parameter.
+     * Create a report node for a synchronous network. It is identified only by its synchronous component number.
      * @param networkNumSc number of the synchronous component represented by the LfSynchronousNetwork associated to this report node.
      * @return a new report node to be used by a LfSynchronousNetwork.
      */
-    public static ReportNode createLfSynchronousNetworkReportNode(ReportNode firstRootReportNode, int networkNumSc) {
-        return ReportNode.newRootReportNode()
-            .withLocale(firstRootReportNode.getTreeContext().getLocale())
-            .withAllResourceBundlesFromClasspath()
+    public static ReportNode createLfSynchronousNetworkReportNode(ReportNode reportNode, int networkNumSc) {
+        return reportNode.newReportNode()
             .withMessageTemplate("olf.lfScNetwork")
             .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
-            .build();
+            .add();
     }
 
     public static ReportNode includeLfNetworkReportNode(ReportNode reportNode, ReportNode lfNetworkReportNode) {
@@ -899,6 +933,15 @@ public final class Reports {
                 .withMessageTemplate("olf.OuterLoopIteration")
                 .withUntypedValue("outerLoopIteration", outerLoopIteration)
                 .add();
+    }
+
+    public static ReportNode createRootOuterLoopIterationReporter(ReportNode firstRootReportNode, int outerLoopIteration) {
+        return ReportNode.newRootReportNode()
+            .withLocale(firstRootReportNode.getTreeContext().getLocale())
+            .withAllResourceBundlesFromClasspath()
+            .withMessageTemplate("olf.OuterLoopIteration")
+            .withUntypedValue("outerLoopIteration", outerLoopIteration)
+            .build();
     }
 
     public static ReportNode createSensitivityAnalysis(ReportNode reportNode, String networkId) {
@@ -938,7 +981,7 @@ public final class Reports {
     public static ReportNode createPostContingencySimulation(ReportNode reportNode, String contingencyId) {
         return reportNode.newReportNode()
                 .withMessageTemplate(POST_CONTINGENCY_SIMULATION_KEY)
-                .withUntypedValue(CONTINGENCY_ID, contingencyId)
+                .withUntypedValue(CONTINGENCY_ID, Objects.toString(contingencyId))
                 .add();
     }
 
@@ -1102,7 +1145,8 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportNewtonRaphsonBusesOutOfRealisticVoltageRange(ReportNode reportNode, Map<String, Double> busesOutOfRealisticVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
+    public static void reportNewtonRaphsonBusesOutOfRealisticVoltageRange(ReportNode reportNode, Map<String, Double> busesOutOfRealisticVoltageRange,
+                                                                          double minRealisticVoltage, double maxRealisticVoltage) {
         ReportNode voltageOutOfRangeReport = reportNode.newReportNode()
                 .withMessageTemplate("olf.newtonRaphsonBusesOutOfRealisticVoltageRange")
                 .withUntypedValue("busCountOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.size())
@@ -1130,6 +1174,16 @@ public final class Reports {
                 .withUntypedValue("slackBus", slackBus)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add());
+    }
+
+    public static void reportAutomaticVdcReferenceConverter(ReportNode reportNode, int dcComponentNum, String converterId, double targetVdc) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.automaticVdcReferenceConverter")
+                .withUntypedValue("dcComponentNum", dcComponentNum)
+                .withUntypedValue("converterId", converterId)
+                .withUntypedValue("targetVdc", targetVdc)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
     }
 
     public static void reportAcEmulationDisabledInWoodburyDcSecurityAnalysis(ReportNode reportNode) {

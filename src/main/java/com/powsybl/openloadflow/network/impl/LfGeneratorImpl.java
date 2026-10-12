@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -55,7 +56,8 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         super(network, generator.getTargetP() / PerUnit.SB, parameters);
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
         // we force voltage control of generators tagged as condensers or tagged as fictitious if the dedicated mode is activated.
-        forceVoltageControl = generator.isCondenser() || generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlCheckMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
+        forceVoltageControl = generator.isCondenser()
+            || generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlCheckMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
         var apcHelper = ActivePowerControlHelper.create(generator, generator.getMinP(), generator.getMaxP());
         initialParticipating = apcHelper.participating();
         participating = initialParticipating;
@@ -73,14 +75,13 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
             participating = false;
         }
 
-        if (generator.isVoltageRegulatorOn()) {
-            setVoltageControl(generator.getTargetV(), generator.getTerminal(), generator.getRegulatingTerminal(), parameters,
+        if (generator.isRegulatingWithMode(RegulationMode.VOLTAGE)) {
+            setVoltageControl(generator.getRegulatingTargetV(), generator.getTerminal(), generator.getRegulatingTerminal(), parameters,
                     report);
         }
 
-        RemoteReactivePowerControl reactivePowerControl = generator.getExtension(RemoteReactivePowerControl.class);
-        if (reactivePowerControl != null && reactivePowerControl.isEnabled() && !generator.isVoltageRegulatorOn() && parameters.isGeneratorReactivePowerRemoteControl()) {
-            setRemoteReactivePowerControl(reactivePowerControl.getRegulatingTerminal(), reactivePowerControl.getTargetQ());
+        if (generator.isRegulatingWithMode(RegulationMode.REACTIVE_POWER) && generator.hasRegulatingTerminal() && parameters.isGeneratorReactivePowerRemoteControl()) {
+            setRemoteReactivePowerControl(generator.getRegulatingTerminal(), generator.getVoltageRegulation().getTargetValue());
         }
 
         CoordinatedReactiveControl coordinatedReactiveControl = getGenerator().getExtension(CoordinatedReactiveControl.class);
@@ -92,6 +93,26 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
                 qPercent = coordinatedReactiveControl.getQPercent();
             }
         }
+    }
+
+    private LfGeneratorImpl(LfGeneratorImpl other, LfNetwork network) {
+        super(other, network);
+        this.generatorRef = other.generatorRef;
+        this.initialParticipating = other.initialParticipating;
+        this.participating = other.participating;
+        this.droop = other.droop;
+        this.participationFactor = other.participationFactor;
+        this.qPercent = other.qPercent;
+        this.isTargetQForcedInReactiveLimits = other.isTargetQForcedInReactiveLimits;
+        this.forceVoltageControl = other.forceVoltageControl;
+        this.maxTargetP = other.maxTargetP;
+        this.minTargetP = other.minTargetP;
+        this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
+    }
+
+    @Override
+    public LfGenerator copy(LfBus copyBus) {
+        return new LfGeneratorImpl(this, copyBus.getNetwork());
     }
 
     @Override
@@ -170,7 +191,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        double targetQ = Networks.zeroIfNan(getGenerator().getTargetQ()) / PerUnit.SB;
+        double targetQ = Networks.zeroIfNan(getGenerator().getLocalTargetQ()) / PerUnit.SB;
         if (forceTargetQInReactiveLimits) {
             double computedTargetQ = targetQ;
             double minQ = getMinQ();
@@ -257,10 +278,15 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
     }
 
     @Override
+    public boolean hasEquivalentLocalTargetV() {
+        return !Double.isNaN(generatorRef.get().getLocalTargetV()); // Local target V is NaN only if the generator is remote voltage controlled
+    }
+
+    @Override
     public boolean switchToLocalVoltageControl() {
         super.switchToLocalVoltageControl();
-        if (!Double.isNaN(generatorRef.get().getEquivalentLocalTargetV())) {
-            targetV = generatorRef.get().getEquivalentLocalTargetV() / getBus().getNominalV();
+        if (!Double.isNaN(generatorRef.get().getLocalTargetV())) {
+            targetV = generatorRef.get().getLocalTargetV() / getBus().getNominalV();
             return true;
         } else {
             // keep the same targetV in perUnit

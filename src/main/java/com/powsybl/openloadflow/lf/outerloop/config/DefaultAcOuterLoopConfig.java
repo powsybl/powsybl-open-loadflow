@@ -8,9 +8,9 @@
 package com.powsybl.openloadflow.lf.outerloop.config;
 
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.LoadFlowParametersOverride;
-import com.powsybl.openloadflow.ac.outerloop.*;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +33,7 @@ public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
         // freezing hvdc in AC emulation
         createFreezingHvdcACEmulationOuterLoop(parametersExt).ifPresent(outerLoops::add);
         // AC emulation
-        createAcHvdcAcEmulationLimitsOuterLoop(parameters).ifPresent(outerLoops::add);
+        createHvdcAcEmulationLimitsOuterLoop(parameters).ifPresent(outerLoops::add);
         // area interchange control
         createAreaInterchangeControlOuterLoop(parameters, parametersExt, loadFlowParametersOverride).ifPresent(outerLoops::add);
         // secondary voltage control

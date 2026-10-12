@@ -1,13 +1,13 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.iidm.network.*;
+import com.powsybl.contingency.strategy.condition.*;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.contingency.strategy.condition.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +33,8 @@ public final class ThresholdConditionEvaluator {
             case InjectionThresholdCondition.NAME -> {
                 return evaluateGeneratorCondition((InjectionThresholdCondition) condition, lfNetwork);
             }
-            default -> throw new PowsyblException(String.format("Unsupported threshold condition on equipment %s of type %s.", abstractThresholdCondition.getEquipmentId(), abstractThresholdCondition.getComparisonType().name()));
+            default -> throw new PowsyblException(String.format("Unsupported threshold condition on equipment %s of type %s.",
+                abstractThresholdCondition.getEquipmentId(), abstractThresholdCondition.getComparisonType().name()));
         }
     }
 

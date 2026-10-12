@@ -10,8 +10,8 @@ package com.powsybl.openloadflow.lf.outerloop.config;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.LoadFlowParametersOverride;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 import org.apache.commons.compress.utils.Lists;
 

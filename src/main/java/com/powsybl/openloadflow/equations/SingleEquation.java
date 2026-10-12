@@ -42,7 +42,7 @@ public class SingleEquation<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     /**
      * Element index of a two dimensions matrix (equations * variables) indexed by variable index (order of the variable
-     * in {@link @termsByVariable}.
+     * in {@link #termsByVariable}.
      */
     private int[] matrixElementIndexes;
 

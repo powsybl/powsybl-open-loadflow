@@ -91,18 +91,22 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     private void updateAcState(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                AcLoadFlowResult result, AcLoadFlowParameters acParameters, boolean atLeastOneComponentHasToBeUpdated) {
         if (parametersExt.isNetworkCacheEnabled()) {
-            NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().setPause(true);
+            NetworkCache.AC_LF_INSTANCE.findEntry(network, parametersExt.getNetworkCacheScope()).orElseThrow().setPause(true);
         }
         try {
             // update network state
             if (atLeastOneComponentHasToBeUpdated && result.isSuccess()
                     || parametersExt.isAlwaysUpdateNetwork()) {
+                boolean loadPowerFactorConstant = (parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl())
+                    && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
+                    || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                    && parametersExt.isLoadPowerFactorConstant();
                 var updateParameters = new LfNetworkStateUpdateParameters(parameters.isUseReactiveLimits(),
                                                                           parameters.isWriteSlackBus(),
                                                                           parameters.isPhaseShifterRegulationOn(),
                                                                           parameters.isTransformerVoltageControlOn(),
                                                                           parametersExt.isTransformerReactivePowerControl(),
-                                                                          (parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl()) && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
+                                                                          loadPowerFactorConstant,
                                                                           parameters.isDc(),
                                                                           acParameters.getNetworkParameters().isBreakers(),
                                                                           parametersExt.getReactivePowerDispatchMode(),
@@ -116,7 +120,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             }
         } finally {
             if (parametersExt.isNetworkCacheEnabled()) {
-                NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().setPause(false);
+                NetworkCache.AC_LF_INSTANCE.findEntry(network, parametersExt.getNetworkCacheScope()).orElseThrow().setPause(false);
             }
         }
     }
@@ -212,22 +216,24 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         List<DcLoadFlowResult> results;
         if (parametersExt.isNetworkCacheEnabled()) {
-            var networkCacheDcEntry = NetworkCache.DC_LF_INSTANCE.findEntry(network).orElse(null);
+            var networkCacheDcEntry = NetworkCache.DC_LF_INSTANCE.findEntry(network, parametersExt.getNetworkCacheScope()).orElse(null);
             if (networkCacheDcEntry == null || networkCacheDcEntry.getValues() == null || networkCacheDcEntry.getValues().stream().anyMatch(NetworkCache.AbstractValue::isTopologyUpdated)) {
                 Networks.resetState(network); // reset state only if new NetworkCache has to be created or if topology has been updated
             }
             results = new DcLoadFlowFromCache(network, parameters, parametersExt, dcParameters, reportNode)
                     .run();
-            NetworkCache.DC_LF_INSTANCE.findEntry(network).orElseThrow().setPause(true);
+            NetworkCache.DC_LF_INSTANCE.findEntry(network, parametersExt.getNetworkCacheScope()).orElseThrow().setPause(true);
         } else {
             results = DcLoadFlowEngine.run(network, new LfNetworkLoaderImpl(), dcParameters, reportNode);
             Networks.resetState(network);
         }
 
-        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters, parametersExt, dcParameters.getNetworkParameters().isBreakers())).toList();
+        List<LoadFlowResult.ComponentResult> componentsResult = results.stream()
+            .map(r -> processResult(network, r, parameters, parametersExt, dcParameters.getNetworkParameters().isBreakers()))
+            .toList();
         boolean ok = results.stream().anyMatch(DcLoadFlowResult::isSuccess);
         if (parametersExt.isNetworkCacheEnabled()) {
-            NetworkCache.DC_LF_INSTANCE.findEntry(network).orElseThrow().setPause(false);
+            NetworkCache.DC_LF_INSTANCE.findEntry(network, parametersExt.getNetworkCacheScope()).orElseThrow().setPause(false);
         }
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentsResult);
     }

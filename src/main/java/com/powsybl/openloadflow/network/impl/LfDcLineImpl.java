@@ -25,6 +25,19 @@ public class LfDcLineImpl extends AbstractLfDcLine {
         this.dcLineRef = Ref.create(dcLine, parameters.isCacheEnabled());
     }
 
+    private LfDcLineImpl(LfDcLineImpl other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2) {
+        super(other, network, dcBus1, dcBus2);
+        this.dcLineRef = other.dcLineRef;
+    }
+
+    @Override
+    public LfDcLine copy(LfNetwork copyNetwork) {
+        return new LfDcLineImpl(this,
+                copyNetwork,
+                copyNetwork.getDcBusById(dcBus1.getId()),
+                copyNetwork.getDcBusById(dcBus2.getId()));
+    }
+
     public static LfDcLineImpl create(DcLine dcLine, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2,
                                       LfNetworkParameters parameters) {
         Objects.requireNonNull(network);
@@ -55,6 +68,14 @@ public class LfDcLineImpl extends AbstractLfDcLine {
     public void updateFlows(double i1, double i2, double p1, double p2) {
         var dcLine = getDcLine();
 
+        if (dcBus1 == null || dcBus2 == null) {
+            // Current and power should be zero for both sides
+            dcLine.getDcTerminal1().setI(0);
+            dcLine.getDcTerminal2().setI(0);
+            dcLine.getDcTerminal1().setP(0);
+            dcLine.getDcTerminal2().setP(0);
+            return;
+        }
         // If a DC bus is grounded, its current and power variable are NaN.
         // However, we can infer them from the other DC bus (power should be zero)
         dcLine.getDcTerminal1().setI((dcBus1.isGrounded() ? -i2 : i1) * PerUnit.ibDc(dcBus1.getNominalV()));

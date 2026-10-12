@@ -8,8 +8,8 @@
 package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
+import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.lf.outerloop.AbstractHvdcAcEmulationLimitsOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -26,12 +26,6 @@ public class DcHvdcAcEmulationLimitsOuterLoop
         implements DcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DcHvdcAcEmulationLimitsOuterLoop.class);
-    public static final String NAME = "DcHvdcAcEmulationLimits";
-
-    @Override
-    public String getName() {
-        return NAME;
-    }
 
     @Override
     public OuterLoopResult check(DcOuterLoopContext context, ReportNode reportNode) {

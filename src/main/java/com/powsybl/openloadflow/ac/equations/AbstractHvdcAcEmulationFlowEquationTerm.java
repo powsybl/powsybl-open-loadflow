@@ -7,13 +7,12 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfHvdc;
-
-import com.powsybl.iidm.network.util.HvdcUtils;
 
 import java.util.List;
 

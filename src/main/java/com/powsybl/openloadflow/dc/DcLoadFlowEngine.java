@@ -337,8 +337,15 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             slackBusActivePowerMismatch = initialSlackBusActivePowerMismatch;
             distributedActivePower = 0.0;
         }
-        DcLoadFlowResult result = new DcLoadFlowResult(network, runningContext.outerLoopTotalIterations, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult, slackBusActivePowerMismatch, distributedActivePower);
-        LOGGER.info("DC loadflow complete on network {} (result={})", context.getNetwork(), result);
+        DcLoadFlowResult result = new DcLoadFlowResult(network, runningContext.outerLoopTotalIterations,
+            runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult, slackBusActivePowerMismatch, distributedActivePower);
+
+        final String dcLoadflowCompleteMessage = "DC loadflow complete on network {} (result={})";
+        if (result.isSuccess()) {
+            LOGGER.info(dcLoadflowCompleteMessage, context.getNetwork(), result);
+        } else {
+            LOGGER.error(dcLoadflowCompleteMessage, context.getNetwork(), result);
+        }
         return result;
     }
 

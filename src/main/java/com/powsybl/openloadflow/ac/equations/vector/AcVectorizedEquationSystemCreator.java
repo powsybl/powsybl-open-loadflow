@@ -41,13 +41,17 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
         EquationArray<AcVariableType, AcEquationType> pArray = equationSystem.createEquationArray(AcEquationType.BUS_TARGET_P);
         EquationArray<AcVariableType, AcEquationType> qArray = equationSystem.createEquationArray(AcEquationType.BUS_TARGET_Q);
 
-        closedP1Array = new EquationTermArray<>(ElementType.BRANCH, new ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), networkVector.getBusVector(), equationSystem.getVariableSet()));
+        closedP1Array = new EquationTermArray<>(ElementType.BRANCH,
+            new ClosedBranchSide1ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), networkVector.getBusVector(), equationSystem.getVariableSet()));
         pArray.addTermArray(closedP1Array);
-        closedP2Array = new EquationTermArray<>(ElementType.BRANCH, new ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), networkVector.getBusVector(), equationSystem.getVariableSet()));
+        closedP2Array = new EquationTermArray<>(ElementType.BRANCH,
+            new ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), networkVector.getBusVector(), equationSystem.getVariableSet()));
         pArray.addTermArray(closedP2Array);
-        closedQ1Array = new EquationTermArray<>(ElementType.BRANCH, new ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), networkVector.getBusVector(), equationSystem.getVariableSet()));
+        closedQ1Array = new EquationTermArray<>(ElementType.BRANCH,
+            new ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), networkVector.getBusVector(), equationSystem.getVariableSet()));
         qArray.addTermArray(closedQ1Array);
-        closedQ2Array = new EquationTermArray<>(ElementType.BRANCH, new ClosedBranchSide2ReactiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), networkVector.getBusVector(), equationSystem.getVariableSet()));
+        closedQ2Array = new EquationTermArray<>(ElementType.BRANCH,
+            new ClosedBranchSide2ReactiveFlowEquationTermArrayEvaluator(networkVector.getBranchVector(), networkVector.getBusVector(), equationSystem.getVariableSet()));
         qArray.addTermArray(closedQ2Array);
 
         networkVector.startListening();
@@ -61,22 +65,30 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
     }
 
     @Override
-    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2,
+                                                                                                         boolean deriveA1, boolean deriveR1,
+                                                                                                         EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         return closedP1Array.getElement(branch.getNum());
     }
 
     @Override
-    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2,
+                                                                                                           boolean deriveA1, boolean deriveR1,
+                                                                                                           EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         return closedQ1Array.getElement(branch.getNum());
     }
 
     @Override
-    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2,
+                                                                                                         boolean deriveA1, boolean deriveR1,
+                                                                                                         EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         return closedP2Array.getElement(branch.getNum());
     }
 
     @Override
-    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2, boolean deriveA1, boolean deriveR1, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+    protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide2ReactiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2,
+                                                                                                           boolean deriveA1, boolean deriveR1,
+                                                                                                           EquationSystem<AcVariableType, AcEquationType> equationSystem) {
         return closedQ2Array.getElement(branch.getNum());
     }
 }

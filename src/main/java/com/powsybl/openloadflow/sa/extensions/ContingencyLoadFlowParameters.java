@@ -10,8 +10,8 @@ package com.powsybl.openloadflow.sa.extensions;
 import com.powsybl.commons.extensions.AbstractExtension;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.LoadFlowParametersOverride;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 
 import java.util.List;
 import java.util.Objects;

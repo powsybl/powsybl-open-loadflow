@@ -68,7 +68,8 @@ public class OpenSensitivityAnalysisParameterJsonSerializer implements Extension
     }
 
     @Override
-    public OpenSensitivityAnalysisParameters deserializeAndUpdate(JsonParser jsonParser, DeserializationContext deserializationContext, OpenSensitivityAnalysisParameters extension) throws IOException {
+    public OpenSensitivityAnalysisParameters deserializeAndUpdate(JsonParser jsonParser, DeserializationContext deserializationContext,
+                                                                  OpenSensitivityAnalysisParameters extension) throws IOException {
         ObjectMapper objectMapper = createMapper();
         ObjectReader objectReader = objectMapper.readerForUpdating(extension);
         return objectReader.readValue(jsonParser, OpenSensitivityAnalysisParameters.class);

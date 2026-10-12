@@ -14,14 +14,14 @@ import com.powsybl.openloadflow.util.PerUnit;
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
-public interface LfHvdc extends LfElement {
+public interface LfHvdc extends LfElement, LfCopyable<LfHvdc, LfNetwork> {
 
     class AcEmulationControl {
         public enum AcEmulationStatus {
             LINEAR_MODE,
             SATURATION_MODE_FROM_CS1_TO_CS2,
             SATURATION_MODE_FROM_CS2_TO_CS1,
-            FROZEN;
+            FROZEN
         }
 
         private final LfHvdc hvdc;
@@ -37,6 +37,15 @@ public interface LfHvdc extends LfElement {
             this.p0 = p0 / PerUnit.SB;
             this.pMaxFromCS1toCS2 = pMaxFromCS1toCS2 / PerUnit.SB;
             this.pMaxFromCS2toCS1 = pMaxFromCS2toCS1 / PerUnit.SB;
+        }
+
+        public AcEmulationControl(LfHvdc hvdc, AcEmulationControl other) {
+            this.hvdc = hvdc;
+            this.droop = other.droop;
+            this.p0 = other.p0;
+            this.pMaxFromCS1toCS2 = other.pMaxFromCS1toCS2;
+            this.pMaxFromCS2toCS1 = other.pMaxFromCS2toCS1;
+            this.acEmulationStatus = other.acEmulationStatus;
         }
 
         public double getDroop() {

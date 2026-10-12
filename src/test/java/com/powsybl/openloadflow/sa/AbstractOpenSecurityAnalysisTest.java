@@ -21,6 +21,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -35,7 +36,7 @@ import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisReport;
 import com.powsybl.security.SecurityAnalysisResult;
 import com.powsybl.security.SecurityAnalysisRunParameters;
-import com.powsybl.security.limitreduction.LimitReduction;
+import com.powsybl.security.limitscaling.LimitScaling;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -121,7 +122,8 @@ public abstract class AbstractOpenSecurityAnalysisTest {
     }
 
     protected LoadFlowResult runLoadFlow(Network network, LoadFlowParameters parameters) {
-        return loadFlowProvider.run(network, computationManager, network.getVariantManager().getWorkingVariantId(), parameters, ReportNode.NO_OP)
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setComputationManager(computationManager).setParameters(parameters);
+        return loadFlowProvider.run(network, network.getVariantManager().getWorkingVariantId(), runParameters)
                 .join();
     }
 
@@ -158,14 +160,14 @@ public abstract class AbstractOpenSecurityAnalysisTest {
     }
 
     protected SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
-                                                         List<LimitReduction> limitReductions, SecurityAnalysisParameters saParameters) {
+                                                         List<LimitScaling> limitScalings, SecurityAnalysisParameters saParameters) {
         ContingenciesProvider provider = n -> contingencies;
         SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
                 .setFilter(new LimitViolationFilter())
                 .setComputationManager(computationManager)
                 .setSecurityAnalysisParameters(saParameters)
                 .setMonitors(monitors)
-                .setLimitReductions(limitReductions);
+                .setLimitScalings(limitScalings);
         SecurityAnalysisReport report = securityAnalysisProvider.run(network,
                         network.getVariantManager().getWorkingVariantId(),
                         provider,

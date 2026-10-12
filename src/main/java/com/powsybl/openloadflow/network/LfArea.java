@@ -7,12 +7,14 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.TwoSides;
+
 import java.util.Set;
 
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
-public interface LfArea extends LfElement {
+public interface LfArea extends LfElement, LfCopyable<LfArea, LfNetwork> {
     String getId();
 
     double getInterchangeTarget();
@@ -27,8 +29,10 @@ public interface LfArea extends LfElement {
 
     LfNetwork getNetwork();
 
-    public interface Boundary {
+    interface Boundary {
         LfBranch getBranch();
+
+        TwoSides getSide();
 
         double getP();
 

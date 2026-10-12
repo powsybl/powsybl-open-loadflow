@@ -23,10 +23,11 @@ import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBun
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(ServiceParameterResolver.class)
 class FictitiousInjectionTest {

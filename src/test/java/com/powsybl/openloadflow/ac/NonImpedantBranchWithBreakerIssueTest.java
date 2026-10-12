@@ -45,7 +45,9 @@ class NonImpedantBranchWithBreakerIssueTest {
             new AcloadFlowEngine(context)
                     .run();
         }
-        lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false, false, false, false, false, false, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, false, ReferenceBusSelectionMode.FIRST_SLACK, false));
+        lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false,
+            false, false, false, false, false,
+            ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, false, ReferenceBusSelectionMode.FIRST_SLACK, false));
         for (Bus bus : network.getBusView().getBuses()) {
             assertEquals(400, bus.getV(), 0);
             assertEquals(0, bus.getAngle(), 0);
@@ -66,7 +68,9 @@ class NonImpedantBranchWithBreakerIssueTest {
             new AcloadFlowEngine(context)
                     .run();
         }
-        lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false, false, false, false, false, false, ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, false, ReferenceBusSelectionMode.FIRST_SLACK, false));
+        lfNetwork.updateState(new LfNetworkStateUpdateParameters(false, false, false,
+            false, false, false, false, false,
+            ReactivePowerDispatchMode.Q_EQUAL_PROPORTION, false, ReferenceBusSelectionMode.FIRST_SLACK, false));
         assertEquals(-100, network.getGenerator("G1").getTerminal().getQ(), 0);
         assertEquals(-100, network.getGenerator("G2").getTerminal().getQ(), 0);
     }

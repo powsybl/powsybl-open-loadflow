@@ -25,6 +25,9 @@ import static com.powsybl.openloadflow.network.PiModel.A2;
  */
 public abstract class AbstractClosedBranchAcFlowEquationTerm extends AbstractBranchAcFlowEquationTerm {
 
+    /** Threshold below which current magnitude is treated as zero for sensitivity computation. */
+    protected static final double ZERO_CURRENT_THRESHOLD = 1e-6;
+
     protected final Variable<AcVariableType> v1Var;
 
     protected final Variable<AcVariableType> v2Var;

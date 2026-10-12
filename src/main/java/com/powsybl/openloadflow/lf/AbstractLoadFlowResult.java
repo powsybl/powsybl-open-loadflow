@@ -25,7 +25,8 @@ public abstract class AbstractLoadFlowResult implements LoadFlowResult {
     protected final OuterLoopResult outerLoopResult;
     protected final Map<Integer, Double> distributedActivePower;
 
-    protected AbstractLoadFlowResult(LfNetwork network, Map<Integer, Double> slackBusActivePowerMismatch, int outerLoopIterations, OuterLoopResult outerLoopResult, Map<Integer, Double> distributedActivePower) {
+    protected AbstractLoadFlowResult(LfNetwork network, Map<Integer, Double> slackBusActivePowerMismatch, int outerLoopIterations,
+                                     OuterLoopResult outerLoopResult, Map<Integer, Double> distributedActivePower) {
         this.network = Objects.requireNonNull(network);
         this.slackBusActivePowerMismatch = slackBusActivePowerMismatch;
         this.outerLoopIterations = outerLoopIterations;

@@ -15,6 +15,7 @@ import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
@@ -32,11 +33,13 @@ import com.powsybl.security.SecurityAnalysisRunParameters;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class VoltageCheckerTest {
 
@@ -46,9 +49,9 @@ class VoltageCheckerTest {
     void setUp() {
         network = VoltageControlNetworkFactory.createWithGeneratorRemoteControlAndSmallSeparatingImpedance();
 
-        network.getGenerator("g1").setTargetV(400);
-        network.getGenerator("g2").setTargetV(403);
-        network.getGenerator("g3").setTargetV(407);
+        network.getGenerator("g1").getVoltageRegulation().setTargetValue(400);
+        network.getGenerator("g2").getVoltageRegulation().setTargetValue(403);
+        network.getGenerator("g3").getVoltageRegulation().setTargetValue(407);
     }
 
     @Test
@@ -106,8 +109,8 @@ class VoltageCheckerTest {
                 .setTargetP(1)
                 .setMinP(0)
                 .setMaxP(10)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(403)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(403)
                 .setBus("b5")
                 .setConnectableBus("b5")
                 .add();

@@ -187,7 +187,8 @@ public final class ActivePowerDistribution {
                     // Mismatches reported in LoadFlowResult on slack bus(es) are the mismatches of the last solver (DC, NR, ...) run.
                     // Since we will not be re-running the solver, revert distributedActivePower reporting which would otherwise be misleading.
                     // Said differently, we report that we didn't distribute anything, and this is indeed consistent with the network state.
-                    resultWithFailureBehaviorHandling = new ResultWithFailureBehaviorHandling(true, statusText, result.iteration(), result.remainingMismatch(), result.movedBuses(), distributedActivePower);
+                    resultWithFailureBehaviorHandling = new ResultWithFailureBehaviorHandling(true, statusText, result.iteration(),
+                        result.remainingMismatch(), result.movedBuses(), distributedActivePower);
                 }
                 case DISTRIBUTE_ON_REFERENCE_GENERATOR -> {
                     Objects.requireNonNull(referenceGenerator, "No reference generator");

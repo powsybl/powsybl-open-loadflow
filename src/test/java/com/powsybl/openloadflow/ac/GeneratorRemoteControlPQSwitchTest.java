@@ -12,14 +12,8 @@ import ch.qos.logback.classic.LoggerContext;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Generator;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.NetworkFactory;
-import com.powsybl.iidm.network.Substation;
-import com.powsybl.iidm.network.TopologyKind;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
-import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -40,8 +34,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEqualsString;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
@@ -142,9 +140,11 @@ class GeneratorRemoteControlPQSwitchTest {
                 .setTargetP(200)
                 .setBus(b1.getId())
                 .setConnectableBus(b1.getId())
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(t12.getTerminal2())
-                .setTargetV(401)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(t12.getTerminal2())
+                    .withTargetValue(401)
+                    .add()
                 .add();
 
         vl3.newGenerator()
@@ -154,8 +154,8 @@ class GeneratorRemoteControlPQSwitchTest {
                 .setTargetP(0)
                 .setBus(b3.getId())
                 .setConnectableBus(b3.getId())
-                .setVoltageRegulatorOn(true)
-                .setTargetV(402)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(402)
                 .add();
 
         vl3.newLoad()
@@ -268,7 +268,7 @@ class GeneratorRemoteControlPQSwitchTest {
         parametersExt.setVoltageRemoteControlRobustMode(robustMode);
         parameters.setUseReactiveLimits(true);
         g1.newMinMaxReactiveLimits().setMinQ(-3000).setMaxQ(6000).add();
-        g1.setTargetQ(10);
+        g1.setLocalTargetQ(10);
         LoadFlowResult result = runWithReport();
         if (robustMode) {
             assertTrue(result.isFullyConverged());
@@ -316,8 +316,8 @@ class GeneratorRemoteControlPQSwitchTest {
         parametersExt.setVoltageRemoteControlRobustMode(robustMode);
         parameters.setUseReactiveLimits(true);
         g1.newMinMaxReactiveLimits().setMinQ(-3000).setMaxQ(6000).add();
-        g1.setTargetV(403);
-        g1.setTargetQ(10);
+        g1.getVoltageRegulation().setTargetValue(403);
+        g1.setLocalTargetQ(10);
         LoadFlowResult result = runWithReport();
         if (robustMode) {
             assertTrue(result.isFullyConverged());
@@ -366,8 +366,8 @@ class GeneratorRemoteControlPQSwitchTest {
         parametersExt.setVoltageRemoteControlRobustMode(robustMode);
         parameters.setUseReactiveLimits(true);
         g1.newMinMaxReactiveLimits().setMinQ(-800).setMaxQ(800).add();
-        g1.setTargetV(403);
-        g1.setTargetQ(10);
+        g1.getVoltageRegulation().setTargetValue(403);
+        g1.setLocalTargetQ(10);
         LoadFlowResult result = runWithReport();
         if (robustMode) {
             assertTrue(result.isFullyConverged());

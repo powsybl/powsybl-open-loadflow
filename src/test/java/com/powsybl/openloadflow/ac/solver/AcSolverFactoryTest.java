@@ -69,7 +69,7 @@ class AcSolverFactoryTest {
         private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
         private final AcSolverMockParameters parameters;
 
-        public AcSolverMock(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, AcSolverMockParameters parameters) {
+        AcSolverMock(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, AcSolverMockParameters parameters) {
             this.network = network;
             this.equationSystem = equationSystem;
             this.parameters = parameters;
@@ -109,7 +109,9 @@ class AcSolverFactoryTest {
         }
 
         @Override
-        public AcSolver create(LfNetwork network, AcLoadFlowParameters parameters, EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector, EquationVector<AcVariableType, AcEquationType> equationVector) {
+        public AcSolver create(LfNetwork network, AcLoadFlowParameters parameters, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                               JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
+                               EquationVector<AcVariableType, AcEquationType> equationVector) {
             return new AcSolverMock(network, equationSystem, (AcSolverMockParameters) parameters.getAcSolverParameters());
         }
     }

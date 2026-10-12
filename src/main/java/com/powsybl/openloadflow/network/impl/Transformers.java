@@ -39,7 +39,7 @@ public final class Transformers {
 
         private final double angle;
 
-        public TapCharacteristics(double r, double x, double g, double b, double ratio, double angle) {
+        TapCharacteristics(double r, double x, double g, double b, double ratio, double angle) {
             this.r = r;
             this.x = x;
             this.g = g;

@@ -71,4 +71,16 @@ public final class HvdcConverterStations {
     private static boolean isFictitiousLoad(Connectable<?> c) {
         return c instanceof Load load && LfLoadImpl.isLoadFictitious(load);
     }
+
+    // TO DO : use HvdcUtils.getAbsoluteValueInverterPAc if made public (and adds as argument activePowerSetpoint)
+    public static double getAbsoluteValueInverterPAc(double activePowerSetpoint, double rectifierLossFactor, double inverterLossFactor, HvdcLine hvdcLine) {
+        double rectifierPDc = activePowerSetpoint * (1.0 - rectifierLossFactor / 100.0);
+        double inverterPDc = rectifierPDc - HvdcUtils.getHvdcLineLosses(rectifierPDc, hvdcLine.getNominalV(), hvdcLine.getR());
+        return inverterPDc * (1.0 - inverterLossFactor / 100.0);
+    }
+
+    // TO DO : use HvdcUtils.getLccConverterStationLoadTargetQ if made public (with converterPAc as argument)
+    public static double getLccConverterStationLoadTargetQ(double converterPAc, double powerFactor) {
+        return Math.abs(converterPAc * Math.tan(Math.acos(powerFactor)));
+    }
 }
