@@ -28,7 +28,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ZoneDecompositionTest {
 
     @Test
-    void testZoneDecomposition() {
+    void testZoneDecompositionWith4BusNetwork() {
+        Network network = create4BusNetwork();
+        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LfNetworkParameters());
+        LfNetwork lfNetwork = lfNetworks.getFirst();
+        Set<String> internalVlIds = Set.of("VL1");
+
+        ZoneDecomposition zones = new ZoneDecomposition(lfNetwork, internalVlIds);
+
+        Set<String> boundaryVl = getVoltageLevels(zones.getBoundaryBuses());
+        Set<String> expectedBoundaryVL = Set.of("VL2", "VL3");
+        assertEquals(expectedBoundaryVL, boundaryVl);
+
+        Set<String> externalVL = getVoltageLevels(zones.getExternalBuses());
+        Set<String> expectedExternalVL = Set.of("VL4");
+        assertEquals(expectedExternalVL, externalVL);
+    }
+
+    @Test
+    void testZoneDecompositionWithIEEE118() {
         Network network = IeeeCdfNetworkFactory.create118();
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LfNetworkParameters());
         LfNetwork lfNetwork = lfNetworks.getFirst();
@@ -36,20 +54,22 @@ class ZoneDecompositionTest {
 
         ZoneDecomposition zones = new ZoneDecomposition(lfNetwork, internalVlIds);
 
-        Set<String> boundaryVl = zones.getBoundaryBuses().stream()
-            .map(LfBus::getVoltageLevelId)
-            .collect(Collectors.toSet());
+        Set<String> boundaryVl = getVoltageLevels(zones.getBoundaryBuses());
         Set<String> expectedBoundaryVL = getIEEE118BoundaryVlIds();
         assertEquals(expectedBoundaryVL, boundaryVl);
 
-        Set<String> externalVL = zones.getExternalBuses().stream()
-            .map(LfBus::getVoltageLevelId)
-            .collect(Collectors.toSet());
+        Set<String> externalVL = getVoltageLevels(zones.getExternalBuses());
         Set<String> expectedExternalVL = Set.of(
             "VL1", "VL2", "VL3", "VL4", "VL5", "VL6", "VL7", "VL8", "VL9", "VL10", "VL11", "VL12", "VL13", "VL14",
             "VL15", "VL16", "VL17", "VL18", "VL19", "VL20", "VL21", "VL22", "VL23", "VL25", "VL26", "VL27", "VL28",
             "VL29", "VL30", "VL31", "VL32", "VL33", "VL34", "VL35", "VL36", "VL38", "VL113", "VL114", "VL115", "VL117"
         );
         assertEquals(expectedExternalVL, externalVL);
+    }
+
+    private Set<String> getVoltageLevels(List<LfBus> lfBuses) {
+        return lfBuses.stream()
+            .map(LfBus::getVoltageLevelId)
+            .collect(Collectors.toSet());
     }
 }
