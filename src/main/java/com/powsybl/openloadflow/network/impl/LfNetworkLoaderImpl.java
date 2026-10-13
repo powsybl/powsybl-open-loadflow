@@ -1396,7 +1396,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         // -- Sanity checks : detecting invalid DC configuration and automatically resolving reference-less islands
         double dcNominalV = dcVoltages.iterator().next();
         List<AcDcConverter<?>> convertersToSetInVdcMode =
-                DcComponentValidator.resolveDcComponent(dcBuses, loadingContext.acDcConverterSet, numDcc);
+                DcComponentValidator.resolveDcComponent(dcBuses, loadingContext.acDcConverterSet, loadingContext.dcSwitchSet, numDcc);
         convertersToSetInVdcMode.forEach(converter -> {
             LOGGER.info("Network {}: converter '{}' automatically set to V_DC control mode (target Vdc = {} kV) " +
                             "to settle an otherwise unconstrained DC island in DC component {}",
