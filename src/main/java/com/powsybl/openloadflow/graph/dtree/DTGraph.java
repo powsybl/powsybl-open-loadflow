@@ -10,7 +10,6 @@ package com.powsybl.openloadflow.graph.dtree;
 import com.powsybl.openloadflow.graph.GraphModel;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * A graph maintaining a spanning forest over its connected component.
@@ -354,8 +353,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         return roots.size();
     }
 
-    public Set<V> componentView(V vertex) {
-        return getNodeOrThrow(vertex).componentView();
+    public Set<V> createComponentView(V vertex) {
+        return getNodeOrThrow(vertex).createComponentView();
     }
 
     DTNode<V, E> getBiggestRoot() {
@@ -377,9 +376,9 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      */
     public List<Set<V>> allComponents() {
         List<Set<V>> components = roots.stream()
-                .map(DTNode::componentView)
+                .map(DTNode::createComponentView)
                 .sorted(Comparator.<Set<V>>comparingInt(Set::size).reversed())
-                .collect(Collectors.toCollection(ArrayList::new));
+                .toList();
 
         for (int i = 0; i < components.size(); i++) {
             ComponentView<V, E> comp = (ComponentView<V, E>) components.get(i);

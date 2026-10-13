@@ -97,7 +97,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     public Set<V> getConnectedComponent(V vertex) {
         checkSavedContext();
         checkVertex(vertex);
-        return getGraph().componentView(vertex);
+        return getGraph().createComponentView(vertex);
     }
 
     @Override
@@ -105,7 +105,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         checkSavedContext();
 
         if (componentSets == null) {
-            return getGraph().getBiggestRoot().componentView();
+            return getGraph().getBiggestRoot().createComponentView();
         } else {
             return componentSets.getFirst();
         }
@@ -122,7 +122,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         Set<V> components = new HashSet<>();
         for (DTNode<V, E> root : graph.getRoots()) {
             if (root != excludedTree) {
-                components.addAll(root.componentView());
+                components.addAll(root.createComponentView());
             }
         }
 

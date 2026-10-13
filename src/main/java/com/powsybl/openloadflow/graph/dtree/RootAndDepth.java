@@ -12,5 +12,5 @@ package com.powsybl.openloadflow.graph.dtree;
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public record DTNodeAndDepth<V, E>(DTNode<V, E> node, int depth) {
+public record RootAndDepth<V, E>(DTNode<V, E> node, int depth) {
 }
