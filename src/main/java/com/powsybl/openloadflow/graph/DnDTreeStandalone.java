@@ -9,6 +9,8 @@ package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.dtree.AbstractSetView;
+import com.powsybl.openloadflow.graph.dtree.DTGraph;
+import com.powsybl.openloadflow.graph.dtree.StateMap;
 
 import java.util.*;
 
@@ -28,7 +30,188 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
     private boolean isSorted = true;
 
     private final Deque<Modifications> modificationsStack = new ArrayDeque<>();
+    private Modifications currentModificationsContext;
     private V defaultMainComponentVertex;
+
+    @Override
+    public void addVertex(V vertex) {
+        Objects.requireNonNull(vertex);
+
+        if (tryAddVertex(vertex)) {
+            // keep track of modifications
+            Modifications modifications = modificationsStack.peek();
+
+            if (modifications != null) {
+                modifications.push(new VertexAdd<>(vertex));
+            }
+        }
+    }
+
+    @Override
+    public void addEdge(V vertex1, V vertex2, E edge) {
+        Objects.requireNonNull(vertex1);
+        Objects.requireNonNull(vertex2);
+        Objects.requireNonNull(edge);
+
+        if (tryAddEdge(vertex1, vertex2, edge)) {
+            // keep track of modifications
+            Modifications modifications = modificationsStack.peek();
+
+            if (modifications != null) {
+                modifications.push(new EdgeAdd<>(vertex1, vertex2, edge));
+            }
+        }
+    }
+
+    @Override
+    public void removeEdge(E edge) {
+        Objects.requireNonNull(edge);
+
+        Edge e = tryRemoveEdge(edge);
+        if (e != null) {
+            // keep track of modifications
+            Modifications modifications = modificationsStack.peek();
+
+            if (modifications != null) {
+                modifications.push(new EdgeRemove<>(e.nodeU.vertex, e.nodeV.vertex, e.edgeData));
+            }
+        }
+    }
+
+    @Override
+    public boolean supportTemporaryChangesNesting() {
+        return true;
+    }
+
+    @Override
+    public void startTemporaryChanges(boolean computeComparisons) {
+        modificationsStack.push(new Modifications(defaultMainComponentVertex, computeComparisons));
+        currentModificationsContext = modificationsStack.peek();
+    }
+
+    @Override
+    public void undoTemporaryChanges() {
+        if (modificationsStack.isEmpty()) {
+            throw new PowsyblException("Cannot reset, no remaining saved connectivity");
+        }
+
+        Modifications modifications = modificationsStack.peek();
+        currentModificationsContext = null;
+
+        for (GraphModification<V, E> gm : modifications) {
+            switch (gm) {
+                case EdgeAdd<V, E> edgeAdd -> tryRemoveEdge(edgeAdd.e);
+                case EdgeRemove<V, E> edgeRemove -> tryAddEdge(edgeRemove.v1, edgeRemove.v2, edgeRemove.e);
+                case VertexAdd<V, E> vertexAdd -> tryRemoveVertex(vertexAdd.v());
+                default -> throw new IllegalStateException("Unexpected value: " + gm);
+            }
+        }
+
+        modificationsStack.pop();
+        currentModificationsContext = modificationsStack.peek();
+    }
+
+    private Modifications checkSavedContext() {
+        if (modificationsStack.isEmpty()) {
+            throw new PowsyblException("Cannot compute connectivity without a saved state, please call GraphConnectivity::startTemporaryChanges at least once beforehand");
+        }
+        return modificationsStack.peek();
+    }
+
+    @Override
+    public int getComponentNumber(V vertex) {
+        return getConnectedComponent(vertex).getNumber();
+    }
+
+    @Override
+    public boolean connected(V vertex1, V vertex2) {
+        return rootOf(vertex1) == rootOf(vertex2);
+    }
+
+    @Override
+    public void setMainComponentVertex(V mainComponentVertex) {
+        if (!modificationsStack.isEmpty()) {
+            Modifications modifications = modificationsStack.peek();
+            modifications.setMainComponentVertex(mainComponentVertex);
+        }
+        defaultMainComponentVertex = mainComponentVertex;
+    }
+
+    private IDNode getBiggestRoot() {
+        if (isSorted) {
+            return roots.getFirst();
+        } else {
+            IDNode biggestRoot = roots.getFirst();
+
+            for (int i = 1; i < roots.size(); i++) {
+                IDNode root = roots.get(i);
+                if (root.size > biggestRoot.size) {
+                    biggestRoot = root;
+                }
+            }
+
+            return biggestRoot;
+        }
+    }
+
+    @Override
+    public int getNbConnectedComponents() {
+        checkSavedContext();
+        return roots.size();
+    }
+
+    @Override
+    public Component<V> getConnectedComponent(V vertex) {
+        checkSavedContext();
+        IDNode node = getNodeOrThrow(vertex);
+        return node.findRoot().componentView();
+    }
+
+    @Override
+    public Component<V> getLargestConnectedComponent() {
+        checkSavedContext();
+        return getBiggestRoot().componentView();
+    }
+
+    @Override
+    public Set<V> getVerticesRemovedFromMainComponent() {
+        return checkSavedContext().getVerticesRemovedFromMainComponent();
+    }
+
+    @Override
+    public Set<E> getEdgesRemovedFromMainComponent() {
+        return checkSavedContext().getEdgesRemovedFromMainComponent();
+    }
+
+    @Override
+    public Set<V> getVerticesAddedToMainComponent() {
+        return checkSavedContext().getVerticesAddedToMainComponent();
+    }
+
+    @Override
+    public Set<E> getEdgesAddedToMainComponent() {
+        return checkSavedContext().getEdgesAddedToMainComponent();
+    }
+
+    @Override
+    public long computeSumOfDistances() {
+        long sum = 0;
+
+        for (IDNode node : vertexToTreeNode.values()) {
+            sum += node.depth();
+        }
+
+        return sum;
+    }
+
+    @Override
+    public int vertexCount() {
+        return vertexToTreeNode.size();
+    }
+
+    // ===================
+    // * GRAPH OPERATION *
+    // ===================
 
     public boolean containsVertex(V vertex) {
         return vertexToTreeNode.containsKey(vertex);
@@ -36,20 +219,6 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
 
     public boolean containsEdge(E edge) {
         return edges.containsKey(edge);
-    }
-
-    public V getEdgeSource(E edge) {
-        return switch (edges.get(edge)) {
-            case null -> null;
-            case Edge e -> e.nodeU.vertex;
-        };
-    }
-
-    public V getEdgeTarget(E edge) {
-        return switch (edges.get(edge)) {
-            case null -> null;
-            case Edge e -> e.nodeV.vertex;
-        };
     }
 
     private IDNode getNodeOrThrow(V v) {
@@ -75,121 +244,80 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
         }
     }
 
-    @Override
-    public long computeSumOfDistances() {
-        long sum = 0;
-
-        for (IDNode node : vertexToTreeNode.values()) {
-            sum += node.depth();
-        }
-
-        return sum;
-    }
-
-    @Override
-    public int vertexCount() {
-        return vertexToTreeNode.size();
-    }
-
-    @Override
-    public void addVertex(V vertex) {
-        Objects.requireNonNull(vertex);
+    private boolean tryAddVertex(V vertex) {
         if (containsVertex(vertex)) {
-            return;
+            return false;
         }
 
         IDNode newNode = new IDNode(vertex);
         vertexToTreeNode.put(vertex, newNode);
         addRoot(newNode);
-
-        if (!modificationsStack.isEmpty()) {
-            modificationsStack.peek().push(new VertexAdd<>(vertex));
-        }
+        return true;
     }
 
-    public void removeVertex(V v) {
+    private boolean tryRemoveVertex(V v) {
         if (!containsVertex(v)) {
-            return;
+            return false;
         }
 
         IDNode node = vertexToTreeNode.get(v); // can't use Map#remove because removeEdge will update this DTNode
-        while (!node.incidentEdges.isEmpty()) {
-            // this is weird, but removeEdge will modify node.nonTreeEdges, invalidating the iterator...
-            E edge = node.incidentEdges.iterator().next();
-            removeEdge(edge);
-        }
-        if (node.parentEdge != null) {
-            removeEdge(node.parentEdge);
+        for (Edge edge : new HashSet<>(node.incidentEdges)) {
+            tryRemoveEdge(edge.edgeData);
         }
 
         IDNode root = vertexToTreeNode.remove(v);
         removeRoot(root);
 
-        // no VertexRemove modification, so don't update stack
+        return true;
     }
 
     // =============
     // * INSERTION *
     // =============
 
-    @Override
-    public void addEdge(V vertex1, V vertex2, E edge) {
-        Objects.requireNonNull(vertex1);
-        Objects.requireNonNull(vertex2);
-        Objects.requireNonNull(edge);
-
-        if (containsEdge(edge)) {
-            return;
-        }
-
-        // first update graph
-        IDNode nodeU = getNodeOrThrow(vertex1);
-        IDNode nodeV = getNodeOrThrow(vertex2);
-
-        // then the spanning tree and vertices and edges state
-        IDNode rootU = nodeU.findRoot();
-        IDNode rootV = nodeV.findRoot();
-
-        boolean treeEdge;
-        IDNode mergedTree = null; // in case two trees were merged
-        if (rootU == rootV) {
-            // insert non tree edge
-            insertNonTreeEdgeRecordModifications(rootU, edge);
-            treeEdge = insertNonTreeEdge(rootU, nodeU, nodeV, edge);
-        } else {
-            // insert tree edge
-            insertTreeEdgeRecordModifications(rootU, rootV, edge);
-            mergedTree = insertTreeEdge(rootU, nodeU, rootV, nodeV, edge);
-            treeEdge = true;
-        }
-
-        nodeU.incidentEdges.add(edge);
-        nodeV.incidentEdges.add(edge);
-        edges.put(edge, new Edge(nodeU, nodeV, treeEdge));
-
-        // keep track of modifications
-        Modifications modifications = modificationsStack.peek();
-        if (modifications != null) {
-            if (mergedTree != null) {
-                modifications.notifyInsertTreeEdge(mergedTree);
-            }
-
-            modifications.push(new EdgeAdd<>(vertex1, vertex2, edge));
+    private boolean tryAddEdge(V vertex1, V vertex2, E e) {
+        if (containsEdge(e)) {
+            return false;
         }
 
         // invalidate roots ordering
         isSorted = false;
 
-        check();
-    }
+        // first update graph
+        IDNode nodeU = getNodeOrThrow(vertex1);
+        IDNode nodeV = getNodeOrThrow(vertex2);
 
-    private void insertNonTreeEdgeRecordModifications(IDNode root, E edge) {
-        if (isInMainComponent(root)) {
-            checkSavedContext().markEdgeAdded(edge);
+        Edge edge = new Edge(nodeU, nodeV, e, false);
+        edges.put(e, edge);
+
+        // then the spanning tree and vertices and edges state
+        IDNode rootU = nodeU.findRoot();
+        IDNode rootV = nodeV.findRoot();
+
+        if (rootU == rootV) {
+            // insert non tree edge
+            nodeU.incidentEdges.add(edge);
+            nodeV.incidentEdges.add(edge);
+
+            beforeInsertingEdgeInComponent(rootU, edge);
+            edge.treeEdge = insertEdgeInComponent(rootU, nodeU, nodeV, edge);
+        } else {
+            // insert tree edge
+            beforeInsertingEdgeBetweenComponents(rootU, rootV, edge);
+
+            edge.treeEdge = true;
+            nodeU.incidentEdges.add(edge);
+            nodeV.incidentEdges.add(edge);
+
+            IDNode mergedTree = insertEdgeBetweenComponents(rootU, nodeU, rootV, nodeV, edge);
+            afterInsertingEdgeBetweenComponents(mergedTree);
         }
+
+        check();
+        return true;
     }
 
-    private boolean insertNonTreeEdge(IDNode root, IDNode nodeU, IDNode nodeV, E edge) {
+    private boolean insertEdgeInComponent(IDNode root, IDNode nodeU, IDNode nodeV, Edge edge) {
         // at this point, we don't know if 'deep' depth is greater than 'shallow' depth
         int depthU = nodeU.depth();
         int depthV = nodeV.depth();
@@ -209,7 +337,7 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
                 ancestor = ancestor.parent;
             }
 
-            edges.get(ancestor.parentEdge).treeEdge = false;
+            ancestor.parentEdge.treeEdge = false;
 
             ancestor.unlink();
             deep.makeRoot(false);
@@ -219,17 +347,7 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
         return false;
     }
 
-    private void insertTreeEdgeRecordModifications(IDNode rootU, IDNode rootV, E edge) {
-        if (isInMainComponent(rootV)) {
-            checkSavedContext().markEdgeAdded(edge);
-            markAllAdded(rootU);
-        } else if (isInMainComponent(rootU)) {
-            checkSavedContext().markEdgeAdded(edge);
-            markAllAdded(rootV);
-        }
-    }
-
-    private IDNode insertTreeEdge(IDNode rootU, IDNode nodeU, IDNode rootV, IDNode nodeV, E edge) {
+    private IDNode insertEdgeBetweenComponents(IDNode rootU, IDNode nodeU, IDNode rootV, IDNode nodeV, Edge edge) {
         if (rootU.size < rootV.size) {
             // update ID Tree by making nodeU a root and making it a child of nodeV
             nodeU.makeRoot(true);
@@ -251,42 +369,32 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
     // * REMOVAL *
     // ===========
 
-    @Override
-    public void removeEdge(E edge) {
-        Objects.requireNonNull(edge);
-        Edge e = edges.remove(edge);
-        if (e == null) {
-            return;
-        }
-
-        // update graph
-        e.nodeU.incidentEdges.remove(edge);
-        e.nodeV.incidentEdges.remove(edge);
-
-        // update the spanning tree
-        if (e.treeEdge) {
-            removeTreeEdge(e.nodeU, e.nodeV, edge);
-        } else {
-            removeNonTreeEdgeRecordModifications(e.nodeU, edge);
-        }
-
-        // keep track of modifications
-        Modifications modifications = modificationsStack.peek();
-        if (modifications != null) {
-            if (e.treeEdge) {
-                modifications.notifyRemoveTreeEdge();
-            }
-
-            modifications.push(new EdgeRemove<>(e.nodeU.vertex, e.nodeV.vertex, edge));
+    private Edge tryRemoveEdge(E e) {
+        Objects.requireNonNull(e);
+        Edge edge = edges.remove(e);
+        if (edge == null) {
+            return null;
         }
 
         // invalidate roots ordering
         isSorted = false;
 
+        // update graph
+        edge.nodeU.incidentEdges.remove(edge);
+        edge.nodeV.incidentEdges.remove(edge);
+
+        // update the spanning tree
+        if (edge.treeEdge) {
+            removeTreeEdge(edge.nodeU, edge.nodeV, edge);
+        } else {
+            afterRemovingNonBreakingConnectivityEdge(edge.nodeU.findRoot(), edge);
+        }
+
         check();
+        return edge;
     }
 
-    private void removeTreeEdge(IDNode nodeU, IDNode nodeV, E edge) {
+    private void removeTreeEdge(IDNode nodeU, IDNode nodeV, Edge edge) {
         IDNode child;
         if (nodeU == nodeV.parent) {
             child = nodeV;
@@ -314,7 +422,7 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
     }
 
     // search a replacement edge by doing a BFS over the smaller tree between rootSmall and rooLarge
-    private void replace(IDNode rootSmall, IDNode rootLarge, E removedEdge) {
+    private void replace(IDNode rootSmall, IDNode rootLarge, Edge removedEdge) {
         boolean replacementEdgeFound = false;
         IDNode newRoot = null; // a potential new root in case no replacement edge is found
 
@@ -333,11 +441,10 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
                 newRoot = n;
             }
 
-            for (E nonTreeEdge : n.incidentEdges) {
-                Edge edge = edges.get(nonTreeEdge);
-                IDNode oppNode = edge.opposite(n);
+            for (Edge nonTreeEdge : n.incidentEdges) {
+                IDNode oppNode = nonTreeEdge.opposite(n);
 
-                if (edge.treeEdge) {
+                if (nonTreeEdge.treeEdge) {
                     if (n == oppNode.parent) {
                         if (!oppNode.visited) {
                             visited.add(oppNode);
@@ -348,11 +455,12 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
                 } else if (allAncestorUnvisited(oppNode, visited)) {
                     // found a replacement edge
                     n.makeRoot(true);
-                    newRoot = n.linkWithParent(rootLarge, oppNode, nonTreeEdge);
-                    newRoot.dsNode.makeRoot();
+                    IDNode mergedTreeRoot = n.linkWithParent(rootLarge, oppNode, nonTreeEdge);
+                    mergedTreeRoot.dsNode.makeRoot();
                     removeRoot(n);
-                    edges.get(nonTreeEdge).treeEdge = true;
+                    nonTreeEdge.treeEdge = true;
                     replacementEdgeFound = true;
+                    afterRemovingNonBreakingConnectivityEdge(mergedTreeRoot, removedEdge);
 
                     break loop;
                 }
@@ -373,10 +481,11 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
 
             if (newRoot != null) {
                 newRoot.makeRootKeepConsistent();
+                afterRemovingEdgeBreakingConnectivity(newRoot, rootLarge, removedEdge);
+            } else {
+                afterRemovingEdgeBreakingConnectivity(rootSmall, rootLarge, removedEdge);
             }
         }
-
-        replaceRecordModifications(rootSmall, rootLarge, removedEdge, replacementEdgeFound);
     }
 
     private boolean allAncestorUnvisited(IDNode node, List<IDNode> visited) {
@@ -393,34 +502,6 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
         return true;
     }
 
-    private void replaceRecordModifications(IDNode rootSmall, IDNode rootLarge, E removedEdge, boolean replacementEdgeFound) {
-        // /!\ small and large can be both in the main component (when a replacement edge was found)
-        // However, in this case, we only need one of the two variables to be true to have
-        // the correct behavior (i.e. only the removedEdge is marked as removed).
-        // When there is no replacement edge, small and large cannot be simultaneously in the main
-        // component as there are in two distinct component.
-        boolean smallInMain = isInMainComponent(rootSmall);
-        boolean largeInMain = !smallInMain && isInMainComponent(rootLarge); // avoid computing isInMainComponent if we know that small is in the main component
-
-        if (smallInMain || largeInMain) {
-            checkSavedContext().markEdgeRemoved(removedEdge);
-        }
-
-        if (!replacementEdgeFound) {
-            if (largeInMain) {
-                markAllRemoved(rootSmall);
-            } else if (smallInMain) {
-                markAllRemoved(rootLarge);
-            }
-        }
-    }
-
-    private void removeNonTreeEdgeRecordModifications(IDNode node, E edge) {
-        if (isInMainComponent(node)) {
-            checkSavedContext().markEdgeRemoved(edge);
-        }
-    }
-
     private void addRoot(IDNode node) {
         node.rootIndex = roots.size();
         roots.add(node);
@@ -435,160 +516,38 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
         }
     }
 
-    @Override
-    public boolean supportTemporaryChangesNesting() {
-        return true;
-    }
-
-    @Override
-    public void startTemporaryChanges(boolean computeComparisons) {
-        IDNode mainComponentNode;
-        boolean fictitious = false;
-        if (defaultMainComponentVertex == null) {
-            mainComponentNode = getBiggestRoot();
-            fictitious = true;
-        } else {
-            mainComponentNode = getNodeOrThrow(defaultMainComponentVertex);
-        }
-
-        modificationsStack.push(new Modifications(mainComponentNode, fictitious, computeComparisons));
-    }
-
-    @Override
-    public void undoTemporaryChanges() {
-        if (modificationsStack.isEmpty()) {
-            throw new PowsyblException("Cannot reset, no remaining saved connectivity");
-        }
-
-        Modifications modifications = modificationsStack.peek();
-        modifications.undoing = true;
-
-        for (GraphModification<V, E> gm : modifications.modifications) {
-            switch (gm) {
-                case EdgeAdd<V, E> edgeAdd -> removeEdge(edgeAdd.e);
-                case EdgeRemove<V, E> edgeRemove -> addEdge(edgeRemove.v1, edgeRemove.v2, edgeRemove.e);
-                case VertexAdd<V, E> vertexAdd -> removeVertex(vertexAdd.v());
-                default -> throw new IllegalStateException("Unexpected value: " + gm);
-            }
-        }
-
-        modificationsStack.pop();
-    }
-
-    private Modifications checkSavedContext() {
-        if (modificationsStack.isEmpty()) {
-            throw new PowsyblException("Cannot compute connectivity without a saved state, please call GraphConnectivity::startTemporaryChanges at least once beforehand");
-        }
-        return modificationsStack.peek();
-    }
-
-    @Override
-    public int getComponentNumber(V vertex) {
-        checkSavedContext();
-        IDNode node = getNodeOrThrow(vertex);
-        sortTrees();
-
-        return node.findRoot().rootIndex;
-    }
-
-    @Override
-    public boolean connected(V vertex1, V vertex2) {
-        return rootOf(vertex1) == rootOf(vertex2);
-    }
-
-    @Override
-    public void setMainComponentVertex(V mainComponentVertex) {
-        if (!modificationsStack.isEmpty()) {
-            Modifications modifications = modificationsStack.peek();
-            modifications.setMainComponentVertex(mainComponentVertex);
-        }
-        defaultMainComponentVertex = mainComponentVertex;
-    }
-
-    private boolean isInMainComponent(IDNode node) {
-        Modifications modifications = modificationsStack.peek();
-
-        if (modifications == null) {
-            return false;
-        } else {
-            return modifications.mainComponentNode.findRoot() == node.findRoot();
-        }
-    }
-
-    private IDNode getBiggestRoot() {
-        IDNode biggestRoot = roots.getFirst();
-
-        for (int i = 1; i < roots.size(); i++) {
-            IDNode root = roots.get(i);
-            if (root.size > biggestRoot.size) {
-                biggestRoot = root;
-            }
-        }
-
-        return biggestRoot;
-    }
-
-    @Override
-    public int getNbConnectedComponents() {
-        checkSavedContext();
-        return roots.size();
-    }
-
-    @Override
-    public Component<V> getConnectedComponent(V vertex) {
-        checkSavedContext();
-        IDNode node = getNodeOrThrow(vertex);
-        return node.findRoot().componentView();
-    }
-
-    @Override
-    public Component<V> getLargestConnectedComponent() {
-        checkSavedContext();
-        sortTrees();
-
-        return roots.getFirst().componentView();
-    }
-
     // =========================
     // * MODIFICATIONS SUPPORT *
     // =========================
 
-    private void markAllAdded(IDNode root) {
-        Modifications modifications = modificationsStack.peek();
-        if (modifications == null) {
-            return;
+    private void beforeInsertingEdgeInComponent(IDNode treeRoot, Edge edge) {
+        if (currentModificationsContext != null) {
+            currentModificationsContext.beforeInsertingEdgeInComponent(treeRoot, edge);
         }
-
-        modifications.markAllAdded(root);
     }
 
-    private void markAllRemoved(IDNode root) {
-        Modifications modifications = modificationsStack.peek();
-        if (modifications == null) {
-            return;
+    private void beforeInsertingEdgeBetweenComponents(IDNode rootU, IDNode rootV, Edge edge) {
+        if (currentModificationsContext != null) {
+            currentModificationsContext.beforeInsertingEdgeBetweenComponents(rootU, rootV, edge);
         }
-
-        modifications.markAllRemoved(root);
     }
 
-    @Override
-    public Set<V> getVerticesRemovedFromMainComponent() {
-        return checkSavedContext().getVerticesRemovedFromMainComponent();
+    private void afterInsertingEdgeBetweenComponents(IDNode mergedTree) {
+        if (currentModificationsContext != null) {
+            currentModificationsContext.afterInsertingEdgeBetweenComponents(mergedTree);
+        }
     }
 
-    @Override
-    public Set<E> getEdgesRemovedFromMainComponent() {
-        return checkSavedContext().getEdgesRemovedFromMainComponent();
+    private void afterRemovingNonBreakingConnectivityEdge(IDNode treeRoot, Edge edge) {
+        if (currentModificationsContext != null) {
+            currentModificationsContext.afterRemovingNonBreakingConnectivityEdge(treeRoot, edge);
+        }
     }
 
-    @Override
-    public Set<V> getVerticesAddedToMainComponent() {
-        return checkSavedContext().getVerticesAddedToMainComponent();
-    }
-
-    @Override
-    public Set<E> getEdgesAddedToMainComponent() {
-        return checkSavedContext().getEdgesAddedToMainComponent();
+    private void afterRemovingEdgeBreakingConnectivity(IDNode smallRoot, IDNode largeRoot, Edge edge) {
+        if (currentModificationsContext != null) {
+            currentModificationsContext.afterRemovingEdgeBreakingConnectivity(smallRoot, largeRoot, edge);
+        }
     }
 
     // ==============
@@ -609,6 +568,7 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
         for (Map.Entry<E, Edge> entry : edges.entrySet()) {
             E e = entry.getKey();
             Edge edge = entry.getValue();
+            assert edge.edgeData == e;
 
             IDNode src = edge.nodeU;
             IDNode dest = edge.nodeV;
@@ -617,10 +577,10 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
             assert vertexToTreeNode.containsValue(dest);
 
             if (edge.treeEdge) {
-                assert src.parent == dest && src.parentEdge == e || dest.parent == src && dest.parentEdge == e;
+                assert src.parent == dest && src.parentEdge == edge || dest.parent == src && dest.parentEdge == edge;
             } else {
-                assert src.incidentEdges.contains(e);
-                assert dest.incidentEdges.contains(e);
+                assert src.incidentEdges.contains(edge);
+                assert dest.incidentEdges.contains(edge);
             }
         }
     }
@@ -631,10 +591,8 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
             assert dsNode != null;
             assert node.parent == null || node.parent.size > node.size;
 
-            for (E e : node.incidentEdges) {
-                Edge edge = edges.get(e);
+            for (Edge edge : node.incidentEdges) {
                 assert edge != null;
-
                 assert edge.nodeU == node || edge.nodeV == node;
             }
 
@@ -704,9 +662,7 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
                 assert !visitedDSNodeInIDTree.contains(idNode.dsNode);
                 visitedDSNodeInIDTree.add(idNode.dsNode);
 
-                for (E e : idNode.incidentEdges) {
-                    Edge edge = edges.get(e);
-
+                for (Edge edge : idNode.incidentEdges) {
                     if (edge.treeEdge) {
                         IDNode opposite = edge.opposite(idNode);
 
@@ -779,9 +735,9 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
         private int size;
 
         private IDNode parent = null;
-        private E parentEdge = null;
+        private Edge parentEdge = null;
 
-        private final Set<E> incidentEdges = new HashSet<>();
+        private final Set<Edge> incidentEdges = new HashSet<>();
 
         // index in the list of roots, valid only if this node is a root
         private int rootIndex;
@@ -801,7 +757,7 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
          * @param parent node that will become the parent of {@code this}.
          * @param edge the edge linking {@code this} and {@code parent}
          */
-        private IDNode linkWithParent(IDNode parentRoot, IDNode parent, E edge) {
+        private IDNode linkWithParent(IDNode parentRoot, IDNode parent, Edge edge) {
             // first: update parent/child relations
             this.parent = parent;
             this.parentEdge = edge;
@@ -869,7 +825,7 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
 
             IDNode child = this;
             IDNode parent = child.parent;
-            E parentEdge = child.parentEdge;
+            Edge parentEdge = child.parentEdge;
 
             this.parent = null;
             this.parentEdge = null;
@@ -877,7 +833,7 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
             // swap parent/child relation
             while (parent != null) {
                 IDNode greatParent = parent.parent;
-                E greatParentEdge = parent.parentEdge;
+                Edge greatParentEdge = parent.parentEdge;
 
                 parent.parent = child;
                 parent.parentEdge = parentEdge;
@@ -921,7 +877,6 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
             return dsNode.findRootDS().idNode;
         }
 
-        // This DNode MUST be a root
         public Component<V> componentView() {
             if (componentView == null) {
                 componentView = new ComponentView(this);
@@ -937,8 +892,7 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
             sb.append(vertex).append(" -te-> {");
 
             Set<Edge> nte = new HashSet<>();
-            for (E e : incidentEdges) {
-                Edge edge = edges.get(e);
+            for (Edge edge : incidentEdges) {
                 if (edge.treeEdge) {
                     IDNode opposite = edge.opposite(this);
 
@@ -1094,7 +1048,7 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
 
         @Override
         public Iterator<V> iterator() {
-            return new DFSIterator(node.findRoot());
+            return new DFSIterator(getRoot());
         }
 
         @Override
@@ -1104,7 +1058,7 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
                 // However, don't use findRootOptReroot on node, it might change the root
                 // after we got the root of 'o'.
 
-                return rootOf((V) o) == node.findRoot();
+                return rootOf((V) o) == getRoot();
             }
 
             return false;
@@ -1112,17 +1066,22 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
 
         @Override
         public int size() {
-            return node.findRoot().size;
+            return getRoot().size;
         }
 
         @Override
         public int getNumber() {
-            return getComponentNumber(node.findRoot().vertex);
+            sortTrees();
+            return getRoot().rootIndex;
         }
 
         @Override
         public Set<V> toOwnedSet() {
             return new HashSet<>(this);
+        }
+
+        IDNode getRoot() {
+            return node.findRoot();
         }
     }
 
@@ -1188,11 +1147,13 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
     private final class Edge {
         private final IDNode nodeU;
         private final IDNode nodeV;
+        private final E edgeData;
         private boolean treeEdge;
 
-        private Edge(IDNode nodeU, IDNode nodeV, boolean treeEdge) {
+        private Edge(IDNode nodeU, IDNode nodeV, E edgeData, boolean treeEdge) {
             this.nodeU = nodeU;
             this.nodeV = nodeV;
+            this.edgeData = edgeData;
             this.treeEdge = treeEdge;
         }
 
@@ -1204,26 +1165,50 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
             }
         }
 
+        public boolean isTreeEdge() {
+            return treeEdge;
+        }
+
         @Override
         public String toString() {
             return "Edge{" +
-                    "u=" + nodeU.vertex +
-                    ", v=" + nodeV.vertex +
+                    "nodeU=" + nodeU +
+                    ", nodeV=" + nodeV +
+                    ", edgeData=" + edgeData +
                     ", treeEdge=" + treeEdge +
                     '}';
         }
     }
 
     /**
-     * Contains modifications performed on the graph between
-     * the last call to {@link #startTemporaryChanges(boolean)}
+     * Contains modifications performed on the {@link DTGraph} between
+     * the last call to {@link GraphConnectivity#startTemporaryChanges}
      * and the current instant. It stores a stack of {@link GraphModification}
      * and optionally the set of vertices and edges added to the
      * main component or removed from it.
+     *
+     * <p>
+     * Topological comparisons are always computed relative to some main component
+     * vertex, even when the user didn't specify one. When an edge is added in (or
+     * removed from) a {@link DTGraph}, a DFS is performed to compute every vertex
+     * that are now connected to (disconnected from) the main component vertex. It
+     * is the responsibility of {@link DTGraph} to call the appropriate methods from
+     * this class.
+     * </p>
+     *
+     * <p>
+     * Specifying a main component vertex is optional. In this case the main component
+     * vertex is a vertex in the biggest component and is considered as fictitious.
+     * It may lose its fictitious status when {@link #setMainComponentVertex(Object)}
+     * is called. Over the time, this vertex may automatically change to another one
+     * as the biggest main component can change.
+     * </p>
+     *
+     * @see StateMap
      */
-    private final class Modifications {
+    private final class Modifications implements Iterable<GraphModification<V, E>> {
 
-        private final Deque<GraphModification<V, E>> modifications = new ArrayDeque<>();
+        private final Deque<GraphModification<V, E>> modificationsStack = new ArrayDeque<>();
         private final StateMap<V> verticesState;
         private final StateMap<E> edgesState;
 
@@ -1235,11 +1220,14 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
         private boolean isMainComponentVertexFictitious;
         private IDNode mainComponentNode;
 
-        private boolean undoing = false;
-
-        Modifications(IDNode mainComponentVertex, boolean fictitiousMCV, boolean computeComparisons) {
-            this.mainComponentNode = mainComponentVertex;
-            this.isMainComponentVertexFictitious = fictitiousMCV;
+        Modifications(V mainComponentVertex, boolean computeComparisons) {
+            if (mainComponentVertex == null) {
+                mainComponentNode = getBiggestRoot();
+                isMainComponentVertexFictitious = true;
+            } else {
+                mainComponentNode = getNodeOrThrow(mainComponentVertex);
+                isMainComponentVertexFictitious = false;
+            }
 
             if (computeComparisons) {
                 verticesState = new StateMap<>();
@@ -1251,8 +1239,76 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
         }
 
         public void push(GraphModification<V, E> modification) {
-            if (!undoing) {
-                modifications.push(modification);
+            modificationsStack.push(modification);
+        }
+
+        public void beforeInsertingEdgeInComponent(IDNode treeRoot, Edge edge) {
+            if (topologicalComparisonsDisabled()) {
+                return;
+            }
+
+            if (isInMainComponent(treeRoot)) {
+                edgesState.markAsAdded(edge.edgeData);
+            }
+        }
+
+        public void beforeInsertingEdgeBetweenComponents(IDNode rootU, IDNode rootV, Edge edge) {
+            if (topologicalComparisonsDisabled()) {
+                return;
+            }
+
+            if (isInMainComponent(rootV)) {
+                edgesState.markAsAdded(edge.edgeData);
+                markAll(rootU, StateMap.State.ADDED);
+            } else if (isInMainComponent(rootU)) {
+                edgesState.markAsAdded(edge.edgeData);
+                markAll(rootV, StateMap.State.ADDED);
+            }
+        }
+
+        public void afterInsertingEdgeBetweenComponents(IDNode mergedTree) {
+            if (topologicalComparisonsDisabled()) {
+                return;
+            }
+
+            if (isMainComponentVertexFictitious) {
+                maybeBiggestTreeChanged(mergedTree);
+            }
+        }
+
+        public void afterRemovingNonBreakingConnectivityEdge(IDNode treeRoot, Edge edge) {
+            if (topologicalComparisonsDisabled()) {
+                return;
+            }
+
+            if (isInMainComponent(treeRoot)) {
+                edgesState.markAsRemoved(edge.edgeData);
+            }
+        }
+
+        public void afterRemovingEdgeBreakingConnectivity(IDNode smallRoot, IDNode largeRoot, Edge edge) {
+            if (topologicalComparisonsDisabled()) {
+                return;
+            }
+
+            // compute the main component root once to answer two connectivity queries faster.
+            IDNode mainComponentRoot = mainComponentNode.findRoot();
+            boolean smallInMainComponent = mainComponentRoot == smallRoot;
+            boolean largeInMainComponent = mainComponentRoot == largeRoot;
+
+            if (smallInMainComponent || largeInMainComponent) {
+                edgesState.markAsRemoved(edge.edgeData);
+            }
+
+            if (largeInMainComponent) {
+                markAll(smallRoot, StateMap.State.REMOVED);
+            } else if (smallInMainComponent) {
+                markAll(largeRoot, StateMap.State.REMOVED);
+            }
+
+            // handle unspecified main component vertex
+            if (isMainComponentVertexFictitious) {
+                maybeBiggestTreeChanged(getBiggestRoot());
             }
         }
 
@@ -1262,7 +1318,7 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
          * @param mainComponentVertex new vertex identifying the main component.
          */
         public void setMainComponentVertex(V mainComponentVertex) {
-            if (verticesState == null || edgesState == null || undoing) {
+            if (topologicalComparisonsDisabled()) {
                 return;
             }
 
@@ -1280,13 +1336,13 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
                     // the new main component vertex isn't in the current main component.
                     // But that doesn't mean it wasn't in the main component before starting temporary changes,
                     // it may have been removed.
-                    if (verticesState.get(mainComponentVertex) != StateMap.State.REMOVED) {
+                    if (verticesState.getState(mainComponentVertex) != StateMap.State.REMOVED) {
                         throw new PowsyblException("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes");
                     }
 
                     // last thing to do is update state of vertices and edges in the two trees.
-                    markAllRemoved(oldComponentRoot);
-                    markAllAdded(newComponentRoot);
+                    markAll(oldComponentRoot, StateMap.State.REMOVED);
+                    markAll(newComponentRoot, StateMap.State.ADDED);
                 }
 
                 this.mainComponentNode = mainComponentNode;
@@ -1295,53 +1351,21 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
             isMainComponentVertexFictitious = false;
         }
 
-        public void markEdgeAdded(E edge) {
-            if (edgesState != null && !undoing) {
-                edgesState.markAdded(edge);
-            }
+        private boolean isInMainComponent(IDNode node) {
+            return mainComponentNode.findRoot() == node.findRoot();
         }
 
-        public void markEdgeRemoved(E edge) {
-            if (edgesState != null && !undoing) {
-                edgesState.markRemoved(edge);
-            }
-        }
-
-        public void markAllAdded(IDNode root) {
-            markAll(root, StateMap.State.ADDED);
-        }
-
-        public void markAllRemoved(IDNode root) {
-            markAll(root, StateMap.State.REMOVED);
-        }
-
-        public void markAll(IDNode root, StateMap.State newState) {
-            if (verticesState == null || edgesState == null || undoing) {
-                return;
-            }
-
+        private void markAll(IDNode root, StateMap.State newState) {
             for (DFSIterator it = new DFSIterator(root); it.hasNext();) {
                 V vertex = it.next();
-                verticesState.mark(vertex, newState);
+                verticesState.updateState(vertex, newState);
 
                 IDNode node = it.node();
-                for (E nte : node.incidentEdges) {
-                    if (getEdgeSource(nte).equals(vertex)) {
-                        edgesState.mark(nte, newState);
+                for (Edge nte : node.incidentEdges) {
+                    if (nte.nodeU == node) {
+                        edgesState.updateState(nte.edgeData, newState);
                     }
                 }
-            }
-        }
-
-        public void notifyInsertTreeEdge(IDNode newTree) {
-            if (isMainComponentVertexFictitious) {
-                maybeBiggestTreeChanged(newTree);
-            }
-        }
-
-        public void notifyRemoveTreeEdge() {
-            if (isMainComponentVertexFictitious) {
-                maybeBiggestTreeChanged(getBiggestRoot());
             }
         }
 
@@ -1349,8 +1373,8 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
             IDNode mainComponentVertexTree = mainComponentNode.findRoot();
             if (currentBiggestRoot.size > mainComponentVertexTree.size) {
                 // there is a new biggest main component
-                markAllRemoved(mainComponentVertexTree);
-                markAllAdded(currentBiggestRoot);
+                markAll(mainComponentVertexTree, StateMap.State.REMOVED);
+                markAll(currentBiggestRoot, StateMap.State.ADDED);
                 mainComponentNode = currentBiggestRoot;
             }
         }
@@ -1381,6 +1405,15 @@ public class DnDTreeStandalone<V, E> implements SpanningForestGraphConnectivity<
                 throw new PowsyblException("Topological comparisons are disabled for the current temporary changes context!");
             }
             return edgesState.getAdded();
+        }
+
+        private boolean topologicalComparisonsDisabled() {
+            return verticesState == null || edgesState == null;
+        }
+
+        @Override
+        public Iterator<GraphModification<V, E>> iterator() {
+            return modificationsStack.iterator();
         }
     }
 }

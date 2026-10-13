@@ -46,7 +46,7 @@ public final class MainWR {
 
     public static void main(String[] args) throws IOException {
         WorkloadRunner wr = new WorkloadRunner();
-        wr.setRunParameters(performance());
+        wr.setRunParameters(validator());
 
         if (args.length >= 1) {
             switch (args[0]) {

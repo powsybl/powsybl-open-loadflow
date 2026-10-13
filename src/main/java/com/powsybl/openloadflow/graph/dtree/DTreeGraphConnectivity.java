@@ -111,7 +111,7 @@ public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnecti
             throw new PowsyblException("Cannot reset, no remaining saved connectivity");
         }
 
-        Modifications<V, E> modifications = modificationsStack.peek();
+        Modifications<V, E> modifications = modificationsStack.peek(); // FIXME: pop() ?
         graph.setCurrentModificationsContext(null);
 
         for (GraphModification<V, E> gm : modifications) {

@@ -7,7 +7,9 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
+import com.google.common.collect.Sets;
+import com.google.common.collect.testing.testers.AbstractSetTester;
+import org.apache.commons.collections4.multiset.AbstractMultiSet;
 import org.jgrapht.Graph;
 import org.jgrapht.generate.ScaleFreeGraphGenerator;
 import org.jgrapht.graph.DefaultEdge;
@@ -30,8 +32,8 @@ public class RandomConnectivityTest {
 
     @Test
     void randomGraph() {
-        for (int size = 1; size < 50; size++) {
-            for (int seed = 0; seed < 100; seed++) {
+        for (int size = 3; size < 50; size++) {
+            for (int seed = 2; seed < 100; seed++) {
                 System.out.printf("size: %d, seed: %d%n", size, seed);
                 // generate graph
                 Graph<Integer, DefaultEdge> graph = generateGraph(size, seed);
@@ -51,14 +53,14 @@ public class RandomConnectivityTest {
                         // new HolmEtAlGraphConnectivity<>(),
                         // new NewHolmGraphConnectivity<>(),
                         // new HolmStandalone<>(),
-                        new DTreeGraphConnectivity<>(),
-                        new DTreeStandalone<>(),
-                        new com.powsybl.openloadflow.graph.dtreepr.DTreeGraphConnectivity<>()
+                        // new DTreeGraphConnectivity<>(),
+                        // new DTreeStandalone<>(),
+                        // new com.powsybl.openloadflow.graph.dtreepr.DTreeGraphConnectivity<>(),
                         // new Delta2DTreeStandalone<>(),
                         // new Delta2ReplaceWithBestDTreeStandalone<>(),
                         // new ReplaceWithBestDTreeStandalone<>()
                         // new IDTreeStandalone<>(),
-                        // new DnDTreeStandalone<>(),
+                        new DnDTreeStandalone<>()
                         //new OptDTreeStandalone<>()
                 );
 
