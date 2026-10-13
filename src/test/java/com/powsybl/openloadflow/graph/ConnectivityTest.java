@@ -666,6 +666,34 @@ class ConnectivityTest {
         assertEquals(Set.of(), c.getEdgesRemovedFromMainComponent());
     }
 
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("provideAllConnectivities")
+    void testGetLargestConnectedComponent(GraphConnectivity<Integer, String> c) {
+        IntStream.range(1, 8).forEach(c::addVertex);
+        IntStream.range(1, 7).forEach(i -> c.addEdge(i, i + 1, i + "-" + (i + 1)));
+        // 1---2---3---4---5---6---7
+
+        c.startTemporaryChanges();
+
+        c.removeEdge("3-4");
+        // 1---2---3   4---5---6---7
+        assertEquals(Set.of(4, 5, 6, 7), c.getLargestConnectedComponent());
+
+        c.removeEdge("5-6");
+        // 1---2---3   4---5   6---7
+        assertEquals(Set.of(1, 2, 3), c.getLargestConnectedComponent()); // biggest component isn't one of the two split component
+
+        if (!(c instanceof EvenShiloachGraphDecrementalConnectivity)) {
+            c.addEdge(4, 7, "4-7");
+            // 1---2---3   6---7---4---5
+            assertEquals(Set.of(4, 5, 6, 7), c.getLargestConnectedComponent());
+
+            c.addEdge(3, 6, "3-6");
+            // 1---2---3---6---7---4---5
+            assertEquals(Set.of(1, 2, 3, 6, 7, 4, 5), c.getLargestConnectedComponent());
+        }
+    }
+
     <V> void assertConnected(GraphConnectivity<V, ?> c, V u, V v) {
         assertTrue(c.connected(u, v));
         assertTrue(c.connected(v, u));

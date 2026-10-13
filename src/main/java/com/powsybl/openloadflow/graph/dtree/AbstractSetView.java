@@ -8,10 +8,12 @@
 package com.powsybl.openloadflow.graph.dtree;
 
 import com.powsybl.openloadflow.graph.GraphConnectivity;
+import gnu.trove.set.hash.THashSet;
 
 import java.util.AbstractSet;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Set;
 
 /**
  * An unmodifiable view of a set why can be backed by any structure providing
@@ -22,6 +24,18 @@ import java.util.Iterator;
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
 public abstract class AbstractSetView<E> extends AbstractSet<E> {
+
+    /**
+     * @param set the set to copy if necessary
+     * @return a copy of {@code set} if it is an {@link AbstractSetView}
+     *         or the original set otherwise
+     */
+    public static <V> Set<V> copyIfNeeded(Set<V> set) {
+        if (set instanceof AbstractSetView<V>) {
+            return new THashSet<>(set);
+        }
+        return set;
+    }
 
     @Override
     public final boolean add(E e) {

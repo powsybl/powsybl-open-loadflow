@@ -45,11 +45,7 @@ public class ModificationsContext<V, E> {
 
     public void computeVerticesNotInMainComponentBefore() {
         if (computeComparisons) {
-            this.verticesNotInMainComponentBefore = verticesNotInMainComponentGetter.apply(mainComponentVertex);
-
-            if (this.verticesNotInMainComponentBefore instanceof AbstractSetView<V>) {
-                this.verticesNotInMainComponentBefore = new THashSet<>(this.verticesNotInMainComponentBefore);
-            }
+            this.verticesNotInMainComponentBefore = AbstractSetView.copyIfNeeded(verticesNotInMainComponentGetter.apply(mainComponentVertex));
         }
     }
 

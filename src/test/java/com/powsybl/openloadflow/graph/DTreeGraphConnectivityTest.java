@@ -153,12 +153,24 @@ class DTreeGraphConnectivityTest {
         assertFalse(zero.contains(1));
         assertTrue(one.contains(1));
         assertFalse(one.contains(0));
+        assertFalse(zero.contains(null));
+        assertFalse(one.contains(null));
 
         connectivity.addEdge(0, 1, "0-1");
 
+        assertTrue(zero.contains(0));
         assertTrue(zero.contains(1));
         assertTrue(one.contains(0));
+        assertTrue(one.contains(1));
+        assertFalse(zero.contains(null));
+        assertFalse(one.contains(null));
 
+        connectivity.removeEdge("0-1");
+
+        assertTrue(zero.contains(0));
+        assertFalse(zero.contains(1));
+        assertTrue(one.contains(1));
+        assertFalse(one.contains(0));
         assertFalse(zero.contains(null));
         assertFalse(one.contains(null));
     }

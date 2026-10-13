@@ -10,11 +10,6 @@ package com.powsybl.openloadflow.graph;
 import java.util.Set;
 
 /**
-import com.powsybl.openloadflow.graph.dtree.ComponentView;
-
-import java.util.Set;
-
-/**
  * A component is a set with a number. Components are owned
  * by their {@link GraphConnectivity}. They aren't persistent data
  * and can change when a {@link GraphConnectivity} is updated.
@@ -39,7 +34,7 @@ public interface Component<V> extends Set<V> {
      *
      * @return a set whose data is owned by the caller.
      * @implNote Implementations aren't required to copy data when unnecessary
-     * @see ComponentView#toOwnedSet()
+     * @see com.powsybl.openloadflow.graph.dtree.ComponentView#toOwnedSet()
      * @see HashSetComponent#toOwnedSet()
      */
     Set<V> toOwnedSet();

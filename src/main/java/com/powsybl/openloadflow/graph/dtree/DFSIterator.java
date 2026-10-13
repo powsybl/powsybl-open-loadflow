@@ -24,7 +24,7 @@ public class DFSIterator<V, E> implements Iterator<V> {
      * Creates a new depth-first iterator starting at the specified root node
      * and returning node according to the pre-order.
      *
-     * @param root the root of the tree to traverse. It must be a root otherwise,
+     * @param root the root of the tree to traverse. It must be a root; otherwise,
      *             the iterator may visit nodes outside the subtree
      */
     DFSIterator(DTNode<V, E> root) {

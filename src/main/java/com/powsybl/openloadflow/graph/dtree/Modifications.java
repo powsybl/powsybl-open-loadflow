@@ -111,7 +111,7 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
      * @param rootV root of the tree containing {@code edge.nodeV()}
      * @param edge the edge that will link the two trees
      */
-    public void beforeInsertingTreeEdge(DTNode<V, E> rootU, DTNode<V, E> rootV, Edge<V, E> edge) {
+    public void beforeInsertingEdgeBetweenComponents(DTNode<V, E> rootU, DTNode<V, E> rootV, Edge<V, E> edge) {
         if (topologicalComparisonsDisabled()) {
             return;
         }
@@ -134,7 +134,7 @@ public class Modifications<V, E> implements Iterable<GraphModification<V, E>> {
      *
      * @param mergedTree the tree resulting from a merge
      */
-    public void afterInsertingTreeEdge(DTNode<V, E> mergedTree) {
+    public void afterInsertingEdgeBetweenComponents(DTNode<V, E> mergedTree) {
         if (topologicalComparisonsDisabled()) {
             return;
         }

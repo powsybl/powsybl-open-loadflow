@@ -16,6 +16,7 @@ public abstract class AbstractComponent<V> extends AbstractSetView<V> implements
 
     private int num;
 
+    @Override
     public int getNumber() {
         return num;
     }
