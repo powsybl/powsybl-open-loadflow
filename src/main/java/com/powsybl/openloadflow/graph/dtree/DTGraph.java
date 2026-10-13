@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.graph.dtree;
 import com.powsybl.openloadflow.graph.GraphModel;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * A graph maintaining a spanning forest over its connected component.
@@ -88,15 +89,15 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         edges.put(e, edge);
 
         // update spanning trees
-        DTNodeWithDepth<V, E> rootUdepth = nodeU.findRootWithDepth();
-        DTNodeWithDepth<V, E> rootVdepth = nodeV.findRootWithDepth();
+        var rootAndDepthU = nodeU.findRootAndDepth();
+        var rootAndDepthV = nodeV.findRootAndDepth();
 
-        if (rootUdepth.node() == rootVdepth.node()) {
-            // insert non tree edge
-            insertEdgeInComponent(rootUdepth.node(), nodeU, rootUdepth.depth(), nodeV, rootVdepth.depth(), edge);
+        if (rootAndDepthU.node() == rootAndDepthV.node()) {
+            // insert an edge inside a component, "reinforcing" connectivity  (insertNonTreeEdge in the article)
+            insertEdgeInComponent(rootAndDepthU.node(), nodeU, rootAndDepthU.depth(), nodeV, rootAndDepthV.depth(), edge);
         } else {
-            // insert tree edge
-            insertTreeEdge(rootUdepth.node(), nodeU, rootVdepth.node(), nodeV, edge);
+            // merge two components by a tree edge (insertTreeEdge in the article)
+            insertEdgeBetweenComponents(rootAndDepthU.node(), nodeU, rootAndDepthV.node(), nodeV, edge);
         }
     }
 
@@ -160,7 +161,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
 
     /**
      * Insert a tree edge between {@code nodeU} (in tree rooted at {@code rootU})
-     * and {@code nodeV} (in tree rooted at {@code rootV}).
+     * and {@code nodeV} (in tree rooted at {@code rootV}); that is, merge two
+     * components.
      * Assuming the size of rootU is less than the size of rootV, we simply
      * make {@code nodeU} a root and link it with {@code nodeV}.
      *
@@ -170,7 +172,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      * @param nodeV the other endpoint of the edge to add.
      * @param edge  edge linking {@code nodeU} and {@code nodeV}
      */
-    private void insertTreeEdge(DTNode<V, E> rootU, DTNode<V, E> nodeU, DTNode<V, E> rootV, DTNode<V, E> nodeV, Edge<V, E> edge) {
+    private void insertEdgeBetweenComponents(DTNode<V, E> rootU, DTNode<V, E> nodeU, DTNode<V, E> rootV, DTNode<V, E> nodeV, Edge<V, E> edge) {
         if (rootU.size() < rootV.size()) {
             nodeU.makeRoot(true);
             removeRoot(nodeU);
@@ -258,7 +260,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
                 if (oppRoot != rootSmall) {
                     // found a replacement edge
                     removeNonTreeEdge(nonTreeEdge);
-                    insertTreeEdge(rootSmall, n, oppRoot, oppNode, nonTreeEdge);
+                    insertEdgeBetweenComponents(rootSmall, n, oppRoot, oppNode, nonTreeEdge);
 
                     return;
                 }
@@ -374,15 +376,14 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      * @return a list of components sorted by size in reverse order.
      */
     public List<Set<V>> allComponents() {
-        List<Set<V>> components = new ArrayList<>(roots.size());
-        for (DTNode<V, E> root : roots) {
-            components.add(root.componentView());
-        }
+        List<Set<V>> components = roots.stream()
+                .map(DTNode::componentView)
+                .sorted(Comparator.<Set<V>>comparingInt(Set::size).reversed())
+                .collect(Collectors.toCollection(ArrayList::new));
 
-        components.sort(Comparator.<Set<V>>comparingInt(Set::size).reversed());
         for (int i = 0; i < components.size(); i++) {
             ComponentView<V, E> comp = (ComponentView<V, E>) components.get(i);
-            comp.setIndex(i);
+            comp.getRoot().setIndex(i);
         }
 
         return components;

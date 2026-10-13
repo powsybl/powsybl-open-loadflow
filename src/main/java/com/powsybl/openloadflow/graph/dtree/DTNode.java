@@ -81,9 +81,7 @@ public class DTNode<V, E> {
     private final Set<Edge<V, E>> nonTreeEdges = new HashSet<>();
 
     // index in the list of roots, valid only if this node is a root
-    private int rootIndex;
-
-    private ComponentView<V, E> componentView = null;
+    private int rootIndex = -1;
 
     DTNode(DTGraph<V, E> graph, V vertex) {
         this.graph = graph;
@@ -147,6 +145,8 @@ public class DTNode<V, E> {
 
         // child is the old root
         DTNode<V, E> oldRoot = child;
+        rootIndex = oldRoot.rootIndex;
+        oldRoot.rootIndex = -1;
 
         // update the list of roots
         if (updateRoots) {
@@ -288,7 +288,7 @@ public class DTNode<V, E> {
         return node;
     }
 
-    public DTNodeWithDepth<V, E> findRootWithDepth() {
+    public DTNodeAndDepth<V, E> findRootAndDepth() {
         DTNode<V, E> node = this;
         int depth = 0;
 
@@ -297,7 +297,7 @@ public class DTNode<V, E> {
             depth++;
         }
 
-        return new DTNodeWithDepth<>(node, depth);
+        return new DTNodeAndDepth<>(node, depth);
     }
 
     public void addNonTreeEdge(Edge<V, E> edge) {
@@ -309,11 +309,7 @@ public class DTNode<V, E> {
     }
 
     public Set<V> componentView() {
-        if (componentView == null) {
-            componentView = new ComponentView<>(this);
-        }
-
-        return componentView;
+        return new ComponentView<>(this);
     }
 
     public Set<E> getNeighborEdges() {

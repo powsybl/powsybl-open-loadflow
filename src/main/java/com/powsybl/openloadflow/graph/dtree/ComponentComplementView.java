@@ -11,17 +11,17 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * A view over the vertices not connected to a specific node.
+ * A set view of all the vertices not connected to a specific node, according to the graph’s current state.
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-class VerticesNotInMainComponent<V, E> extends AbstractSetView<V> {
+class ComponentComplementView<V, E> extends AbstractSetView<V> {
 
     private final DTGraph<V, E> graph;
     private final DTNode<V, E> excludedTree;
     private int size = -1;
 
-    VerticesNotInMainComponent(DTGraph<V, E> graph, DTNode<V, E> excludedTree) {
+    ComponentComplementView(DTGraph<V, E> graph, DTNode<V, E> excludedTree) {
         this.graph = graph;
         this.excludedTree = excludedTree;
     }
@@ -53,6 +53,16 @@ class VerticesNotInMainComponent<V, E> extends AbstractSetView<V> {
         }
 
         return size;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
     }
 
     private class Itr implements Iterator<V> {

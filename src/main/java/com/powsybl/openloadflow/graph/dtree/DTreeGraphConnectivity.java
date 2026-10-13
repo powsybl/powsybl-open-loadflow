@@ -134,7 +134,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         // first determine the excluded tree: either the tree containing
         // the mainComponentVertex, either the biggest tree
         DTNode<V, E> excludedTree = getMainComponentRoot(mainComponentVertex);
-        return new VerticesNotInMainComponent<>(getGraph(), excludedTree);
+        return new ComponentComplementView<>(getGraph(), excludedTree);
     }
 
     /**
