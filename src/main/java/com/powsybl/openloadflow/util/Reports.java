@@ -8,8 +8,10 @@
 package com.powsybl.openloadflow.util;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.report.ReportNodeAdder;
 import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
+import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChange;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
@@ -17,6 +19,7 @@ import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -583,16 +586,16 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportCurrentLimiterPstsChangedTaps(ReportNode reportNode, int numOfCurrentLimiterPstsThatChangedTap) {
-        reportNode.newReportNode()
+    public static ReportNode reportCurrentLimiterPstsChangedTaps(ReportNode reportNode, int numOfCurrentLimiterPstsThatChangedTap) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.currentLimiterPstsChangedTaps")
                 .withUntypedValue("numOfCurrentLimiterPstsThatChangedTap", numOfCurrentLimiterPstsThatChangedTap)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
 
-    public static void reportActivePowerControlPstsChangedTaps(ReportNode reportNode, int numOfActivePowerControlPstsThatChangedTap) {
-        reportNode.newReportNode()
+    public static ReportNode reportActivePowerControlPstsChangedTaps(ReportNode reportNode, int numOfActivePowerControlPstsThatChangedTap) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.activePowerControlPstsChangedTaps")
                 .withUntypedValue("numOfActivePowerControlPstsThatChangedTap", numOfActivePowerControlPstsThatChangedTap)
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -643,11 +646,24 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportTransformerControlChangedTaps(ReportNode reportNode, int numTransformerControlAdjusted) {
-        reportNode.newReportNode()
+    public static ReportNode reportTransformerControlChangedTaps(ReportNode reportNode, int numTransformerControlAdjusted) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.transformerControlChangedTaps")
                 .withUntypedValue("numTransformerControlAdjusted", numTransformerControlAdjusted)
                 .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportTransformerControlChangedTapsDetail(ReportNode reportNode, DiscreteControllerChange change) {
+        ReportNodeAdder adder = reportNode.newReportNode();
+        change.getSide().ifPresentOrElse(
+            side -> adder.withMessageTemplate("olf.transformerControlChangedTapsDetailWithSide")
+                    .withUntypedValue("side", side.getNum()),
+            () -> adder.withMessageTemplate("olf.transformerControlChangedTapsDetail"));
+        adder.withUntypedValue("transformerId", change.getElementId())
+                .withUntypedValue("oldTapPosition", change.getOldPosition())
+                .withUntypedValue("newTapPosition", change.getNewPosition())
+                .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }
 
@@ -667,11 +683,21 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportShuntVoltageControlChangedSection(ReportNode reportNode, int numShuntVoltageControlAdjusted) {
-        reportNode.newReportNode()
+    public static ReportNode reportShuntVoltageControlChangedSection(ReportNode reportNode, int numShuntVoltageControlAdjusted) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.shuntVoltageControlChangedSection")
                 .withUntypedValue("numShuntVoltageControlAdjusted", numShuntVoltageControlAdjusted)
                 .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportShuntVoltageControlChangedSectionDetail(ReportNode reportNode, DiscreteControllerChange change) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.shuntVoltageControlChangedSectionDetail")
+                .withUntypedValue("shuntId", change.getElementId())
+                .withUntypedValue("oldPosition", change.getOldPosition())
+                .withUntypedValue("newPosition", change.getNewPosition())
+                .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }
 
@@ -955,7 +981,7 @@ public final class Reports {
     public static ReportNode createPostContingencySimulation(ReportNode reportNode, String contingencyId) {
         return reportNode.newReportNode()
                 .withMessageTemplate(POST_CONTINGENCY_SIMULATION_KEY)
-                .withUntypedValue(CONTINGENCY_ID, contingencyId)
+                .withUntypedValue(CONTINGENCY_ID, Objects.toString(contingencyId))
                 .add();
     }
 
@@ -1148,6 +1174,16 @@ public final class Reports {
                 .withUntypedValue("slackBus", slackBus)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add());
+    }
+
+    public static void reportAutomaticVdcReferenceConverter(ReportNode reportNode, int dcComponentNum, String converterId, double targetVdc) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.automaticVdcReferenceConverter")
+                .withUntypedValue("dcComponentNum", dcComponentNum)
+                .withUntypedValue("converterId", converterId)
+                .withUntypedValue("targetVdc", targetVdc)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
     }
 
     public static void reportAcEmulationDisabledInWoodburyDcSecurityAnalysis(ReportNode reportNode) {

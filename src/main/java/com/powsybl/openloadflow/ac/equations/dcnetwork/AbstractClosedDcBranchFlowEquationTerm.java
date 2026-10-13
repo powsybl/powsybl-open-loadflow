@@ -12,8 +12,8 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfDcBranch;
+import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.ArrayList;

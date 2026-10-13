@@ -91,7 +91,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         }
         return limitsGroups.getFirst().getSortedLimits().stream()
                 .filter(l -> l.getAcceptableDuration() == acceptableDuration)
-                .map(LfBranch.LfLimit::getReducedValue)
+                .map(LfBranch.LfLimit::getScaledValue)
                 .findFirst().orElse(Double.NaN);
     }
 

@@ -95,7 +95,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
         }
 
         return securityAnalysis.run(workingVariantId, runParameters.getSecurityAnalysisParameters(), contingenciesProvider,
-                runParameters.getComputationManager(), runParameters.getOperatorStrategies(), runParameters.getActions(), runParameters.getLimitReductions());
+                runParameters.getComputationManager(), runParameters.getOperatorStrategies(), runParameters.getActions(), runParameters.getLimitScalings());
     }
 
     @Override

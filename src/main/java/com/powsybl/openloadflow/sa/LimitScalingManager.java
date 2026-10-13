@@ -16,7 +16,7 @@ import com.powsybl.iidm.criteria.duration.EqualityTemporaryDurationCriterion;
 import com.powsybl.iidm.criteria.duration.IntervalTemporaryDurationCriterion;
 import com.powsybl.iidm.criteria.duration.LimitDurationCriterion;
 import com.powsybl.iidm.network.LimitType;
-import com.powsybl.security.limitreduction.LimitReduction;
+import com.powsybl.security.limitscaling.LimitScaling;
 import org.apache.commons.lang3.DoubleRange;
 import org.apache.commons.lang3.Range;
 import org.slf4j.Logger;
@@ -32,47 +32,47 @@ import java.util.function.Predicate;
  *
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
-public class LimitReductionManager {
+public class LimitScalingManager {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LimitReductionManager.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LimitScalingManager.class);
 
     /**
      * @param acceptableDuration can be null
      */
-    public record TerminalLimitReduction(Range<Double> nominalV, boolean isPermanent, Range<Integer> acceptableDuration,
-                                         double reduction) {
+    public record TerminalLimitScaling(Range<Double> nominalV, boolean isPermanent, Range<Integer> acceptableDuration,
+                                         double scaling) {
 
     }
 
-    private final List<TerminalLimitReduction> terminalLimitReductions = new ArrayList<>();
+    private final List<TerminalLimitScaling> terminalLimitScalings = new ArrayList<>();
 
     public boolean isEmpty() {
-        return terminalLimitReductions.isEmpty();
+        return terminalLimitScalings.isEmpty();
     }
 
-    public List<TerminalLimitReduction> getTerminalLimitReductions() {
-        return terminalLimitReductions;
+    public List<TerminalLimitScaling> getTerminalLimitScalings() {
+        return terminalLimitScalings;
     }
 
-    public void addTerminalLimitReduction(TerminalLimitReduction terminalLimitReduction) {
-        this.terminalLimitReductions.add(terminalLimitReduction);
+    public void addTerminalLimitScaling(TerminalLimitScaling terminalLimitScaling) {
+        this.terminalLimitScalings.add(terminalLimitScaling);
     }
 
-    public static LimitReductionManager create(List<LimitReduction> limitReductions) {
-        LimitReductionManager limitReductionManager = new LimitReductionManager();
+    public static LimitScalingManager create(List<LimitScaling> limitScalings) {
+        LimitScalingManager limitScalingManager = new LimitScalingManager();
         Range<Integer> acceptableDurationRange;
         boolean permanent;
-        for (LimitReduction limitReduction : limitReductions) {
-            if (isSupported(limitReduction)) {
+        for (LimitScaling limitScaling : limitScalings) {
+            if (isSupported(limitScaling)) {
                 // Compute the duration data
                 permanent = false;
                 acceptableDurationRange = null;
-                if (limitReduction.getDurationCriteria().isEmpty()) {
-                    // When no duration criterion is present, the reduction applies to permanent and temporary limits
+                if (limitScaling.getDurationCriteria().isEmpty()) {
+                    // When no duration criterion is present, the scaling applies to permanent and temporary limits
                     permanent = true;
                     acceptableDurationRange = Range.of(0, Integer.MAX_VALUE);
                 } else { // size 1 or 2 only (when 2, they are not of the same type).
-                    for (LimitDurationCriterion limitDurationCriterion : limitReduction.getDurationCriteria()) {
+                    for (LimitDurationCriterion limitDurationCriterion : limitScaling.getDurationCriteria()) {
                         LimitDurationCriterion.LimitDurationType type = limitDurationCriterion.getType();
                         if (Objects.requireNonNull(type) == LimitDurationCriterion.LimitDurationType.PERMANENT) {
                             permanent = true;
@@ -82,10 +82,10 @@ public class LimitReductionManager {
                     }
                 }
                 // Compute the nominal voltage ranges. When no network element criteria is present,
-                // the reduction applies to all network elements.
-                Collection<DoubleRange> nominalVoltageRanges = limitReduction.getNetworkElementCriteria().isEmpty() ?
+                // the scaling applies to all network elements.
+                Collection<DoubleRange> nominalVoltageRanges = limitScaling.getNetworkElementCriteria().isEmpty() ?
                         List.of(DoubleRange.of(0, Double.MAX_VALUE)) :
-                        limitReduction.getNetworkElementCriteria().stream().map(IdentifiableCriterion.class::cast)
+                        limitScaling.getNetworkElementCriteria().stream().map(IdentifiableCriterion.class::cast)
                                 .map(IdentifiableCriterion::getNominalVoltageCriterion)
                                 .map(AtLeastOneNominalVoltageCriterion::getVoltageInterval)
                                 .map(VoltageInterval::asRange)
@@ -93,11 +93,11 @@ public class LimitReductionManager {
                                 .toList();
 
                 for (DoubleRange nominalVoltageRange : nominalVoltageRanges) {
-                    limitReductionManager.addTerminalLimitReduction(new TerminalLimitReduction(nominalVoltageRange, permanent, acceptableDurationRange, limitReduction.getValue()));
+                    limitScalingManager.addTerminalLimitScaling(new TerminalLimitScaling(nominalVoltageRange, permanent, acceptableDurationRange, limitScaling.getValue()));
                 }
             }
         }
-        return limitReductionManager;
+        return limitScalingManager;
     }
 
     private static Range<Integer> getAcceptableDurationRange(LimitDurationCriterion limitDurationCriterion) {
@@ -114,38 +114,38 @@ public class LimitReductionManager {
         return acceptableDurationRange;
     }
 
-    private static boolean isSupported(LimitReduction limitReduction) {
-        if (limitReduction.getContingencyContext().getContextType() != ContingencyContextType.ALL) {
+    private static boolean isSupported(LimitScaling limitScaling) {
+        if (limitScaling.getContingencyContext().getContextType() != ContingencyContextType.ALL) {
             // Contingency context NONE with empty contingency lists could be supported too.
             LOGGER.warn("Only contingency context ALL is yet supported.");
             return false;
         }
-        if (limitReduction.isMonitoringOnly()) {
-            // This means that post-contingency limit violations with reductions must not be used for the conditions of
+        if (limitScaling.isMonitoringOnly()) {
+            // This means that post-contingency limit violations with scalings must not be used for the conditions of
             // operator strategy.
-            LOGGER.warn("Limit reductions for monitoring only is not yet supported.");
+            LOGGER.warn("Limit scalings for monitoring only is not yet supported.");
             return false;
         }
-        if (limitReduction.getLimitType() != LimitType.CURRENT) {
+        if (limitScaling.getLimitType() != LimitType.CURRENT) {
             // Note: a list of limit types could be a good feature?
-            LOGGER.warn("Only limit reductions for current limits are yet supported.");
+            LOGGER.warn("Only limit scalings for current limits are yet supported.");
             return false;
         }
-        if (limitReduction.getNetworkElementCriteria().stream().anyMatch(Predicate.not(IdentifiableCriterion.class::isInstance))) {
+        if (limitScaling.getNetworkElementCriteria().stream().anyMatch(Predicate.not(IdentifiableCriterion.class::isInstance))) {
             LOGGER.warn("Only no network element criterion or identifiable criteria are yet supported.");
             return false;
         }
-        if (limitReduction.getDurationCriteria().size() > 2) {
+        if (limitScaling.getDurationCriteria().size() > 2) {
             LOGGER.warn("More than two duration criteria provided.");
             return false;
         }
-        if (limitReduction.getDurationCriteria().size() == 2
-                && limitReduction.getDurationCriteria().get(0).getType() == limitReduction.getDurationCriteria().get(1).getType()) {
+        if (limitScaling.getDurationCriteria().size() == 2
+                && limitScaling.getDurationCriteria().get(0).getType() == limitScaling.getDurationCriteria().get(1).getType()) {
             LOGGER.warn("When two duration criteria are provided, they cannot be of the same type");
             return false;
         }
-        if (!limitReduction.getOperationalLimitsGroupIdsSelection().isEmpty()) {
-            LOGGER.warn("Limit reduction with only a specified operational limits groups to be applied on are not yet supported.");
+        if (!limitScaling.getOperationalLimitsGroupIdsSelection().isEmpty()) {
+            LOGGER.warn("Limit scaling with only a specified operational limits groups to be applied on are not yet supported.");
             return false;
         }
 

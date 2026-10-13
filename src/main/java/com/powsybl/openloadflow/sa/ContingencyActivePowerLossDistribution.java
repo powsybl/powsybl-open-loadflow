@@ -9,16 +9,16 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.util.ServiceLoaderCache;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.security.SecurityAnalysisParameters;
-import org.apache.commons.compress.utils.Lists;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.ServiceLoader;
 
 /**
  * Handling of active power injection lost by contingency.
@@ -26,8 +26,10 @@ import java.util.ServiceLoader;
  */
 public interface ContingencyActivePowerLossDistribution {
 
+    ServiceLoaderCache<ContingencyActivePowerLossDistribution> SERVICE_LOADER_CACHE = new ServiceLoaderCache<>(ContingencyActivePowerLossDistribution.class);
+
     static List<ContingencyActivePowerLossDistribution> findAll() {
-        return Lists.newArrayList(ServiceLoader.load(ContingencyActivePowerLossDistribution.class, ContingencyActivePowerLossDistribution.class.getClassLoader()).iterator());
+        return Collections.unmodifiableList(SERVICE_LOADER_CACHE.getServices());
     }
 
     static ContingencyActivePowerLossDistribution find(String name) {

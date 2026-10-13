@@ -145,6 +145,9 @@ class OpenLoadFlowParametersTest {
         assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxRatioMismatch(-1));
         assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxActivePowerMismatch(-1));
         assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxReactivePowerMismatch(-1));
+        PowsyblException e = assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setNetworkVariantPoolSize(0));
+        assertEquals("Network variant pool size must be strictly positive", e.getMessage());
+        assertEquals(10, openLoadFlowParameters.setNetworkVariantPoolSize(10).getNetworkVariantPoolSize());
     }
 
     @Test
@@ -210,7 +213,7 @@ class OpenLoadFlowParametersTest {
 
         // Change the nominal voltage to have a target V distant enough but still plausible (in [0.8 1.2] in Pu), so that the NR diverges
         network.getVoltageLevel("VLGEN").setNominalV(100);
-        network.getGenerator("GEN").setTargetV(120);
+        network.getGenerator("GEN").setLocalTargetV(120);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
@@ -245,7 +248,7 @@ class OpenLoadFlowParametersTest {
     void testPlausibleTargetVoltage() {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        network.getGenerator("GEN").setTargetV(30.0);
+        network.getGenerator("GEN").setLocalTargetV(30.0);
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         loadFlowRunner.run(network, parameters);
         assertTrue(Double.isNaN(network.getGenerator("GEN").getRegulatingTerminal().getBusView().getBus().getV())); // no calculation
@@ -559,7 +562,7 @@ class OpenLoadFlowParametersTest {
                 "areaInterchangeControl=false, areaInterchangeControlAreaType=ControlArea, areaInterchangePMaxMismatch=2.0, voltageRemoteControlRobustMode=true, " +
                 "forceTargetQInReactiveLimits=false, disableInconsistentVoltageControls=false, extrapolateReactiveLimits=false, startWithFrozenACEmulation=false, " +
                 "generatorsWithZeroMwTargetAreNotStarted=true, incrementalShuntControlOuterLoopMaxSectionShift=3, fixVoltageTargets=false, acDcNetwork=false, " +
-                "allowNonLinearShuntZeroSection=true)",
+                "allowNonLinearShuntZeroSection=true, networkVariantPoolSize=20, networkCacheScope=null)",
                 parameters.toString());
     }
 

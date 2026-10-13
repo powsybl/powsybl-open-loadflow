@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests for DC switch resistance modeling in AC/DC load flow.
- * A DC switch with R > 0 must be loaded as a DC branch (LfDcLine) in the LfNetwork.
+ * A DC switch with R > 0 must be loaded as a DC branch (LfDcBranch) in the LfNetwork.
  * A DC switch with R = 0 must be discarded: PowSyBl Core topology merges its two DC nodes
  * into the same DC bus, so OpenLoadFlow sees both ends as the same node and drops the branch.
  *
@@ -54,7 +54,7 @@ class AcDcDcSwitchTest {
 
     /**
      * When a DC switch has R > 0, its two DC nodes remain distinct. OpenLoadFlow must load
-     * the switch as a LfDcLine connecting two separate LfDcBus instances.
+     * the switch as a LfDcBranch connecting two separate LfDcBus instances.
      */
     @Test
     void testDcSwitchWithNonZeroResistanceIsLoadedAsBranch() {
@@ -63,7 +63,7 @@ class AcDcDcSwitchTest {
 
         LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
 
-        // The switch must appear as exactly one LfDcLine
+        // The switch must appear as exactly one LfDcBranch
         assertEquals(1, lfNetwork.getDcBranches().size());
         // dn3 (1) + dn4 (1) + dnDummy3 (1) + dnDummy4 (1) = 4 DC buses
         assertEquals(4, lfNetwork.getDcBuses().size());

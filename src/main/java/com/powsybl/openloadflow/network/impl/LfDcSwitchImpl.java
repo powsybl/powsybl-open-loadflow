@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.DcSwitch;
+import com.powsybl.openloadflow.network.LfDcBranch;
 import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -26,6 +27,19 @@ public class LfDcSwitchImpl extends AbstractLfDcBranch {
     public LfDcSwitchImpl(LfDcBus dcBus1, LfDcBus dcBus2, LfNetwork network, DcSwitch dcSwitch, LfNetworkParameters parameters) {
         super(network, dcBus1, dcBus2, dcSwitch.getR());
         this.dcSwitchRef = Ref.create(dcSwitch, parameters.isCacheEnabled());
+    }
+
+    private LfDcSwitchImpl(LfDcSwitchImpl other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2) {
+        super(other, network, dcBus1, dcBus2);
+        this.dcSwitchRef = other.dcSwitchRef;
+    }
+
+    @Override
+    public LfDcBranch copy(LfNetwork copyNetwork) {
+        return new LfDcSwitchImpl(this,
+                copyNetwork,
+                copyNetwork.getDcBusById(dcBus1.getId()),
+                copyNetwork.getDcBusById(dcBus2.getId()));
     }
 
     public static LfDcSwitchImpl create(DcSwitch dcSwitch,

@@ -40,6 +40,14 @@ public abstract class AbstractLfDcBranch extends AbstractElement implements LfDc
         this.r = r;
     }
 
+    protected AbstractLfDcBranch(AbstractLfDcBranch other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2) {
+        super(network);
+        this.dcBus1 = dcBus1;
+        this.dcBus2 = dcBus2;
+        this.r = other.r;
+        this.disabled = other.disabled;
+    }
+
     @Override
     public LfDcBus getDcBus1() {
         return dcBus1;

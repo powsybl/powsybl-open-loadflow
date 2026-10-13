@@ -19,7 +19,7 @@ import java.util.Objects;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public class ConverterDcCurrentEquationTerm extends AbstractConverterDcCurrentEquationTerm {
+public class ConverterDcCurrentEquationTerm extends AbstractConverterDcFlowEquation {
 
     private final double idleLoss;
 
