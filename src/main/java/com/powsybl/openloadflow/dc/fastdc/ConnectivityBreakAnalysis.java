@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
+import com.powsybl.openloadflow.graph.dtree.AbstractSetView;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.action.LfAction;
@@ -241,10 +242,10 @@ public final class ConnectivityBreakAnalysis {
                 int createdSynchronousComponents = connectivity.getNbConnectedComponents() - 1;
                 Set<LfBus> disabledBuses = connectivity.getVerticesRemovedFromMainComponent();
                 Set<LfHvdc> hvdcsWithoutPower = PropagatedContingency.getHvdcsWithoutPower(lfNetwork, disabledBuses, connectivity);
-                // FIXME: set copy may be useless (Naive / Even Shiloach), but mandatory for DTree
                 connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, operatorStrategy, lfNetwork, elementsToReconnect,
                         new DisabledElements(disabledBuses, connectivity.getEdgesRemovedFromMainComponent(), hvdcsWithoutPower),
-                        new HashSet<>(connectivity.getConnectedComponent(lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst())), createdSynchronousComponents);
+                        AbstractSetView.copyIfNeeded(connectivity.getConnectedComponent(lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst())),
+                        createdSynchronousComponents);
             }
         } finally {
             connectivity.undoTemporaryChanges();

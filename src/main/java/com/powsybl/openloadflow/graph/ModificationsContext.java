@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.openloadflow.graph.dtree.AbstractSetView;
-import gnu.trove.set.hash.THashSet;
 
 import java.util.*;
 import java.util.function.Function;
@@ -36,11 +35,7 @@ public class ModificationsContext<V, E> {
     }
 
     public void computeVerticesNotInMainComponentBefore() {
-        this.verticesNotInMainComponentBefore = verticesNotInMainComponentGetter.apply(mainComponentVertex);
-
-        if (this.verticesNotInMainComponentBefore instanceof AbstractSetView<V>) {
-            this.verticesNotInMainComponentBefore = new THashSet<>(this.verticesNotInMainComponentBefore);
-        }
+        this.verticesNotInMainComponentBefore = AbstractSetView.copyIfNeeded(verticesNotInMainComponentGetter.apply(mainComponentVertex));
     }
 
     public void add(GraphModification<V, E> graphModification) {
