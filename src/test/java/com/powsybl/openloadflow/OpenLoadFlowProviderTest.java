@@ -23,8 +23,8 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.openloadflow.util.ProviderConstants;
-import com.powsybl.tools.PowsyblCoreVersion;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -52,7 +52,7 @@ class OpenLoadFlowProviderTest {
     void test() {
         LoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory());
         assertEquals(ProviderConstants.NAME, loadFlowProvider.getName());
-        assertEquals(new PowsyblCoreVersion().getMavenProjectVersion(), loadFlowProvider.getVersion());
+        assertEquals(new PowsyblOpenLoadFlowVersion().getMavenProjectVersion(), loadFlowProvider.getVersion());
     }
 
     @Test

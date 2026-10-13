@@ -45,7 +45,7 @@ class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
     @Test
     void basicTest() {
         assertEquals(ProviderConstants.NAME, provider.getName());
-        assertEquals(new PowsyblOpenLoadFlowVersion().toString(), provider.getVersion());
+        assertEquals(new PowsyblOpenLoadFlowVersion().getMavenProjectVersion(), provider.getVersion());
         assertEquals(ProviderConstants.NAME, provider.getLoadFlowProviderName().orElseThrow());
     }
 
