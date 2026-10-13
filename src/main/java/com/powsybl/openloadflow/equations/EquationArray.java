@@ -9,9 +9,9 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfElement;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.IOException;
 import java.io.Writer;
