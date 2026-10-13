@@ -8,14 +8,25 @@
 package com.powsybl.openloadflow.acdc;
 
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.VoltageSourceConverter;
+import com.powsybl.loadflow.LoadFlow;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.network.AcDcNetworkFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static com.powsybl.openloadflow.network.AcDcNetworkFactory.*;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for DC switch resistance modeling in AC/DC load flow.
@@ -28,6 +39,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class AcDcDcSwitchTest {
 
     private LfNetworkParameters networkParameters;
+
+    private LoadFlow.Runner loadFlowRunner;
+    private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
+
+    void setParameters() {
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        parameters = new LoadFlowParameters();
+        parametersExt = OpenLoadFlowParameters.create(parameters).setAcDcNetwork(true);
+    }
 
     @BeforeEach
     void setUp() {
@@ -98,5 +119,35 @@ class AcDcDcSwitchTest {
 
         // Only dl34 must be present; the open sw34 must be discarded
         assertEquals(1, lfNetwork.getDcBranches().size());
+    }
+
+    @Test
+    void testDcSwitchInSeries() {
+        final double resistance = 1.0;
+        Network network = createAcDcNetworkWithSeriesDcSwitch(resistance);
+        LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
+
+        // We should have 3 branches
+        assertEquals(3, lfNetwork.getDcBranches().size());
+        assertEquals(6, lfNetwork.getDcBuses().size());
+
+        setParameters();
+        parametersExt
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
+        double vDc = AcDcNetworkFactory.VDC;
+
+        double i = conv23.getDcTerminal1().getI();
+        double v3 = conv23.getDcTerminal1().getDcNode().getV();
+        double u = v3 - vDc;
+        double uOhm = -3 * resistance * i / 1000; // convert to kV
+        assertEquals(uOhm, u, vDc * 1e-6);
+
+        double delta = vDc * vDc + 12 * resistance * AcDcNetworkFactory.PAC;
+        double current = (vDc - Math.sqrt(delta)) / (6 * resistance) * 1000; // conversion factor
+        assertDcCurrentEquals(current, conv23.getDcTerminal1());
     }
 }
