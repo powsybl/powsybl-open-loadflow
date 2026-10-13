@@ -7,9 +7,8 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.runners;
 
-import com.powsybl.openloadflow.graph.*;
+import com.powsybl.openloadflow.graph.DnDTreeStandaloneFactory;
 import com.powsybl.openloadflow.graph.benchmark.workload.Workload;
-import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -69,16 +68,16 @@ public final class MainWR {
         }
 
         // wr.addConnectivityFactory(new OldNaiveGraphConnectivity.Factory<>((Integer i) -> i));
-        wr.addConnectivityFactory(new NaiveGraphConnectivityFactory<>((Integer i) -> i));
+        // wr.addConnectivityFactory(new NaiveGraphConnectivityFactory<>((Integer i) -> i));
         // wr.addConnectivityFactory(new NeighborNaiveGraphConnectivityFactory<>((Integer i) -> i));
         // wr.addConnectivityFactory(new AdjacencyListNaiveGraphConnectivityFactory<>((Integer i) -> i));
         // wr.addConnectivityFactory(new MinimumSpanningTreeGraphConnectivityFactory<>());
-        wr.addConnectivityFactory(new EvenShiloachGraphDecrementalConnectivityFactory<>());
-        wr.addConnectivityFactory(new HolmEtAlGraphConnectivityFactory<>());
+        // wr.addConnectivityFactory(new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        // wr.addConnectivityFactory(new HolmEtAlGraphConnectivityFactory<>());
         // wr.addConnectivityFactory(new HolmEtAlWithoutLevelGraphConnectivityFactory<>());
         // wr.addConnectivityFactory(new NewHolmGraphConnectivityFactory<>());
-        wr.addConnectivityFactory(new ETTreeGraphConnectivityFactory<>());
-        wr.addConnectivityFactory(new DTreeGraphConnectivityFactory<>());
+        // wr.addConnectivityFactory(new ETTreeGraphConnectivityFactory<>());
+        // wr.addConnectivityFactory(new DTreeGraphConnectivityFactory<>());
         // wr.addConnectivityFactory(new DTreeStandaloneFactory<>());
         // wr.addConnectivityFactory(new Delta2DTreeStandalone.Factory<>());
         // wr.addConnectivityFactory(new Delta2ReplaceWithBestDTreeStandalone.Factory<>());
@@ -97,7 +96,9 @@ public final class MainWR {
 
             while (it.hasNext()) {
                 Path next = it.next();
-                wr.addInput(Workload.inMemory(next));
+                if (Files.isRegularFile(next)) {
+                    wr.addInput(Workload.inMemory(next));
+                }
             }
         }
     }

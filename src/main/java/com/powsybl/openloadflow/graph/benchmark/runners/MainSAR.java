@@ -7,8 +7,8 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.runners;
 
-import com.powsybl.openloadflow.graph.*;
-import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.DnDTreeStandaloneFactory;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfElement;
 
 import java.io.IOException;
@@ -101,12 +101,12 @@ public final class MainSAR {
 
         sar.addConnectivityFactory(new NaiveGraphConnectivityFactory<>(LfElement::getNum));
         // sar.addConnectivityFactory(new MinimumSpanningTreeGraphConnectivityFactory<>());
-        sar.addConnectivityFactory(new EvenShiloachGraphDecrementalConnectivityFactory<>());
-        sar.addConnectivityFactory(new HolmEtAlGraphConnectivityFactory<>());
+        // sar.addConnectivityFactory(new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        // sar.addConnectivityFactory(new HolmEtAlGraphConnectivityFactory<>());
         // sar.addConnectivityFactory(new HolmEtAlWithoutLevelGraphConnectivityFactory<>());
         // sar.addConnectivityFactory(new NewHolmGraphConnectivityFactory<>());
-        sar.addConnectivityFactory(new ETTreeGraphConnectivityFactory<>());
-        sar.addConnectivityFactory(new DTreeGraphConnectivityFactory<>());
+        // sar.addConnectivityFactory(new ETTreeGraphConnectivityFactory<>());
+        // sar.addConnectivityFactory(new DTreeGraphConnectivityFactory<>());
         // sar.addConnectivityFactory(new DTreeStandaloneFactory<>());
         // sar.addConnectivityFactory(new Delta2DTreeStandalone.Factory<>());
         // sar.addConnectivityFactory(new Delta2ReplaceWithBestDTreeStandalone.Factory<>());
