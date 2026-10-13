@@ -11,9 +11,11 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.openloadflow.adm.AdmittanceEquationSystem;
-import com.powsybl.openloadflow.adm.AdmittanceMatrix;
+import com.powsybl.openloadflow.adm.*;
+import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.SingleEquation;
+import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.network.LfBus;
 
 import java.util.List;
@@ -71,7 +73,7 @@ public class WardAdmittance {
         Matrix yeb = externalRowsSelector.times(yMatrix).times(boundaryColsSelector);
         Matrix yee = externalRowsSelector.times(yMatrix).times(externalColsSelector);
 
-        // Get bus voltage vectors Vb and Ve
+        // Get bus voltage vectors
         Matrix vi = getVoltageVector(internalBuses);
         Matrix vb = getVoltageVector(boundaryBuses);
         Matrix ve = getVoltageVector(externalBuses);
@@ -89,13 +91,13 @@ public class WardAdmittance {
         // └     ┘     └                     ┘   └    ┘
         // where:
         //   Ieq = Ib - Ybe * Yee⁻1 * Ie
-        //   Yeq = Ybb(be) - Ybe * Yee^-1 * Yeb
+        //   Yeq = Ybb(b+e) - Ybe * Yee^-1 * Yeb
         DenseMatrix yeeInv = getIdentityMatrix(2 * externalBuses.size()).toDense();
         try (LUDecomposition lu = yee.decomposeLU()) {
             lu.solve(yeeInv);
         }
         ieq = ib.add(ybe.times(yeeInv).times(ie, -1.0));
-        yeq = getYbbWithoutInternal(ybi, ybb).add(ybe.times(yeeInv).times(yeb, -1.0));
+        yeq = getYbbWithoutInternal(ybb).add(ybe.times(yeeInv).times(yeb, -1.0));
     }
 
     private Matrix getRowSelectorMatrix(List<LfBus> buses) {
@@ -144,22 +146,50 @@ public class WardAdmittance {
         return identity;
     }
 
-    private Matrix getYbbWithoutInternal(Matrix ybi, Matrix ybb) {
+    private Matrix getYbbWithoutInternal(Matrix ybb) {
         // Calculate Ybb(b+e) where Ybb = Ybb(i) + Ybb(b+e)
+        // that is remove the influence of tie-lines onto the Ybb sub admittance matrix
         Matrix ybbWithoutInternal = ybb.copy(matrixFactory).toDense();
-        for (int b = 0; b < boundaryBuses.size(); b++) {
-            double sumGbi = 0.0;
-            double sumBbi = 0.0;
-            for (int i = 0; i < internalBuses.size(); i++) {
-                sumGbi += ybi.toDense().get(2 * b, 2 * i);
-                sumBbi += ybi.toDense().get(2 * b, 2 * i + 1);
+        List<Integer> internalBusNums = internalBuses.stream()
+            .map(LfBus::getNum)
+            .toList();
+        for (int i = 0; i < boundaryBuses.size(); i++) {
+            // Total G and B including the influence of tie-lines
+            double gi = ybb.toDense().get(2 * i, 2 * i);
+            double bi = ybb.toDense().get(2 * i + 1, 2 * i);
+
+            // Retrieve the boundary bus equation
+            LfBus boundaryBus = boundaryBuses.get(i);
+            Equation<AdmittanceVariableType, AdmittanceEquationType> equation = yEquationSystem
+                .getEquationSystem()
+                .getEquation(boundaryBus.getNum(), AdmittanceEquationType.BUS_ADM_IX)
+                .orElseThrow(() -> new IllegalStateException("Equation not found"));
+
+            // Select the terms related to a tie-line
+            for (EquationTerm<AdmittanceVariableType, AdmittanceEquationType> term : equation.getTerms()) {
+                List<Variable<AdmittanceVariableType>> variables = term.getVariables();
+                if (variables.stream().anyMatch(v -> internalBusNums.contains(v.getElementNum()))) {
+                    // Subtract the series and shunt admittance of the boundary side
+                    double gSum = term.der(variables.stream()
+                        .filter(v -> v.getElementNum() == boundaryBus.getNum()
+                            && v.getType() == AdmittanceVariableType.BUS_ADM_VX)
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalStateException("Variable not found")));
+                    double bSum = -term.der(variables.stream()
+                        .filter(v -> v.getElementNum() == boundaryBus.getNum()
+                            && v.getType() == AdmittanceVariableType.BUS_ADM_VY)
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalStateException("Variable not found")));
+
+                    gi -= gSum;
+                    bi -= bSum;
+                }
             }
-            double bbGWithoutInternal = ybbWithoutInternal.toDense().get(2 * b, 2 * b) + sumGbi;
-            double bbBWithoutInternal = ybbWithoutInternal.toDense().get(2 * b, 2 * b + 1) + sumBbi;
-            ybbWithoutInternal.set(2 * b, 2 * b, bbGWithoutInternal);
-            ybbWithoutInternal.set(2 * b, 2 * b + 1, bbBWithoutInternal);
-            ybbWithoutInternal.set(2 * b + 1, 2 * b, -bbBWithoutInternal);
-            ybbWithoutInternal.set(2 * b + 1, 2 * b + 1, bbGWithoutInternal);
+
+            ybbWithoutInternal.set(2 * i, 2 * i, gi);
+            ybbWithoutInternal.set(2 * i, 2 * i + 1, -bi);
+            ybbWithoutInternal.set(2 * i + 1, 2 * i, bi);
+            ybbWithoutInternal.set(2 * i + 1, 2 * i + 1, gi);
         }
 
         return ybbWithoutInternal;
