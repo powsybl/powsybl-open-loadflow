@@ -17,9 +17,8 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
@@ -55,7 +54,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
     }
 
     public OpenSecurityAnalysisProvider() {
-        this(new SparseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        this(new SparseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
     }
 
     @Override
@@ -74,13 +73,11 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
         OpenLoadFlowParameters loadFlowParametersExt = OpenLoadFlowParameters.get(loadFlowParameters);
         OpenLoadFlowParameters.log(loadFlowParameters, loadFlowParametersExt);
 
-        // FIXME implement a fast incremental connectivity algorithm
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory;
         if (runParameters.getOperatorStrategies().isEmpty() && !loadFlowParametersExt.isSimulateAutomationSystems()) {
             selectedConnectivityFactory = connectivityFactory;
         } else {
-            LOGGER.warn("Naive (and slow!!!) connectivity algorithm has been selected because at least one operator strategy is configured");
-            selectedConnectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+            selectedConnectivityFactory = new DTreeGraphConnectivityFactory<>();
         }
 
         AbstractSecurityAnalysis<?, ?, ?, ?, ?> securityAnalysis;

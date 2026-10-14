@@ -17,8 +17,8 @@ import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.adm.AdmittanceEquationSystem;
 import com.powsybl.openloadflow.adm.AdmittanceMatrix;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.util.Reports;
@@ -54,7 +54,7 @@ public class VoltageTargetChecker {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
-        GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory = OpenLoadFlowParameters.getConnectivityFactory(parametersExt, new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory = new DTreeGraphConnectivityFactory<>();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, selectedConnectivityFactory);
         for (LfNetwork lfNetwork : LfNetwork.load(network, new LfNetworkLoaderImpl(), acParameters.getNetworkParameters())) {
             var result = new VoltageTargetChecker(lfNetwork)
