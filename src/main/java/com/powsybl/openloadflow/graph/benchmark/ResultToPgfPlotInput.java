@@ -79,7 +79,7 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
 
         private Map<String, Plot> getAlgToPlots(Path folder, String sa) throws IOException {
             Map<String, Plot> algToPlot = new HashMap<>();
-            try (Stream<Path> plotsStream = Files.list(folder)) {
+            try (Stream<Path> plotsStream = Files.walk(folder)) {
                 for (Iterator<Path> it = plotsStream.iterator(); it.hasNext();) {
                     Path plotPath = it.next();
                     if (!Files.isRegularFile(plotPath) || !plotPath.getFileName().toString().endsWith(".json")) {
@@ -140,10 +140,15 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
     @CommandLine.Option(names = {"--average"})
     private boolean averageTime;
 
+    @CommandLine.Option(names = {"--prefix"})
+    private String prefix;
+
     private ResultToPgfPlotInput() { }
 
     public static void main(String[] args) throws IOException {
-        new CommandLine(new ResultToPgfPlotInput()).execute(args);
+        new CommandLine(new ResultToPgfPlotInput())
+                .setCaseInsensitiveEnumValuesAllowed(true)
+                .execute(args);
     }
 
     @Override
@@ -151,9 +156,16 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
         // sa then alg then plot
         Map<String, Map<String, Plot>> plots = input.getPlots();
 
+        String filePrefix;
+        if (prefix == null) {
+            filePrefix = "";
+        } else {
+            filePrefix = prefix + "_";
+        }
+
         if (averageTime) {
             for (Map.Entry<String, Map<String, Plot>> entry : plots.entrySet()) {
-                Path out = output.resolve("mean_" + entry.getKey() + ".txt");
+                Path out = output.resolve(filePrefix + "mean_" + entry.getKey() + ".txt");
                 System.out.println("Writing to " + out);
 
                 try (BufferedWriter bw = Files.newBufferedWriter(out)) {
@@ -161,7 +173,7 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
                 }
             }
         } else {
-            Path out = output.resolve("total_time.txt");
+            Path out = output.resolve(filePrefix + "total_time.txt");
             System.out.println("Writing to " + out);
 
             try (BufferedWriter bw = Files.newBufferedWriter(out)) {
