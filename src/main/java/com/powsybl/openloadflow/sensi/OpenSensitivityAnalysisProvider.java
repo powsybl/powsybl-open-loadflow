@@ -48,7 +48,6 @@ import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.json.SensitivityJsonModule;
-import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,7 +103,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
     @Override
     public String getVersion() {
-        return new PowsyblCoreVersion().getMavenProjectVersion();
+        return new PowsyblOpenLoadFlowVersion().getMavenProjectVersion();
     }
 
     @Override
