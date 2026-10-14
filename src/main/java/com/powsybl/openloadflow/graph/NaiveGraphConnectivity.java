@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.math.graph.GraphUtil;
-import gnu.trove.list.array.TIntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
 import java.util.function.ToIntFunction;
@@ -33,11 +33,11 @@ public class NaiveGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     }
 
     private List<Set<V>> calculateConnectedSets() {
-        Map<V, TIntArrayList> adjacencyList = getGraph().getAdjacencyList();
-        TIntArrayList[] adjacencyListArray = new TIntArrayList[adjacencyList.size()];
-        for (Map.Entry<V, TIntArrayList> entry : adjacencyList.entrySet()) {
+        Map<V, IntArrayList> adjacencyList = getGraph().getAdjacencyList();
+        IntArrayList[] adjacencyListArray = new IntArrayList[adjacencyList.size()];
+        for (Map.Entry<V, IntArrayList> entry : adjacencyList.entrySet()) {
             V vertex = entry.getKey();
-            TIntArrayList adj = entry.getValue();
+            IntArrayList adj = entry.getValue();
             adjacencyListArray[numGetter.applyAsInt(vertex)] = adj;
         }
         GraphUtil.ConnectedComponentsComputationResult result = GraphUtil.computeConnectedComponents(adjacencyListArray);

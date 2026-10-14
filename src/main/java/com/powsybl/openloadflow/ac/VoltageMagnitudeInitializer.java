@@ -15,7 +15,7 @@ import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Reports;
-import gnu.trove.list.array.TDoubleArrayList;
+import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,7 +92,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
         private final List<Variable<InitVmVariableType>> variables;
 
-        private final TDoubleArrayList der;
+        private final DoubleArrayList der;
 
         public InitVmBusEquationTerm(LfBus bus, VariableSet<InitVmVariableType> variableSet, double lowImpedanceThreshold) {
             super(bus);
@@ -103,7 +103,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
             }
 
             variables = new ArrayList<>(neighbors.size());
-            der = new TDoubleArrayList(neighbors.size());
+            der = new DoubleArrayList(neighbors.size());
             double bs = 0; // neighbor branches susceptance sum
             for (Map.Entry<LfBus, List<LfBranch>> e : neighbors.entrySet()) {
                 LfBus neighborBus = e.getKey();
@@ -131,7 +131,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
                 throw new PowsyblException("Susceptance sum is zero");
             }
             for (int i = 0; i < der.size(); i++) {
-                der.setQuick(i, der.getQuick(i) / bs);
+                der.set(i, der.getDouble(i) / bs);
             }
         }
 
@@ -151,7 +151,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
             if (i == -1) {
                 throw new IllegalStateException("Unknown variable: " + variable);
             }
-            return der.getQuick(i);
+            return der.getDouble(i);
         }
 
         @Override
