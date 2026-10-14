@@ -366,7 +366,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = Networks.load(network, networkParameters);
         LfNetwork lfNetwork = lfNetworks.getFirst();
 
-        Optional<LfDcLine> dl34pBisOrEmpty = lfNetwork.getDcLines().stream().filter(lfDcLine -> Objects.equals(lfDcLine.getId(), "dl34p_bis")).findFirst();
+        Optional<LfDcBranch> dl34pBisOrEmpty = lfNetwork.getDcBranches().stream().filter(lfDcLine -> Objects.equals(lfDcLine.getId(), "dl34p_bis")).findFirst();
         assertTrue(dl34pBisOrEmpty.isPresent());
     }
 
@@ -382,7 +382,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = Networks.load(network, networkParameters);
         LfNetwork lfNetwork = lfNetworks.getFirst();
 
-        Optional<LfDcLine> dl34pBisOrEmpty = lfNetwork.getDcLines().stream().filter(lfDcLine -> Objects.equals(lfDcLine.getId(), "dl34p_bis")).findFirst();
+        Optional<LfDcBranch> dl34pBisOrEmpty = lfNetwork.getDcBranches().stream().filter(lfDcLine -> Objects.equals(lfDcLine.getId(), "dl34p_bis")).findFirst();
         assertTrue(dl34pBisOrEmpty.isEmpty());
     }
 

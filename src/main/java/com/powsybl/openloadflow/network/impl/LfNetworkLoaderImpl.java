@@ -71,6 +71,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         private final Set<DcLine> dcLineSet = new LinkedHashSet<>();
 
         private final Set<AcDcConverter<?>> acDcConverterSet = new LinkedHashSet<>();
+
+        private final Set<DcSwitch> dcSwitchSet = new LinkedHashSet<>();
     }
 
     private final Supplier<List<LfNetworkLoaderPostProcessor>> postProcessorsSupplier;
@@ -103,7 +105,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createDcGrounds(LfNetwork lfNetwork, List<DcGround> dcGrounds) {
         for (DcGround dcGround : dcGrounds) {
-            Objects.requireNonNull(getLfDcBus(dcGround.getDcTerminal(), lfNetwork)).setGround(true);
+            Objects.requireNonNull(getLfDcBusFromDcTerminal(dcGround.getDcTerminal(), lfNetwork)).setGround(true);
         }
     }
 
@@ -525,12 +527,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void addDcLine(LfNetwork lfNetwork, LfDcLine lfDcLine) {
-        boolean connectedToSameDcBus = lfDcLine.getDcBus1() == lfDcLine.getDcBus2();
+    private static void addDcBranch(LfNetwork lfNetwork, LfDcBranch lfDcBranch) {
+        boolean connectedToSameDcBus = lfDcBranch.getDcBus1() == lfDcBranch.getDcBus2();
         if (connectedToSameDcBus) {
-            LOGGER.trace("Discard dcLine '{}' because connected to same dcBus at both ends", lfDcLine.getId());
+            LOGGER.trace("Discard dcLine '{}' because connected to same dcBus at both ends", lfDcBranch.getId());
         } else {
-            lfNetwork.addDcLine(lfDcLine);
+            lfNetwork.addDcBranch(lfDcBranch);
         }
     }
 
@@ -624,12 +626,27 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createDcLines(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkParameters parameters) {
+    private static void createDcBranches(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkParameters parameters) {
         for (DcLine dcLine : loadingContext.dcLineSet) {
-            LfDcBus lfDcBus1 = getLfDcBus(dcLine.getDcTerminal1(), lfNetwork);
-            LfDcBus lfDcBus2 = getLfDcBus(dcLine.getDcTerminal2(), lfNetwork);
+            LfDcBus lfDcBus1 = getLfDcBusFromDcTerminal(dcLine.getDcTerminal1(), lfNetwork);
+            LfDcBus lfDcBus2 = getLfDcBusFromDcTerminal(dcLine.getDcTerminal2(), lfNetwork);
             LfDcLineImpl lfDcLine = LfDcLineImpl.create(dcLine, lfNetwork, lfDcBus1, lfDcBus2, parameters);
-            addDcLine(lfNetwork, lfDcLine);
+            addDcBranch(lfNetwork, lfDcLine);
+        }
+
+        for (DcSwitch dcSwitch : loadingContext.dcSwitchSet) {
+            if (dcSwitch.isOpen()) {
+                continue;
+            }
+            LfDcBus lfDcBus1 = getLfDcBusFromDcNode(dcSwitch.getDcNode1(), lfNetwork);
+            LfDcBus lfDcBus2 = getLfDcBusFromDcNode(dcSwitch.getDcNode2(), lfNetwork);
+            if (lfDcBus1 == null || lfDcBus2 == null || lfDcBus1 == lfDcBus2) {
+                // Only add branch when the DcSwitch has
+                // distinct buses (with non-zero resistance).
+                continue;
+            }
+            LfDcSwitchImpl lfDcSwitch = LfDcSwitchImpl.create(dcSwitch, lfNetwork, lfDcBus1, lfDcBus2, parameters);
+            addDcBranch(lfNetwork, lfDcSwitch);
         }
     }
 
@@ -647,11 +664,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         LfBus lfBus1 = getLfBus(acDcConverter.getTerminal1(), lfNetwork, parameters.isBreakers());
-        LfDcBus lfDcBus1 = getLfDcBus(acDcConverter.getDcTerminal1(), lfNetwork);
-        LfDcBus lfDcBus2 = getLfDcBus(acDcConverter.getDcTerminal2(), lfNetwork);
+        LfDcBus lfDcBus1 = getLfDcBusFromDcTerminal(acDcConverter.getDcTerminal1(), lfNetwork);
+        LfDcBus lfDcBus2 = getLfDcBusFromDcTerminal(acDcConverter.getDcTerminal2(), lfNetwork);
         if (lfBus1 != null && lfDcBus1 != null && lfDcBus2 != null) { // The converter is fully connected
             if (acDcConverter instanceof VoltageSourceConverter voltageSourceConverter) {
-                LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, lfDcBus1, lfDcBus2, lfBus1, parameters, vdcOverride);
+                LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, lfDcBus1, lfDcBus2, lfBus1,
+                    parameters, vdcOverride);
 
                 if (voltageSourceConverterImpl.isVoltageRegulatorOn()) {
                     VoltageSourceConverterVoltageControl voltageControl = new VoltageSourceConverterVoltageControl(lfBus1,
@@ -1066,8 +1084,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private static LfDcBus getLfDcBus(DcTerminal terminal, LfNetwork lfNetwork) {
+    private static LfDcBus getLfDcBusFromDcTerminal(DcTerminal terminal, LfNetwork lfNetwork) {
         DcBus dcBus = Networks.getDcBus(terminal);
+        return dcBus != null ? lfNetwork.getDcBusById(dcBus.getId()) : null;
+    }
+
+    private static LfDcBus getLfDcBusFromDcNode(DcNode dcNode, LfNetwork lfNetwork) {
+        DcBus dcBus = dcNode.getDcBus();
         return dcBus != null ? lfNetwork.getDcBusById(dcBus.getId()) : null;
     }
 
@@ -1366,19 +1389,14 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         List<LfDcBus> lfDcBuses = new ArrayList<>();
         createDcBuses(dcBuses, parameters, lfNetwork, lfDcBuses, loadingContext);
+        network.getDcSwitches().forEach(loadingContext.dcSwitchSet::add);
         createDcGrounds(lfNetwork, dcGrounds);
-        createDcLines(lfNetwork, loadingContext, parameters);
-
-        // TO DO : Handle switches that have non zero resistance
-        network.getDcSwitchStream().filter(s -> !s.isOpen() && s.getR() != 0)
-                .forEach(s -> {
-                    throw new PowsyblException("DcSwitch " + s.getId() + " has non zero resistance: not handled yet in AC DC load flow (R = " + s.getR() + ")");
-                });
+        createDcBranches(lfNetwork, loadingContext, parameters);
 
         // -- Sanity checks : detecting invalid DC configuration and automatically resolving reference-less islands
         double dcNominalV = dcVoltages.iterator().next();
         List<AcDcConverter<?>> convertersToSetInVdcMode =
-                DcComponentValidator.resolveDcComponent(dcBuses, loadingContext.acDcConverterSet, numDcc);
+                DcComponentValidator.resolveDcComponent(dcBuses, loadingContext.acDcConverterSet, loadingContext.dcSwitchSet, numDcc);
         convertersToSetInVdcMode.forEach(converter -> {
             LOGGER.info("Network {}: converter '{}' automatically set to V_DC control mode (target Vdc = {} kV) " +
                             "to settle an otherwise unconstrained DC island in DC component {}",
@@ -1737,6 +1755,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
 
+        // (connected component, DC component) --> all DC buses
         Map<Pair<Integer, Integer>, List<DcBus>> dcBusesByCc = new TreeMap<>();
         Iterable<DcBus> dcBuses = Networks.getDcBuses(network);
         for (DcBus dcBus : dcBuses) {
