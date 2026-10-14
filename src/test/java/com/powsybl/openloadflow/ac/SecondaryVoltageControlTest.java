@@ -205,8 +205,8 @@ class SecondaryVoltageControlTest {
                 .add();
 
         // Start g6 and g8 close to qmin so the SVC correction first interacts with reactive limit switching.
-        g6.setTargetV(11.8);
-        g8.setTargetV(19.5);
+        g6.setLocalTargetV(11.8);
+        g8.setLocalTargetV(19.5);
     }
 
     @Test
@@ -580,9 +580,6 @@ class SecondaryVoltageControlTest {
     void testLocalControlUnitParticipatesWithoutEquivalentLocalTargetV() {
         // B6-G and B8-G control the voltage of their own bus: they already have a target voltage for it, so they do
         // not need any equivalent local target voltage to participate to the secondary voltage control
-        // TODO check with Sylvestre
-        // assertTrue(Double.isNaN(g6.getEquivalentLocalTargetV()));
-        // assertTrue(Double.isNaN(g8.getEquivalentLocalTargetV()));
 
         network.newExtension(SecondaryVoltageControlAdder.class)
                 .newControlZone()
@@ -750,9 +747,12 @@ class SecondaryVoltageControlTest {
                 .setTargetP(0)
                 .setMinP(-9999)
                 .setMaxP(9999)
-                .setTargetV(12.8)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(network.getLoad("B6-L").getTerminal())
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTargetValue(12.8)
+                    .withRegulating(true)
+                    .withTerminal(network.getLoad("B6-L").getTerminal())
+                    .add()
                 .add();
         parameters.setUseReactiveLimits(false);
         parametersExt.setSecondaryVoltageControl(true);
@@ -796,9 +796,12 @@ class SecondaryVoltageControlTest {
                 .setTargetP(0)
                 .setMinP(-9999)
                 .setMaxP(9999)
-                .setTargetV(12.8)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(network.getLoad("B6-L").getTerminal())
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTargetValue(12.8)
+                    .withRegulating(true)
+                    .withTerminal(network.getLoad("B6-L").getTerminal())
+                    .add()
                 .add();
         var g7 = network.getVoltageLevel("VL7").newGenerator()
                 .setId("B7-G") // remote voltage control of B9, with an equivalent local target voltage
@@ -806,11 +809,14 @@ class SecondaryVoltageControlTest {
                 .setTargetP(0)
                 .setMinP(-9999)
                 .setMaxP(9999)
-                .setTargetV(12.4)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(network.getLoad("B9-L").getTerminal())
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTargetValue(12.4)
+                    .withRegulating(true)
+                    .withTerminal(network.getLoad("B9-L").getTerminal())
+                    .add()
                 .add();
-        g7.setTargetV(12.4, 14.2);
+        g7.setLocalTargetV(14.2);
 
         network.newExtension(SecondaryVoltageControlAdder.class)
                 .newControlZone()
@@ -898,9 +904,12 @@ class SecondaryVoltageControlTest {
                 .setTargetP(1)
                 .setMinP(-1000)
                 .setMaxP(1000)
-                .setTargetV(12.8)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(network.getLoad("B6-L").getTerminal())
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTargetValue(12.8)
+                    .withRegulating(true)
+                    .withTerminal(network.getLoad("B6-L").getTerminal())
+                    .add()
                 .add();
         g991.newMinMaxReactiveLimits()
                 .setMinQ(-30)
@@ -912,9 +921,12 @@ class SecondaryVoltageControlTest {
                 .setTargetP(2)
                 .setMinP(-1000)
                 .setMaxP(1000)
-                .setTargetV(12.8)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(network.getLoad("B6-L").getTerminal())
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTargetValue(12.8)
+                    .withRegulating(true)
+                    .withTerminal(network.getLoad("B6-L").getTerminal())
+                    .add()
                 .add();
         g992.newMinMaxReactiveLimits()
                 .setMinQ(-40)

@@ -41,10 +41,10 @@ class AcSensiVoltageIeeeTest extends AbstractSensitivityAnalysisTest {
         runLf(network, sensiParameters.getLoadFlowParameters());
         for (var g : network.getGenerators()) {
             if (g.getId().equals("B1-G") || g.getId().equals("B3-G")) {
-                g.setVoltageRegulatorOn(true);
+                g.getVoltageRegulation().setRegulating(true);
             } else {
-                g.setVoltageRegulatorOn(false);
-                g.setTargetQ(-g.getTerminal().getQ());
+                g.getVoltageRegulation().setRegulating(false);
+                g.setLocalTargetQ(-g.getTerminal().getQ());
             }
         }
     }

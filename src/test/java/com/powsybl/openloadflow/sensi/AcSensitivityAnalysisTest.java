@@ -825,11 +825,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("T2wT");
         t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal2())
-                .setTargetV(34.0);
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VL_1_0", true);
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class)
@@ -850,11 +850,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         assertEquals(1.055117d, result.getBusVoltageSensitivityValue("T2wT", "BUS_4", SensitivityVariableType.BUS_TARGET_VOLTAGE), LoadFlowAssert.DELTA_V);
 
         t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
                 .setTapPosition(3)
-                .setRegulationTerminal(t2wt.getTerminal1()) // control will be disabled.
-                .setTargetV(135.0);
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 135.0) // control will be disabled.
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
 
         SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, runParameters);
 
@@ -894,11 +894,11 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
         ThreeWindingsTransformer t3wt = network.getThreeWindingsTransformer("T3wT");
         t3wt.getLeg2().getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t3wt.getLeg2().getTerminal())
-                .setTargetV(28.);
+                .getVoltageRegulation()
+                    .setTerminal(t3wt.getLeg2().getTerminal(), 28.)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "VL_1_0", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
@@ -1546,7 +1546,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         // Setting battery voltage control and computing sensitivity per target V of battery bat1 -> Result should be the same
         network.getBattery("bat1").newVoltageRegulation().withMode(RegulationMode.VOLTAGE).build();
-        network.getGenerator("g1").setTargetQ(0).setVoltageRegulatorOn(false);
+        network.getGenerator("g1").setLocalTargetQ(0).getVoltageRegulation().setRegulating(false);
 
         factors = List.of(createBranchReactivePowerPerTargetV("l14", "bat1"));
         result = sensiRunner.run(network, factors, runParameters);
@@ -2057,7 +2057,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         double i2Before = twt.getTerminal2().getI();
 
         Generator gen = network.getGenerator("GEN");
-        gen.setTargetV(gen.getTargetV() + 0.01);
+        gen.setLocalTargetV(gen.getLocalTargetV() + 0.01);
 
         runAcLf(network);
 
@@ -2296,7 +2296,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         runAcLf(network);
         Map<Bus, Double> vAfter = monitoredBuses.stream().collect(Collectors.toMap(b -> b, Bus::getV));
 
-        shunt.setVoltageRegulatorOn(true);
+        shunt.getVoltageRegulation().setRegulating(true);
         shunt.setSectionCount(0);
         runAcLf(network);
 
@@ -2370,7 +2370,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
                 b.getTerminal1().getI(), b.getTerminal2().getI()}));
 
         // Reset for sensitivity analysis
-        shunt.setVoltageRegulatorOn(true);
+        shunt.getVoltageRegulation().setRegulating(true);
         shunt.setSectionCount(0);
         runAcLf(network);
 
@@ -2454,7 +2454,9 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         VoltageLevel vl1 = s1.newVoltageLevel().setId("vl1").setNominalV(400).setTopologyKind(TopologyKind.BUS_BREAKER).add();
         vl1.getBusBreakerView().newBus().setId("b1").add();
         vl1.newGenerator().setId("g1").setBus("b1").setConnectableBus("b1")
-                .setTargetP(10).setTargetV(400).setMinP(0).setMaxP(500).setVoltageRegulatorOn(true).add();
+                .setTargetP(10).setLocalTargetV(400).setMinP(0).setMaxP(500)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .add();
 
         VoltageLevel vl2 = s1.newVoltageLevel().setId("vl2").setNominalV(20).setTopologyKind(TopologyKind.BUS_BREAKER).add();
         vl2.getBusBreakerView().newBus().setId("b2").add();
@@ -2463,7 +2465,7 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         VoltageLevel vl3 = s2.newVoltageLevel().setId("vl3").setNominalV(20).setTopologyKind(TopologyKind.BUS_BREAKER).add();
         vl3.getBusBreakerView().newBus().setId("b3").add();
         vl3.newShuntCompensator().setId("SHUNT").setBus("b3").setConnectableBus("b3")
-                .setSectionCount(0).setVoltageRegulatorOn(false)
+                .setSectionCount(0)
                 .newLinearModel().setBPerSection(bPerSection).setMaximumSectionCount(1).add()
                 .add();
 

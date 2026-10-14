@@ -1431,7 +1431,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
 
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
-        network.getGenerator("g2").setTargetV(400).setVoltageRegulatorOn(true);
+        network.getGenerator("g2").setLocalTargetV(400).getVoltageRegulation().setRegulating(true);
 
         List<Contingency> contingencies = Stream.of("g1")
                 .map(id -> new Contingency(id, new GeneratorContingency(id)))
@@ -2294,7 +2294,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         // make network a bit resistive so we have different results in AC or DC
         network.getLineStream().forEach(l -> l.setR(0.6));
         // put all generators on voltage control so the network is solvable on g1 contingency
-        network.getGeneratorStream().forEach(g -> g.setTargetV(g.getTerminal().getVoltageLevel().getNominalV()).setVoltageRegulatorOn(true));
+        network.getGeneratorStream().forEach(g -> g.setLocalTargetV(g.getTerminal().getVoltageLevel().getNominalV()).getVoltageRegulation().setRegulating(true));
 
         // note that g1 has targetP 100 MW but solves in N at ~102.5 MW because of slack distribution
         Contingency g1contingency = Contingency.generator("g1");
