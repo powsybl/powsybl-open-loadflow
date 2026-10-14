@@ -158,6 +158,7 @@ public final class Networks {
             LfBranch branch = network.getBranchById(id);
             if (branch != null) {
                 connectivity.removeEdge(branch);
+                network.addConnectivityRemovedBranch(branch);
                 toRemove.add(id);
             }
         });
@@ -327,8 +328,8 @@ public final class Networks {
         return switch (identifiable.getType()) {
             case TWO_WINDINGS_TRANSFORMER -> {
                 RatioTapChanger rtc = ((TwoWindingsTransformer) identifiable).getRatioTapChanger();
-                if (rtc != null) {
-                    yield Optional.of(rtc.getRegulationTerminal());
+                if (rtc != null && rtc.isRegulating()) {
+                    yield Optional.ofNullable(rtc.getRegulatingTerminal());
                 }
                 yield Optional.empty();
             }
@@ -336,7 +337,7 @@ public final class Networks {
                 for (ThreeWindingsTransformer.Leg leg : ((ThreeWindingsTransformer) identifiable).getLegs()) {
                     RatioTapChanger rtc = leg.getRatioTapChanger();
                     if (rtc != null && rtc.isRegulating()) {
-                        yield Optional.of(rtc.getRegulationTerminal());
+                        yield Optional.ofNullable(rtc.getRegulatingTerminal());
                     }
                 }
                 yield Optional.empty();

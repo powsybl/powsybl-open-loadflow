@@ -24,6 +24,19 @@ public final class LfStandbyAutomatonShunt extends AbstractLfShunt {
 
     private double b;
 
+    @Override
+    public LfShunt copy(LfBus copyBus) {
+        LfStaticVarCompensator copiedSvc = (LfStaticVarCompensator) copyBus.getGenerators().stream()
+                .filter(g -> g.getId().equals(svc.getId()))
+                .findFirst()
+                .orElseThrow();
+        LfStandbyAutomatonShunt svcShunt = LfStandbyAutomatonShunt.create(copiedSvc);
+        copiedSvc.setStandByAutomatonShunt(svcShunt);
+        svcShunt.setB(b);
+        svcShunt.setDisabled(disabled);
+        return svcShunt;
+    }
+
     private LfStandbyAutomatonShunt(LfStaticVarCompensator svc) {
         super(svc.getBus().getNetwork());
         this.svc = svc;

@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.DroopCurve;
 import com.powsybl.iidm.network.VoltageSourceConverter;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -41,15 +42,25 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         super(converter, network, dcBus1, dcBus2, bus1, vdcOverride);
         bus1.addConverter(this);
         this.converterRef = Ref.create(converter, parameters.isCacheEnabled());
-        this.isVoltageRegulatorOn = converter.isVoltageRegulatorOn();
+        this.isVoltageRegulatorOn = converter.isRegulatingWithMode(RegulationMode.VOLTAGE);
         if (isVoltageRegulatorOn) {
-            this.targetVac = converter.getVoltageSetpoint() / bus1.getNominalV();
+            this.targetVac = converter.getRegulatingTargetV() / bus1.getNominalV();
         } else {
-            this.targetQ = converter.getReactivePowerSetpoint() / PerUnit.SB;
+            this.targetQ = converter.getRegulatingTargetQ() / PerUnit.SB;
         }
         this.droopBands = getControlMode() == AcDcConverter.ControlMode.DC_DROOP
                 ? buildDroopBands(converter, getDcVoltageBase())
                 : List.of();
+    }
+
+    private LfVoltageSourceConverterImpl(LfVoltageSourceConverterImpl other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
+        super(other, network, dcBus1, dcBus2, bus1);
+        bus1.addConverter(this);
+        this.converterRef = other.converterRef;
+        this.isVoltageRegulatorOn = other.isVoltageRegulatorOn;
+        this.targetQ = other.targetQ;
+        this.targetVac = other.targetVac;
+        this.droopBands = other.droopBands;
     }
 
     /**
@@ -128,6 +139,15 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
             }
         }
         return segments.size() - 1;
+    }
+
+    @Override
+    public LfVoltageSourceConverter copy(LfNetwork copyNetwork) {
+        return new LfVoltageSourceConverterImpl(this,
+                copyNetwork,
+                copyNetwork.getDcBusById(dcBus1.getId()),
+                copyNetwork.getDcBusById(dcBus2.getId()),
+                copyNetwork.getBusById(bus1.getId()));
     }
 
     public static LfVoltageSourceConverterImpl create(VoltageSourceConverter acDcConverter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1, LfNetworkParameters parameters,

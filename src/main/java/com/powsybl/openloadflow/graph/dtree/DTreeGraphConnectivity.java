@@ -105,8 +105,8 @@ public class DTreeGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
     }
 
     @Override
-    public void startTemporaryChanges() {
-        modificationsStack.push(new Modifications<>(graph, defaultMainComponentVertex, true));
+    public void startTemporaryChanges(boolean computeComparisons) {
+        modificationsStack.push(new Modifications<>(graph, defaultMainComponentVertex, computeComparisons));
         graph.setCurrentModificationsContext(modificationsStack.peek());
     }
 
@@ -158,7 +158,7 @@ public class DTreeGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
     @Override
     public Set<V> getConnectedComponent(V vertex) {
         checkSavedContext();
-        return graph.componentView(vertex);
+        return graph.createComponentView(vertex);
     }
 
     @Override
@@ -166,7 +166,7 @@ public class DTreeGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
         checkSavedContext();
 
         if (components == null) {
-            return getGraph().getBiggestRoot().componentView();
+            return getGraph().getBiggestRoot().createComponentView();
         } else {
             return components.getFirst();
         }
