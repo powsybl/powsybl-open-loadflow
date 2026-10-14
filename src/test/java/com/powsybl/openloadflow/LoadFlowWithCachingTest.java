@@ -315,6 +315,46 @@ class LoadFlowWithCachingTest {
         assertActivePowerEquals(isDc ? -620 : -625.895, gen.getTerminal());
     }
 
+    private static Network createNetworkWithStaticVarCompensatorAtReactiveLimit() {
+        Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
+        network.getLine("l1").setX(100);
+        StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");
+        svc1.setBmax(0.002);
+        svc1.setLocalTargetV(450);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
+        return network;
+    }
+
+    @ParameterizedTest
+    @ValueSource(doubles = {200, -300})
+    void testLoadQWithStaticVarCompensatorAtReactiveLimit(double newQ0) {
+        // cached network starts from svc1 at limit, modeled as a fixed susceptance: it either remains at limit (200)
+        // or switches back PV (-300), with the same result as without cache
+        Network network = createNetworkWithStaticVarCompensatorAtReactiveLimit();
+        StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        var result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertReactivePowerEquals(-svc1.getBmax() * b2.getV() * b2.getV(), svc1.getTerminal());
+
+        network.getLoad("ld1").setQ0(newQ0);
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+
+        Network networkWithoutCache = createNetworkWithStaticVarCompensatorAtReactiveLimit();
+        networkWithoutCache.getLoad("ld1").setQ0(newQ0);
+        LoadFlowParameters parametersWithoutCache = parameters.copy();
+        OpenLoadFlowParameters.get(parametersWithoutCache).setNetworkCacheEnabled(false);
+        loadFlowRunner.run(networkWithoutCache, parametersWithoutCache);
+        // not starting from the same state, so same result up to the solver tolerance
+        assertEquals(networkWithoutCache.getBusBreakerView().getBus("b2").getV(), b2.getV(), 1e-2);
+        assertEquals(networkWithoutCache.getStaticVarCompensator("svc1").getTerminal().getQ(), svc1.getTerminal().getQ(), 1e-2);
+    }
+
     @Test
     void testLoadQ() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());

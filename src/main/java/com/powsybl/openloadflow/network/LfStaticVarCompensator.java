@@ -50,9 +50,21 @@ public interface LfStaticVarCompensator extends LfGenerator {
 
     double getB0();
 
+    double getBmin();
+
+    double getBmax();
+
     Optional<StandByAutomaton> getStandByAutomaton();
 
-    Optional<LfShunt> getStandByAutomatonShunt();
+    /**
+     * The reactive limit (MIN_Q or MAX_Q) the static var compensator is blocked at, if any: the one of its bus when
+     * switched PQ at a reactive limit, if the static var compensator is enabled and controlling voltage. At limit, it is
+     * modeled as a fixed susceptance (Bmin or Bmax) through the bus SVC shunt so that its reactive power follows the voltage.
+     */
+    Optional<LfBus.QLimitType> getQLimitType();
 
-    void setStandByAutomatonShunt(LfShunt standByAutomatonShunt);
+    /**
+     * The susceptance (in S) modeled through the bus SVC shunt: B0 and, when at a reactive limit, Bmin or Bmax.
+     */
+    double getB();
 }

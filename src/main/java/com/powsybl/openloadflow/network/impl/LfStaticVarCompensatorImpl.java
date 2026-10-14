@@ -43,8 +43,6 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
 
     private double b0 = 0.0;
 
-    private LfShunt standByAutomatonShunt;
-
     /**
      * Reactive limits depending on the current voltage of the SVC bus
      * (uses the generator bus field so that it stays correct on a deep copy).
@@ -229,7 +227,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
         double q = (Double.isNaN(calculatedQ) ? -targetQ : -calculatedQ) * PerUnit.SB;
         getSvc().getTerminal()
                 .setP(0)
-                .setQ(q - b0 * vSquare);
+                .setQ(q - getB() * vSquare);
     }
 
     @Override
@@ -248,18 +246,45 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
     }
 
     @Override
+    public double getBmin() {
+        return getSvc().getBmin();
+    }
+
+    @Override
+    public double getBmax() {
+        return getSvc().getBmax();
+    }
+
+    @Override
     public Optional<StandByAutomaton> getStandByAutomaton() {
         return Optional.ofNullable(standByAutomaton);
     }
 
     @Override
-    public Optional<LfShunt> getStandByAutomatonShunt() {
-        return Optional.ofNullable(standByAutomatonShunt);
+    public Optional<LfBus.QLimitType> getQLimitType() {
+        if (isDisabled() || generatorControlType != GeneratorControlType.VOLTAGE || bus.isGeneratorVoltageControlEnabled()) {
+            return Optional.empty();
+        }
+        return bus.getQLimitType().filter(qLimitType -> qLimitType == LfBus.QLimitType.MIN_Q || qLimitType == LfBus.QLimitType.MAX_Q);
     }
 
     @Override
-    public void setStandByAutomatonShunt(LfShunt standByAutomatonShunt) {
-        this.standByAutomatonShunt = standByAutomatonShunt;
+    public double getB() {
+        return b0 + getQLimitType().map(qLimitType -> qLimitType == LfBus.QLimitType.MIN_Q ? getBmin() : getBmax()).orElse(0.0);
+    }
+
+    // the bus SVC shunt susceptance depends on the disabling status and the control type of the SVC
+
+    @Override
+    public void setDisabled(boolean disabled) {
+        super.setDisabled(disabled);
+        bus.updateSvcShunt();
+    }
+
+    @Override
+    public void setGeneratorControlType(GeneratorControlType generatorControlType) {
+        super.setGeneratorControlType(generatorControlType);
+        bus.updateSvcShunt();
     }
 
     @Override

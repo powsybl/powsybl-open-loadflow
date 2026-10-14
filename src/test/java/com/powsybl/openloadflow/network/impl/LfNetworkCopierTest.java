@@ -186,7 +186,7 @@ class LfNetworkCopierTest {
                 .withLowVoltageThreshold(380)
                 .withLowVoltageSetpoint(385)
                 .withHighVoltageSetpoint(395)
-                .withB0(-0.001f) // non-zero so the LfStandbyAutomatonShunt (svcShunt) is created
+                .withB0(-0.001f) // non-zero so that the svcShunt has a non-zero susceptance
                 .withStandbyStatus(true)
                 .add();
         return network;
