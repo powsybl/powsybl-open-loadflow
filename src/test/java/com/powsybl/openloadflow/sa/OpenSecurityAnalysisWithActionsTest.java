@@ -1766,88 +1766,6 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
     }
 
-    private void createNetworkBoundaryLine(Network network, boolean withGeneration, boolean withVoltageRegulation) {
-        String boundaryLineId = "BL";
-
-        // BoundaryLine power values for the tests
-        double initialDLLoadActivePowerValue = 50.0;
-        double initialDLLoadReactivePowerValue = 10.0;
-
-        if (withGeneration) {
-            BoundaryLine boundaryLine = ((BoundaryLineAdder) ((BoundaryLineAdder) network.getVoltageLevel("VL").newBoundaryLine().setId(boundaryLineId)).setBus("BUS"))
-                    .setR(0.00001)
-                    .setX(3)
-                    .setP0(initialDLLoadActivePowerValue)
-                    .setQ0(initialDLLoadReactivePowerValue)
-                    .newGeneration()
-                    .setTargetP(20)
-                    .setTargetQ(-9)
-                    .setMaxP(40)
-                    .setMinP(0.0)
-                    .setTargetV(101.0)
-                    .setVoltageRegulationOn(withVoltageRegulation)
-                    .add()
-                    .add();
-            boundaryLine.getGeneration().newReactiveCapabilityCurve()
-                    .beginPoint().setP(0.0).setMinQ(-59.3).setMaxQ(60.0).endPoint()
-                    .beginPoint().setP(70.0).setMinQ(-54.55).setMaxQ(46.25).endPoint()
-                    .add();
-        } else {
-            ((BoundaryLineAdder) ((BoundaryLineAdder) network.getVoltageLevel("VL").newBoundaryLine().setId(boundaryLineId)).setBus("BUS"))
-                    .setR(0.00001)
-                    .setX(3)
-                    .setP0(initialDLLoadActivePowerValue)
-                    .setQ0(initialDLLoadReactivePowerValue)
-                    .add();
-        }
-    }
-
-    private Network createBoundaryLineNetwork(boolean withGeneration, boolean withVoltageRegulation, double afterGDisconnectionCurrent) {
-        // Create network with boundary Line and load L_2 -- BUS_2 -- G_2 ---------- LINE_12 --------- G -- BUS -- DL
-        // add 1 generator, 1 load, 1 bus connected and create 1 line to connect the new bus to the already existing one
-
-        // Current limit on LINE_12 (on both sides) that will provoke limit violations when generator G is disconnected
-        double currentLimit = afterGDisconnectionCurrent - 2.0;
-
-        Network network = NetworkFactory.findDefault().createNetwork("boundary-line", "test");
-        Substation substation = ((SubstationAdder) network.newSubstation().setId("S")).setCountry(Country.FR).add();
-        VoltageLevel voltageLevel = ((VoltageLevelAdder) substation.newVoltageLevel().setId("VL"))
-                .setNominalV(100.0).setLowVoltageLimit(80.0).setHighVoltageLimit(120.0).setTopologyKind(TopologyKind.BUS_BREAKER).add();
-        ((BusAdder) voltageLevel.getBusBreakerView().newBus().setId("BUS")).add();
-        ((GeneratorAdder) ((GeneratorAdder) voltageLevel.newGenerator().setId("G"))
-                .setMinP(0.0)
-                .setMaxP(100.0)
-                .setBus("BUS")
-                .setVoltageRegulatorOn(true)
-                .setTargetV(100.0)
-                .setTargetP(50.0)
-                .setTargetQ(0)).add();
-        ((BusAdder) network.getVoltageLevel("VL").getBusBreakerView().newBus().setId("BUS_2")).add();
-        network.getVoltageLevel("VL").newGenerator()
-                .setId("G_2").setBus("BUS_2").setConnectableBus("BUS_2").setVoltageRegulatorOn(true)
-                .setTargetP(50)
-                .setTargetV(100)
-                .setTargetQ(25)
-                .setMaxP(100)
-                .setMinP(0)
-                .add();
-        network.newLine().setId("LINE_12").setBus1("BUS_2").setBus2("BUS")
-                .setR(0.00001)
-                .setX(8)
-                .add();
-        network.getLine("LINE_12")
-                .newCurrentLimits1()
-                .setPermanentLimit(currentLimit)
-                .add();
-        network.getLine("LINE_12").newCurrentLimits2().setPermanentLimit(currentLimit).add();
-        network.getVoltageLevel("VL").newLoad().setId("L_2").setConnectableBus("BUS_2").setBus("BUS_2")
-                .setP0(50)
-                .setQ0(30)
-                .add();
-        createNetworkBoundaryLine(network, withGeneration, withVoltageRegulation);
-        return network;
-    }
-
     static Stream<Arguments> boundaryLineActionProvider() {
         return Stream.of(
                 Arguments.of(true, true, 180.182),
@@ -1863,7 +1781,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         double boundaryLineActionP0 = 25.0;
         double boundaryLineActionQ0 = 10.0;
 
-        Network network = createBoundaryLineNetwork(withGeneration, withVoltageRegulation, lineCurrentAfterContingency);
+        Network network = BoundaryFactory.createWithTwoGeneratorsAndLimits(withGeneration, withVoltageRegulation, lineCurrentAfterContingency);
 
         // Set contingency, action and operator strategy and parameters for the security analysis
         BoundaryLineAction boundaryLineAction = new BoundaryLineActionBuilder()
@@ -1939,7 +1857,7 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
     @Test
     void testWrongBoundaryLineAction() {
-        Network network = createBoundaryLineNetwork(false, false, 100);
+        Network network = BoundaryFactory.createWithTwoGeneratorsAndLimits(false, false, 100);
 
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         List<Contingency> contingencies = List.of(new Contingency("tr2", new TwoWindingsTransformerContingency("tr2")));
