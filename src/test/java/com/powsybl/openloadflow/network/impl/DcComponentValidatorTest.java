@@ -39,7 +39,7 @@ class DcComponentValidatorTest {
     void droopModeIsAlsoConsideredAsControllingVoltage() {
         // conv23 (P_PCC) and conv45 (V_DC) share the dn3/dn4 subcomponent: conv45 already settles its DC voltage
         Network network = AcDcNetworkFactory.createAcDcNetwork1();
-        network.getVoltageSourceConverter("conv45").setControlMode(AcDcConverter.ControlMode.P_PCC_DROOP);
+        network.getVoltageSourceConverter("conv45").setControlMode(AcDcConverter.ControlMode.DC_DROOP);
         List<AcDcConverter<?>> convertersToSetInVdcMode = DcComponentValidator.resolveDcComponent(
                 allDcBuses(network),
                 List.of(network.getVoltageSourceConverter("conv23"), network.getVoltageSourceConverter("conv45")),
@@ -121,8 +121,7 @@ class DcComponentValidatorTest {
                 .setBus1("b")
                 .setDcNode1("dnA")
                 .setDcNode2("dnB")
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         List<AcDcConverter<?>> converters = List.of(network.getVoltageSourceConverter("conv"));

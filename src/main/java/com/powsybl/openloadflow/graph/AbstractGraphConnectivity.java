@@ -190,7 +190,7 @@ public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>
         return checkSavedContext().getEdgesRemovedFromMainComponent(graph);
     }
 
-    private Set<V> getVerticesNotInMainComponent(V mainComponentVertex) {
+    protected Set<V> getVerticesNotInMainComponent(V mainComponentVertex) {
         if (mainComponentVertex != null) {
             return getNonConnectedVertices(mainComponentVertex);
         } else {

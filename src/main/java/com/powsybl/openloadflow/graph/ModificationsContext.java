@@ -8,10 +8,14 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.openloadflow.graph.dtree.AbstractSetView;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.set.hash.THashSet;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -40,7 +44,7 @@ public class ModificationsContext<V, E> {
 
     public void computeVerticesNotInMainComponentBefore() {
         if (computeComparisons) {
-            this.verticesNotInMainComponentBefore = verticesNotInMainComponentGetter.apply(mainComponentVertex);
+            this.verticesNotInMainComponentBefore = AbstractSetView.copyIfNeeded(verticesNotInMainComponentGetter.apply(mainComponentVertex));
         }
     }
 

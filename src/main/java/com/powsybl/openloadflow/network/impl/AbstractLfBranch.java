@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.sa.LimitReductionManager;
+import com.powsybl.openloadflow.sa.LimitScalingManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import net.jafama.FastMath;
 import org.slf4j.Logger;
@@ -86,6 +86,23 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
+    protected AbstractLfBranch(AbstractLfBranch other, LfNetwork network, LfBus bus1, LfBus bus2) {
+        super(network);
+        this.bus1 = bus1;
+        this.bus2 = bus2;
+        this.asymLine = other.asymLine;
+        this.piModel = other.piModel.copy();
+        this.piModel.setBranch(this);
+        for (LoadFlowModel loadFlowModel : LoadFlowModel.values()) {
+            ZeroImpedanceContext context = new ZeroImpedanceContext();
+            context.zeroImpedance = other.zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance;
+            zeroImpedanceContextByModel.put(loadFlowModel, context);
+        }
+        this.disabled = other.disabled;
+        this.phaseControlEnabled = other.phaseControlEnabled;
+        this.voltageControlEnabled = other.voltageControlEnabled;
+    }
+
     @Override
     public Optional<ThreeSides> getOriginalSide() {
         return Optional.empty();
@@ -130,8 +147,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
-    private <T extends LoadingLimits> List<LfLimitsGroup> createLimits(Supplier<Map<String, T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager, TwoSides side) {
-        // It is possible to apply the reductions here since the only supported ContingencyContext for LimitReduction is ALL.
+    private <T extends LoadingLimits> List<LfLimitsGroup> createLimits(Supplier<Map<String, T>> loadingLimitsSupplier, LimitScalingManager limitScalingManager, TwoSides side) {
+        // It is possible to apply the scalings here since the only supported ContingencyContext for LimitScaling is ALL.
         Map<String, T> allSelectedLoadingLimits = loadingLimitsSupplier.get(); // Map of all selected loading limits indexed by their operational limits group id
         List<LfLimitsGroup> limits = new ArrayList<>();
         for (Map.Entry<String, T> loadingLimitsEntry : allSelectedLoadingLimits.entrySet()) {
@@ -140,15 +157,15 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
             limits.add(LfLimitsGroup.createSortedLimitsList(loadingLimits,
                     operationalLimitsGroupId,
                     side == TwoSides.ONE ? bus1 : bus2,
-                    getLimitReductions(side, limitReductionManager, loadingLimits)));
+                    getLimitScalings(side, limitScalingManager, loadingLimits)));
         }
         return limits;
     }
 
-    public <T extends LoadingLimits> List<LfLimitsGroup> getLimits1(LimitType type, Supplier<Map<String, T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
+    public <T extends LoadingLimits> List<LfLimitsGroup> getLimits1(LimitType type, Supplier<Map<String, T>> loadingLimitsSupplier, LimitScalingManager limitScalingManager) {
         List<LfLimitsGroup> limits = getLimits1(type);
         if (limits == null) {
-            limits = createLimits(loadingLimitsSupplier, limitReductionManager, TwoSides.ONE);
+            limits = createLimits(loadingLimitsSupplier, limitScalingManager, TwoSides.ONE);
             setLimits1(type, limits);
         }
         return limits;
@@ -178,10 +195,10 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         }
     }
 
-    public <T extends LoadingLimits> List<LfLimitsGroup> getLimits2(LimitType type, Supplier<Map<String, T>> loadingLimitsSupplier, LimitReductionManager limitReductionManager) {
+    public <T extends LoadingLimits> List<LfLimitsGroup> getLimits2(LimitType type, Supplier<Map<String, T>> loadingLimitsSupplier, LimitScalingManager limitScalingManager) {
         var limits = getLimits2(type);
         if (limits == null) {
-            limits = createLimits(loadingLimitsSupplier, limitReductionManager, TwoSides.TWO);
+            limits = createLimits(loadingLimitsSupplier, limitScalingManager, TwoSides.TWO);
             setLimits2(type, limits);
         }
         return limits;

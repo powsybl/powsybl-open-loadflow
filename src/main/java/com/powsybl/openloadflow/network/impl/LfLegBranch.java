@@ -9,8 +9,9 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.sa.LimitReductionManager;
+import com.powsybl.openloadflow.sa.LimitScalingManager;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
@@ -34,6 +35,20 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         super(network, bus1, bus0, piModel, parameters);
         this.twtRef = Ref.create(twt, parameters.isCacheEnabled());
         this.legRef = Ref.create(leg, parameters.isCacheEnabled());
+    }
+
+    private LfLegBranch(LfLegBranch other, LfNetwork network, LfBus bus1, LfBus bus0) {
+        super(other, network, bus1, bus0);
+        this.twtRef = other.twtRef;
+        this.legRef = other.legRef;
+    }
+
+    @Override
+    public LfBranch copy(LfNetwork copyNetwork) {
+        return new LfLegBranch(this,
+                copyNetwork,
+                bus1 == null ? null : copyNetwork.getBusById(bus1.getId()),
+                bus2 == null ? null : copyNetwork.getBusById(bus2.getId()));
     }
 
     public ThreeWindingsTransformer getTwt() {
@@ -142,6 +157,11 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
+    public Optional<PhaseTapChanger> getPhaseTapChanger() {
+        return Optional.ofNullable(getLeg().getPhaseTapChanger());
+    }
+
+    @Override
     public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
                                                  boolean createExtension, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows,
                                                  LoadFlowModel loadFlowModel) {
@@ -157,14 +177,14 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public List<LfLimitsGroup> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits1(final LimitType type, LimitScalingManager limitScalingManager) {
         switch (type) {
             case ACTIVE_POWER:
-                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits), limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getActivePowerLimits), limitScalingManager);
             case APPARENT_POWER:
-                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits), limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getApparentPowerLimits), limitScalingManager);
             case CURRENT:
-                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits), limitReductionManager);
+                return getLimits1(type, toMapIndexedByOperationalLimitsGroupId(OperationalLimitsGroup::getCurrentLimits), limitScalingManager);
             case VOLTAGE:
             default:
                 throw new UnsupportedOperationException(String.format("Getting %s limits is not supported.", type.name()));
@@ -172,7 +192,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     }
 
     @Override
-    public double[] getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
+    public double[] getLimitScalings(TwoSides side, LimitScalingManager limitScalingManager, LoadingLimits limits) {
         return new double[] {};
     }
 

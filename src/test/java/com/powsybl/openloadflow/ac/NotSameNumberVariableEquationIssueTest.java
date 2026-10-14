@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.openloadflow.CommonTestConfig;
@@ -76,9 +77,11 @@ class NotSameNumberVariableEquationIssueTest {
                 .setMinP(0)
                 .setMaxP(100)
                 .setTargetP(1)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(148)
-                .setRegulatingTerminal(network.getLoad("LOAD").getTerminal())
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(network.getLoad("LOAD").getTerminal())
+                    .withTargetValue(148)
+                    .add()
                 .add();
         network.newLine()
                 .setId("L")

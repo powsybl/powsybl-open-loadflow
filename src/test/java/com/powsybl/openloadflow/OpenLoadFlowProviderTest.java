@@ -23,8 +23,8 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.openloadflow.util.ProviderConstants;
-import com.powsybl.tools.PowsyblCoreVersion;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -52,7 +52,7 @@ class OpenLoadFlowProviderTest {
     void test() {
         LoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory());
         assertEquals(ProviderConstants.NAME, loadFlowProvider.getName());
-        assertEquals(new PowsyblCoreVersion().getMavenProjectVersion(), loadFlowProvider.getVersion());
+        assertEquals(new PowsyblOpenLoadFlowVersion().getMavenProjectVersion(), loadFlowProvider.getVersion());
     }
 
     @Test
@@ -72,7 +72,7 @@ class OpenLoadFlowProviderTest {
                 "referenceBusSelector=ReferenceBusFirstSlackSelector, voltageTargetPriorities=[VOLTAGE_SOURCE_CONVERTER, GENERATOR, TRANSFORMER, SHUNT], " +
                 "fictitiousGeneratorVoltageControlCheckMode=FORCED, areaInterchangeControl=false, areaInterchangeControlAreaType=ControlArea, " +
                 "forceTargetQInReactiveLimits=false, disableInconsistentVoltageControls=false, extrapolateReactiveLimits=false, " +
-                "generatorsWithZeroMwTargetAreNotStarted=true, isAcDcNetwork=false, detailedReport=false, includeElementsReconnectingSmallComponents=true, " +
+                "generatorsWithZeroMwTargetAreNotStarted=true, isAcDcNetwork=false, detailedReport=false, " +
                 "allowNonLinearShuntZeroSection=true), equationSystemCreationParameters=DcEquationSystemCreationParameters(updateFlows=true, " +
                 "forcePhaseControlOffAndAddAngle1Var=true, useTransformerRatio=true, dcApproximationType=IGNORE_R), matrixFactory=DenseMatrixFactory, " +
                 "distributedSlack=true, balanceType=PROPORTIONAL_TO_GENERATION_P_MAX, setVToNan=true, maxOuterLoopIterations=20)",
@@ -97,7 +97,7 @@ class OpenLoadFlowProviderTest {
                 "voltageTargetPriorities=[VOLTAGE_SOURCE_CONVERTER, GENERATOR, TRANSFORMER, SHUNT], fictitiousGeneratorVoltageControlCheckMode=FORCED, " +
                 "areaInterchangeControl=false, areaInterchangeControlAreaType=ControlArea, forceTargetQInReactiveLimits=false, " +
                 "disableInconsistentVoltageControls=false, extrapolateReactiveLimits=false, generatorsWithZeroMwTargetAreNotStarted=true, " +
-                "isAcDcNetwork=false, detailedReport=false, includeElementsReconnectingSmallComponents=true, allowNonLinearShuntZeroSection=true), " +
+                "isAcDcNetwork=false, detailedReport=false, allowNonLinearShuntZeroSection=true), " +
                 "equationSystemCreationParameters=AcEquationSystemCreationParameters(forceA1Var=false), acSolverParameters=NewtonRaphsonParameters(maxIterations=15, " +
                 "stoppingCriteria=DefaultNewtonRaphsonStoppingCriteria, stateVectorScalingMode=NONE, alwaysUpdateNetwork=false, " +
                 "lineSearchStateVectorScalingMaxIteration=10, lineSearchStateVectorScalingStepFold=1.3333333333333333, " +
