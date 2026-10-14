@@ -11,6 +11,7 @@ import com.powsybl.action.*;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.contingency.LoadContingency;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.Identifiable;
@@ -21,6 +22,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.network.BoundaryFactory;
 import com.powsybl.openloadflow.network.ConnectedComponentNetworkFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
@@ -883,6 +885,30 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .withRelativeValue(false).withActivePowerValue(400).build());
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyLoad",
                 ContingencyContext.all(), new TrueCondition(), List.of("loadAction")));
+
+        assertDoesNotThrow(() -> sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setContingencies(contingencies)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions)));
+    }
+
+    @Test
+    void testBoundaryLineActionInOperatorStrategy() {
+        Network network = BoundaryFactory.createWithTieLine();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+
+        List<SensitivityFactor> factors = createFactorMatrix(
+                List.of(network.getGenerator("g1")),
+                network.getBranchStream().toList());
+        List<Contingency> contingencies = List.of(new Contingency("l13", new LoadContingency("load1")));
+        List<Action> actions = List.of(new BoundaryLineActionBuilder().withId("boundaryLineAction").withNetworkElementId("h2")
+                .withRelativeValue(false).withActivePowerValue(50).build());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyLoad",
+                ContingencyContext.all(), new TrueCondition(), List.of("boundaryLineAction")));
 
         assertDoesNotThrow(() -> sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
                 .setParameters(sensiParameters)
