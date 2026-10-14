@@ -432,6 +432,23 @@ The default value is `NONE`.
 Maximum number of iterations for the AC solver outer loop.<br>
 The default value is `20` and it must be greater or equal to `1`.
 
+(param-lf-incremental-control-interaction-scope)=
+#### incrementalControlInteractionScope
+Interactions between controllers accounted for by the incremental outer loops when deciding controller moves
+(see [combined influence of controllers](../detailed_models_description/outerloops.md#combined-influence-of-controllers)),
+for phase shifters in active power control mode ([`phaseShifterControlMode`](#phaseshiftercontrolmode) set to `INCREMENTAL`, or DC load flow),
+shunt compensators ([`shuntVoltageControlMode`](#shuntvoltagecontrolmode) set to `INCREMENTAL_VOLTAGE_CONTROL`)
+and transformer voltage control ([`transformerVoltageControlMode`](#transformervoltagecontrolmode) set to `INCREMENTAL_VOLTAGE_CONTROL`):
+- `ALL_CONTROLLED_ELEMENTS`: the moves decided in an outer loop iteration are predicted on all the controlled elements of the outer loop,
+  and a move is accepted only if it reduces the mismatches exceeding the deadbands of all of them. Controllers of nearby controlled
+  elements do not overshoot their targets together, but a controller may not reach its own target if this would worsen another
+  controlled element.
+- `SAME_CONTROLLED_ELEMENT`: a move is only evaluated on its own controlled element, accounting only for the moves of the other
+  controllers of the same controlled element. Each controller tries to reach its own target, but controllers of nearby controlled
+  elements may overshoot their targets together and oscillate.
+
+The default value is `ALL_CONTROLLED_ELEMENTS`.
+
 (param-lf-outer-loop-names)=
 #### outerLoopNames
 
