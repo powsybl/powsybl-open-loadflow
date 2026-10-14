@@ -83,13 +83,9 @@ public class ModificationsContext<V, E> {
 
         if (verticesRemovedFromMainComponent == null) {
             // result = after - before
-            Set<V> result = new THashSet<>();
-
-            for (V vertex : getVerticesNotInMainComponentAfter()) {
-                if (!verticesNotInMainComponentBefore.contains(vertex)) { // filter before doing the copy
-                    result.add(vertex);
-                }
-            }
+            Set<V> result = getVerticesNotInMainComponentAfter().stream()
+                    .filter(v -> !verticesNotInMainComponentBefore.contains(v)) // filter before doing the copy
+                    .collect(Collectors.toCollection(THashSet::new));
 
             if (!result.isEmpty()) {
                 // remove vertices added in between
@@ -119,13 +115,10 @@ public class ModificationsContext<V, E> {
 
         if (verticesAddedToMainComponent == null) {
             // result = before - after
-            Set<V> result = new THashSet<>();
             Set<V> verticesNotInMainComponentAfter = getVerticesNotInMainComponentAfter();
-            for (V vertex : verticesNotInMainComponentBefore) {
-                if (!verticesNotInMainComponentAfter.contains(vertex)) { // filter before doing the copy
-                    result.add(vertex);
-                }
-            }
+            Set<V> result = verticesNotInMainComponentBefore.stream()
+                    .filter(v -> !verticesNotInMainComponentAfter.contains(v)) // filter before doing the copy
+                    .collect(Collectors.toCollection(THashSet::new));
 
             // add vertices added to main component in between
             // note that there is no VertexRemove modification, thus we do not need to check if vertex is in the graph before / in the end
