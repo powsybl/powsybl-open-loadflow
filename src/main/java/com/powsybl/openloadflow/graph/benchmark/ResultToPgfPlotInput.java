@@ -196,7 +196,7 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
         // write rows
         List<BenchmarkMethod> allMethods = getAllMethods(plots);
         for (BenchmarkMethod method : allMethods) {
-            bw.write(method.toString());
+            bw.write(method.camelCase());
             for (Plot plot : plots) {
                 bw.write("   ");
                 Aggregator agg = plot.measures.get(method);

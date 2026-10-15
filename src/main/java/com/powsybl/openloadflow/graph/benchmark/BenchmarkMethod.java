@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.graph.benchmark;
 
+import com.google.common.base.CaseFormat;
+
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
@@ -37,6 +39,10 @@ public enum BenchmarkMethod {
     BenchmarkMethod(String shortName, int argCount) {
         this.shortName = shortName;
         this.argCount = argCount;
+    }
+
+    public String camelCase() {
+        return CaseFormat.UPPER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, name());
     }
 
     public String shortName() {
