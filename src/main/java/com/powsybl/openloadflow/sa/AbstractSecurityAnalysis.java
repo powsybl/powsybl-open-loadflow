@@ -48,6 +48,8 @@ import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.openloadflow.util.mt.ContingencyMultiThreadHelper;
 import com.powsybl.security.*;
+import com.powsybl.security.interceptors.DefaultSecurityAnalysisResultContext;
+import com.powsybl.security.interceptors.SecurityAnalysisInterceptor;
 import com.powsybl.security.limitscaling.LimitScaling;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
@@ -87,6 +89,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     protected final ReportNode reportNode;
 
     protected Level logLevel = Level.INFO; // level of the post contingency and action logs
+
+    protected List<SecurityAnalysisInterceptor> interceptors = Collections.emptyList();
 
     protected AbstractSecurityAnalysis(Network network, MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory,
                                        List<StateMonitor> stateMonitors, ReportNode reportNode) {
@@ -496,6 +500,16 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
     protected void afterPreContingencySimulation(P parameters) {
     }
 
+    protected void notifyInterceptorsOnPostContingency(PostContingencyResult postContingencyResult) {
+        if (!interceptors.isEmpty()) {
+            // TODO what should be the context?
+            var context = new DefaultSecurityAnalysisResultContext(network);
+            for (SecurityAnalysisInterceptor interceptor : interceptors) {
+                interceptor.onPostContingencyResult(postContingencyResult, context);
+            }
+        }
+    }
+
     protected SecurityAnalysisResult runSimulations(LfNetwork lfNetwork, List<PropagatedContingency> propagatedContingencies, P acParameters,
                                                     SecurityAnalysisParameters securityAnalysisParameters, List<OperatorStrategy> operatorStrategies,
                                                     List<Action> actions, List<LimitScaling> limitScalings, ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution) {
@@ -777,6 +791,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             securityAnalysisParameters,
             preContingencyNetworkResult, createResultExtension, limitScalings, preDistributedActivePower);
         postContingencyResults.add(postContingencyResult);
+        notifyInterceptorsOnPostContingency(postContingencyResult);
 
         if (contingencyLoadFlowParameters != null &&
             Objects.equals(ContingencyLoadFlowParameters.Scope.CONTINGENCY_ONLY, contingencyLoadFlowParameters.getScope())) {
