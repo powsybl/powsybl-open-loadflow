@@ -33,7 +33,7 @@ public abstract class AbstractHvdcAcEmulationDcFlowEquationTerm extends Abstract
         ph2Var = variableSet.getVariable(bus2.getNum(), DcVariableType.BUS_PHI);
         variables = List.of(ph1Var, ph2Var);
         this.hvdc = hvdc;
-        k = this.hvdc.getDroop() * 180 / Math.PI;
+        k = this.hvdc.getAcEmulationControl().getDroop() * 180 / Math.PI;
     }
 
     @Override

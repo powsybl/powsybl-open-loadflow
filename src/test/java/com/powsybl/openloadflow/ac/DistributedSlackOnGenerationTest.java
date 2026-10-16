@@ -15,13 +15,15 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.ReferencePriorities;
 import com.powsybl.iidm.network.extensions.ReferencePriority;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
@@ -34,6 +36,7 @@ import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.*;
 import java.util.concurrent.CompletionException;
@@ -45,7 +48,14 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Caio Luke {@literal <caio.luke at artelys.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class DistributedSlackOnGenerationTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    DistributedSlackOnGenerationTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
     private Generator g1;
@@ -64,7 +74,7 @@ class DistributedSlackOnGenerationTest {
         g2 = network.getGenerator("g2");
         g3 = network.getGenerator("g3");
         g4 = network.getGenerator("g4");
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         // Note that in core, default balance type is proportional to generation Pmax
         parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(true);
@@ -230,7 +240,8 @@ class DistributedSlackOnGenerationTest {
         for (LoadFlowParameters.BalanceType balanceType : LoadFlowParameters.BalanceType.values()) {
             ActivePowerDistribution.Step step = ActivePowerDistribution.getStep(balanceType, parametersExt.isLoadPowerFactorConstant(), parametersExt.isUseActiveLimits());
             switch (balanceType) {
-                case PROPORTIONAL_TO_GENERATION_P_MAX, PROPORTIONAL_TO_GENERATION_P, PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN -> assertEquals(4, step.getParticipatingElements(participatingBuses, mismatch).size());
+                case PROPORTIONAL_TO_GENERATION_P_MAX, PROPORTIONAL_TO_GENERATION_P, PROPORTIONAL_TO_GENERATION_REMAINING_MARGIN ->
+                    assertEquals(4, step.getParticipatingElements(participatingBuses, mismatch).size());
                 case PROPORTIONAL_TO_LOAD, PROPORTIONAL_TO_CONFORM_LOAD -> assertEquals(1, step.getParticipatingElements(participatingBuses, mismatch).size());
                 case PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR -> assertEquals(0, step.getParticipatingElements(participatingBuses, mismatch).size());
             }
@@ -449,7 +460,7 @@ class DistributedSlackOnGenerationTest {
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertFalse(result.isFullyConverged());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, componentResult.getStatus());
-        assertEquals("Outer loop failed: Failed to distribute slack bus active power mismatch, 200.00 MW remains", componentResult.getStatusText());
+        assertEquals("Outer loop 'DistributedSlack' failed: Failed to distribute slack bus active power mismatch, 200.00 MW remains", componentResult.getStatusText());
         assertEquals(0, componentResult.getDistributedActivePower(), 1e-4);
         assertEquals(520, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-4);
         assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?\\d*\\.\\d* MW remains", reportNode);
@@ -505,7 +516,7 @@ class DistributedSlackOnGenerationTest {
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertTrue(result.isFailed());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, componentResult.getStatus());
-        assertEquals("Outer loop failed: Failed to distribute slack bus active power mismatch, 200.00 MW remains", componentResult.getStatusText());
+        assertEquals("Outer loop 'DistributedSlack' failed: Failed to distribute slack bus active power mismatch, 200.00 MW remains", componentResult.getStatusText());
         assertEquals(520., componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
         assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?\\d*\\.\\d* MW remains", reportNode);
     }
@@ -565,8 +576,8 @@ class DistributedSlackOnGenerationTest {
                 .setMinP(0)
                 .setMaxP(0)
                 .setTargetP(0)
-                .setTargetV(24.5)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(24.5)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters),
                 "Failed to distribute slack bus active power mismatch, 504.9476825313616 MW remains");

@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -22,8 +23,8 @@ public final class DoubleBusNetworkFactory {
     /**
      * vl1 : 400 kv Double bus Voltage Level
      * vlgens : 20 kv Two separated bus with a generator each and a tranformer connected to VL1
-     *          One of the generators is connected also to a dangling transformer and
-     *          monitors voltage on the dangling terminal
+     *          One of the generators is connected also to a boundary transformer and
+     *          monitors voltage on the boundary terminal
      * vlload : 63 kV. A load connected by a transformer to vl1
      * @return
      */
@@ -98,7 +99,7 @@ public final class DoubleBusNetworkFactory {
     }
 
     private static void createGenerator(AtomicInteger node, String suffix, Substation substation, VoltageLevel vlGens,
-                                        VoltageLevel vl, BusbarSection bbs1, BusbarSection bbs2, boolean withDanglingControlTerminal) {
+                                        VoltageLevel vl, BusbarSection bbs1, BusbarSection bbs2, boolean withBoundaryControlTerminal) {
 
         BusbarSection bbsgen = vlGens.getNodeBreakerView()
                 .newBusbarSection()
@@ -111,9 +112,11 @@ public final class DoubleBusNetworkFactory {
                 .setTargetP(50)
                 .setMaxP(100)
                 .setMinP(10)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(bbs1.getTerminal()) // Will be changed after transformer is created
-                .setTargetV(400)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(bbs1.getTerminal()) // Will be changed after transformer is created
+                    .withTargetValue(400)
+                    .add()
                 .setNode(node.incrementAndGet())
                 .add();
 
@@ -135,30 +138,30 @@ public final class DoubleBusNetworkFactory {
                 .setX(0.1)
                 .add();
 
-        g.setRegulatingTerminal(tw.getTerminal1());
+        g.getVoltageRegulation().setTerminal(tw.getTerminal1(), 400);
 
         vlGens.getNodeBreakerView().newInternalConnection()
                 .setNode1(tw.getTerminal(vlGens.getId()).getNodeBreakerView().getNode())
                 .setNode2(bbsgen.getTerminal().getNodeBreakerView().getNode())
                 .add();
 
-        if (withDanglingControlTerminal) {
-            TwoWindingsTransformer twDangling = substation.newTwoWindingsTransformer()
+        if (withBoundaryControlTerminal) {
+            TwoWindingsTransformer twBoundary = substation.newTwoWindingsTransformer()
                     .setVoltageLevel1(vl.getId())
                     .setNode1(node.incrementAndGet())
                     .setVoltageLevel2(vlGens.getId())
                     .setNode2(node.incrementAndGet())
-                    .setId("twg" + suffix + "_dangling")
+                    .setId("twg" + suffix + "_boundary")
                     .setR(0)
                     .setX(0.1)
                     .add();
 
             vlGens.getNodeBreakerView().newInternalConnection()
-                    .setNode1(twDangling.getTerminal(vlGens.getId()).getNodeBreakerView().getNode())
+                    .setNode1(twBoundary.getTerminal(vlGens.getId()).getNodeBreakerView().getNode())
                     .setNode2(bbsgen.getTerminal().getNodeBreakerView().getNode())
                     .add();
 
-            g.setRegulatingTerminal(twDangling.getTerminal1());
+            g.getVoltageRegulation().setTerminal(twBoundary.getTerminal1(), 400);
         }
 
         vl.getNodeBreakerView().newSwitch()

@@ -10,17 +10,20 @@ package com.powsybl.openloadflow.ac;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.IOException;
 
@@ -29,7 +32,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class GeneratorRemoteControlLocalRescaleTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    GeneratorRemoteControlLocalRescaleTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
     private Bus b1;
@@ -75,9 +85,12 @@ class GeneratorRemoteControlLocalRescaleTest {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(413.4)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(l2.getTerminal())
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .withTargetValue(413.4)
+                    .withTerminal(l2.getTerminal())
+                    .add()
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr1")
@@ -91,7 +104,7 @@ class GeneratorRemoteControlLocalRescaleTest {
                 .setX(30)
                 .add();
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters)
                 .setVoltageRemoteControl(false);
@@ -115,7 +128,7 @@ class GeneratorRemoteControlLocalRescaleTest {
 
     @Test
     void testLocalTargetV() {
-        network.getGenerator("g1").setTargetV(413.4);
+        network.getGenerator("g1").getVoltageRegulation().setTargetValue(413.4);
         parameters.getExtension(OpenLoadFlowParameters.class).setVoltageRemoteControl(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -125,7 +138,7 @@ class GeneratorRemoteControlLocalRescaleTest {
         LoadFlowAssert.assertVoltageEquals(21.55, b1);
 
         // Set the backup local target v and run without remote voltage control and check that the same result is obtained
-        network.getGenerator("g1").setTargetV(413.4, 21.5535);
+        network.getGenerator("g1").setLocalTargetV(21.5535).getVoltageRegulation().setTargetValue(413.4);
         parameters.getExtension(OpenLoadFlowParameters.class).setVoltageRemoteControl(false);
 
         result = loadFlowRunner.run(network, parameters);
@@ -135,7 +148,7 @@ class GeneratorRemoteControlLocalRescaleTest {
         LoadFlowAssert.assertVoltageEquals(21.55, b1);
 
         // Change a bit the local target V anc verify that it is honored
-        network.getGenerator("g1").setTargetV(413.4, 21.0);
+        network.getGenerator("g1").setLocalTargetV(21).getVoltageRegulation().setTargetValue(413.4);
 
         parameters.getExtension(OpenLoadFlowParameters.class).setVoltageRemoteControl(false);
 
@@ -156,12 +169,15 @@ class GeneratorRemoteControlLocalRescaleTest {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(413.4)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(network.getLoad("l2").getTerminal())
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .withTargetValue(413.4)
+                    .withTerminal(network.getLoad("l2").getTerminal())
+                    .add()
                 .add();
-        network.getGenerator("g1").setTargetV(413.4, 21.0);
-        g2.setTargetV(413.4, 21.0);
+        network.getGenerator("g1").setLocalTargetV(21).getVoltageRegulation().setTargetValue(413.4);
+        g2.setLocalTargetV(21).getVoltageRegulation().setTargetValue(413.4);
 
         parameters.getExtension(OpenLoadFlowParameters.class).setVoltageRemoteControl(false);
 
@@ -172,8 +188,8 @@ class GeneratorRemoteControlLocalRescaleTest {
         LoadFlowAssert.assertVoltageEquals(21.0, b1); // The local target V is maintained
 
         // Set inconsistent local targets
-        network.getGenerator("g1").setTargetV(413.4, 20.9);
-        g2.setTargetV(413.4, 21.1);
+        network.getGenerator("g1").setLocalTargetV(20.9).getVoltageRegulation().setTargetValue(413.4);
+        g2.setLocalTargetV(21.1).getVoltageRegulation().setTargetValue(413.4);
 
         result = loadFlowRunner.run(network, parameters);
 
@@ -182,8 +198,8 @@ class GeneratorRemoteControlLocalRescaleTest {
         LoadFlowAssert.assertVoltageEquals(20.9, b1); // The local target V of first generator found is maintained
 
         parameters.getExtension(OpenLoadFlowParameters.class).setDisableInconsistentVoltageControls(true);
-        network.getGenerator("g1").setTargetQ(10);
-        g2.setTargetQ(10);
+        network.getGenerator("g1").setLocalTargetQ(10);
+        g2.setLocalTargetQ(10);
         result = loadFlowRunner.run(network, parameters);
 
         // The groups have been disabled from voltage control
@@ -191,8 +207,8 @@ class GeneratorRemoteControlLocalRescaleTest {
         assertEquals("Network has no generator with voltage control enabled", result.getComponentResults().getFirst().getStatusText());
 
         // set consistent targets and run with disableInconsistentVoltage mode
-        network.getGenerator("g1").setTargetV(413.4, 21);
-        g2.setTargetV(413.4, 21);
+        network.getGenerator("g1").setLocalTargetV(21).getVoltageRegulation().setTargetValue(413.4);
+        g2.setLocalTargetV(21).getVoltageRegulation().setTargetValue(413.4);
 
         result = loadFlowRunner.run(network, parameters);
 

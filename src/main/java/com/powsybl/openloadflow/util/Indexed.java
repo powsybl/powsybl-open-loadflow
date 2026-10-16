@@ -1,19 +1,14 @@
 /**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+ * Copyright (c) 2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.graph;
+package com.powsybl.openloadflow.util;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class MinimumSpanningTreeGraphConnectivityFactory<V, E> implements GraphConnectivityFactory<V, E> {
-
-    @Override
-    public GraphConnectivity<V, E> create() {
-        return new MinimumSpanningTreeGraphConnectivity<>();
-    }
+public record Indexed<T>(int index, T value) {
 }

@@ -7,26 +7,23 @@
  */
 package com.powsybl.openloadflow.sa;
 
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfZeroImpedanceNetwork;
-import com.powsybl.openloadflow.network.LoadFlowModel;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfStarBus;
+import com.powsybl.openloadflow.network.impl.Transformers;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResult;
+import com.powsybl.security.results.ChangedPhaseTapChanger;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_1;
-import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_2;
-import static com.powsybl.openloadflow.network.LfBranch.BranchType.TRANSFO_3_LEG_3;
+import static com.powsybl.openloadflow.network.LfBranch.BranchType.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -45,14 +42,14 @@ public abstract class AbstractNetworkResult {
 
     protected final double dcPowerFactor;
 
-    protected final List<BusResult> busResults = new ArrayList<>();
-
-    protected final List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
+    protected Map<LfBranch, Integer> phaseTapChangerInfos = new HashMap<>();
 
     static final List<LfBranch.BranchType> T3WT_BRANCH_TYPES = List.of(TRANSFO_3_LEG_1, TRANSFO_3_LEG_2, TRANSFO_3_LEG_3);
 
     public record StateMonitorIndexes(StateMonitorIndex monitorIndex, StateMonitorIndex zeroImpedanceMonitorIndex) {
     }
+
+    protected final Map<LfBranch, ChangedPhaseTapChanger> changedPhaseTapChangers = new HashMap<>();
 
     protected AbstractNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
         this.network = Objects.requireNonNull(network);
@@ -63,7 +60,8 @@ public abstract class AbstractNetworkResult {
         this.dcPowerFactor = dcPowerFactor;
     }
 
-    protected void addResults(StateMonitor monitor, Consumer<LfBranch> branchConsumer, Predicate<LfBranch> isBranchDisabled, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
+    protected void addResults(StateMonitor monitor, Consumer<LfBranch> branchConsumer, Predicate<LfBranch> isBranchDisabled,
+                              Consumer<LfBus> busConsumer, Consumer<String> threeWindingsTransformerResultsConsumer) {
         Objects.requireNonNull(monitor);
         if (!monitor.getBranchIds().isEmpty()) {
             network.getBranches().stream()
@@ -82,30 +80,35 @@ public abstract class AbstractNetworkResult {
             network.getBuses().stream()
                     .filter(lfBus -> monitor.getVoltageLevelIds().contains(lfBus.getVoltageLevelId()))
                     .filter(lfBus -> !lfBus.isDisabled())
-                    .forEach(lfBus -> busResults.addAll(lfBus.createBusResults()));
+                    .forEach(busConsumer);
         }
 
         if (!monitor.getThreeWindingsTransformerIds().isEmpty()) {
             monitor.getThreeWindingsTransformerIds().stream()
                     .filter(id -> network.getBusById(LfStarBus.getId(id)) != null && !network.getBusById(LfStarBus.getId(id)).isDisabled())
-                    .forEach(id -> threeWindingsTransformerResults.add(LfLegBranch.createThreeWindingsTransformerResult(network, id, createResultExtension, zeroImpedanceFlows, loadFlowModel)));
+                    .forEach(threeWindingsTransformerResultsConsumer);
         }
     }
 
-    protected void clear() {
-        busResults.clear();
-        threeWindingsTransformerResults.clear();
-    }
+    public abstract List<BusResult> getBusResults();
 
-    public List<BusResult> getBusResults() {
-        return busResults;
-    }
-
-    public List<ThreeWindingsTransformerResult> getThreeWindingsTransformerResults() {
-        return threeWindingsTransformerResults;
-    }
+    public abstract List<ThreeWindingsTransformerResult> getThreeWindingsTransformerResults();
 
     public abstract List<BranchResult> getBranchResults();
+
+    protected abstract void storeInitialPhaseTapChangerInfo();
+
+    protected void updateChangedPhaseTapChanger() {
+        for (Map.Entry<LfBranch, Integer> ptcInfo : phaseTapChangerInfos.entrySet()) {
+            LfBranch b = ptcInfo.getKey();
+            int currentTap = ptcInfo.getValue();
+            int newTapPosition = Transformers.findTapPosition(b.getPhaseTapChanger().orElseThrow(),
+                    Math.toDegrees(b.getPiModel().getA1()));
+            if (currentTap != newTapPosition) {
+                changedPhaseTapChangers.put(b, new ChangedPhaseTapChanger(b.getMainOriginalId(), b.getOriginalSide().orElse(null), currentTap, newTapPosition));
+            }
+        }
+    }
 
     public abstract void update();
 
@@ -143,5 +146,9 @@ public abstract class AbstractNetworkResult {
             }
         }
         return zeroImpedanceFlows;
+    }
+
+    public Map<LfBranch, ChangedPhaseTapChanger> getChangedPhaseTapChangers() {
+        return changedPhaseTapChangers;
     }
 }

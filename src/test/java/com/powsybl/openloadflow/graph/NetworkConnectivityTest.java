@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2021, RTE (http://www.rte-france.com)
+ * Copyright (c) 2021-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +42,7 @@ class NetworkConnectivityTest {
     void testConnectivity() {
         testConnectivity(new NaiveGraphConnectivity<>(LfBus::getNum));
         testConnectivity(new EvenShiloachGraphDecrementalConnectivity<>());
+        testConnectivity(new DTreeGraphConnectivity<>());
     }
 
     @Test
@@ -49,6 +51,7 @@ class NetworkConnectivityTest {
         // created connected component.
         testReducedMainComponent(new NaiveGraphConnectivity<>(LfBus::getNum));
         testReducedMainComponent(new EvenShiloachGraphDecrementalConnectivity<>());
+        testReducedMainComponent(new DTreeGraphConnectivity<>());
     }
 
     @Test
@@ -56,7 +59,7 @@ class NetworkConnectivityTest {
         // Testing cutting an edge then adding it back
         testReaddEdge(new NaiveGraphConnectivity<>(LfBus::getNum), true);
         testReaddEdge(new EvenShiloachGraphDecrementalConnectivity<>(), false);
-        testReaddEdge(new MinimumSpanningTreeGraphConnectivity<>(), true);
+        testReaddEdge(new DTreeGraphConnectivity<>(), true);
     }
 
     @Test
@@ -79,14 +82,14 @@ class NetworkConnectivityTest {
     void testNonConnectedComponents() {
         testNonConnectedComponents(new NaiveGraphConnectivity<>(LfBus::getNum));
         testNonConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
-        testNonConnectedComponents(new MinimumSpanningTreeGraphConnectivity<>());
+        testNonConnectedComponents(new DTreeGraphConnectivity<>());
     }
 
     @Test
     void testConnectedComponents() {
         testConnectedComponents(new NaiveGraphConnectivity<>(LfBus::getNum));
         testConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
-        testConnectedComponents(new MinimumSpanningTreeGraphConnectivity<>());
+        testConnectedComponents(new DTreeGraphConnectivity<>());
     }
 
     private void testConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
@@ -141,7 +144,7 @@ class NetworkConnectivityTest {
         }
     }
 
-    private void testNonConnectedComponents(AbstractGraphConnectivity<LfBus, LfBranch> connectivity) {
+    private <G extends GraphModel<LfBus, LfBranch>> void testNonConnectedComponents(AbstractGraphConnectivity<LfBus, LfBranch, G> connectivity) {
         updateConnectivity(connectivity);
         cutBranches(connectivity, "l34", "l48");
 

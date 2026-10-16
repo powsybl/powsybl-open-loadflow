@@ -13,14 +13,17 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,7 +32,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class FictitiousGeneratorTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    FictitiousGeneratorTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
     private LoadFlow.Runner loadFlowRunner;
@@ -63,8 +73,8 @@ class FictitiousGeneratorTest {
                 .setMinP(100)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(221)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(221)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         vl2 = s.newVoltageLevel()
                 .setId("vl2")
@@ -86,8 +96,8 @@ class FictitiousGeneratorTest {
                 .setMinP(100)
                 .setMaxP(200)
                 .setTargetP(0)
-                .setTargetV(224)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(224)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .setFictitious(true)
                 .add();
 
@@ -108,7 +118,7 @@ class FictitiousGeneratorTest {
                 .setX(1)
                 .add();
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
 
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters);
@@ -148,8 +158,8 @@ class FictitiousGeneratorTest {
                 .setMinP(0)
                 .setMaxP(0)
                 .setTargetP(0)
-                .setTargetV(224)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(224)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .setCondenser(true)
                 .add();
 

@@ -22,6 +22,8 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
 import com.powsybl.openloadflow.network.action.LfAction;
+import com.powsybl.openloadflow.network.action.LfGeneratorAction;
+import com.powsybl.openloadflow.network.action.LfLoadAction;
 
 import java.util.*;
 
@@ -68,14 +70,14 @@ public class WoodburyEngine {
      * Note that it does not update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
      */
     public static double[] runDcLoadFlowWithModifiedTargetVector(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode) {
-        return runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, reportNode, Collections.emptyList());
+        return runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, Collections.emptyList(), reportNode);
     }
 
     /**
      * A simplified version of DcLoadFlowEngine that supports on the fly bus and branch disabling, and pst actions.
      * Note that it does not update the state vector and the network at the end (because we don't need it to just evaluate a few equations).
      */
-    public static double[] runDcLoadFlowWithModifiedTargetVector(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, ReportNode reportNode, List<LfAction> lfActions) {
+    public static double[] runDcLoadFlowWithModifiedTargetVector(DcLoadFlowContext loadFlowContext, DisabledNetwork disabledNetwork, List<LfAction> lfActions, ReportNode reportNode) {
         Collection<LfBus> remainingBuses;
         if (disabledNetwork.getBuses().isEmpty()) {
             remainingBuses = loadFlowContext.getNetwork().getBuses();
@@ -128,12 +130,38 @@ public class WoodburyEngine {
                         );
                     });
 
+            // apply generator actions by shifting the bus target P injection
+            lfActions.stream()
+                    .filter(LfGeneratorAction.class::isInstance)
+                    .map(LfGeneratorAction.class::cast)
+                    .filter(a -> !a.getGenerator().isDisabled())
+                    .forEach(genAction -> {
+                        LfBus bus = genAction.getGenerator().getBus();
+                        double deltaTargetP = genAction.getNewTargetP() - genAction.getGenerator().getTargetP();
+                        loadFlowContext.getEquationSystem().getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
+                                .filter(Equation::isActive)
+                                .ifPresent(eq -> targetVectorArray[eq.getColumn()] += deltaTargetP);
+                    });
+
+            // apply load actions: a load increase reduces the bus net injection (generation - load)
+            lfActions.stream()
+                    .filter(LfLoadAction.class::isInstance)
+                    .map(LfLoadAction.class::cast)
+                    .filter(a -> a.isValid() && !a.getLfLoad().isOriginalLoadDisabled(a.getLoadId()))
+                    .forEach(loadAction -> {
+                        LfBus bus = loadAction.getLfLoad().getBus();
+                        double deltaTargetP = -loadAction.getPowerShift().getActive();
+                        loadFlowContext.getEquationSystem().getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
+                                .filter(Equation::isActive)
+                                .ifPresent(eq -> targetVectorArray[eq.getColumn()] += deltaTargetP);
+                    });
+
             // set transformer phase shift to 0 for disabled phase tap changers by actions
             lfActions.stream()
                     .filter(AbstractLfBranchAction.class::isInstance)
-                    .map(lfAction -> ((AbstractLfBranchAction<?>) lfAction).getDisabledBranch())
+                    .map(lfAction -> ((AbstractLfBranchAction<?>) lfAction).getDisabledBranches())
                     .filter(Objects::nonNull)
-                    .flatMap(lfBranch -> loadFlowContext.getEquationSystem().getEquation(lfBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream())
+                    .flatMap(lfBranches -> lfBranches.stream().flatMap(b -> loadFlowContext.getEquationSystem().getEquation(b.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1).stream()))
                     .map(Equation::getColumn)
                     .forEach(column -> targetVectorArray[column] = 0);
         }
@@ -160,11 +188,17 @@ public class WoodburyEngine {
      */
     private double getAlphaRhsValue(DenseMatrix states, ClosedBranchSide1DcFlowEquationTerm p1, int columnState, ComputedElement computedElement) {
         double newAlpha = 0;
-        // enabling of transformers is not yet supported
         if (computedElement instanceof ComputedTapPositionChangeElement computedTapPositionChangeElement) {
             TapPositionChange tapPositionChange = computedTapPositionChangeElement.getTapPositionChange();
             PiModel newPiModel = tapPositionChange.getNewPiModel();
             newAlpha = newPiModel.getA1();
+        } else if (computedElement instanceof ComputedSwitchBranchElement switchElement && switchElement.isEnabled()
+                && switchElement.getLfBranch().isDisabled()) {
+            // when closing a branch that is currently disabled (absent from the base flow states), and if it is a phase
+            // shifting transformer, its phase shift must be injected the same way a tap position change injects the new
+            // phase shift. When the branch is already enabled in the base flow states (e.g. in fast DC sensitivity
+            // analysis), its phase shift is already accounted for and must not be added again.
+            newAlpha = switchElement.getLfBranch().getPiModel().getA1();
         }
         return states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha;
     }

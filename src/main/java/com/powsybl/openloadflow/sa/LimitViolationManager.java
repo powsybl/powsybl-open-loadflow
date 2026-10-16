@@ -7,6 +7,9 @@
  */
 package com.powsybl.openloadflow.sa;
 
+import com.powsybl.contingency.violations.LimitViolation;
+import com.powsybl.contingency.violations.LimitViolationBuilder;
+import com.powsybl.contingency.violations.LimitViolationType;
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -15,7 +18,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.*;
-import com.powsybl.security.limitreduction.LimitReduction;
+import com.powsybl.security.limitscaling.LimitScaling;
 import org.apache.commons.lang3.function.TriFunction;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -34,23 +37,23 @@ public class LimitViolationManager {
 
     private final LimitViolationManager reference;
 
-    private final LimitReductionManager limitReductionManager;
+    private final LimitScalingManager limitScalingManager;
 
     private SecurityAnalysisParameters.IncreasedViolationsParameters parameters;
 
-    private final Map<Object, LimitViolation> violations = new LinkedHashMap<>();
+    private final Map<Pair<Object, String>, LimitViolation> violations = new LinkedHashMap<>(); // All limit violations indexed by network element and OperationalLimitsGroup (if it exists)
 
-    public LimitViolationManager(LimitViolationManager reference, List<LimitReduction> limitReductions,
+    public LimitViolationManager(LimitViolationManager reference, List<LimitScaling> limitScalings,
                                  SecurityAnalysisParameters.IncreasedViolationsParameters parameters) {
         this.reference = reference;
         if (reference != null) {
             this.parameters = Objects.requireNonNull(parameters);
         }
-        this.limitReductionManager = LimitReductionManager.create(limitReductions);
+        this.limitScalingManager = LimitScalingManager.create(limitScalings);
     }
 
-    public LimitViolationManager(List<LimitReduction> limitReductions) {
-        this(null, limitReductions, null);
+    public LimitViolationManager(List<LimitScaling> limitScalings) {
+        this(null, limitScalings, null);
     }
 
     public List<LimitViolation> getLimitViolations() {
@@ -89,7 +92,7 @@ public class LimitViolationManager {
         return Pair.of(limitViolation.getSubjectId(), limitViolation.getSide());
     }
 
-    private void addLimitViolation(LimitViolation limitViolation, Object key) {
+    private void addLimitViolation(LimitViolation limitViolation, Pair<Object, String> key) {
         if (reference != null) {
             var referenceLimitViolation = reference.violations.get(key);
             if (referenceLimitViolation == null || !violationWeakenedOrEquivalent(referenceLimitViolation, limitViolation, parameters)) {
@@ -101,44 +104,50 @@ public class LimitViolationManager {
     }
 
     private void addBranchLimitViolation(LimitViolation limitViolation) {
-        addLimitViolation(limitViolation, getSubjectIdSide(limitViolation));
+        addLimitViolation(limitViolation, Pair.of(getSubjectIdSide(limitViolation), limitViolation.getOperationalLimitsGroupId()));
     }
 
     private void addBusLimitViolation(LimitViolation limitViolation, LfBus bus) {
-        addLimitViolation(limitViolation, bus.getId());
+        addLimitViolation(limitViolation, Pair.of(bus.getId(), limitViolation.getOperationalLimitsGroupId()));
     }
 
     private void addVoltageAngleLimitViolation(LimitViolation limitViolation, LfNetwork.LfVoltageAngleLimit voltageAngleLimit) {
-        addLimitViolation(limitViolation, voltageAngleLimit.getId());
+        addLimitViolation(limitViolation, Pair.of(voltageAngleLimit.getId(), limitViolation.getOperationalLimitsGroupId()));
     }
 
-    private void detectBranchCurrentViolations(LfBranch branch, LfBus bus, Function<LfBranch, Evaluable> iGetter, List<LfBranch.LfLimit> limits, TwoSides side) {
+    private void detectBranchCurrentViolations(LfBranch branch, LfBus bus, Function<LfBranch, Evaluable> iGetter, LfBranch.LfLimitsGroup limitsGroup, TwoSides side) {
+        List<LfBranch.LfLimit> limits = limitsGroup.getSortedLimits();
+        String operationalLimitsGroupId = limitsGroup.getOperationalLimitsGroupId();
         double i = iGetter.apply(branch).eval();
         for (LfBranch.LfLimit temporaryLimit : limits) {
-            if (i > temporaryLimit.getReducedValue()) {
-                addBranchLimitViolation(createLimitViolation(branch, temporaryLimit, LimitViolationType.CURRENT, PerUnit.ib(bus.getNominalV()), i, side));
+            if (i > temporaryLimit.getScaledValue()) {
+                addBranchLimitViolation(createLimitViolation(branch, operationalLimitsGroupId, temporaryLimit, LimitViolationType.CURRENT, PerUnit.ib(bus.getNominalV()), i, side));
                 break;
             }
         }
     }
 
-    private void detectBranchActivePowerViolations(LfBranch branch, Function<LfBranch, Evaluable> pGetter, List<LfBranch.LfLimit> limits, TwoSides side) {
+    private void detectBranchActivePowerViolations(LfBranch branch, Function<LfBranch, Evaluable> pGetter, LfBranch.LfLimitsGroup limitsGroup, TwoSides side) {
+        List<LfBranch.LfLimit> limits = limitsGroup.getSortedLimits();
+        String operationalLimitsGroupId = limitsGroup.getOperationalLimitsGroupId();
         double p = pGetter.apply(branch).eval();
         for (LfBranch.LfLimit temporaryLimit : limits) {
-            if (Math.abs(p) > temporaryLimit.getReducedValue()) {
-                addBranchLimitViolation(createLimitViolation(branch, temporaryLimit, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p, side));
+            if (Math.abs(p) > temporaryLimit.getScaledValue()) {
+                addBranchLimitViolation(createLimitViolation(branch, operationalLimitsGroupId, temporaryLimit, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p, side));
                 break;
             }
         }
     }
 
-    private void detectBranchApparentPowerViolations(LfBranch branch, ToDoubleFunction<LfBranch> sGetter, List<LfBranch.LfLimit> limits, TwoSides side) {
+    private void detectBranchApparentPowerViolations(LfBranch branch, ToDoubleFunction<LfBranch> sGetter, LfBranch.LfLimitsGroup limitsGroup, TwoSides side) {
+        List<LfBranch.LfLimit> limits = limitsGroup.getSortedLimits();
+        String operationalLimitsGroupId = limitsGroup.getOperationalLimitsGroupId();
         //Apparent power is not relevant for fictitious branches and may be NaN
         double s = sGetter.applyAsDouble(branch);
         if (!Double.isNaN(s)) {
             for (LfBranch.LfLimit temporaryLimit : limits) {
-                if (s > temporaryLimit.getReducedValue()) {
-                    addBranchLimitViolation(createLimitViolation(branch, temporaryLimit, LimitViolationType.APPARENT_POWER, PerUnit.SB, s, side));
+                if (s > temporaryLimit.getScaledValue()) {
+                    addBranchLimitViolation(createLimitViolation(branch, operationalLimitsGroupId, temporaryLimit, LimitViolationType.APPARENT_POWER, PerUnit.SB, s, side));
                     break;
                 }
             }
@@ -146,24 +155,24 @@ public class LimitViolationManager {
     }
 
     private void detectBranchSideViolations(LfBranch branch, LfBus bus,
-                                            TriFunction<LfBranch, LimitType, LimitReductionManager, List<LfBranch.LfLimit>> limitsGetter,
+                                            TriFunction<LfBranch, LimitType, LimitScalingManager, List<LfBranch.LfLimitsGroup>> limitsGetter,
                                             Function<LfBranch, Evaluable> iGetter,
                                             Function<LfBranch, Evaluable> pGetter,
                                             ToDoubleFunction<LfBranch> sGetter,
                                             TwoSides side) {
-        List<LfBranch.LfLimit> limits = limitsGetter.apply(branch, LimitType.CURRENT, limitReductionManager);
-        if (!limits.isEmpty()) {
-            detectBranchCurrentViolations(branch, bus, iGetter, limits, side);
+        List<LfBranch.LfLimitsGroup> limitsGroups = limitsGetter.apply(branch, LimitType.CURRENT, limitScalingManager);
+        for (LfBranch.LfLimitsGroup limitsGroup : limitsGroups) {
+            detectBranchCurrentViolations(branch, bus, iGetter, limitsGroup, side);
         }
 
-        limits = limitsGetter.apply(branch, LimitType.ACTIVE_POWER, limitReductionManager);
-        if (!limits.isEmpty()) {
-            detectBranchActivePowerViolations(branch, pGetter, limits, side);
+        limitsGroups = limitsGetter.apply(branch, LimitType.ACTIVE_POWER, limitScalingManager);
+        for (LfBranch.LfLimitsGroup limitsGroup : limitsGroups) {
+            detectBranchActivePowerViolations(branch, pGetter, limitsGroup, side);
         }
 
-        limits = limitsGetter.apply(branch, LimitType.APPARENT_POWER, limitReductionManager);
-        if (!limits.isEmpty()) {
-            detectBranchApparentPowerViolations(branch, sGetter, limits, side);
+        limitsGroups = limitsGetter.apply(branch, LimitType.APPARENT_POWER, limitScalingManager);
+        for (LfBranch.LfLimitsGroup limitsGroup : limitsGroups) {
+            detectBranchApparentPowerViolations(branch, sGetter, limitsGroup, side);
         }
     }
 
@@ -183,13 +192,20 @@ public class LimitViolationManager {
         }
     }
 
-    private static LimitViolation createLimitViolation(LfBranch branch, LfBranch.LfLimit temporaryLimit,
+    private static LimitViolation createLimitViolation(LfBranch branch, String operationalLimitsGroupId, LfBranch.LfLimit temporaryLimit,
                                                        LimitViolationType type, double scale, double value,
                                                        TwoSides side) {
-        return new LimitViolation(branch.getMainOriginalId(), null, type, temporaryLimit.getName(),
-                temporaryLimit.getAcceptableDuration(), temporaryLimit.getValue() * scale,
-                temporaryLimit.getReduction(), value * scale,
-                branch.getOriginalSide().orElse(side.toThreeSides()));
+        return new LimitViolationBuilder()
+                .subject(branch.getMainOriginalId())
+                .operationalLimitsGroupId(operationalLimitsGroupId)
+                .type(type)
+                .limitName(temporaryLimit.getName())
+                .duration(temporaryLimit.getAcceptableDuration())
+                .limit(temporaryLimit.getValue() * scale)
+                .scaling(temporaryLimit.getScaling())
+                .value(value * scale)
+                .side(branch.getOriginalSide().orElse(side.toThreeSides()))
+                .build();
     }
 
     /**
@@ -201,14 +217,24 @@ public class LimitViolationManager {
         double scale = bus.getNominalV();
         double busV = bus.getV();
         if (!Double.isNaN(bus.getHighVoltageLimit()) && busV > bus.getHighVoltageLimit()) {
-            LimitViolation limitViolation1 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.HIGH_VOLTAGE, bus.getHighVoltageLimit() * scale,
-                    (float) 1., busV * scale, bus.getViolationLocation());
-            addBusLimitViolation(limitViolation1, bus);
+            LimitViolation limitViolationHigh = new LimitViolationBuilder()
+                    .subject(bus.getVoltageLevelId())
+                    .type(LimitViolationType.HIGH_VOLTAGE)
+                    .limit(bus.getHighVoltageLimit() * scale)
+                    .value(busV * scale)
+                    .violationLocation(bus.getViolationLocation())
+                    .build();
+            addBusLimitViolation(limitViolationHigh, bus);
         }
         if (!Double.isNaN(bus.getLowVoltageLimit()) && busV < bus.getLowVoltageLimit()) {
-            LimitViolation limitViolation2 = new LimitViolation(bus.getVoltageLevelId(), LimitViolationType.LOW_VOLTAGE, bus.getLowVoltageLimit() * scale,
-                    (float) 1., busV * scale, bus.getViolationLocation());
-            addBusLimitViolation(limitViolation2, bus);
+            LimitViolation limitViolationLow = new LimitViolationBuilder()
+                    .subject(bus.getVoltageLevelId())
+                    .type(LimitViolationType.LOW_VOLTAGE)
+                    .limit(bus.getLowVoltageLimit() * scale)
+                    .value(busV * scale)
+                    .violationLocation(bus.getViolationLocation())
+                    .build();
+            addBusLimitViolation(limitViolationLow, bus);
         }
     }
 
@@ -219,14 +245,22 @@ public class LimitViolationManager {
     private void detectVoltageAngleLimitViolations(LfNetwork.LfVoltageAngleLimit limit) {
         double difference = limit.getTo().getAngle() - limit.getFrom().getAngle();
         if (!Double.isNaN(limit.getHighValue()) && difference > limit.getHighValue()) {
-            LimitViolation limitViolation1 = new LimitViolation(limit.getId(), LimitViolationType.HIGH_VOLTAGE_ANGLE, Math.toDegrees(limit.getHighValue()),
-                    1., Math.toDegrees(difference));
-            addVoltageAngleLimitViolation(limitViolation1, limit);
+            LimitViolation limitViolationHigh = new LimitViolationBuilder()
+                    .subject(limit.getId())
+                    .type(LimitViolationType.HIGH_VOLTAGE_ANGLE)
+                    .limit(Math.toDegrees(limit.getHighValue()))
+                    .value(Math.toDegrees(difference))
+                    .build();
+            addVoltageAngleLimitViolation(limitViolationHigh, limit);
         }
         if (!Double.isNaN(limit.getLowValue()) && difference < limit.getLowValue()) {
-            LimitViolation limitViolation2 = new LimitViolation(limit.getId(), LimitViolationType.LOW_VOLTAGE_ANGLE, Math.toDegrees(limit.getLowValue()),
-                    1., Math.toDegrees(difference));
-            addVoltageAngleLimitViolation(limitViolation2, limit);
+            LimitViolation limitViolationLow = new LimitViolationBuilder()
+                    .subject(limit.getId())
+                    .type(LimitViolationType.LOW_VOLTAGE_ANGLE)
+                    .limit(Math.toDegrees(limit.getLowValue()))
+                    .value(Math.toDegrees(difference))
+                    .build();
+            addVoltageAngleLimitViolation(limitViolationLow, limit);
         }
     }
 
@@ -252,7 +286,8 @@ public class LimitViolationManager {
                     double value = Math.min(violationsParameters.getHighVoltageAbsoluteThreshold(), violation1.getValue() * violationsParameters.getHighVoltageProportionalThreshold());
                     return violation2.getValue() <= violation1.getValue() + value;
                 } else if (violation2.getLimitType() == LimitViolationType.LOW_VOLTAGE) {
-                    return violation2.getValue() >= violation1.getValue() - Math.min(violationsParameters.getLowVoltageAbsoluteThreshold(), violation1.getValue() * violationsParameters.getLowVoltageProportionalThreshold());
+                    return violation2.getValue() >= violation1.getValue() - Math.min(violationsParameters.getLowVoltageAbsoluteThreshold(),
+                        violation1.getValue() * violationsParameters.getLowVoltageProportionalThreshold());
                 } else {
                     return false;
                 }

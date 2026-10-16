@@ -16,13 +16,15 @@ import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -30,14 +32,22 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class AcLoadFlowGeneratorTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlowGeneratorTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
+
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
     private OpenLoadFlowParameters parametersExt;
 
     @BeforeEach
     void setUp() {
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters);
     }
@@ -59,7 +69,7 @@ class AcLoadFlowGeneratorTest {
     @Test
     void testGeneratorDiscardedFromVoltageControl() {
         Network network = FourBusNetworkFactory.createWith2GeneratorsAtBus1();
-        Generator g1Bis = network.getGenerator("g1Bis").setTargetP(0.0).setMinP(1.0).setTargetQ(Double.NaN); // must be discarded from voltage control
+        Generator g1Bis = network.getGenerator("g1Bis").setTargetP(0.0).setMinP(1.0).setLocalTargetQ(Double.NaN); // must be discarded from voltage control
         Bus b1 = network.getBusBreakerView().getBus("b1");
         Bus b4 = network.getBusBreakerView().getBus("b4");
         Generator g1 = network.getGenerator("g1");
@@ -83,7 +93,7 @@ class AcLoadFlowGeneratorTest {
         g1.newMinMaxReactiveLimits().setMinQ(-1).setMaxQ(1).add();
 
         // targetQ > diagram
-        g1.setTargetQ(2).setVoltageRegulatorOn(false);
+        g1.setLocalTargetQ(2).removeVoltageRegulation();
         parametersExt.setForceTargetQInReactiveLimits(true);
 
         ReportNode report = ReportNode.newRootReportNode()
@@ -105,7 +115,7 @@ class AcLoadFlowGeneratorTest {
         assertReactivePowerEquals(-1, g1.getTerminal());
 
         // targetQ < diagram
-        g1.setTargetQ(-2);
+        g1.setLocalTargetQ(-2);
         result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(0.884231, b1);
@@ -130,7 +140,7 @@ class AcLoadFlowGeneratorTest {
             .beginPoint().setP(4).setMinQ(-1).setMaxQ(1).endPoint()
             .add();
 
-        g1.setTargetQ(1.5).setVoltageRegulatorOn(false);
+        g1.setLocalTargetQ(1.5).removeVoltageRegulation();
         parametersExt.setForceTargetQInReactiveLimits(true).setSlackBusPMaxMismatch(0.001);
 
         d3.setP0(1.5);

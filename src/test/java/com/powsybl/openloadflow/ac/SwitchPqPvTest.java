@@ -9,21 +9,23 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
-import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.loadflow.LoadFlowRunParameters;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.IOException;
 
@@ -42,7 +44,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
+
+    private final CommonTestConfig commonTestConfig;
+
+    SwitchPqPvTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
     private Bus b1;
@@ -53,6 +62,7 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
     private Generator g2;
     private Generator g3;
     private LoadFlow.Runner loadFlowRunner;
+    private LoadFlowRunParameters runParameters;
     private LoadFlowParameters parameters;
     private OpenLoadFlowParameters parametersExt;
 
@@ -110,8 +120,11 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(17)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(17)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
         g1.newMinMaxReactiveLimits()
                 .setMinQ(-179)
@@ -126,8 +139,11 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(21)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(21)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
         g2.newMinMaxReactiveLimits()
                 .setMinQ(-1000)
@@ -142,8 +158,11 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(20)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(20)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
         g3.newMinMaxReactiveLimits()
                 .setMinQ(-1000)
@@ -183,11 +202,12 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setX(10)
                 .add();
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters()
                 .setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+        runParameters = new LoadFlowRunParameters().setParameters(parameters);
     }
 
     @Test
@@ -206,12 +226,13 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setMinQ(-179)
                 .setMaxQ(700)
                 .add();
-        g2.setTargetV(22);
+        g2.setLocalTargetV(22);
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("test")
                 .build();
-        LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
+        runParameters.setReportNode(reportNode);
+        LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), runParameters);
         assertTrue(result.isFullyConverged());
         // bus 1 and 3 switch PQ at first outer loop, then at next outer loop bus 3 go back PV
         assertVoltageEquals(17.441, b1); // PQ => v != 17
@@ -226,12 +247,12 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                             Network balance: active generation=300 MW, active load=300 MW, reactive generation=0 MVar, reactive load=200 MVar
                             Angle reference bus: vl4_0
                             Slack bus: vl4_0
+                         Voltage initialization with method Uniform Values
                          + Outer loop ReactiveLimits
                             + Outer loop iteration 1
                                + 2 buses switched PV -> PQ (1 buses remain PV)
                                   Switch bus 'vl1_0' PV -> PQ, q=-200.872086 < minQ=-179
                                   Switch bus 'vl2_0' PV -> PQ, q=712.632433 > maxQ=700
-                         Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
         LoadFlowAssert.assertReportEqualsString(expected, reportNode);
@@ -246,9 +267,11 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setId("svc3")
                 .setBus("b3")
                 .setConnectableBus("b3")
-                .setVoltageSetpoint(20)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
-                .setRegulating(true)
+                .setLocalTargetV(20)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
                 .setBmax(30 / value)
                 .setBmin(-1000 / value)
                 .add();
@@ -261,8 +284,10 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetQ(0)
-                .setVoltageRegulatorOn(false)
+                .setLocalTargetQ(0)
+                .newVoltageRegulation()
+                    .withRegulating(false)
+                    .add()
                 .add();
         g3.newMinMaxReactiveLimits()
                 .setMinQ(0)
@@ -277,7 +302,11 @@ class SwitchPqPvTest extends AbstractLoadFlowNetworkFactory {
         assertVoltageEquals(20, b3); // PV
 
         parametersExt.setVoltagePerReactivePowerControl(true);
-        svc3.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(0.00001).add();
+        svc3.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
+                .withRegulating(true)
+                .withSlope(0.00001)
+                .build();
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
         // bus 1 and 3 switch PQ at first outer loop, then at next outer loop bus 3 does not go back PV

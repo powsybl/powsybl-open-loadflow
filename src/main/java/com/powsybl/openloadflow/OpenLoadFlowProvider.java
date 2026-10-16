@@ -19,11 +19,7 @@ import com.powsybl.computation.ComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.ReferenceTerminals;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
-import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.loadflow.LoadFlowProvider;
-import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.loadflow.LoadFlowResultImpl;
-import com.powsybl.loadflow.LoadFlowRunParameters;
+import com.powsybl.loadflow.*;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
@@ -41,7 +37,6 @@ import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
 import com.powsybl.openloadflow.util.*;
-import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,24 +84,28 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     @Override
     public String getVersion() {
-        return new PowsyblCoreVersion().getMavenProjectVersion();
+        return new PowsyblOpenLoadFlowVersion().getMavenProjectVersion();
     }
 
     private void updateAcState(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                AcLoadFlowResult result, AcLoadFlowParameters acParameters, boolean atLeastOneComponentHasToBeUpdated) {
         if (parametersExt.isNetworkCacheEnabled()) {
-            NetworkCache.INSTANCE.findEntry(network).orElseThrow().setPause(true);
+            NetworkCache.AC_LF_INSTANCE.findEntry(network, parametersExt.getNetworkCacheScope()).orElseThrow().setPause(true);
         }
         try {
             // update network state
             if (atLeastOneComponentHasToBeUpdated && result.isSuccess()
                     || parametersExt.isAlwaysUpdateNetwork()) {
+                boolean loadPowerFactorConstant = (parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl())
+                    && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD
+                    || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                    && parametersExt.isLoadPowerFactorConstant();
                 var updateParameters = new LfNetworkStateUpdateParameters(parameters.isUseReactiveLimits(),
                                                                           parameters.isWriteSlackBus(),
                                                                           parameters.isPhaseShifterRegulationOn(),
                                                                           parameters.isTransformerVoltageControlOn(),
                                                                           parametersExt.isTransformerReactivePowerControl(),
-                                                                          (parameters.isDistributedSlack() || parametersExt.isAreaInterchangeControl()) && (parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD || parameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD) && parametersExt.isLoadPowerFactorConstant(),
+                                                                          loadPowerFactorConstant,
                                                                           parameters.isDc(),
                                                                           acParameters.getNetworkParameters().isBreakers(),
                                                                           parametersExt.getReactivePowerDispatchMode(),
@@ -120,7 +119,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             }
         } finally {
             if (parametersExt.isNetworkCacheEnabled()) {
-                NetworkCache.INSTANCE.findEntry(network).orElseThrow().setPause(false);
+                NetworkCache.AC_LF_INSTANCE.findEntry(network, parametersExt.getNetworkCacheScope()).orElseThrow().setPause(false);
             }
         }
     }
@@ -139,7 +138,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             results = new AcLoadFlowFromCache(network, parameters, parametersExt, acParameters, reportNode)
                     .run();
         } else {
-            try (LfNetworkList lfNetworkList = Networks.load(network, acParameters.getNetworkParameters(), new LfTopoConfig(), reportNode)) {
+            try (LfNetworkList lfNetworkList = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), reportNode)) {
                 results = AcloadFlowEngine.run(lfNetworkList.getList(), acParameters);
             }
         }
@@ -163,30 +162,36 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
         for (AcLoadFlowResult result : results) {
             updateAcState(network, parameters, parametersExt, result, acParameters, atLeastOneComponentHasToBeUpdated);
 
-            ReferenceBusAndSlackBusesResults referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
             final var status = result.toComponentResultStatus();
-            componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(result.getNetwork().getNumCC(),
-                    result.getNetwork().getNumSC(),
-                    status.status(),
-                    status.statusText(),
-                    Collections.emptyMap(), // metrics: can do better later on
-                    result.getSolverIterations(),
-                    referenceBusAndSlackBusesResults.referenceBusId(),
-                    referenceBusAndSlackBusesResults.slackBusResultList(),
-                    result.getDistributedActivePower() * PerUnit.SB));
+            List<LfSynchronousNetwork> lfScNetworks = result.getNetwork().getSynchronousNetworks();
+
+            for (LfSynchronousNetwork lfScNetwork : lfScNetworks) {
+                ReferenceBusAndSlackBusesResults referenceBusAndSlackBusResults = buildReferenceBusAndSlackBusesResults(result, lfScNetwork, result.getNetwork().getValidity());
+                componentResults.add(new LoadFlowResultImpl.ComponentResultImpl(
+                        result.getNetwork().getNumCC(),
+                        lfScNetwork.getNumSC(),
+                        status.status(),
+                        status.statusText(),
+                        Collections.emptyMap(), // metrics: can do better later on
+                        result.getSolverIterations(),
+                        referenceBusAndSlackBusResults.referenceBusId(),
+                        referenceBusAndSlackBusResults.slackBusResultList(),
+                        result.getDistributedActivePower(lfScNetwork.getNumSC()) * PerUnit.SB));
+            }
         }
 
         boolean ok = results.stream().anyMatch(AcLoadFlowResult::isSuccess);
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentResults);
     }
 
-    private static ReferenceBusAndSlackBusesResults buildReferenceBusAndSlackBusesResults(AbstractLoadFlowResult result) {
+    private static ReferenceBusAndSlackBusesResults buildReferenceBusAndSlackBusesResults(AbstractLoadFlowResult result, LfSynchronousNetwork lfScNetwork, LfNetwork.Validity validity) {
         String referenceBusId = null;
         List<LoadFlowResult.SlackBusResult> slackBusResultList = new ArrayList<>();
-        double slackBusActivePowerMismatch = result.getSlackBusActivePowerMismatch() * PerUnit.SB;
-        if (result.getNetwork().getValidity() == LfNetwork.Validity.VALID) {
-            referenceBusId = result.getNetwork().getReferenceBus().getId();
-            List<LfBus> slackBuses = result.getNetwork().getSlackBuses();
+
+        if (validity == LfNetwork.Validity.VALID) {
+            double slackBusActivePowerMismatch = result.getSlackBusActivePowerMismatch(lfScNetwork.getNumSC()) * PerUnit.SB;
+            referenceBusId = lfScNetwork.getReferenceBus().getId();
+            List<LfBus> slackBuses = lfScNetwork.getSlackBuses();
             slackBusResultList = slackBuses.stream().map(
                     b -> (LoadFlowResult.SlackBusResult) new LoadFlowResultImpl.SlackBusResultImpl(b.getId(),
                             slackBusActivePowerMismatch / slackBuses.size())).toList();
@@ -207,15 +212,28 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     private LoadFlowResult runDc(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, ReportNode reportNode) {
 
         var dcParameters = OpenLoadFlowParameters.createDcParameters(network, parameters, parametersExt, matrixFactory, connectivityFactory, forcePhaseControlOffAndAddAngle1Var);
-        dcParameters.getNetworkParameters()
-                .setCacheEnabled(false); // force not caching as not supported in DC LF
 
-        List<DcLoadFlowResult> results = DcLoadFlowEngine.run(network, new LfNetworkLoaderImpl(), dcParameters, reportNode);
+        List<DcLoadFlowResult> results;
+        if (parametersExt.isNetworkCacheEnabled()) {
+            var networkCacheDcEntry = NetworkCache.DC_LF_INSTANCE.findEntry(network, parametersExt.getNetworkCacheScope()).orElse(null);
+            if (networkCacheDcEntry == null || networkCacheDcEntry.getValues() == null || networkCacheDcEntry.getValues().stream().anyMatch(NetworkCache.AbstractValue::isTopologyUpdated)) {
+                Networks.resetState(network); // reset state only if new NetworkCache has to be created or if topology has been updated
+            }
+            results = new DcLoadFlowFromCache(network, parameters, parametersExt, dcParameters, reportNode)
+                    .run();
+            NetworkCache.DC_LF_INSTANCE.findEntry(network, parametersExt.getNetworkCacheScope()).orElseThrow().setPause(true);
+        } else {
+            results = DcLoadFlowEngine.run(network, new LfNetworkLoaderImpl(), dcParameters, reportNode);
+            Networks.resetState(network);
+        }
 
-        Networks.resetState(network);
-
-        List<LoadFlowResult.ComponentResult> componentsResult = results.stream().map(r -> processResult(network, r, parameters, parametersExt, dcParameters.getNetworkParameters().isBreakers())).toList();
+        List<LoadFlowResult.ComponentResult> componentsResult = results.stream()
+            .map(r -> processResult(network, r, parameters, parametersExt, dcParameters.getNetworkParameters().isBreakers()))
+            .toList();
         boolean ok = results.stream().anyMatch(DcLoadFlowResult::isSuccess);
+        if (parametersExt.isNetworkCacheEnabled()) {
+            NetworkCache.DC_LF_INSTANCE.findEntry(network, parametersExt.getNetworkCacheScope()).orElseThrow().setPause(false);
+        }
         return new LoadFlowResultImpl(ok, Collections.emptyMap(), null, componentsResult);
     }
 
@@ -243,11 +261,13 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
             computeZeroImpedanceFlows(result.getNetwork(), LoadFlowModel.DC, parameters.getDcPowerFactor());
         }
 
-        var referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result);
+        // DC load flow does not support AC-DC network. Thus, there is only one synchronous network in the LfNetwork
+        LfSynchronousNetwork lfScNetwork = result.getNetwork().getSynchronousNetworks().getFirst();
+        var referenceBusAndSlackBusesResults = buildReferenceBusAndSlackBusesResults(result, lfScNetwork, result.getNetwork().getValidity());
         final var status = result.toComponentResultStatus();
         return new LoadFlowResultImpl.ComponentResultImpl(
                 result.getNetwork().getNumCC(),
-                result.getNetwork().getNumSC(),
+                lfScNetwork.getNumSC(),
                 status.status(),
                 status.statusText(),
                 Collections.emptyMap(), // metrics: can do better later on

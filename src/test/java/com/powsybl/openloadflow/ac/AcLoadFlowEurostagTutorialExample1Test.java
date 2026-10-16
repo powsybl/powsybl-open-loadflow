@@ -14,13 +14,15 @@ import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.SlackTerminal;
 import com.powsybl.iidm.network.extensions.SlackTerminalAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
@@ -28,6 +30,7 @@ import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -38,7 +41,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class AcLoadFlowEurostagTutorialExample1Test {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlowEurostagTutorialExample1Test(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
     private Bus genBus;
@@ -71,7 +81,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         vlhv1 = network.getVoltageLevel("VLHV1");
         vlhv2 = network.getVoltageLevel("VLHV2");
 
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                 .setDistributedSlack(false);
         parametersExt = OpenLoadFlowParameters.create(parameters)
@@ -217,7 +227,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
         // create a generator with a targetP to 0 and a minP > 0 so that the generator will be discarded from voltage
         // regulation
         // targetQ is not defined so value is NaN
-        Generator g1 = loadBus.getVoltageLevel().newGenerator()
+        loadBus.getVoltageLevel().newGenerator()
                 .setId("g1")
                 .setBus(loadBus.getId())
                 .setConnectableBus(loadBus.getId())
@@ -225,8 +235,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setMinP(10)
                 .setMaxP(200)
                 .setTargetP(0)
-                .setTargetV(150)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(150)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         // check that the issue that add an undefined targetQ (NaN) to bus generation sum is solved
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -280,7 +290,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
     @Test
     void noGeneratorPvTest() {
         // GEN is only generator with voltage control, disable it
-        network.getGenerator("GEN").setVoltageRegulatorOn(false);
+        network.getGenerator("GEN").getVoltageRegulation().setRegulating(false);
 
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
@@ -350,7 +360,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .add()
                 .add();
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED)
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
@@ -385,8 +395,6 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .add()
                 .add();
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
         parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED)
                 .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
@@ -415,8 +423,8 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setMinP(1)
                 .setMaxP(200)
                 .setTargetP(1)
-                .setTargetV(150)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(150)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
@@ -431,8 +439,10 @@ class AcLoadFlowEurostagTutorialExample1Test {
         network.getVoltageLevel("VLGEN").newGenerator().setId("GEN1")
                 .setBus("NGEN").setConnectableBus("NGEN")
                 .setMinP(-9999.99D).setMaxP(9999.99D)
-                .setVoltageRegulatorOn(true).setTargetV(24.5D)
-                .setTargetP(607.0D).setTargetQ(301.0D).add();
+                .setTargetP(607.0D)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetQ(301.0D).setLocalTargetV(24.5D)
+                .add();
         // GEN1 reactive limits are not plausible => fallback into split Q equally
         network.getGenerator("GEN1").newMinMaxReactiveLimits().setMinQ(-10000).setMaxQ(10000).add();
         LoadFlowParameters parameters = new LoadFlowParameters().setUseReactiveLimits(true)
@@ -459,9 +469,11 @@ class AcLoadFlowEurostagTutorialExample1Test {
                 .setMinP(0)
                 .setMaxP(100)
                 .setTargetP(1)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(148)
-                .setRegulatingTerminal(network.getLoad("LOAD").getTerminal())
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(network.getLoad("LOAD").getTerminal())
+                    .withTargetValue(148)
+                    .add()
                 .add();
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
@@ -503,6 +515,7 @@ class AcLoadFlowEurostagTutorialExample1Test {
                             Network balance: active generation=1000 MW, active load=600 MW, reactive generation=0 MVar, reactive load=200 MVar
                             Angle reference bus: VLGEN_0
                             Slack bus: VLGEN_0
+                         Voltage initialization with method Uniform Values
                          + Outer loop DistributedSlack
                             + Outer loop iteration 1
                                Slack bus active power (-394.444523 MW) distributed in 1 distribution iteration(s)

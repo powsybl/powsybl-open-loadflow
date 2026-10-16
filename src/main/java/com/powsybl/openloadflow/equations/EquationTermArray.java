@@ -308,7 +308,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
                 }
                 writer.append(evaluator.getName());
                 writer.write("(");
-                for (Iterator<Derivative<V>> it = getTermDerivatives(termNum).iterator(); it.hasNext(); ) {
+                for (Iterator<Derivative<V>> it = getTermDerivatives(termNum).iterator(); it.hasNext();) {
                     Variable<V> variable = it.next().getVariable();
                     variable.write(writer);
                     if (it.hasNext()) {

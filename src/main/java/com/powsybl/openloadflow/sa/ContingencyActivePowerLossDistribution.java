@@ -9,24 +9,27 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.util.ServiceLoaderCache;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.security.SecurityAnalysisParameters;
-import org.apache.commons.compress.utils.Lists;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.ServiceLoader;
 
 /**
+ * Handling of active power injection lost by contingency.
  * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
 public interface ContingencyActivePowerLossDistribution {
 
+    ServiceLoaderCache<ContingencyActivePowerLossDistribution> SERVICE_LOADER_CACHE = new ServiceLoaderCache<>(ContingencyActivePowerLossDistribution.class);
+
     static List<ContingencyActivePowerLossDistribution> findAll() {
-        return Lists.newArrayList(ServiceLoader.load(ContingencyActivePowerLossDistribution.class, ContingencyActivePowerLossDistribution.class.getClassLoader()).iterator());
+        return Collections.unmodifiableList(SERVICE_LOADER_CACHE.getServices());
     }
 
     static ContingencyActivePowerLossDistribution find(String name) {
@@ -37,6 +40,17 @@ public interface ContingencyActivePowerLossDistribution {
 
     String getName();
 
-    void run(LfNetwork network, LfContingency lfContingency, Contingency contingency, SecurityAnalysisParameters securityAnalysisParameters, LoadFlowParametersOverride loadFlowParametersOverride, ReportNode reportNode);
+    /**
+     * Called by the security analysis engine for each contingency. Pre-distributes active power imbalances created by contingencies (disconnection of loads, of generators, ...).
+     * @param network the network
+     * @param lfContingency the contingency in open-loadflow representation, including among others information about disconnected network elements, and how much active power has been lost
+     * @param contingency the contingency definition
+     * @param securityAnalysisParameters the security analysis parameters
+     * @param loadFlowParametersOverride the contingency load flow parameters overrides if any
+     * @param reportNode the contingency report node - so that the plugin may add any report message needed
+     * @return the amount of distributed active power in per-unit
+     */
+    double run(LfNetwork network, LfContingency lfContingency, Contingency contingency, SecurityAnalysisParameters securityAnalysisParameters,
+               LoadFlowParametersOverride loadFlowParametersOverride, ReportNode reportNode);
 
 }

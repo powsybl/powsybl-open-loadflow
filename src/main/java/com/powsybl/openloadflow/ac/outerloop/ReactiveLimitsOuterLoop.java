@@ -150,7 +150,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                 contextData.incrementPvPqSwitchCount(controllerBus.getId());
 
                 switch (pvToPqBus.limitType) {
-                    case MAX_Q :
+                    case MAX_Q:
                         Reports.reportPvToPqMaxQ(summary, controllerBus, pvToPqBus.q, pvToPqBus.qLimit, log, LOGGER);
                         break;
                     case MIN_Q:
@@ -312,27 +312,31 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         double minQ = controllerCapableBus.getMinQ(); // the actual minQ.
         double maxQ = controllerCapableBus.getMaxQ(); // the actual maxQ.
         double q = controllerCapableBus.getGenerationTargetQ();
-        controllerCapableBus.getQLimitType().ifPresent(qLimitType -> {
-            if (qLimitType.isMinLimit()) {
-                if (getBusV(controllerCapableBus) < getBusTargetV(controllerCapableBus) && canSwitchPqToPv) {
-                    // bus absorb too much reactive power
-                    pqToPvBuses.add(new PqToPvBus(controllerCapableBus, LfBus.QLimitType.MIN_Q));
-                } else if (qLimitType == LfBus.QLimitType.MIN_Q && Math.abs(minQ - q) > maxReactivePowerMismatch) {
-                    LOGGER.trace("PQ bus {} with updated Q limits, previous minQ {} new minQ {}", controllerCapableBus.getId(), q, minQ);
-                    controllerCapableBus.freezeGenerationTargetQAndDisableGeneratorVoltageControl(minQ);
-                    busesWithUpdatedQLimits.add(controllerCapableBus);
-                }
-            } else if (qLimitType.isMaxLimit()) {
-                if (getBusV(controllerCapableBus) > getBusTargetV(controllerCapableBus) && canSwitchPqToPv) {
-                    // bus produce too much reactive power
-                    pqToPvBuses.add(new PqToPvBus(controllerCapableBus, LfBus.QLimitType.MAX_Q));
-                } else if (qLimitType == LfBus.QLimitType.MAX_Q && Math.abs(maxQ - q) > maxReactivePowerMismatch) {
-                    LOGGER.trace("PQ bus {} with updated Q limits, previous maxQ {} new maxQ {}", controllerCapableBus.getId(), q, maxQ);
-                    controllerCapableBus.freezeGenerationTargetQAndDisableGeneratorVoltageControl(maxQ);
-                    busesWithUpdatedQLimits.add(controllerCapableBus);
-                }
+        controllerCapableBus.getQLimitType().ifPresent(qLimitType -> checkPqBusWithQLimitType(controllerCapableBus, pqToPvBuses,
+            busesWithUpdatedQLimits, canSwitchPqToPv, qLimitType, minQ, maxQ, q));
+    }
+
+    private void checkPqBusWithQLimitType(LfBus controllerCapableBus, List<PqToPvBus> pqToPvBuses, List<LfBus> busesWithUpdatedQLimits,
+                                          boolean canSwitchPqToPv, LfBus.QLimitType qLimitType, double minQ, double maxQ, double q) {
+        if (qLimitType.isMinLimit()) {
+            if (getBusV(controllerCapableBus) < getBusTargetV(controllerCapableBus) && canSwitchPqToPv) {
+                // bus absorb too much reactive power
+                pqToPvBuses.add(new PqToPvBus(controllerCapableBus, LfBus.QLimitType.MIN_Q));
+            } else if (qLimitType == LfBus.QLimitType.MIN_Q && Math.abs(minQ - q) > maxReactivePowerMismatch) {
+                LOGGER.trace("PQ bus {} with updated Q limits, previous minQ {} new minQ {}", controllerCapableBus.getId(), q, minQ);
+                controllerCapableBus.freezeGenerationTargetQAndDisableGeneratorVoltageControl(minQ);
+                busesWithUpdatedQLimits.add(controllerCapableBus);
             }
-        });
+        } else if (qLimitType.isMaxLimit()) {
+            if (getBusV(controllerCapableBus) > getBusTargetV(controllerCapableBus) && canSwitchPqToPv) {
+                // bus produce too much reactive power
+                pqToPvBuses.add(new PqToPvBus(controllerCapableBus, LfBus.QLimitType.MAX_Q));
+            } else if (qLimitType == LfBus.QLimitType.MAX_Q && Math.abs(maxQ - q) > maxReactivePowerMismatch) {
+                LOGGER.trace("PQ bus {} with updated Q limits, previous maxQ {} new maxQ {}", controllerCapableBus.getId(), q, maxQ);
+                controllerCapableBus.freezeGenerationTargetQAndDisableGeneratorVoltageControl(maxQ);
+                busesWithUpdatedQLimits.add(controllerCapableBus);
+            }
+        }
     }
 
     private boolean switchReactiveControllerBusPq(List<ControllerBusToPqBus> reactiveControllerBusesToPqBuses, ReportNode reportNode) {

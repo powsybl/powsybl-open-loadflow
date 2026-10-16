@@ -10,9 +10,12 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.action.*;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.*;
+import com.powsybl.contingency.strategy.OperatorStrategy;
+import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.PhaseControlFactory;
@@ -21,17 +24,17 @@ import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisResult;
-import com.powsybl.security.condition.TrueCondition;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.OperatorStrategyResult;
-import com.powsybl.security.strategy.OperatorStrategy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -48,6 +51,10 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
     private SecurityAnalysisParameters securityAnalysisParameters;
     private OpenLoadFlowParameters parametersExt;
 
+    WoodburyDcSecurityAnalysisWithActionsTest(CommonTestConfig commonTestConfig) {
+        super(commonTestConfig);
+    }
+
     @BeforeEach
     public void setUpWoodburyDcSa() {
         securityAnalysisParameters = new SecurityAnalysisParameters();
@@ -59,6 +66,38 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters();
         openSecurityAnalysisParameters.setDcFastMode(true);
         securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testStateMonitorWithSpecificContingencyAndOperatorStrategy(boolean dcFastMode) {
+        Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
+
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.specificContingency("L1"), Set.of("L2", "PS1"), Collections.emptySet(), Collections.emptySet()));
+        List<Contingency> contingencies = List.of(new Contingency("L1", new BranchContingency("L1")));
+        List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pstAbsChange", "PS1", false, 0));
+        List<OperatorStrategy> operatorStrategies = List.of(
+                new OperatorStrategy("strategyTapAbsChange", ContingencyContext.specificContingency("L1"), new TrueCondition(), List.of("pstAbsChange")));
+
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class).setDcFastMode(dcFastMode);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, ReportNode.NO_OP);
+
+        assertNotNull(getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L2"));
+        assertNotNull(getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("PS1"));
+
+        OperatorStrategyResult strategyResult = getOperatorStrategyResult(result, "strategyTapAbsChange");
+        assertNotNull(strategyResult.getNetworkResult().getBranchResult("L2"));
+        assertNotNull(strategyResult.getNetworkResult().getBranchResult("PS1"));
+
+        network.getLine("L1").getTerminal1().disconnect();
+        network.getLine("L1").getTerminal2().disconnect();
+        network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(0);
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(network.getLine("L2").getTerminal1().getP(), strategyResult.getNetworkResult().getBranchResult("L2").getP1(), DELTA_POWER);
+        assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal1().getP(), strategyResult.getNetworkResult().getBranchResult("PS1").getP1(), DELTA_POWER);
     }
 
     @ParameterizedTest
@@ -446,27 +485,52 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
     void testFastDcSaWithUnsupportedAction() {
         Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
-        List<Contingency> contingencies = List.of(new Contingency("contingencyLD2", List.of(new LoadContingency("LD2"))));
-        List<Action> actions = List.of(new GeneratorActionBuilder().withId("genActionG1").withGeneratorId("G1").withActivePowerRelativeValue(true).withActivePowerValue(1).build());
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyTapChange", ContingencyContext.specificContingency("contingencyLD2"), new TrueCondition(), List.of("genActionG1")));
+        List<Contingency> contingencies = List.of(new Contingency("L1", new BranchContingency("L1")));
+        // RatioTapChangerTapPositionAction is not yet supported in Woodbury fast DC SA
+        List<Action> actions = List.of(new RatioTapChangerTapPositionAction("rtcAction", "PS1", false, 0));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyRtc", ContingencyContext.specificContingency("L1"), new TrueCondition(), List.of("rtcAction")));
 
         CompletionException thrown = assertThrows(CompletionException.class,
                 () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP));
-        assertTrue(thrown.getCause().getMessage().contains("For now, only PhaseTapChangerTapPositionAction, TerminalsConnectionAction and SwitchAction are allowed in fast DC Security Analysis"));
+        assertTrue(thrown.getCause().getMessage().contains("For now, only PhaseTapChangerTapPositionAction, TerminalsConnectionAction, " +
+            "SwitchAction, GeneratorAction and LoadAction are allowed in fast DC Security Analysis"));
     }
 
-    // Test on fast DC only. The limitation is specific to fast dc
-    @Test
-    void testFastDcSaWithTransformerEnabled() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void testDcSaWithTransformerEnabled(boolean dcFastMode) {
+        // an operator strategy that closes (enables) the phase shifting transformer PS1, initially disconnected.
+        // PS1 tap 0 gives a strong phase shift (alpha = -5 deg) and a non-default impedance (X = 50).
         Network network = PhaseControlFactory.createWithOneT2wtTwoLines();
+        network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(0);
+        network.getTwoWindingsTransformer("PS1").getTerminal1().disconnect();
+        network.getTwoWindingsTransformer("PS1").getTerminal2().disconnect();
+
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.specificContingency("L1"), Set.of("L2", "PS1"), Collections.emptySet(), Collections.emptySet()));
         List<Contingency> contingencies = List.of(new Contingency("L1", new BranchContingency("L1")));
         List<Action> actions = List.of(new TerminalsConnectionAction("closePS1", "PS1", false));
         List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyClosePS1", ContingencyContext.specificContingency("L1"), new TrueCondition(), List.of("closePS1")));
-        List<StateMonitor> monitors = List.of();
 
-        CompletionException thrown = assertThrows(CompletionException.class,
-                () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP));
-        assertTrue(thrown.getCause().getMessage().contains("For now, TerminalsConnectionAction enabling a transformer is not allowed in WoodburyDcSecurityAnalysis"));
+        securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class).setDcFastMode(dcFastMode);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                operatorStrategies, actions, ReportNode.NO_OP);
+
+        OperatorStrategyResult strategyResult = getOperatorStrategyResult(result, "strategyClosePS1");
+        BranchResult l2Result = strategyResult.getNetworkResult().getBranchResult("L2");
+        BranchResult ps1Result = strategyResult.getNetworkResult().getBranchResult("PS1");
+        assertNotNull(l2Result);
+        assertNotNull(ps1Result);
+
+        // reference: apply the contingency (open L1) and the action (reconnect PS1), then run a dc load flow
+        network.getLine("L1").getTerminal1().disconnect();
+        network.getLine("L1").getTerminal2().disconnect();
+        network.getTwoWindingsTransformer("PS1").getTerminal1().connect();
+        network.getTwoWindingsTransformer("PS1").getTerminal2().connect();
+        loadFlowRunner.run(network, parameters);
+
+        assertEquals(network.getLine("L2").getTerminal1().getP(), l2Result.getP1(), DELTA_POWER);
+        assertEquals(network.getTwoWindingsTransformer("PS1").getTerminal1().getP(), ps1Result.getP1(), DELTA_POWER);
     }
 
     @ParameterizedTest
@@ -681,7 +745,8 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         List<StateMonitor> monitors = createAllBranchesMonitors(network);
         List<Contingency> contingencies = List.of(new Contingency("LINE_15+GEN_5", new BranchContingency("LINE_15"), new GeneratorContingency("GEN_5")));
         List<Action> actions = List.of(new SwitchAction("closeSWITCH", "SWITCH", false));
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyCloseSWITCH", ContingencyContext.specificContingency("LINE_15+GEN_5"), new TrueCondition(), List.of("closeSWITCH")));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyCloseSWITCH", ContingencyContext.specificContingency("LINE_15+GEN_5"),
+            new TrueCondition(), List.of("closeSWITCH")));
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);

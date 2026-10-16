@@ -46,8 +46,14 @@ public class LfZeroImpedanceNetwork {
 
     private static Graph<LfBus, LfBranch> createSubgraph(Graph<LfBus, LfBranch> graph, Set<LfBus> vertexSubset) {
         Graph<LfBus, LfBranch> subGraph = new Pseudograph<>(LfBranch.class);
-        Graphs.addGraph(subGraph, new AsSubgraph<>(graph, vertexSubset));
+        Graphs.addGraph(subGraph, new AsSubgraph<>(graph, sortVerticesById(vertexSubset)));
         return subGraph;
+    }
+
+    private static Set<LfBus> sortVerticesById(Set<LfBus> connectedSet) {
+        Set<LfBus> sortedSet = new LinkedHashSet<>();
+        connectedSet.stream().sorted(Comparator.comparing(LfBus::getId)).forEach(sortedSet::add);
+        return sortedSet;
     }
 
     public static Set<LfZeroImpedanceNetwork> create(LfNetwork network, LoadFlowModel loadFlowModel) {

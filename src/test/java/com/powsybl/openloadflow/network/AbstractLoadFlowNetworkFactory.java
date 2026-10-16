@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.StaticVarCompensator.RegulationMode;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -52,6 +52,25 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .add();
     }
 
+    protected static DcNode createDcNode(Network network, String id, double nominalV) {
+        return createDcNode(network, id, nominalV, false);
+    }
+
+    protected static DcNode createDcNode(Network network, String id, double nominalV, boolean grounded) {
+        DcNode dn = network.newDcNode().
+            setId(id).
+            setNominalV(nominalV).
+            add();
+
+        if (grounded) {
+            network.newDcGround()
+                .setId(id + "_ground")
+                .setDcNode(id)
+                .add();
+        }
+        return dn;
+    }
+
     protected static Generator createGenerator(Bus b, String id, double p) {
         return createGenerator(b, id, p, 1);
     }
@@ -66,8 +85,11 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .setMinP(0)
                 .setMaxP(2 * p)
                 .setTargetP(p)
-                .setTargetV(v)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(v)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
                 .add();
         g.getTerminal().setP(-p).setQ(0);
         return g;
@@ -116,6 +138,15 @@ public abstract class AbstractLoadFlowNetworkFactory {
                 .setR(r)
                 .setX(x)
                 .add();
+    }
+
+    protected static DcLine createDcLine(Network network, DcNode dn1, DcNode dn2, String id, double r) {
+        return network.newDcLine()
+            .setId(id)
+            .setDcNode1(dn1.getId())
+            .setDcNode2(dn2.getId())
+            .setR(r)
+            .add();
     }
 
     protected static Switch createSwitch(Network network, Bus b1, Bus b2, String id) {
@@ -174,8 +205,8 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .add();
     }
 
-    protected static DanglingLine createDanglingLine(Bus b, String id, double x, double p0, double q0) {
-        return b.getVoltageLevel().newDanglingLine()
+    protected static BoundaryLine createBoundaryLine(Bus b, String id, double x, double p0, double q0) {
+        return b.getVoltageLevel().newBoundaryLine()
             .setId(id)
             .setBus(b.getId())
             .setConnectableBus(b.getId())
@@ -201,9 +232,12 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .setId(id)
             .setConnectableBus(b.getId())
             .setBus(b.getId())
-            .setVoltageRegulatorOn(true)
-            .setVoltageSetpoint(voltageSetpoint)
-            .setReactivePowerSetpoint(reactivePowerSetpoint)
+            .setLocalTargetV(voltageSetpoint)
+            .setLocalTargetQ(reactivePowerSetpoint)
+            .newVoltageRegulation()
+                .withRegulating(true)
+                .withMode(RegulationMode.VOLTAGE)
+                .add()
             .setLossFactor(1.1f)
             .add();
     }
@@ -219,6 +253,68 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .setActivePowerSetpoint(activePowerSetpoint)
             .setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER)
             .setMaxP(2 * activePowerSetpoint)
+            .add();
+    }
+
+    protected static VoltageSourceConverter createVoltageSourceConverterPccQac(Bus b, DcNode dn1, DcNode dn2, String id, double targetP, double targetQ) {
+        return createVoltageSourceConverterPccQac(b, dn1, dn2, id, 0., 0., 0., targetP, targetQ);
+    }
+
+    protected static VoltageSourceConverter createVoltageSourceConverterPccVac(Bus b, DcNode dn1, DcNode dn2, String id, double targetP, double targetVac) {
+        return createVoltageSourceConverterPccVac(b, dn1, dn2, id, 0., 0., 0., targetP, targetVac);
+    }
+
+    protected static VoltageSourceConverter createVoltageSourceConverterVdcQac(Bus b, DcNode dn1, DcNode dn2, String id, double targetVdc, double targetQ) {
+        return createVoltageSourceConverterVdcQac(b, dn1, dn2, id, 0., 0., 0., targetVdc, targetQ);
+    }
+
+    protected static VoltageSourceConverter createVoltageSourceConverterVdcVac(Bus b, DcNode dn1, DcNode dn2, String id, double targetVdc, double targetVac) {
+        return createVoltageSourceConverterVdcVac(b, dn1, dn2, id, 0., 0., 0., targetVdc, targetVac);
+    }
+
+    protected static VoltageSourceConverter createVoltageSourceConverterPccQac(Bus b, DcNode dn1, DcNode dn2, String id,
+                                                                               double idle, double sw, double r, double targetP, double targetQ) {
+        return createVoltageSourceConverter(b, dn1, dn2, id, idle, sw, r, AcDcConverter.ControlMode.P_PCC, targetP, Double.NaN, false, Double.NaN, targetQ);
+    }
+
+    protected static VoltageSourceConverter createVoltageSourceConverterPccVac(Bus b, DcNode dn1, DcNode dn2, String id,
+                                                                               double idle, double sw, double r, double targetP, double targetVac) {
+        return createVoltageSourceConverter(b, dn1, dn2, id, idle, sw, r, AcDcConverter.ControlMode.P_PCC, targetP, Double.NaN, true, targetVac, Double.NaN);
+    }
+
+    protected static VoltageSourceConverter createVoltageSourceConverterVdcQac(Bus b, DcNode dn1, DcNode dn2, String id,
+                                                                               double idle, double sw, double r, double targetVdc, double targetQ) {
+        return createVoltageSourceConverter(b, dn1, dn2, id, idle, sw, r, AcDcConverter.ControlMode.V_DC, Double.NaN, targetVdc, false, Double.NaN, targetQ);
+    }
+
+    protected static VoltageSourceConverter createVoltageSourceConverterVdcVac(Bus b, DcNode dn1, DcNode dn2, String id,
+                                                                               double idle, double sw, double r, double targetVdc, double targetVac) {
+        return createVoltageSourceConverter(b, dn1, dn2, id, idle, sw, r, AcDcConverter.ControlMode.V_DC, Double.NaN, targetVdc, true, targetVac, Double.NaN);
+    }
+
+    protected static VoltageSourceConverter createVoltageSourceConverter(Bus b, DcNode dn1, DcNode dn2, String id,
+                                                                         double idle, double sw, double r, AcDcConverter.ControlMode mode,
+                                                                         double targetP, double targetVdc, boolean voltageRegulatorOn,
+                                                                         double targetVac, double targetQ) {
+        return b.getVoltageLevel().newVoltageSourceConverter()
+            .setId(id)
+            .setBus1(b.getId())
+            .setDcNode1(dn1.getId())
+            .setDcNode2(dn2.getId())
+            .setDcConnected1(true)
+            .setDcConnected2(true)
+            .setIdleLoss(idle)
+            .setSwitchingLoss(sw)
+            .setResistiveLoss(r)
+            .setControlMode(mode)
+            .setTargetP(targetP)
+            .setTargetVdc(targetVdc)
+            .setLocalTargetV(targetVac)
+            .setLocalTargetQ(targetQ)
+            .newVoltageRegulation()
+                .withRegulating(voltageRegulatorOn)
+                .withMode(RegulationMode.VOLTAGE)
+                .add()
             .add();
     }
 
@@ -256,10 +352,13 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .endSection()
             .add()
             .add();
-        sh.setTargetV(v)
-            .setRegulatingTerminal(sh.getTerminal())
-            .setTargetDeadband(0.0)
-            .setVoltageRegulatorOn(voltageControl);
+        sh.newVoltageRegulation()
+                .withRegulating(voltageControl)
+                .withMode(RegulationMode.VOLTAGE)
+                .withTargetValue(v)
+                .withTargetDeadband(0.0)
+                .withTerminal(sh.getTerminal())
+                .build();
         return sh;
     }
 
@@ -272,15 +371,13 @@ public abstract class AbstractLoadFlowNetworkFactory {
             .setConnectableBus(bus.getId())
             .setBmin(-1.0)
             .setBmax(1.0)
-            .setRegulating(false)
-            .setRegulationMode(RegulationMode.VOLTAGE)
+            .setLocalTargetV(vSetpoint)
+            .setLocalTargetQ(qSetpoint)
+            .newVoltageRegulation()
+                .withMode(regulationMode)
+                .withRegulating(true)
+                .add()
             .add();
-        svc.setRegulatingTerminal(svc.getTerminal())
-            .setVoltageSetpoint(vSetpoint)
-            .setReactivePowerSetpoint(qSetpoint)
-            .setRegulationMode(regulationMode)
-            .setRegulating(true);
-
         return svc;
     }
 }

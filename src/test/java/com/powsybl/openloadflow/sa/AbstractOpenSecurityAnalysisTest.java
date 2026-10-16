@@ -14,31 +14,33 @@ import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.ContingenciesProvider;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.contingency.strategy.OperatorStrategy;
+import com.powsybl.contingency.violations.LimitViolationFilter;
 import com.powsybl.iidm.network.Identifiable;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.loadflow.LoadFlowRunParameters;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.security.LimitViolationFilter;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisReport;
 import com.powsybl.security.SecurityAnalysisResult;
 import com.powsybl.security.SecurityAnalysisRunParameters;
-import com.powsybl.security.limitreduction.LimitReduction;
+import com.powsybl.security.limitscaling.LimitScaling;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.*;
-import com.powsybl.security.strategy.OperatorStrategy;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 
 import java.util.Collections;
@@ -53,11 +55,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * @author Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 public abstract class AbstractOpenSecurityAnalysisTest {
 
     protected ComputationManager computationManager;
 
-    protected MatrixFactory matrixFactory;
+    protected CommonTestConfig commonTestConfig;
 
     protected OpenSecurityAnalysisProvider securityAnalysisProvider;
 
@@ -65,14 +68,17 @@ public abstract class AbstractOpenSecurityAnalysisTest {
 
     protected LoadFlow.Runner loadFlowRunner;
 
+    protected AbstractOpenSecurityAnalysisTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
+
     @BeforeEach
     void setUp() {
         computationManager = Mockito.mock(ComputationManager.class);
         Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
-        matrixFactory = new DenseMatrixFactory();
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
-        securityAnalysisProvider = new OpenSecurityAnalysisProvider(matrixFactory, connectivityFactory);
-        loadFlowProvider = new OpenLoadFlowProvider(matrixFactory, connectivityFactory);
+        securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
+        loadFlowProvider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), connectivityFactory);
         loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
     }
 
@@ -116,7 +122,8 @@ public abstract class AbstractOpenSecurityAnalysisTest {
     }
 
     protected LoadFlowResult runLoadFlow(Network network, LoadFlowParameters parameters) {
-        return loadFlowProvider.run(network, computationManager, network.getVariantManager().getWorkingVariantId(), parameters, ReportNode.NO_OP)
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setComputationManager(computationManager).setParameters(parameters);
+        return loadFlowProvider.run(network, network.getVariantManager().getWorkingVariantId(), runParameters)
                 .join();
     }
 
@@ -153,14 +160,14 @@ public abstract class AbstractOpenSecurityAnalysisTest {
     }
 
     protected SecurityAnalysisResult runSecurityAnalysis(Network network, List<Contingency> contingencies, List<StateMonitor> monitors,
-                                                         List<LimitReduction> limitReductions, SecurityAnalysisParameters saParameters) {
+                                                         List<LimitScaling> limitScalings, SecurityAnalysisParameters saParameters) {
         ContingenciesProvider provider = n -> contingencies;
         SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
                 .setFilter(new LimitViolationFilter())
                 .setComputationManager(computationManager)
                 .setSecurityAnalysisParameters(saParameters)
                 .setMonitors(monitors)
-                .setLimitReductions(limitReductions);
+                .setLimitScalings(limitScalings);
         SecurityAnalysisReport report = securityAnalysisProvider.run(network,
                         network.getVariantManager().getWorkingVariantId(),
                         provider,

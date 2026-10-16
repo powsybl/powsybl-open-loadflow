@@ -15,7 +15,8 @@ import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.BatteryNetworkFactory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
@@ -25,6 +26,7 @@ import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParame
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,7 +47,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class LfContingencyTest extends AbstractSerDeTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    LfContingencyTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     @Override
     @BeforeEach
@@ -71,7 +80,7 @@ class LfContingencyTest extends AbstractSerDeTest {
         LfNetwork mainNetwork = lfNetworks.get(0);
         assertEquals(2, lfNetworks.size());
 
-        new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList(), ReportNode.NO_OP);
+        new AcSecurityAnalysis(network, commonTestConfig.matrixFactory(), connectivityFactory, Collections.emptyList(), ReportNode.NO_OP);
 
         String branchId = "LINE_S3S4";
         Contingency contingency = new Contingency(branchId, new BranchContingency(branchId));
@@ -114,7 +123,7 @@ class LfContingencyTest extends AbstractSerDeTest {
         assertEquals(2, lfNetworks.size());
 
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
-        new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList(), ReportNode.NO_OP);
+        new AcSecurityAnalysis(network, commonTestConfig.matrixFactory(), connectivityFactory, Collections.emptyList(), ReportNode.NO_OP);
 
         String generatorId = "GEN";
         Contingency contingency = new Contingency(generatorId, new GeneratorContingency(generatorId));
@@ -132,7 +141,7 @@ class LfContingencyTest extends AbstractSerDeTest {
         assertEquals(2, lfNetworks.size());
 
         GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
-        new AcSecurityAnalysis(network, new DenseMatrixFactory(), connectivityFactory, Collections.emptyList(), ReportNode.NO_OP);
+        new AcSecurityAnalysis(network, commonTestConfig.matrixFactory(), connectivityFactory, Collections.emptyList(), ReportNode.NO_OP);
 
         String loadId = "LOAD";
         Contingency contingency = new Contingency(loadId, new LoadContingency(loadId));

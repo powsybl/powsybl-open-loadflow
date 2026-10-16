@@ -68,8 +68,11 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
         Objects.requireNonNull(contingenciesProvider);
         Objects.requireNonNull(runParameters);
 
+        LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
+
         LoadFlowParameters loadFlowParameters = runParameters.getSecurityAnalysisParameters().getLoadFlowParameters();
         OpenLoadFlowParameters loadFlowParametersExt = OpenLoadFlowParameters.get(loadFlowParameters);
+        OpenLoadFlowParameters.log(loadFlowParameters, loadFlowParametersExt);
 
         // FIXME implement a fast incremental connectivity algorithm
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory;
@@ -94,7 +97,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
         // TODO real API
         securityAnalysis.interceptors = runParameters.getInterceptors();
         return securityAnalysis.run(workingVariantId, runParameters.getSecurityAnalysisParameters(), contingenciesProvider,
-                runParameters.getComputationManager(), runParameters.getOperatorStrategies(), runParameters.getActions(), runParameters.getLimitReductions());
+                runParameters.getComputationManager(), runParameters.getOperatorStrategies(), runParameters.getActions(), runParameters.getLimitScalings());
     }
 
     @Override
@@ -104,7 +107,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
 
     @Override
     public String getVersion() {
-        return new PowsyblOpenLoadFlowVersion().toString();
+        return new PowsyblOpenLoadFlowVersion().getMavenProjectVersion();
     }
 
     @Override

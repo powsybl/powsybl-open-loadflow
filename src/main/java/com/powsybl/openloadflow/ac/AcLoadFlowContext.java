@@ -30,8 +30,6 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
 
     private AcLoadFlowResult result;
 
-    private boolean networkUpdated = true;
-
     public AcLoadFlowContext(LfNetwork network, AcLoadFlowParameters parameters) {
         super(network, parameters);
     }
@@ -80,14 +78,6 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
 
     public void setResult(AcLoadFlowResult result) {
         this.result = result;
-    }
-
-    public boolean isNetworkUpdated() {
-        return networkUpdated;
-    }
-
-    public void setNetworkUpdated(boolean networkUpdated) {
-        this.networkUpdated = networkUpdated;
     }
 
     @Override

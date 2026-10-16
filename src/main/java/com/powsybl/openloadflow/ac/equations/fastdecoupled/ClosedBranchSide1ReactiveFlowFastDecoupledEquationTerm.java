@@ -21,7 +21,8 @@ import static com.powsybl.openloadflow.network.PiModel.R2;
 /**
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
-public class ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm extends AbstractClosedBranchAcFlowFastDecoupledEquationTerm<ClosedBranchSide1ReactiveFlowEquationTerm, ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator> {
+public class ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm
+    extends AbstractClosedBranchAcFlowFastDecoupledEquationTerm<ClosedBranchSide1ReactiveFlowEquationTerm, ClosedBranchSide1ReactiveFlowEquationTermArrayEvaluator> {
 
     public ClosedBranchSide1ReactiveFlowFastDecoupledEquationTerm(ClosedBranchSide1ReactiveFlowEquationTerm closedBranchSide1ReactiveFlowEquationTerm) {
         super(closedBranchSide1ReactiveFlowEquationTerm);

@@ -196,13 +196,13 @@ public class PropagatedContingency {
                         topoConfig.getBranchIdsOpenableSide2().add(connectable.getId());
                     }
                     break;
-                case DANGLING_LINE:
-                    DanglingLine dl = (DanglingLine) connectable;
+                case BOUNDARY_LINE:
+                    BoundaryLine bl = (BoundaryLine) connectable;
                     // as we terminal is only on network side, we open both sides in LF network
-                    if (dl.isPaired()) {
-                        addBranchToOpen(dl.getTieLine().orElseThrow().getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
+                    if (bl.isPaired()) {
+                        addBranchToOpen(bl.getTieLine().orElseThrow().getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
                     } else {
-                        addBranchToOpen(dl.getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
+                        addBranchToOpen(bl.getId(), DisabledBranchStatus.BOTH_SIDES, branchIdsToOpen);
                     }
                     break;
 
@@ -219,7 +219,7 @@ public class PropagatedContingency {
 
                 case SHUNT_COMPENSATOR:
                     ShuntCompensator shunt = (ShuntCompensator) connectable;
-                    if (creationParameters.isShuntCompensatorVoltageControlOn() && shunt.isVoltageRegulatorOn()) {
+                    if (creationParameters.isShuntCompensatorVoltageControlOn() && shunt.isRegulating()) {
                         throw new UnsupportedOperationException("Shunt compensator '" + shunt.getId() + "' with voltage control on: not supported yet");
                     }
                     double zb = PerUnit.zb(shunt.getTerminal().getVoltageLevel().getNominalV());
@@ -274,7 +274,7 @@ public class PropagatedContingency {
             return List.of(hvdcLine.getConverterStation1().getTerminal(), hvdcLine.getConverterStation2().getTerminal());
         }
         if (identifiable instanceof TieLine line) {
-            return List.of(line.getDanglingLine1().getTerminal(), line.getDanglingLine2().getTerminal());
+            return List.of(line.getBoundaryLine1().getTerminal(), line.getBoundaryLine2().getTerminal());
         }
         if (identifiable instanceof Switch) {
             return Collections.emptyList();
@@ -293,9 +293,9 @@ public class PropagatedContingency {
                 identifiable = network.getHvdcLine(element.getId());
                 yield "HVDC line";
             }
-            case DANGLING_LINE -> {
-                identifiable = network.getDanglingLine(element.getId());
-                yield "Dangling line";
+            case BOUNDARY_LINE -> {
+                identifiable = network.getBoundaryLine(element.getId());
+                yield "Boundary line";
             }
             case GENERATOR -> {
                 identifiable = network.getGenerator(element.getId());
@@ -399,7 +399,9 @@ public class PropagatedContingency {
         return hvdcsWithoutFlow;
     }
 
-    private static ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, String contingencyId, Map<LfBranch, DisabledBranchStatus> branchesToOpen, boolean relocateSlackBus) {
+    private static ContingencyConnectivityLossImpact findBusesAndBranchesImpactedBecauseOfConnectivityLoss(LfNetwork network, String contingencyId,
+                                                                                                           Map<LfBranch, DisabledBranchStatus> branchesToOpen,
+                                                                                                           boolean relocateSlackBus) {
         // update connectivity with triggered branches of this network
         // note that this will define the main component as the one containing the first slack bus
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
@@ -408,16 +410,17 @@ public class PropagatedContingency {
             branchesToOpen.keySet().stream()
                     .filter(LfBranch::isConnectedAtBothSides)
                     .forEach(connectivity::removeEdge);
-
-            if (relocateSlackBus && isSlackBusIsolated(connectivity, network.getSlackBus())) {
+            // In both Security analysis and sensitivity analysis, there is only one synchronous network per LfNetwork
+            // Thus, we only need to check for the slack bus of the first synchronous network.
+            if (relocateSlackBus && isSlackBusIsolated(connectivity, network.getSynchronousNetworks().getFirst().getSlackBuses().getFirst())) {
                 LOGGER.warn("Contingency '{}' leads to an isolated slack bus: relocate slack bus inside main component",
                         contingencyId);
                 // if a contingency leads to an isolated slack bus, we need to relocate the slack bus
                 // we select a new slack bus excluding buses from isolated component
                 Set<LfBus> excludedBuses = Sets.difference(Set.copyOf(network.getBuses()), connectivity.getLargestConnectedComponent());
-                network.setExcludedSlackBuses(excludedBuses);
+                network.getSynchronousNetworks().forEach(lfScNetwork -> lfScNetwork.setExcludedSlackBuses(excludedBuses));
                 // reverse main component to the one containing the relocated slack bus
-                connectivity.setMainComponentVertex(network.getSlackBus());
+                connectivity.setMainComponentVertex(network.getSynchronousNetworks().getFirst().getSlackBuses().getFirst());
             }
 
             // add to contingency description buses and branches that won't be part of the main connected

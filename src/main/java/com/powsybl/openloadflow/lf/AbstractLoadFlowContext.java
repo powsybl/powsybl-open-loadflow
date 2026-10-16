@@ -17,7 +17,7 @@ import java.util.Objects;
 /**
  * @author Jean-Luc Bouchot (Artelys) {@literal <jlbouchot at gmail.com>}
  */
-public abstract class AbstractLoadFlowContext <V extends Enum<V> & Quantity, E extends Enum<E> & Quantity, P extends AbstractLoadFlowParameters>
+public abstract class AbstractLoadFlowContext<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity, P extends AbstractLoadFlowParameters>
         implements LoadFlowContext<V, E, P>, AutoCloseable {
 
     protected final LfNetwork network;

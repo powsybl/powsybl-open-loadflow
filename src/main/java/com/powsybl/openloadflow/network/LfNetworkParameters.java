@@ -74,6 +74,10 @@ public class LfNetworkParameters {
 
     public static final boolean GENERATORS_WITH_ZERO_MW_TARGET_ARE_NOT_STARTED_DEFAULT_VALUE = true;
 
+    public static final boolean DETAILED_REPORT_DEFAULT_VALUE = false;
+
+    public static final boolean ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE = true;
+
     private boolean generatorVoltageRemoteControl = true;
 
     private boolean minImpedance = false;
@@ -164,6 +168,10 @@ public class LfNetworkParameters {
 
     private boolean isAcDcNetwork;
 
+    private boolean detailedReport = DETAILED_REPORT_DEFAULT_VALUE;
+
+    private boolean allowNonLinearShuntZeroSection = ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE;
+
     public LfNetworkParameters() {
     }
 
@@ -217,6 +225,8 @@ public class LfNetworkParameters {
         this.disableInconsistentVoltageControls = other.isDisableInconsistentVoltageControls();
         this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
         this.isAcDcNetwork = other.isAcDcNetwork;
+        this.detailedReport = other.detailedReport;
+        this.allowNonLinearShuntZeroSection = other.allowNonLinearShuntZeroSection;
     }
 
     public SlackBusSelector getSlackBusSelector() {
@@ -665,6 +675,24 @@ public class LfNetworkParameters {
         return isAcDcNetwork;
     }
 
+    public boolean isDetailedReport() {
+        return detailedReport;
+    }
+
+    public LfNetworkParameters setDetailedReport(boolean detailedReport) {
+        this.detailedReport = detailedReport;
+        return this;
+    }
+
+    public boolean isAllowNonLinearShuntZeroSection() {
+        return allowNonLinearShuntZeroSection;
+    }
+
+    public LfNetworkParameters setAllowNonLinearShuntZeroSection(boolean allowNonLinearShuntZeroSection) {
+        this.allowNonLinearShuntZeroSection = allowNonLinearShuntZeroSection;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "LfNetworkParameters(" +
@@ -710,6 +738,9 @@ public class LfNetworkParameters {
                 ", disableInconsistentVoltageControls=" + disableInconsistentVoltageControls +
                 ", extrapolateReactiveLimits=" + extrapolateReactiveLimits +
                 ", generatorsWithZeroMwTargetAreNotStarted=" + generatorsWithZeroMwTargetAreNotStarted +
+                ", isAcDcNetwork=" + isAcDcNetwork +
+                ", detailedReport=" + detailedReport +
+                ", allowNonLinearShuntZeroSection=" + allowNonLinearShuntZeroSection +
                 ')';
     }
 }

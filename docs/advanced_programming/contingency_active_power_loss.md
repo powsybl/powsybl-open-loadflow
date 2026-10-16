@@ -14,7 +14,7 @@ To add another plugin, you will need to code (in Java) an implementation of the 
 interface and make this implementation available to the Java ServiceLoader (e.g. using Google's AutoService):
 - the `getName()` method should provide the plugin name - which can then be used in the `contingencyActivePowerLossDistribution` security analysis parameter
 - the `run(...)` method will be called by the security analysis engine for each contingency and should provide the logic.
-  This method has access to:
+  This method must return the amount of distributed active power (in per-unit) and has access to:
     - the network
     - the contingency in open-loadflow representation, including among others information about disconnected network elements, and how much active power has been lost.
     - the contingency definition

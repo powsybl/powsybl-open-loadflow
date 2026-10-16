@@ -9,7 +9,8 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -17,6 +18,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,7 +26,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class LfBranchDisconnectionTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    LfBranchDisconnectionTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private static final double DELTA = 1E-5;
 
@@ -37,7 +46,7 @@ class LfBranchDisconnectionTest {
         lfl1.setDisconnectionAllowedSide2(true);
 
         AcLoadFlowParameters acParameters = new AcLoadFlowParameters()
-                .setMatrixFactory(new DenseMatrixFactory());
+                .setMatrixFactory(commonTestConfig.matrixFactory());
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             AcLoadFlowResult result = new AcloadFlowEngine(context)
                     .run();

@@ -14,18 +14,29 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@ExtendWith(ServiceParameterResolver.class)
 class FictitiousInjectionTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    FictitiousInjectionTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     @Test
     void testFictiveInjection() throws IOException {
@@ -33,7 +44,7 @@ class FictitiousInjectionTest {
         network.getBusBreakerView().getBus("b3").setFictitiousP0(29);
         network.getBusBreakerView().getBus("b2").setFictitiousP0(1);
         network.getBusBreakerView().getBus("b1").setFictitiousQ0(50);
-        LoadFlow.Runner runner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner runner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowRunParameters parameters = new LoadFlowRunParameters();
         parameters.setReportNode(ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
@@ -57,11 +68,10 @@ class FictitiousInjectionTest {
                             Network has a total absolute sum of 30 MW and 50 MVar fictitious injection across 3 buses
                             Angle reference bus: b4_vl_0
                             Slack bus: b4_vl_0
+                         Voltage initialization with method Uniform Values
                          + Outer loop DistributedSlack
                             + Outer loop iteration 1
                                Slack bus active power (-30 MW) distributed in 1 distribution iteration(s)
-                         Outer loop ReactiveLimits
-                         Outer loop DistributedSlack
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
@@ -72,7 +82,7 @@ class FictitiousInjectionTest {
     @Test
     void testNoFictiveInjection() throws IOException {
         Network network = DistributedSlackNetworkFactory.createNetworkWithLoads();
-        LoadFlow.Runner runner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner runner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowRunParameters parameters = new LoadFlowRunParameters();
         parameters.setReportNode(ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
@@ -94,11 +104,10 @@ class FictitiousInjectionTest {
                             Network balance: active generation=300 MW, active load=240 MW, reactive generation=300 MVar, reactive load=405 MVar
                             Angle reference bus: b4_vl_0
                             Slack bus: b4_vl_0
+                         Voltage initialization with method Uniform Values
                          + Outer loop DistributedSlack
                             + Outer loop iteration 1
                                Slack bus active power (-60 MW) distributed in 1 distribution iteration(s)
-                         Outer loop ReactiveLimits
-                         Outer loop DistributedSlack
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;

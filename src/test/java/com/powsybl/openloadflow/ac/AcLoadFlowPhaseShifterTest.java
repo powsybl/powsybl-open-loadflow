@@ -8,24 +8,31 @@
 
 package com.powsybl.openloadflow.ac;
 
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.loadflow.LoadFlowRunParameters;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.outerloop.AcIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.io.IOException;
 import java.util.List;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -34,7 +41,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class AcLoadFlowPhaseShifterTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlowPhaseShifterTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private Network network;
     private Bus bus1;
@@ -52,7 +66,7 @@ class AcLoadFlowPhaseShifterTest {
 
     @BeforeEach
     void setUp() {
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters()
                 .setUseReactiveLimits(false)
                 .setDistributedSlack(false);
@@ -529,7 +543,7 @@ class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
-    void incrementalPhaseShifterCurrentLimiterTest() {
+    void incrementalPhaseShifterCurrentLimiterTest() throws IOException {
         selectNetwork(PhaseControlFactory.createNetworkWithT2wt());
         t2wt.getPhaseTapChanger()
                 .setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
@@ -547,13 +561,39 @@ class AcLoadFlowPhaseShifterTest {
         assertCurrentEquals(129.436, t2wt.getTerminal1());
 
         t2wt.getPhaseTapChanger().setRegulating(true);
-        result = loadFlowRunner.run(network, parameters);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(parameters)
+                .setReportNode(reportNode);
+        result = loadFlowRunner.run(network, runParameters);
         assertTrue(result.isFullyConverged());
         assertCurrentEquals(48.482, t2wt.getTerminal1());
+
+        assertTxtReportEquals("""
+                + Test Report
+                   + Load flow on network 'phaseShifterTestCase'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 3 buses and 3 branches
+                            Network balance: active generation=100 MW, active load=100 MW, reactive generation=0 MVar, reactive load=50 MVar
+                            Angle reference bus: VL1_0
+                            Slack bus: VL1_0
+                         Voltage initialization with method Uniform Values
+                         + Outer loop IncrementalPhaseControl
+                            + Outer loop iteration 1
+                               + 1 current limiter PST(s) changed taps
+                                  Transformer PS1 changed tap position from 2 to 1
+                            + Outer loop iteration 2
+                               + 1 current limiter PST(s) changed taps
+                                  Transformer PS1 changed tap position from 1 to 0
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """, reportNode);
     }
 
     @Test
-    void incrementalPhaseShifterActivePowerControlTest() {
+    void incrementalPhaseShifterActivePowerControlTest() throws IOException {
         selectNetwork(PhaseControlFactory.createNetworkWithT2wt());
         t2wt.getPhaseTapChanger()
                 .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
@@ -573,7 +613,13 @@ class AcLoadFlowPhaseShifterTest {
         assertActivePowerEquals(50.084, t2wt.getTerminal1());
 
         t2wt.getPhaseTapChanger().setRegulating(true);
-        result = loadFlowRunner.run(network, parameters);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(parameters)
+                .setReportNode(reportNode);
+        result = loadFlowRunner.run(network, runParameters);
         assertTrue(result.isFullyConverged());
         assertEquals(2, t2wt.getPhaseTapChanger().getSolvedTapPosition());
         assertEquals(1, t2wt.getPhaseTapChanger().getTapPosition());
@@ -586,6 +632,23 @@ class AcLoadFlowPhaseShifterTest {
         assertEquals(0, t2wt.getPhaseTapChanger().getSolvedTapPosition());
         assertEquals(1, t2wt.getPhaseTapChanger().getTapPosition());
         assertActivePowerEquals(16.541, t2wt.getTerminal1());
+
+        assertTxtReportEquals("""
+                + Test Report
+                   + Load flow on network 'phaseShifterTestCase'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 3 buses and 3 branches
+                            Network balance: active generation=100 MW, active load=100 MW, reactive generation=0 MVar, reactive load=50 MVar
+                            Angle reference bus: VL1_0
+                            Slack bus: VL1_0
+                         Voltage initialization with method Uniform Values
+                         + Outer loop IncrementalPhaseControl
+                            + Outer loop iteration 1
+                               + 1 active power control PST(s) changed taps
+                                  Transformer PS1 changed tap position from 1 to 2
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """, reportNode);
     }
 
     @Test
@@ -622,10 +685,10 @@ class AcLoadFlowPhaseShifterTest {
         double di2t10 = i2t1 - i2t0;
         double di1t12 = i1t1 - i1t2;
         double di2t12 = i2t1 - i2t2;
-        assertEquals(35.183506011159274, di1t10, 0d);
-        assertEquals(35.183506011159274, di2t10, 0d);
-        assertEquals(-45.76103264996253, di1t12, 0d);
-        assertEquals(-45.76103264996253, di2t12, 0d);
+        assertEquals(35.183506, di1t10, DELTA_ANGLE);
+        assertEquals(35.183506, di2t10, DELTA_ANGLE);
+        assertEquals(-45.761032, di1t12, DELTA_ANGLE);
+        assertEquals(-45.761032, di2t12, DELTA_ANGLE);
 
         // compare with sensi on tap 1
         t2wt.getPhaseTapChanger().setTapPosition(1);
@@ -639,7 +702,7 @@ class AcLoadFlowPhaseShifterTest {
         LfNetwork lfNetwork = Networks.load(network, lfNetworkParameters).getFirst();
         AcLoadFlowParameters acParameters = new AcLoadFlowParameters()
                 .setNetworkParameters(lfNetworkParameters)
-                .setMatrixFactory(new DenseMatrixFactory());
+                .setMatrixFactory(commonTestConfig.matrixFactory());
         try (AcLoadFlowContext lfContext = new AcLoadFlowContext(lfNetwork, acParameters)) {
             AcLoadFlowResult lfResult = new AcloadFlowEngine(lfContext)
                     .run();
@@ -656,13 +719,13 @@ class AcLoadFlowPhaseShifterTest {
             double sensi1 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, TwoSides.ONE);
             double di1t10p = sensi1 * da10 * ib;
             double di1t12p = sensi1 * da12 * ib;
-            assertEquals(43.007011829925496, di1t10p, 0d);
-            assertEquals(-43.007011829925496, di1t12p, 0d);
+            assertEquals(43.007011829925496, di1t10p, DELTA_ANGLE);
+            assertEquals(-43.007011829925496, di1t12p, DELTA_ANGLE);
             double sensi2 = sensitivityContext.calculateSensitivityFromA2I(ps1, ps1, TwoSides.TWO);
             double di2t10p = sensi2 * da10 * ib;
             double di2t12p = sensi2 * da12 * ib;
-            assertEquals(43.007011829925496, di2t10p, 0d);
-            assertEquals(-43.007011829925496, di2t12p, 0d);
+            assertEquals(43.007011, di2t10p, DELTA_ANGLE);
+            assertEquals(-43.007011, di2t12p, DELTA_ANGLE);
         }
     }
 
@@ -710,7 +773,7 @@ class AcLoadFlowPhaseShifterTest {
     )
     void rxgbChangeOnPstControlTest(boolean twtSplitShuntAdmittance,
                                                  double tap0p1, double tap0p2, double tap1p1, double tap1p2, double tap2p1, double tap2p2, boolean vectorized) {
-        AcLoadFlowParameters.VECTORIZED_DEFAULT_VALUE = vectorized; // Test with and without AcEquationSystem vectorization
+        AcLoadFlowParameters.vectorizedDefaultValue = vectorized; // Test with and without AcEquationSystem vectorization
         selectNetwork(PhaseControlFactory.createNetworkWithT2wtExaggerateRxgbTable());
 
         parameters
@@ -768,6 +831,6 @@ class AcLoadFlowPhaseShifterTest {
         assertActivePowerEquals(tap2p1, t2wt.getTerminal1());
         assertActivePowerEquals(tap2p2, t2wt.getTerminal2());
 
-        AcLoadFlowParameters.VECTORIZED_DEFAULT_VALUE = true; // Restoring initial static value to avoid interference with other tests
+        AcLoadFlowParameters.vectorizedDefaultValue = true; // Restoring initial static value to avoid interference with other tests
     }
 }

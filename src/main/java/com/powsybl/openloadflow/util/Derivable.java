@@ -11,15 +11,20 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.equations.Variable;
 
+import java.util.List;
+
 /**
  * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
  */
-public interface Derivable <V extends Enum<V> & Quantity> extends Evaluable {
+public interface Derivable<V extends Enum<V> & Quantity> extends Evaluable {
 
     double der(Variable<V> variable);
 
     double calculateSensi(DenseMatrix x, int column);
 
     boolean isActive();
+
+    /** The variables this quantity depends on: the domain of {@link #der(Variable)}. */
+    List<Variable<V>> getVariables();
 
 }

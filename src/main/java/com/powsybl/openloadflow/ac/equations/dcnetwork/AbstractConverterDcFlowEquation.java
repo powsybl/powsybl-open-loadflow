@@ -14,7 +14,6 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
-import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +22,7 @@ import java.util.Objects;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractElementEquationTerm<LfVoltageSourceConverter, AcVariableType, AcEquationType> {
+public abstract class AbstractConverterDcFlowEquation extends AbstractElementEquationTerm<LfVoltageSourceConverter, AcVariableType, AcEquationType> {
 
     protected final Variable<AcVariableType> v1Var;
 
@@ -33,21 +32,13 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
 
     protected final List<Variable<AcVariableType>> variables = new ArrayList<>();
 
-    protected final double idleLoss;
-
-    protected final double switchingLoss;
-
-    protected final double resistiveLoss;
-
-    protected List<Double> lossFactors;
-
     protected double dcNominalV;
 
     protected LfDcBus dcBus1;
 
     protected LfDcBus dcBus2;
 
-    protected AbstractConverterDcCurrentEquationTerm(LfVoltageSourceConverter converter, LfDcBus dcBus1, LfDcBus dcBus2, double nominalV, VariableSet<AcVariableType> variableSet) {
+    protected AbstractConverterDcFlowEquation(LfVoltageSourceConverter converter, LfDcBus dcBus1, LfDcBus dcBus2, double nominalV, VariableSet<AcVariableType> variableSet) {
         super(converter);
         Objects.requireNonNull(converter);
         Objects.requireNonNull(variableSet);
@@ -59,13 +50,9 @@ public abstract class AbstractConverterDcCurrentEquationTerm extends AbstractEle
         variables.add(v1Var);
         variables.add(v2Var);
         variables.add(pAcVar);
-        lossFactors = converter.getLossFactors();
         dcNominalV = nominalV;
         this.dcBus1 = dcBus1;
         this.dcBus2 = dcBus2;
-        this.idleLoss = lossFactors.get(0) / PerUnit.SB;
-        this.switchingLoss = lossFactors.get(1) * 1000d / nominalV;
-        this.resistiveLoss = lossFactors.get(2) / PerUnit.zb(nominalV);
     }
 
     protected double v1() {

@@ -7,8 +7,9 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.VoltagePerReactivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
@@ -62,43 +63,40 @@ class LfBusImplTest {
                 .setId("svc1")
                 .setConnectableBus("b1")
                 .setBus("b1")
-                .setRegulating(false)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setLocalTargetV(385)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
+                    .withRegulating(true)
+                    .withSlope(0.01)
+                .add()
                 .setBmin(-0.006)
                 .setBmax(0.006)
-                .add();
-        svc1.setVoltageSetpoint(385)
-                .setRegulating(true)
-                .newExtension(VoltagePerReactivePowerControlAdder.class)
-                .withSlope(0.01)
                 .add();
         svc2 = vl1.newStaticVarCompensator()
                 .setId("svc2")
                 .setConnectableBus("b1")
                 .setBus("b1")
-                .setRegulating(false)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setLocalTargetV(385)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
+                    .withRegulating(true)
+                    .withSlope(0.015)
+                .add()
                 .setBmin(-0.001)
                 .setBmax(0.001)
-                .add();
-        svc2.setVoltageSetpoint(385)
-                .setRegulating(true)
-                .newExtension(VoltagePerReactivePowerControlAdder.class)
-                .withSlope(0.015)
                 .add();
         svc3 = vl1.newStaticVarCompensator()
                 .setId("svc3")
                 .setConnectableBus("b1")
                 .setBus("b1")
-                .setRegulating(false)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setLocalTargetV(385)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE_PER_REACTIVE_POWER)
+                    .withRegulating(true)
+                    .withSlope(0.02)
+                .add()
                 .setBmin(-0.00075)
                 .setBmax(0.00075)
-                .add();
-        svc3.setVoltageSetpoint(385)
-                .setRegulating(true)
-                .newExtension(VoltagePerReactivePowerControlAdder.class)
-                .withSlope(0.02)
                 .add();
         load = vl2.newLoad()
                 .setId("load")
@@ -127,7 +125,7 @@ class LfBusImplTest {
         LfNetworkParameters parameters = new LfNetworkParameters()
                 .setBreakers(true);
         LfBusImpl lfBus = new LfBusImpl(bus1, mainNetwork, 385, 0, parameters, true);
-        LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
+        LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport(ReportNode.NO_OP, false);
         lfBus.addStaticVarCompensator(svc1, parameters, lfNetworkLoadingReport);
         lfBus.addStaticVarCompensator(svc2, parameters, lfNetworkLoadingReport);
         lfBus.addStaticVarCompensator(svc3, parameters, lfNetworkLoadingReport);
@@ -145,12 +143,12 @@ class LfBusImplTest {
     }
 
     private static List<LfGenerator> createLfGeneratorsWithInitQ(Network network, List<Double> initQs) {
-        LfNetwork lfNetwork = new LfNetwork(0, 0, new FirstSlackBusSelector(), 1, new NaiveGraphConnectivityFactory<>(LfBus::getNum), new ReferenceBusFirstSlackSelector());
+        LfNetwork lfNetwork = new LfNetwork(0, new FirstSlackBusSelector(), 1, new NaiveGraphConnectivityFactory<>(LfBus::getNum), new ReferenceBusFirstSlackSelector());
         LfNetworkParameters parameters1 = new LfNetworkParameters()
                 .setPlausibleActivePowerLimit(100)
                 .setMinPlausibleTargetVoltage(0.9)
                 .setMaxPlausibleTargetVoltage(1.1);
-        LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport();
+        LfNetworkLoadingReport lfNetworkLoadingReport = new LfNetworkLoadingReport(ReportNode.NO_OP, false);
         LfGenerator lfGenerator1 = LfGeneratorImpl.create(network.getGenerator("GH1"), lfNetwork, parameters1, lfNetworkLoadingReport);
         lfGenerator1.setCalculatedQ(initQs.get(0));
         LfNetworkParameters parameters23 = new LfNetworkParameters()

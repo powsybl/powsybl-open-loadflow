@@ -11,10 +11,12 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -22,12 +24,19 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class MostMeshedSlackBusSelectorTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    MostMeshedSlackBusSelectorTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     @Test
     void test() {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        var provider = new OpenLoadFlowProvider(new DenseMatrixFactory());
+        var provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory());
         var runner = new LoadFlow.Runner(provider);
         var parameters = new LoadFlowParameters().setWriteSlackBus(false);
         LoadFlowResult result = runner.run(network, parameters);

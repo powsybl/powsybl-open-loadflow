@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
@@ -15,13 +16,13 @@ import com.powsybl.iidm.network.*;
 public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
 
     /**
-     *  g1     dl1
+     *  g1     bl1
      *  |       |
      *  b1 ---- b2
      *      l1
      */
     public static Network create() {
-        Network network = Network.create("dl", "test");
+        Network network = Network.create("bl", "test");
         Substation s1 = network.newSubstation()
                 .setId("S1")
                 .add();
@@ -41,10 +42,10 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(101.3664)
-                .setTargetV(390)
+                .setLocalTargetV(390)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         VoltageLevel vl2 = s2.newVoltageLevel()
                 .setId("vl2")
@@ -54,8 +55,8 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
         vl2.getBusBreakerView().newBus()
                 .setId("b2")
                 .add();
-        vl2.newDanglingLine()
-                .setId("dl1")
+        vl2.newBoundaryLine()
+                .setId("bl1")
                 .setConnectableBus("b2")
                 .setBus("b2")
                 .setR(0.7)
@@ -82,7 +83,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
     }
 
     /**
-     *  g1     dl1      load3
+     *  g1     bl1      load3
      *  |       |        |
      *  b1 ---- b2 ----- b3
      *      l1       l13
@@ -124,7 +125,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setX(10)
                 .add();
 
-        network.getDanglingLine("dl1").setP0(91);
+        network.getBoundaryLine("bl1").setP0(91);
 
         return network;
     }
@@ -161,10 +162,10 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(100)
-                .setTargetV(400)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         Substation s2 = network.newSubstation()
@@ -213,10 +214,10 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b4")
                 .setBus("b4")
                 .setTargetP(20)
-                .setTargetV(400)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         network.newLine()
@@ -276,10 +277,10 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(100)
-                .setTargetV(400)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         Substation s3 = network.newSubstation()
@@ -316,13 +317,13 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b4")
                 .setBus("b4")
                 .setTargetP(20)
-                .setTargetV(400)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
-        DanglingLine dl1 = vl1.newDanglingLine()
+        BoundaryLine bl1 = vl1.newBoundaryLine()
                 .setBus("b1")
                 .setId("h1")
                 .setR(0.0)
@@ -331,7 +332,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setP0(0.0)
                 .setQ0(0.0)
                 .add();
-        DanglingLine dl3 = vl3.newDanglingLine()
+        BoundaryLine bl3 = vl3.newBoundaryLine()
                 .setBus("b3")
                 .setId("h2")
                 .setR(0.0)
@@ -343,8 +344,8 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newTieLine()
                 .setId("t12")
-                .setDanglingLine1(dl1.getId())
-                .setDanglingLine2(dl3.getId())
+                .setBoundaryLine1(bl1.getId())
+                .setBoundaryLine2(bl3.getId())
                 .add();
 
         network.newLine()
@@ -362,7 +363,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
 
         Network network = createWithTieLine();
 
-        DanglingLine dl1 = network.getVoltageLevel("vl1").newDanglingLine()
+        BoundaryLine bl1 = network.getVoltageLevel("vl1").newBoundaryLine()
                 .setBus("b1")
                 .setId("h1bis")
                 .setR(0.0)
@@ -371,7 +372,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setP0(0.0)
                 .setQ0(0.0)
                 .add();
-        DanglingLine dl3 = network.getVoltageLevel("vl3").newDanglingLine()
+        BoundaryLine bl3 = network.getVoltageLevel("vl3").newBoundaryLine()
                 .setBus("b3")
                 .setId("h2bis")
                 .setR(0.0)
@@ -383,8 +384,8 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newTieLine()
                 .setId("t12bis")
-                .setDanglingLine1(dl1.getId())
-                .setDanglingLine2(dl3.getId())
+                .setBoundaryLine1(bl1.getId())
+                .setBoundaryLine2(bl3.getId())
                 .add();
 
         return network;
@@ -396,7 +397,7 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
      *   g1
      */
     public static Network createWithoutLoads() {
-        Network network = Network.create("dl", "test");
+        Network network = Network.create("bl", "test");
         Substation s1 = network.newSubstation()
                 .setId("S1")
                 .add();
@@ -417,10 +418,10 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(1E-6)
-                .setTargetV(224.18)
+                .setLocalTargetV(224.18)
                 .setMinP(0)
                 .setMaxP(245)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         g1.newMinMaxReactiveLimits().setMinQ(-80).setMaxQ(86).add();
 

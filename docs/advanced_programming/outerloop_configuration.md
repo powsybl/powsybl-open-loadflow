@@ -7,7 +7,7 @@ will configure an OuterLoop dedicated to handling reactive power limits of gener
 - Option 2: using the more advanced `outerLoopNames` parameter, allowing to tune not only 
 the outer-loops creation, but also specifying a specific order for OuterLoops execution.
 
-Refer to the `outerLoopNames` [Load Flow parameter documentation](../loadflow/parameters.md#specific-parameters)
+Refer to the [`outerLoopNames` Load Flow parameter documentation](../loadflow/parameters.md#outerloopnames)
 for more details about these two standard ways of configuring Outer Loops.
 
 For even more advanced usage, it is possible to plug your own Outer-Loops configuration into PowSyBl Open LoadFlow.

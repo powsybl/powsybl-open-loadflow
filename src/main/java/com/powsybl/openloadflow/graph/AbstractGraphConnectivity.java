@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+ * Copyright (c) 2022-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -8,8 +8,6 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
-import org.jgrapht.Graph;
-import org.jgrapht.graph.Pseudograph;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -17,9 +15,9 @@ import java.util.stream.Collectors;
 /**
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
-public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivity<V, E> {
+public abstract class AbstractGraphConnectivity<V, E, G extends GraphModel<V, E>> implements GraphConnectivity<V, E> {
 
-    private final Graph<V, E> graph = new Pseudograph<>(null, null, false);
+    private final G graph;
 
     private final Deque<ModificationsContext<V, E>> modificationsContexts = new ArrayDeque<>();
 
@@ -36,6 +34,10 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
     protected abstract void resetConnectivity(Deque<GraphModification<V, E>> m);
 
     protected abstract void updateComponents();
+
+    protected AbstractGraphConnectivity(G graph) {
+        this.graph = Objects.requireNonNull(graph);
+    }
 
     @Override
     public void addVertex(V vertex) {
@@ -87,8 +89,8 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
     }
 
     @Override
-    public void startTemporaryChanges() {
-        ModificationsContext<V, E> modificationsContext = new ModificationsContext<>(this::getVerticesNotInMainComponent, defaultMainComponentVertex);
+    public void startTemporaryChanges(boolean computeComparisons) {
+        ModificationsContext<V, E> modificationsContext = new ModificationsContext<>(computeComparisons, this::getVerticesNotInMainComponent, defaultMainComponentVertex);
         modificationsContexts.add(modificationsContext);
         modificationsContext.computeVerticesNotInMainComponentBefore();
     }
@@ -147,7 +149,7 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
                 .flatMap(Collection::stream).collect(Collectors.toSet());
     }
 
-    public Graph<V, E> getGraph() {
+    public G getGraph() {
         return graph;
     }
 
@@ -188,7 +190,7 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
         return checkSavedContext().getEdgesRemovedFromMainComponent(graph);
     }
 
-    private Set<V> getVerticesNotInMainComponent(V mainComponentVertex) {
+    protected Set<V> getVerticesNotInMainComponent(V mainComponentVertex) {
         if (mainComponentVertex != null) {
             return getNonConnectedVertices(mainComponentVertex);
         } else {
@@ -200,9 +202,6 @@ public abstract class AbstractGraphConnectivity<V, E> implements GraphConnectivi
         if (!modificationsContexts.isEmpty()) {
             var modificationsContext = modificationsContexts.peekLast();
             modificationsContext.setMainComponentVertex(mainComponentVertex);
-            if (!modificationsContext.isInMainComponentBefore(mainComponentVertex)) {
-                throw new PowsyblException("Cannot take the given vertex as main component vertex! This vertex was outside the main component before starting temporary changes");
-            }
         }
         defaultMainComponentVertex = mainComponentVertex;
     }

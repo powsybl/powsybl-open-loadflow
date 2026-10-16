@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 /**
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
@@ -60,10 +61,13 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
            .setConnectableBus("b1")
            .setBus("b1")
            .setTargetP(102.56)
-           .setTargetV(390)
            .setMinP(0)
            .setMaxP(500)
-           .setVoltageRegulatorOn(true)
+           .setLocalTargetV(390)
+           .newVoltageRegulation()
+                .withRegulating(true)
+                .withMode(RegulationMode.VOLTAGE)
+                .add()
             .add();
 
         Substation s2 = network.newSubstation()
@@ -88,9 +92,12 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
            .setId("cs2")
            .setConnectableBus("b2")
            .setBus("b2")
-           .setVoltageRegulatorOn(true)
-           .setVoltageSetpoint(385)
-           .setReactivePowerSetpoint(100)
+           .setLocalTargetV(385)
+           .setLocalTargetQ(100)
+           .newVoltageRegulation()
+                .withRegulating(true)
+                .withMode(RegulationMode.VOLTAGE)
+                .add()
            .setLossFactor(1.1f)
             .add();
 
@@ -121,17 +128,22 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                     .setTargetP(0.3)
                     .setMinP(0)
                     .setMaxP(1)
-                    .setTargetQ(0)
-                    .setVoltageRegulatorOn(false)
+                    .setLocalTargetQ(0)
+                    .newVoltageRegulation()
+                        .withRegulating(false)
+                        .add()
                     .add();
         }
         vl3.newVscConverterStation()
            .setId("cs3")
            .setConnectableBus("b3")
            .setBus("b3")
-           .setVoltageRegulatorOn(true)
-           .setVoltageSetpoint(383)
-           .setReactivePowerSetpoint(100)
+           .setLocalTargetV(383)
+           .setLocalTargetQ(100)
+           .newVoltageRegulation()
+                .withRegulating(true)
+                .withMode(RegulationMode.VOLTAGE)
+                .add()
            .setLossFactor(0.2f)
             .add();
 
@@ -189,10 +201,13 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
            .setConnectableBus("b1")
            .setBus("b1")
            .setTargetP(102.56)
-           .setTargetV(390)
+           .setLocalTargetV(390)
+           .newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .add()
            .setMinP(0)
            .setMaxP(500)
-           .setVoltageRegulatorOn(true)
             .add();
 
         Substation s2 = network.newSubstation()
@@ -251,10 +266,13 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
            .setConnectableBus("b3")
            .setBus("b3")
            .setTargetP(102.56)
-           .setTargetV(380)
+           .setLocalTargetV(380)
+                .newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .add()
            .setMinP(0)
            .setMaxP(500)
-           .setVoltageRegulatorOn(true)
             .add();
 
         network.newLine()
@@ -671,6 +689,60 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createLine(network, b3, b4, "l34", 0.1f);
         createLine(network, b1, b4, "l14", 0.1f);
         createLoad(b4, "l4", 300, 0);
+        return network;
+    }
+
+    /**
+     *       -----------pst---------------
+     *      |                            |
+     *       ------------l12--------------
+     *      |                            |
+     * g1--b1-----vsc1--hvdc12--vsc2----b2--g2
+     *     |                             |
+     *     l1                            l2
+     *
+     * @return
+     */
+    public static Network createHvdcInAcEmulationAndPSTInSymetricNetwork() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "substation", "b1");
+        Bus b2 = createBus(network, "substation", "b2");
+        createGenerator(b1, "g1", 200).setMaxP(300);
+        createGenerator(b2, "g2", 10).setMaxP(300);
+        createLoad(b1, "l1", 50);
+        createLoad(b2, "l2", 150);
+        createLine(network, b1, b2, "l12", 0.1f);
+        TwoWindingsTransformer twt = createTransformer(network, "substation", b1, b2, "pst", 0.01, 1);
+        twt.newPhaseTapChanger().setTapPosition(2)
+                .setRegulationTerminal(twt.getTerminal1())
+                .setTargetDeadband(1)
+                .setRegulationValue(87)
+                .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
+                .setRegulating(true)
+                .beginStep()
+                .setAlpha(-50)
+                .endStep()
+                .beginStep()
+                .setAlpha(-10)
+                .endStep()
+                .beginStep()
+                .setAlpha(0)
+                .endStep()
+                .beginStep()
+                .setAlpha(10)
+                .endStep()
+                .beginStep()
+                .setAlpha(50)
+                .endStep()
+                .add();
+        VscConverterStation cs1 = createVsc(b1, "cs1", 1.2d, 0d);
+        VscConverterStation cs2 = createVsc(b2, "cs2", 1.2d, 0d);
+        createHvdcLine(network, "hvdc12", cs1, cs2, 400, 0.1, 2)
+                .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(1)
+                .withP0(0)
+                .withEnabled(true)
+                .add();
         return network;
     }
 

@@ -73,12 +73,14 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
 
     public static void init(AcEquationType equationType, int column, int elementNum, LfNetwork network, double[] targets) {
         switch (equationType) {
-            case BUS_TARGET_P :
+            case BUS_TARGET_P:
                 targets[column] = network.getBus(elementNum).getTargetP();
                 break;
 
-            case BUS_DISTR_SLACK_P :
-                targets[column] = network.getBus(elementNum).getTargetP() - network.getSlackBuses().get(0).getTargetP();
+            case BUS_DISTR_SLACK_P:
+                LfBus bus = network.getBus(elementNum);
+                LfSynchronousNetwork lfScNetwork = network.getSynchronousNetwork(bus.getNumSC());
+                targets[column] = bus.getTargetP() - lfScNetwork.getSlackBuses().get(0).getTargetP();
                 break;
 
             case BUS_TARGET_Q:
@@ -146,7 +148,8 @@ public class AcTargetVector extends TargetVector<AcVariableType, AcEquationType>
                  BUS_TARGET_IX_NEGATIVE,
                  BUS_TARGET_IY_NEGATIVE,
                  DC_BUS_TARGET_I,
-                 DC_BUS_GROUND:
+                 DC_BUS_GROUND,
+                 ACDC_CONV_DC_DROOP:
                 targets[column] = 0;
                 break;
 

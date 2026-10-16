@@ -6,6 +6,7 @@
             Network balance: active generation=25 MW, active load=16.2 MW, reactive generation=0 MVar, reactive load=7.5 MVar
             Angle reference bus: VL_2_0
             Slack bus: VL_2_0
+         Voltage initialization with method Uniform Values
          + Newton-Raphson on Network CC0 SC0
             No outer loops have been launched
             + Initial mismatch
@@ -101,10 +102,12 @@
          + Outer loop IncrementalTransformerReactivePowerControl
             + Outer loop iteration 2
                1 reactive power-controlled branches are outside of their target deadbands
-               1 transformers changed tap position
+               + 1 transformers changed tap position
+                  Transformer T2wT changed tap position from 0 to 2
             + Outer loop iteration 3
                1 reactive power-controlled branches are outside of their target deadbands
-               1 transformers changed tap position
+               + 1 transformers changed tap position
+                  Transformer T2wT changed tap position from 2 to 3
                1 transformers reached their tap maximum position
             + Outer loop iteration 4
                1 reactive power-controlled branches are outside of their target deadbands
@@ -243,11 +246,6 @@
                   Bus Id: VL_1_0 (nominalVoltage=132kV)
                   Bus V: 1.022727 pu, 0.013087 rad
                   Bus injection: 24.49799 MW, 7.284259 MVar
-         Outer loop ReactiveLimits
-         + Outer loop IncrementalTransformerReactivePowerControl
-            + Outer loop iteration 5
-               1 reactive power-controlled branches are outside of their target deadbands
-         Outer loop DistributedSlack
          Outer loop ReactiveLimits
          + Outer loop IncrementalTransformerReactivePowerControl
             + Outer loop iteration 5

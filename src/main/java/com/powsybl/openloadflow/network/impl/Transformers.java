@@ -39,7 +39,7 @@ public final class Transformers {
 
         private final double angle;
 
-        public TapCharacteristics(double r, double x, double g, double b, double ratio, double angle) {
+        TapCharacteristics(double r, double x, double g, double b, double ratio, double angle) {
             this.r = r;
             this.x = x;
             this.g = g;
@@ -211,8 +211,8 @@ public final class Transformers {
     }
 
     public static double getRatioPerUnitBase(TieLine line) {
-        double nominalV1 = line.getDanglingLine1().getTerminal().getVoltageLevel().getNominalV();
-        double nominalV2 = line.getDanglingLine2().getTerminal().getVoltageLevel().getNominalV();
+        double nominalV1 = line.getBoundaryLine1().getTerminal().getVoltageLevel().getNominalV();
+        double nominalV2 = line.getBoundaryLine2().getTerminal().getVoltageLevel().getNominalV();
         return nominalV2 / nominalV1;
     }
 }

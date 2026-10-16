@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
@@ -33,6 +34,27 @@ public class LfAreaImpl extends AbstractElement implements LfArea {
         this.interchangeTarget = area.getInterchangeTarget().orElse(0.0) / PerUnit.SB;
         this.buses = buses;
         this.boundaries = boundaries;
+    }
+
+    private LfAreaImpl(LfAreaImpl other, Set<LfBus> buses, Set<Boundary> boundaries, LfNetwork network) {
+        super(network);
+        this.areaRef = other.areaRef;
+        this.interchangeTarget = other.interchangeTarget;
+        this.buses = buses;
+        this.boundaries = boundaries;
+        this.disabled = other.disabled;
+    }
+
+    public LfArea copy(LfNetwork copyNetwork) {
+        Set<LfBus> copiedBuses = getBuses().stream()
+                .map(b -> copyNetwork.getBusById(b.getId()))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<LfArea.Boundary> copiedBoundaries = getBoundaries().stream()
+                .map(b -> (LfArea.Boundary) new LfAreaImpl.BoundaryImpl(copyNetwork.getBranchById(b.getBranch().getId()), b.getSide()))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        LfAreaImpl copiedArea = new LfAreaImpl(this, copiedBuses, copiedBoundaries, copyNetwork);
+        copiedBuses.forEach(bus -> bus.setArea(copiedArea));
+        return copiedArea;
     }
 
     public static LfAreaImpl create(Area area, Set<LfBus> buses, Set<Boundary> boundaries, LfNetwork network, LfNetworkParameters parameters) {
@@ -95,21 +117,28 @@ public class LfAreaImpl extends AbstractElement implements LfArea {
         }
 
         @Override
+        public TwoSides getSide() {
+            return side;
+        }
+
+        @Override
         public double getP() {
             if (branch.isDisabled()) {
                 return 0.0;
             }
             if (branch instanceof LfTieLineBranch lfTieLineBranch) {
                 if (side == TwoSides.ONE) {
-                    DanglingLine danglingLine1 = lfTieLineBranch.getHalf1();
-                    double nominalV1 = danglingLine1.getTerminal().getVoltageLevel().getNominalV();
-                    return new SV(lfTieLineBranch.getP1().eval() * PerUnit.SB, lfTieLineBranch.getQ1().eval() * PerUnit.SB, lfTieLineBranch.getV1() * nominalV1, Math.toDegrees(lfTieLineBranch.getAngle1()), side)
-                            .otherSideP(danglingLine1, false) / PerUnit.SB;
+                    BoundaryLine boundaryLine1 = lfTieLineBranch.getHalf1();
+                    double nominalV1 = boundaryLine1.getTerminal().getVoltageLevel().getNominalV();
+                    return new SV(lfTieLineBranch.getP1().eval() * PerUnit.SB, lfTieLineBranch.getQ1().eval() * PerUnit.SB,
+                        lfTieLineBranch.getV1() * nominalV1, Math.toDegrees(lfTieLineBranch.getAngle1()), side)
+                            .otherSideP(boundaryLine1, false) / PerUnit.SB;
                 } else if (side == TwoSides.TWO) {
-                    DanglingLine danglingLine = lfTieLineBranch.getHalf2();
-                    double nominalV2 = danglingLine.getTerminal().getVoltageLevel().getNominalV();
-                    return new SV(lfTieLineBranch.getP2().eval() * PerUnit.SB, lfTieLineBranch.getQ2().eval() * PerUnit.SB, lfTieLineBranch.getV2() * nominalV2, Math.toDegrees(lfTieLineBranch.getAngle2()), side)
-                            .otherSideP(danglingLine, false) / PerUnit.SB;
+                    BoundaryLine boundaryLine = lfTieLineBranch.getHalf2();
+                    double nominalV2 = boundaryLine.getTerminal().getVoltageLevel().getNominalV();
+                    return new SV(lfTieLineBranch.getP2().eval() * PerUnit.SB, lfTieLineBranch.getQ2().eval() * PerUnit.SB,
+                        lfTieLineBranch.getV2() * nominalV2, Math.toDegrees(lfTieLineBranch.getAngle2()), side)
+                            .otherSideP(boundaryLine, false) / PerUnit.SB;
                 }
             }
             return switch (side) {

@@ -16,7 +16,7 @@ import java.util.Optional;
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
-public interface LfLoad extends PropertyBag {
+public interface LfLoad extends PropertyBag, LfCopyable<LfLoad, LfBus> {
 
     String getId();
 
@@ -33,6 +33,8 @@ public interface LfLoad extends PropertyBag {
     double getNonFictitiousLoadTargetP();
 
     void setTargetP(double targetP);
+
+    void setInitialTargetP(double initialTargetP);
 
     double getTargetQ();
 

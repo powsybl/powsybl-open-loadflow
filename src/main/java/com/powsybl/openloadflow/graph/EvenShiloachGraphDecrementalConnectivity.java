@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2020, RTE (http://www.rte-france.com)
+ * Copyright (c) 2020-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
-import org.jgrapht.Graphs;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -21,13 +20,17 @@ import java.util.stream.Collectors;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
-public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGraphConnectivity<V, E> {
+public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGraphConnectivity<V, E, JGraphTModel<V, E>> {
 
     private Map<V, Integer> vertexToConnectedComponent;
     private final List<Set<V>> newConnectedComponents = new ArrayList<>();
 
     private final Map<V, LevelNeighbours> levelNeighboursMap = new HashMap<>();
     private final Deque<Map<V, LevelNeighbours>> allSavedChangedLevels = new ArrayDeque<>();
+
+    public EvenShiloachGraphDecrementalConnectivity() {
+        super(new JGraphTModel<>());
+    }
 
     @Override
     protected void updateConnectivity(EdgeRemove<V, E> edgeRemoval) {
@@ -87,15 +90,15 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
     }
 
     @Override
-    public void startTemporaryChanges() {
+    public void startTemporaryChanges(boolean computeComparisons) {
         if (!getModificationsContexts().isEmpty()) {
             throw new PowsyblException("This implementation supports only one level of temporary changes");
         }
-        super.startTemporaryChanges();
+        super.startTemporaryChanges(computeComparisons);
         if (levelNeighboursMap.isEmpty()) {
-            Set<V> vertices = getGraph().vertexSet();
+            Set<V> vertices = getGraph().getVertices();
             vertices.stream()
-                    .max(Comparator.comparingInt(v -> getGraph().degreeOf(v)))
+                    .max(Comparator.comparingInt(v -> getGraph().getNeighborEdgeCountOf(v)))
                     .ifPresent(v -> buildLevelNeighbours(Collections.singleton(v), 0));
             if (vertices.size() > levelNeighboursMap.size()) {
                 // Checking if only one connected components at start
@@ -108,7 +111,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         Collection<V> nextLevel = new HashSet<>();
         for (V v : level) {
             LevelNeighbours neighbours = levelNeighboursMap.computeIfAbsent(v, value -> new LevelNeighbours(levelIndex));
-            for (V adj : Graphs.neighborListOf(getGraph(), v)) {
+            for (V adj : getGraph().getNeighborVerticesOf(v)) {
                 LevelNeighbours adjNeighbours = levelNeighboursMap.computeIfAbsent(adj, value -> new LevelNeighbours(levelIndex + 1));
                 fillNeighbours(neighbours, adj, adjNeighbours.level);
             }
@@ -156,7 +159,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
 
     private void computeMainConnectedComponent() {
         if (componentSets.get(0) == null) {
-            Set<V> mainConnectedComponent = new HashSet<>(getGraph().vertexSet());
+            Set<V> mainConnectedComponent = new HashSet<>(getGraph().getVertices());
             getSmallComponents().forEach(mainConnectedComponent::removeAll);
             componentSets.set(0, mainConnectedComponent);
         }
@@ -185,7 +188,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         componentSets.addAll(newConnectedComponents);
         int nbVerticesOut = newConnectedComponents.stream().mapToInt(Set::size).sum();
         int maxNewComponentsSize = newConnectedComponents.stream().findFirst().map(Set::size).orElse(0);
-        Set<V> vertices = getGraph().vertexSet();
+        Set<V> vertices = getGraph().getVertices();
         if (vertices.size() - nbVerticesOut < maxNewComponentsSize) {
             // The initial connected component is smaller than some new connected components
             // That is, the biggest connected component is among the new connected components list
@@ -206,7 +209,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         private final Traverser t2;
         private Set<V> verticesOut;
 
-        public GraphProcessA(V vertex1, V vertex2) {
+        GraphProcessA(V vertex1, V vertex2) {
             Set<V> visitedVerticesT1 = new LinkedHashSet<>();
             Set<V> visitedVerticesT2 = new LinkedHashSet<>();
             this.t1 = new Traverser(vertex1, visitedVerticesT2, visitedVerticesT1);
@@ -247,7 +250,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         private final V vertex2;
         private boolean init;
 
-        public GraphProcessB(V vertex1, V vertex2) {
+        GraphProcessB(V vertex1, V vertex2) {
             this.vertex1 = vertex1;
             this.vertex2 = vertex2;
             this.verticesToUpdate = new LinkedList<>();
@@ -269,7 +272,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
 
                 nLowLevel.upperLevel.remove(vertexBigLevel);
                 nBigLevel.lowerLevel.remove(vertexLowLevel);
-                if (nBigLevel.lowerLevel.isEmpty() && getGraph().getAllEdges(vertex1, vertex2).isEmpty()) {
+                if (nBigLevel.lowerLevel.isEmpty() && getGraph().getEdgesBetween(vertex1, vertex2).isEmpty()) {
                     this.verticesToUpdate.add(vertexBigLevel);
                 }
             }
@@ -335,7 +338,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         private final Set<V> vertexEnd;
         private boolean ended;
 
-        public Traverser(V vertexStart, Set<V> vertexEnd, Set<V> visitedVertices) {
+        Traverser(V vertexStart, Set<V> vertexEnd, Set<V> visitedVertices) {
             this.vertexEnd = vertexEnd;
             this.visitedVertices = visitedVertices;
             this.visitedVertices.add(vertexStart);
@@ -346,7 +349,7 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
 
         public void next() {
             V v = verticesToTraverse.removeLast();
-            for (V adj : Graphs.neighborListOf(getGraph(), v)) {
+            for (V adj : getGraph().getNeighborVerticesOf(v)) {
                 if (visitedVertices.add(adj)) {
                     verticesToTraverse.add(adj);
                     if (vertexEnd.contains(adj)) {
@@ -376,11 +379,11 @@ public class EvenShiloachGraphDecrementalConnectivity<V, E> extends AbstractGrap
         private final Collection<V> upperLevel = new LinkedList<>();
         private int level;
 
-        public LevelNeighbours(int level) {
+        LevelNeighbours(int level) {
             this.level = level;
         }
 
-        public LevelNeighbours(LevelNeighbours origin) {
+        LevelNeighbours(LevelNeighbours origin) {
             this.level = origin.level;
             this.lowerLevel.addAll(origin.lowerLevel);
             this.sameLevel.addAll(origin.sameLevel);

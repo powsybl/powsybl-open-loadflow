@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.RemoteReactivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 /**
  * <p>4 bus test network:</p>
@@ -52,6 +52,25 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         Network network = createBaseNetwork();
         Bus b2 = network.getBusBreakerView().getBus("b2");
         createGenerator(b2, "g2", 2);
+        return network;
+    }
+
+    public static Network createWithTwoRadialBusesReconnectableByOneBranchEach() {
+        Network network = create();
+        Bus b3 = network.getBusBreakerView().getBus("b3");
+        Bus b4 = network.getBusBreakerView().getBus("b4");
+        Bus b5 = createBus(network, "b5");
+        createGenerator(b5, "g5", 1);
+        createLoad(b5, "d5", 1);
+        Bus b6 = createBus(network, "b6");
+        createGenerator(b6, "g6", 1);
+        createLoad(b6, "d6", 1);
+        Line l35 = createLine(network, b3, b5, "l35", 0.1f);
+        Line l46 = createLine(network, b4, b6, "l46", 0.1f);
+        l35.getTerminal1().disconnect();
+        l35.getTerminal2().disconnect();
+        l46.getTerminal1().disconnect();
+        l46.getTerminal2().disconnect();
         return network;
     }
 
@@ -108,18 +127,19 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         Line l34 = network.getLine("l34");
         double remoteTargetQ = 2.0;
         Generator g4 = network.getGenerator("g4");
-        g4.setTargetQ(0).setVoltageRegulatorOn(false);
+        g4.setLocalTargetQ(0).removeVoltageRegulation();
         Generator g1 = network.getGenerator("g1");
-        g1.setTargetQ(0).setVoltageRegulatorOn(false);
-        g1.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(remoteTargetQ)
-                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
-                .withEnabled(true)
-                .add();
-        g4.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(remoteTargetQ)
-                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
-                .withEnabled(true).add();
+        g1.setLocalTargetQ(0).removeVoltageRegulation();
+        g1.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTerminal(l34.getTerminal(TwoSides.TWO))
+            .withTargetValue(remoteTargetQ)
+            .build();
+        g4.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTerminal(l34.getTerminal(TwoSides.TWO))
+            .withTargetValue(remoteTargetQ)
+            .build();
         return network;
     }
 
@@ -130,33 +150,33 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         double remoteTargetQ = 2.0;
         Bus b1 = network.getBusBreakerView().getBus("b1");
         Generator g1 = network.getGenerator("g1");
-        g1.setTargetQ(0).setVoltageRegulatorOn(false);
-        g1.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(remoteTargetQ)
-                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
-                .withEnabled(true)
-                .add();
+        g1.setLocalTargetQ(0).removeVoltageRegulation();
+        g1.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTerminal(l34.getTerminal(TwoSides.TWO))
+            .withTargetValue(remoteTargetQ)
+            .build();
         Generator g1Bis = createGenerator(b1, "g1Bis", 2);
-        g1Bis.setTargetQ(0).setVoltageRegulatorOn(false);
-        g1Bis.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(remoteTargetQ)
-                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
-                .withEnabled(true)
-                .add();
+        g1Bis.setLocalTargetQ(0).removeVoltageRegulation();
+        g1Bis.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTerminal(l34.getTerminal(TwoSides.TWO))
+            .withTargetValue(remoteTargetQ)
+            .build();
         return network;
     }
 
     public static Network createWithReactiveControl2GeneratorsOnSameBusAnd1Extra() {
         Network network = createWithReactiveControl2GeneratorsOnSameBus();
         Generator g4 = network.getGenerator("g4");
-        g4.setTargetQ(0).setVoltageRegulatorOn(false);
+        g4.setLocalTargetQ(0).removeVoltageRegulation();
         Line l34 = network.getLine("l34");
         double remoteTargetQ = 2.0;
-        g4.newExtension(RemoteReactivePowerControlAdder.class)
-                .withTargetQ(remoteTargetQ)
-                .withRegulatingTerminal(l34.getTerminal(TwoSides.TWO))
-                .withEnabled(true)
-                .add();
+        g4.newVoltageRegulation()
+            .withMode(RegulationMode.REACTIVE_POWER)
+            .withTerminal(l34.getTerminal(TwoSides.TWO))
+            .withTargetValue(remoteTargetQ)
+            .build();
         return network;
     }
 
@@ -175,9 +195,9 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b4, "l24", 1f);
         createLine(network, b3, b4, "l34", 1f);
         Generator g2 = network.getGenerator("g2");
-        g2.setRegulatingTerminal(network.getLine("l24").getTerminal2());
+        g2.getVoltageRegulation().setTerminal(network.getLine("l24").getTerminal2(), g2.getRegulatingTargetV());
         Generator g3 = network.getGenerator("g3");
-        g3.setRegulatingTerminal(network.getLine("l24").getTerminal2());
+        g3.getVoltageRegulation().setTerminal(network.getLine("l24").getTerminal2(), g3.getRegulatingTargetV());
         return network;
     }
 
@@ -233,10 +253,12 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         TwoWindingsTransformer twt = createTransformer(network, "s", b2, b4, "t24", 1.0, 1d);
         twt.newRatioTapChanger()
                 .setTapPosition(0)
-                .setRegulationTerminal(twt.getTerminal2())
-                .setTargetV(230)
-                .setRegulating(true)
-                .setTargetDeadband(0.1)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(twt.getTerminal2())
+                    .withTargetValue(230)
+                    .withTargetDeadband(0.1)
+                    .add()
                 .setLoadTapChangingCapabilities(true)
                 .beginStep()
                     .setX(0.1f)
@@ -254,10 +276,12 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         TwoWindingsTransformer twt2 = createTransformer(network, "s", b5, b7, "t57", 0.2, 1d);
         twt2.newRatioTapChanger()
                 .setTapPosition(0)
-                .setRegulationTerminal(twt2.getTerminal2())
-                .setTargetV(93)
-                .setRegulating(true)
-                .setTargetDeadband(0.1)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(twt2.getTerminal2())
+                    .withTargetValue(93)
+                    .withTargetDeadband(0.1)
+                    .add()
                 .setLoadTapChangingCapabilities(true)
                 .beginStep()
                     .setX(0.1f)
@@ -275,10 +299,12 @@ public class FourBusNetworkFactory extends AbstractLoadFlowNetworkFactory {
         TwoWindingsTransformer twt3 = createTransformer(network, "s", b5, b6, "t56", 0.2, 1d);
         twt3.newRatioTapChanger()
                 .setTapPosition(0)
-                .setRegulationTerminal(twt3.getTerminal2())
-                .setTargetV(93)
-                .setRegulating(true)
-                .setTargetDeadband(0.1)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(twt3.getTerminal2())
+                    .withTargetValue(93)
+                    .withTargetDeadband(0.1)
+                    .add()
                 .setLoadTapChangingCapabilities(true)
                 .beginStep()
                     .setX(0.1f)

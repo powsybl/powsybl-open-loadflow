@@ -12,16 +12,26 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.Objects;
 
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public class ConverterDcCurrentEquationTerm extends AbstractConverterDcCurrentEquationTerm {
+public class ConverterDcCurrentEquationTerm extends AbstractConverterDcFlowEquation {
+
+    private final double idleLoss;
+
+    private final double switchingLoss;
+
+    private final double resistiveLoss;
 
     public ConverterDcCurrentEquationTerm(LfVoltageSourceConverter converter, LfDcBus dcBus1, LfDcBus dcBus2, double nominalV, VariableSet<AcVariableType> variableSet) {
         super(converter, dcBus1, dcBus2, nominalV, variableSet);
+        this.idleLoss = converter.getLossFactors().idleLoss() / PerUnit.SB;
+        this.switchingLoss = converter.getLossFactors().switchingLoss() * 1000d / nominalV;
+        this.resistiveLoss = converter.getLossFactors().resistiveLoss() / PerUnit.zb(nominalV);
     }
 
     private static double iConvSign(double pAc, double v1, double v2) {

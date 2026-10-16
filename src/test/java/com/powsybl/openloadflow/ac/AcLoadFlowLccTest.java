@@ -11,22 +11,31 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ExtendWith(ServiceParameterResolver.class)
 class AcLoadFlowLccTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlowLccTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     @Test
     void test() {
         Network network = HvdcNetworkFactory.createLcc();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters().setUseReactiveLimits(false)
                                              .setDistributedSlack(false);
         OpenLoadFlowParameters.create(parameters)

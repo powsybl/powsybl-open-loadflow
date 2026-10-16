@@ -10,13 +10,14 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
-import com.powsybl.openloadflow.equations.SingleEquation;
 import com.powsybl.openloadflow.equations.EquationArray;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.SingleEquation;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfSynchronousNetwork;
 
 /**
  * @author Jean-Luc Bouchot (Artelys) {@literal <jlbouchot at gmail.com>}
@@ -30,7 +31,8 @@ public class DcTargetVector extends TargetVector<DcVariableType, DcEquationType>
                 targets[equation.getColumn()] = bus.getTargetP();
                 // Only used for multi slack (BUS_TARGET_P equation is disabled for first slack bus)
                 if (bus.isSlack()) {
-                    targets[equation.getColumn()] += DcLoadFlowEngine.getActivePowerMismatch(network.getBuses()) / network.getSlackBuses().size();
+                    LfSynchronousNetwork lfScNetwork = network.getSynchronousNetwork(bus.getNumSC());
+                    targets[equation.getColumn()] += DcLoadFlowEngine.getActivePowerMismatch(lfScNetwork.getBuses()) / lfScNetwork.getSlackBuses().size();
                 }
                 break;
 

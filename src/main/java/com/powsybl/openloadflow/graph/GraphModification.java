@@ -7,13 +7,11 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import org.jgrapht.Graph;
-
 /**
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 public interface GraphModification<V, E> {
-    void apply(Graph<V, E> graph);
+    void apply(GraphModel<V, E> graph);
 
-    void undo(Graph<V, E> graph);
+    void undo(GraphModel<V, E> graph);
 }

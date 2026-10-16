@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 
 import java.util.List;
@@ -46,10 +47,10 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(100)
-                .setTargetV(400)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         vl1.newLoad()
                 .setId("load1")
@@ -155,11 +156,11 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("gen3")
                 .setBus("b3")
                 .setTargetP(40)
-                .setTargetQ(0)
-                .setTargetV(400)
+                .setLocalTargetQ(0)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         network.newArea()
                 .setId("a1")
@@ -242,10 +243,10 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *    <-------------------------------->    <------------------->
      *                Area 1                            Area 2
      */
-    public static Network createTwoAreasWithDanglingLine() {
+    public static Network createTwoAreasWithBoundaryLine() {
         Network network = createTwoAreasWithXNode();
         VoltageLevel vl2 = network.getVoltageLevel("vl2");
-        vl2.newDanglingLine()
+        vl2.newBoundaryLine()
                 .setId("dl1")
                 .setConnectableBus("b2")
                 .setBus("b2")
@@ -264,7 +265,7 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .add();
         Area a1 = network.getArea("a1");
         a1.newAreaBoundary()
-                .setBoundary(network.getDanglingLine("dl1").getBoundary())
+                .setBoundary(network.getBoundaryLine("dl1").getBoundary())
                 .setAc(true)
                 .add();
         return network;
@@ -282,7 +283,7 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
     public static Network createTwoAreasWithTieLine() {
         Network network = createTwoAreasBase();
         VoltageLevel vl2 = network.getVoltageLevel("vl2");
-        DanglingLine dl1 = vl2.newDanglingLine()
+        BoundaryLine dl1 = vl2.newBoundaryLine()
                 .setId("dl1")
                 .setConnectableBus("b2")
                 .setBus("b2")
@@ -295,7 +296,7 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setPairingKey("tlA1A2")
                 .add();
         VoltageLevel vl3 = network.getVoltageLevel("vl3");
-        DanglingLine dl2 = vl3.newDanglingLine()
+        BoundaryLine dl2 = vl3.newBoundaryLine()
                 .setId("dl2")
                 .setConnectableBus("b3")
                 .setBus("b3")
@@ -310,8 +311,8 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
         network.newTieLine()
                 .setId("tl1")
                 .setName("Tie Line A1-A2")
-                .setDanglingLine1("dl1")
-                .setDanglingLine2("dl2")
+                .setBoundaryLine1("dl1")
+                .setBoundaryLine2("dl2")
                 .add();
         network.getArea("a1")
                 .newAreaBoundary()
@@ -346,7 +347,7 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
     public static Network createTwoAreasWithUnconsideredTieLine() {
         Network network = createTwoAreasWithTieLine();
         VoltageLevel vl2 = network.getVoltageLevel("vl2");
-        vl2.newDanglingLine()
+        vl2.newBoundaryLine()
                 .setId("dlA1_1")
                 .setConnectableBus("b2")
                 .setBus("b2")
@@ -365,13 +366,13 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b5")
                 .setBus("b5")
                 .setTargetP(5)
-                .setTargetQ(0)
-                .setTargetV(400)
+                .setLocalTargetQ(0)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(30)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
-        vl5.newDanglingLine()
+        vl5.newBoundaryLine()
                 .setId("dlA1_2")
                 .setConnectableBus("b5")
                 .setBus("b5")
@@ -386,8 +387,8 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
         network.newTieLine()
                 .setId("tl2")
                 .setName("Tie Line A1-A2 2")
-                .setDanglingLine1("dlA1_1")
-                .setDanglingLine2("dlA1_2")
+                .setBoundaryLine1("dlA1_1")
+                .setBoundaryLine2("dlA1_2")
                 .add();
         network.getArea("a2")
                         .addVoltageLevel(vl5);
@@ -470,11 +471,10 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("G2")
                 .setBus("B2")
                 .setTargetP(40)
-                .setTargetQ(0)
-                .setTargetV(400)
+                .setLocalTargetQ(0)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(false)
                 .add();
 
         vl1.newLoad()
@@ -511,8 +511,8 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
         for (int i = 0; i < 10; i++) {
             Bus b = createBus(network, "b" + i);
 
-            DanglingLine dl0 = createDanglingLine(b, "dlb" + i + "_0", 0.1, 0, 0);
-            DanglingLine dl1 = createDanglingLine(b, "dlb" + i + "_1", 0.1, 0, 0);
+            BoundaryLine dl0 = createBoundaryLine(b, "dlb" + i + "_0", 0.1, 0, 0);
+            BoundaryLine dl1 = createBoundaryLine(b, "dlb" + i + "_1", 0.1, 0, 0);
             dl0.setPairingKey("key_" + i);
             int key1 = i == 9 ? 0 : i + 1;
             dl1.setPairingKey("key_" + key1);
@@ -537,15 +537,58 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                     .add();
         }
 
-        network.getDanglingLineStream()
-                .collect(Collectors.groupingBy(DanglingLine::getPairingKey))
+        network.getBoundaryLineStream()
+                .collect(Collectors.groupingBy(BoundaryLine::getPairingKey))
                 .forEach((key, value) -> network.newTieLine()
                         .setId(key).setName(key)
-                        .setDanglingLine1(value.get(0).getId())
-                        .setDanglingLine2(value.get(1).getId())
+                        .setBoundaryLine1(value.get(0).getId())
+                        .setBoundaryLine2(value.get(1).getId())
                         .add());
 
         return network;
     }
 
+    public static Network createTwoAreasWithXNodeAndEmbeddedDcDetailed() {
+        Network network = createTwoAreasWithXNode();
+
+        // Add embedded HVDC line (detailed DC model)
+        DcNode dn3p = createDcNode(network, "dc3pos", 525);
+        DcNode dn3n = createDcNode(network, "dc3neg", 525, true);
+        DcNode dn2p = createDcNode(network, "dc2pos", 525);
+        DcNode dn2n = createDcNode(network, "dc2neg", 525, true);
+
+        createDcLine(network, dn3p, dn2p, "dcLine", 1);
+        createVoltageSourceConverterPccVac(
+            network.getBusBreakerView().getBus("b3"),
+            dn3p, dn3n, "vsc3", 30, 400
+        );
+        createVoltageSourceConverterVdcVac(
+            network.getBusBreakerView().getBus("b2"),
+            dn2p, dn2n, "vsc2", 525, 400
+        );
+
+        return network;
+    }
+
+    public static Network createAreaTwoSynchronousComponentsDetailedDcModel() {
+        Network network = createAreaTwoComponents();
+
+        // Connect dummy component through DC detailed model
+        DcNode dn3p = createDcNode(network, "dc3pos", 525);
+        DcNode dn3n = createDcNode(network, "dc3neg", 525, true);
+        DcNode dnDummyp = createDcNode(network, "dcDummypos", 525);
+        DcNode dnDummyn = createDcNode(network, "dcDummyneg", 525, true);
+
+        createDcLine(network, dn3p, dnDummyp, "dcLine", 1);
+        createVoltageSourceConverterPccVac(
+            network.getBusBreakerView().getBus("b3"),
+            dn3p, dn3n, "vsc3", 5, 400
+        );
+        createVoltageSourceConverterVdcVac(
+            network.getBusBreakerView().getBus("dummy"),
+            dnDummyp, dnDummyn, "vscDummy", 525, 400
+        );
+
+        return network;
+    }
 }

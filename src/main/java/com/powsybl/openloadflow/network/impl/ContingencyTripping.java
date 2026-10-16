@@ -104,7 +104,7 @@ public class ContingencyTripping {
                  TWO_WINDINGS_TRANSFORMER,
                  TIE_LINE:
                 return ContingencyTripping.createBranchTripping(network, (Branch<?>) identifiable);
-            case DANGLING_LINE,
+            case BOUNDARY_LINE,
                  GENERATOR,
                  LOAD,
                  SHUNT_COMPENSATOR,

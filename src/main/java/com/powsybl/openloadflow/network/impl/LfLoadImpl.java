@@ -7,7 +7,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.iidm.network.DanglingLine;
+import com.powsybl.iidm.network.BoundaryLine;
 import com.powsybl.iidm.network.LccConverterStation;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.LoadType;
@@ -55,6 +55,24 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         this.bus = Objects.requireNonNull(bus);
         this.distributedOnConformLoad = distributedOnConformLoad;
         this.loadModel = loadModel;
+    }
+
+    private LfLoadImpl(LfLoadImpl other, LfBus bus) {
+        super(other.initialTargetP, other.targetP);
+        this.bus = Objects.requireNonNull(bus);
+        this.distributedOnConformLoad = other.distributedOnConformLoad;
+        this.loadModel = other.loadModel;
+        this.loadsRefs.putAll(other.loadsRefs);
+        this.lccCsRefs.addAll(other.lccCsRefs);
+        this.targetQ = other.targetQ;
+        this.ensurePowerFactorConstantByLoad = other.ensurePowerFactorConstantByLoad;
+        this.loadsAbsVariableTargetP.putAll(other.loadsAbsVariableTargetP);
+        this.absVariableTargetP = other.absVariableTargetP;
+        this.loadsDisablingStatus = new LinkedHashMap<>(other.loadsDisablingStatus);
+    }
+
+    public LfLoad copy(LfBus copyBus) {
+        return new LfLoadImpl(this, copyBus);
     }
 
     @Override
@@ -120,9 +138,9 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         targetQ += HvdcUtils.getLccConverterStationLoadTargetQ(lccCs) / PerUnit.SB;
     }
 
-    public void add(DanglingLine danglingLine) {
-        targetP += danglingLine.getP0() / PerUnit.SB;
-        targetQ += danglingLine.getQ0() / PerUnit.SB;
+    public void add(BoundaryLine boundaryLine) {
+        targetP += boundaryLine.getP0() / PerUnit.SB;
+        targetQ += boundaryLine.getQ0() / PerUnit.SB;
     }
 
     @Override

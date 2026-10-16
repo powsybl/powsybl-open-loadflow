@@ -28,7 +28,7 @@ class FirstSlackBusSelectorTest {
         Network network = FourSubstationsNodeBreakerFactory.create();
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(),
                 new FirstSlackBusSelector()).get(0);
-        LfBus slackBus = lfNetwork.getSlackBus();
+        LfBus slackBus = lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst();
         assertEquals("S2VL1_0", slackBus.getId());
         network.getSubstation("S1").setCountry(Country.FR);
         network.getSubstation("S2").setCountry(Country.BE);
@@ -36,12 +36,12 @@ class FirstSlackBusSelectorTest {
         network.getSubstation("S4").setCountry(Country.FR);
         lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(),
                 new FirstSlackBusSelector(Collections.singleton(Country.FR))).get(0);
-        slackBus = lfNetwork.getSlackBus();
+        slackBus = lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst();
         assertEquals("S3VL1_0", slackBus.getId());
 
         lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(),
                 new FirstSlackBusSelector(Set.of(Country.BE, Country.FR))).get(0);
-        slackBus = lfNetwork.getSlackBus();
+        slackBus = lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst();
         assertEquals("S2VL1_0", slackBus.getId());
     }
 }

@@ -10,12 +10,10 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.extensions.VoltageRegulation;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -64,7 +62,17 @@ public final class Networks {
         resetInjectionsState(network.getLoads());
         resetInjectionsState(network.getLccConverterStations());
         resetInjectionsState(network.getBatteries());
-        resetInjectionsState(network.getDanglingLines());
+        resetInjectionsState(network.getBoundaryLines());
+
+        for (DcBus dcb : network.getDcBuses()) {
+            dcb.setV(Double.NaN);
+        }
+        for (DcLine dcl : network.getDcLines()) {
+            dcl.unsetSolvedValues();
+        }
+        for (VoltageSourceConverter vsc : network.getVoltageSourceConverters()) {
+            vsc.unsetSolvedValues();
+        }
     }
 
     private static double getDoubleProperty(Identifiable<?> identifiable, String name) {
@@ -118,7 +126,7 @@ public final class Networks {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), topoConfig, parameters, reportNode);
     }
 
-    private static void retainAndCloseNecessarySwitches(Network network, LfTopoConfig topoConfig) {
+    private static Set<String> retainAndCloseNecessarySwitches(Network network, LfTopoConfig topoConfig) {
         network.getSwitchStream()
                 .filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                 .forEach(sw -> sw.setRetained(false));
@@ -129,14 +137,20 @@ public final class Networks {
                 .filter(sw -> sw.getVoltageLevel().getTopologyKind() == TopologyKind.NODE_BREAKER)
                 .forEach(sw -> sw.setRetained(true));
 
-        topoConfig.getSwitchesToClose().forEach(sw -> sw.setOpen(false)); // in order to be present in the network.
+        Set<String> closedBranchesOrSwitches = new LinkedHashSet<>();
+        topoConfig.getSwitchesToClose().forEach(sw -> {
+            sw.setOpen(false);
+            closedBranchesOrSwitches.add(sw.getId());
+        }); // in order to be present in the network.
         topoConfig.getBranchIdsToClose().stream().map(network::getBranch).forEach(branch -> {
             branch.getTerminal1().connect();
             branch.getTerminal2().connect();
+            closedBranchesOrSwitches.add(branch.getId());
         }); // in order to be present in the network.
+        return closedBranchesOrSwitches;
     }
 
-    private static void restoreInitialTopology(LfNetwork network, Set<String> switchAndBranchIdsToClose) {
+    private static void restoreInitialTopology(LfNetwork network, Set<String> switchAndBranchIdsToClose, LfNetworkParameters networkParameters) {
         var connectivity = network.getConnectivity();
         connectivity.startTemporaryChanges();
         Set<String> toRemove = new HashSet<>();
@@ -144,10 +158,12 @@ public final class Networks {
             LfBranch branch = network.getBranchById(id);
             if (branch != null) {
                 connectivity.removeEdge(branch);
+                network.addConnectivityRemovedBranch(branch);
                 toRemove.add(id);
             }
         });
         switchAndBranchIdsToClose.removeAll(toRemove);
+
         Set<LfBus> removedBuses = connectivity.getVerticesRemovedFromMainComponent();
         removedBuses.forEach(bus -> bus.setDisabled(true));
         Set<LfBranch> removedBranches = new HashSet<>(connectivity.getEdgesRemovedFromMainComponent());
@@ -156,6 +172,7 @@ public final class Networks {
             bus.getBranches().stream().filter(b -> !b.isConnectedAtBothSides()).forEach(removedBranches::add);
         }
         removedBranches.forEach(branch -> branch.setDisabled(true));
+
         for (LfHvdc hvdc : network.getHvdcs()) {
             if (isIsolatedBusForHvdc(hvdc.getBus1(), connectivity) || isIsolatedBusForHvdc(hvdc.getBus2(), connectivity)) {
                 hvdc.setDisabled(true);
@@ -201,13 +218,25 @@ public final class Networks {
         }
     }
 
-    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters,
-                                     LfTopoConfig topoConfig, ReportNode reportNode) {
-        return load(network, networkParameters, topoConfig, LfNetworkList.DefaultVariantCleaner::new, reportNode);
+    public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
+                                                              ReportNode reportNode) {
+        return loadWithReconnectableElements(network, topoConfig, networkParameters, reportNode, false);
     }
 
-    public static LfNetworkList load(Network network, LfNetworkParameters networkParameters, LfTopoConfig topoConfig,
-                                     LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode) {
+    public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
+                                                              ReportNode reportNode, boolean keepForPermanentContingency) {
+        return loadWithReconnectableElements(network, topoConfig, networkParameters, new LfNetworkList.VariantCloner(network),
+                LfNetworkList.DefaultVariantCleaner::new, reportNode, keepForPermanentContingency);
+    }
+
+    public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
+                                                              LfNetworkList.VariantProvider variantProvider, LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode) {
+        return loadWithReconnectableElements(network, topoConfig, networkParameters, variantProvider, variantCleanerFactory, reportNode, false);
+    }
+
+    public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
+                                                              LfNetworkList.VariantProvider variantProvider, LfNetworkList.VariantCleanerFactory variantCleanerFactory, ReportNode reportNode,
+                                                              boolean keepForPermanentContingency) {
         LfTopoConfig modifiedTopoConfig;
         if (networkParameters.isSimulateAutomationSystems()) {
             modifiedTopoConfig = new LfTopoConfig(topoConfig);
@@ -226,34 +255,29 @@ public final class Networks {
             }
 
             // create a temporary working variant to build LF networks
-            String tmpVariantId = "olf-tmp-" + UUID.randomUUID();
             String workingVariantId = network.getVariantManager().getWorkingVariantId();
-            network.getVariantManager().cloneVariant(network.getVariantManager().getWorkingVariantId(), tmpVariantId);
-            network.getVariantManager().setWorkingVariant(tmpVariantId);
+            String tmpVariantId = variantProvider.getTmpVariantId(workingVariantId);
 
             // retain in topology all switches that could be open or close
             // and close switches that could be closed during the simulation
-            retainAndCloseNecessarySwitches(network, modifiedTopoConfig);
+            Set<String> closedBranchesOrSwitches = retainAndCloseNecessarySwitches(network, modifiedTopoConfig);
 
-            List<LfNetwork> lfNetworks = load(network, topoConfig, networkParameters, reportNode);
+            // save IDs before restoreInitialTopology mutates the set
+            List<String> permanentContingencyBranchIds = keepForPermanentContingency
+                    ? new ArrayList<>(closedBranchesOrSwitches)
+                    : Collections.emptyList();
 
-            if (!(modifiedTopoConfig.getSwitchesToClose().isEmpty() && modifiedTopoConfig.getBranchIdsToClose().isEmpty())) {
-                Set<String> switchAndBranchIdsLeftToClose = modifiedTopoConfig.getSwitchesToClose().stream()
-                        .filter(Objects::nonNull)
-                        .map(Identifiable::getId)
-                        .collect(Collectors.toSet());
-                switchAndBranchIdsLeftToClose.addAll(modifiedTopoConfig.getBranchIdsToClose());
+            List<LfNetwork> lfNetworks = load(network, modifiedTopoConfig, networkParameters, reportNode);
+
+            if (!keepForPermanentContingency && !closedBranchesOrSwitches.isEmpty()) {
                 for (LfNetwork lfNetwork : lfNetworks) {
-                    // all switches and branches were closed
-                    if (switchAndBranchIdsLeftToClose.isEmpty()) {
-                        break;
-                    }
                     // disable all buses and branches not connected to main component (because of switch to close)
-                    restoreInitialTopology(lfNetwork, switchAndBranchIdsLeftToClose);
+                    restoreInitialTopology(lfNetwork, closedBranchesOrSwitches, networkParameters);
                 }
             }
 
-            return new LfNetworkList(lfNetworks, variantCleanerFactory.create(network, workingVariantId, tmpVariantId));
+            LfNetworkList.VariantCleaner variantCleaner = variantCleanerFactory.create(network, workingVariantId, tmpVariantId);
+            return new LfNetworkList(lfNetworks, variantCleaner, permanentContingencyBranchIds);
         }
     }
 
@@ -272,7 +296,7 @@ public final class Networks {
     }
 
     public static DcBus getDcBus(DcTerminal terminal) {
-        return terminal.getDcNode().getDcBus();
+        return terminal.getDcBus();
     }
 
     public static boolean isIsolatedBusForHvdc(LfBus bus, GraphConnectivity<LfBus, LfBranch> connectivity) {
@@ -304,8 +328,8 @@ public final class Networks {
         return switch (identifiable.getType()) {
             case TWO_WINDINGS_TRANSFORMER -> {
                 RatioTapChanger rtc = ((TwoWindingsTransformer) identifiable).getRatioTapChanger();
-                if (rtc != null) {
-                    yield Optional.of(rtc.getRegulationTerminal());
+                if (rtc != null && rtc.isRegulating()) {
+                    yield Optional.ofNullable(rtc.getRegulatingTerminal());
                 }
                 yield Optional.empty();
             }
@@ -313,15 +337,13 @@ public final class Networks {
                 for (ThreeWindingsTransformer.Leg leg : ((ThreeWindingsTransformer) identifiable).getLegs()) {
                     RatioTapChanger rtc = leg.getRatioTapChanger();
                     if (rtc != null && rtc.isRegulating()) {
-                        yield Optional.of(rtc.getRegulationTerminal());
+                        yield Optional.ofNullable(rtc.getRegulatingTerminal());
                     }
                 }
                 yield Optional.empty();
             }
             case GENERATOR -> Optional.of(((Generator) identifiable).getRegulatingTerminal());
-            case BATTERY -> ((Battery) identifiable).getExtension(VoltageRegulation.class) != null
-                    ? Optional.of(((Battery) identifiable).getExtension(VoltageRegulation.class).getRegulatingTerminal())
-                    : Optional.empty();
+            case BATTERY -> Optional.of(((Battery) identifiable).getRegulatingTerminal());
             case SHUNT_COMPENSATOR -> Optional.of(((ShuntCompensator) identifiable).getRegulatingTerminal());
             case STATIC_VAR_COMPENSATOR -> Optional.of(((StaticVarCompensator) identifiable).getRegulatingTerminal());
             case HVDC_CONVERTER_STATION -> ((HvdcConverterStation<?>) identifiable).getHvdcType() == HvdcConverterStation.HvdcType.VSC

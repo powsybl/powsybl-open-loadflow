@@ -10,11 +10,12 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.LoadingLimits;
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.iidm.network.TwoSides;
-import com.powsybl.iidm.network.util.LimitViolationUtils;
-import com.powsybl.openloadflow.sa.LimitReductionManager;
+import com.powsybl.openloadflow.sa.LimitScalingManager;
 import com.powsybl.openloadflow.util.Evaluable;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
 import java.util.*;
@@ -22,7 +23,7 @@ import java.util.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public interface LfBranch extends LfElement {
+public interface LfBranch extends LfElement, LfCopyable<LfBranch, LfNetwork> {
 
     enum BranchType {
         LINE,
@@ -30,12 +31,79 @@ public interface LfBranch extends LfElement {
         TRANSFO_3_LEG_1,
         TRANSFO_3_LEG_2,
         TRANSFO_3_LEG_3,
-        DANGLING_LINE,
+        BOUNDARY_LINE,
         SWITCH,
         TIE_LINE
     }
 
     record LfBranchResults(double p1, double p2, double q1, double q2, double i1, double i2) {
+    }
+
+    class LfLimitsGroup {
+
+        private final List<LfLimit> sortedLimits;
+
+        private final String operationalLimitsGroupId;
+
+        public LfLimitsGroup(List<LfLimit> sortedLimits, String operationalLimitsGroupId) {
+            this.sortedLimits = sortedLimits;
+            this.operationalLimitsGroupId = operationalLimitsGroupId;
+        }
+
+        public String getOperationalLimitsGroupId() {
+            return operationalLimitsGroupId;
+        }
+
+        public List<LfLimit> getSortedLimits() {
+            return sortedLimits;
+        }
+
+        private static double getScaleForLimitType(LimitType type, LfBus bus) {
+            return switch (type) {
+                case ACTIVE_POWER, APPARENT_POWER -> 1.0 / PerUnit.SB;
+                case CURRENT -> 1.0 / PerUnit.ib(bus.getNominalV());
+                default ->
+                        throw new UnsupportedOperationException(String.format("Getting scale for limit type %s is not supported.", type));
+            };
+        }
+
+        /**
+         * Create the list of LfLimits from a LoadingLimits and a list of scalings.
+         * The resulting list will contain the permanent limit
+         * This list is returned in a LfLimitsGroup object
+         */
+        public static LfLimitsGroup createSortedLimitsList(LoadingLimits loadingLimits, String operationalLimitsGroupId, LfBus bus, double[] limitScalings) {
+            List<LfLimit> sortedLimits = new ArrayList<>(3);
+            if (loadingLimits != null) {
+                double toPerUnit = getScaleForLimitType(loadingLimits.getLimitType(), bus);
+
+                int i = 0;
+                for (LoadingLimits.TemporaryLimit temporaryLimit : loadingLimits.getTemporaryLimits()) {
+                    if (temporaryLimit.getAcceptableDuration() != 0) {
+                        // it is not useful to add a limit with acceptable duration equal to zero as the only value plausible
+                        // for this limit is infinity.
+                        // https://javadoc.io/doc/com.powsybl/powsybl-core/latest/com/powsybl/iidm/network/CurrentLimits.html
+                        double scaling = limitScalings.length == 0 ? 1d : limitScalings[i + 1]; // Temporary limit's scalings are stored starting from index 1 in `limitScalings`
+                        double originalValuePerUnit = temporaryLimit.getValue() * toPerUnit;
+                        sortedLimits.add(0, LfLimit.createTemporaryLimit(temporaryLimit.getName(), temporaryLimit.getAcceptableDuration(),
+                                originalValuePerUnit, scaling));
+                    }
+                    i++;
+                }
+                double scaling = limitScalings.length == 0 ? 1d : limitScalings[0];
+                sortedLimits.add(LfLimit.createPermanentLimit(loadingLimits.getPermanentLimitName(), loadingLimits.getPermanentLimit() * toPerUnit, scaling));
+            }
+            if (sortedLimits.size() > 1) {
+                // we only make that fix if there is more than a permanent limit attached to the branch.
+                for (int i = sortedLimits.size() - 1; i > 0; i--) {
+                    // From the permanent limit to the most serious temporary limit.
+                    sortedLimits.get(i).setAcceptableDuration(sortedLimits.get(i - 1).getAcceptableDuration());
+                }
+                sortedLimits.get(0).setAcceptableDuration(0);
+            }
+            return new LfLimitsGroup(sortedLimits, operationalLimitsGroupId);
+        }
+
     }
 
     class LfLimit {
@@ -46,21 +114,21 @@ public interface LfBranch extends LfElement {
 
         private final double value;
 
-        private final double reduction;
+        private final double scaling;
 
-        public LfLimit(String name, int acceptableDuration, double value, double reduction) {
+        public LfLimit(String name, int acceptableDuration, double value, double scaling) {
             this.name = name;
             this.acceptableDuration = acceptableDuration;
             this.value = value;
-            this.reduction = reduction;
+            this.scaling = scaling;
         }
 
-        public static LfLimit createTemporaryLimit(String name, int acceptableDuration, double originalValuePerUnit, Double reduction) {
-            return new LfLimit(name, acceptableDuration, originalValuePerUnit, reduction);
+        public static LfLimit createTemporaryLimit(String name, int acceptableDuration, double originalValuePerUnit, Double scaling) {
+            return new LfLimit(name, acceptableDuration, originalValuePerUnit, scaling);
         }
 
-        public static LfLimit createPermanentLimit(double originalValuePerUnit, Double reduction) {
-            return new LfLimit(LimitViolationUtils.PERMANENT_LIMIT_NAME, Integer.MAX_VALUE, originalValuePerUnit, reduction);
+        public static LfLimit createPermanentLimit(String permanentLimitName, double originalValuePerUnit, Double scaling) {
+            return new LfLimit(permanentLimitName, Integer.MAX_VALUE, originalValuePerUnit, scaling);
         }
 
         public String getName() {
@@ -75,16 +143,16 @@ public interface LfBranch extends LfElement {
             return value;
         }
 
-        public double getReducedValue() {
-            return value * reduction;
+        public double getScaledValue() {
+            return value * scaling;
         }
 
         public void setAcceptableDuration(int acceptableDuration) {
             this.acceptableDuration = acceptableDuration;
         }
 
-        public double getReduction() {
-            return reduction;
+        public double getScaling() {
+            return scaling;
         }
     }
 
@@ -211,13 +279,13 @@ public interface LfBranch extends LfElement {
 
     List<Evaluable> getAdditionalClosedQ2();
 
-    List<LfLimit> getLimits1(LimitType type, LimitReductionManager limitReductionManager);
+    List<LfLimitsGroup> getLimits1(LimitType type, LimitScalingManager limitScalingManager);
 
-    default List<LfLimit> getLimits2(LimitType type, LimitReductionManager limitReductionManager) {
+    default List<LfLimitsGroup> getLimits2(LimitType type, LimitScalingManager limitScalingManager) {
         return Collections.emptyList();
     }
 
-    double[] getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits);
+    double[] getLimitScalings(TwoSides side, LimitScalingManager limitScalingManager, LoadingLimits limits);
 
     void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport);
 
@@ -238,6 +306,9 @@ public interface LfBranch extends LfElement {
     boolean isPhaseControlEnabled();
 
     void setPhaseControlEnabled(boolean phaseControlEnabled);
+
+    // Phase tap changer accessor (for results)
+    Optional<PhaseTapChanger> getPhaseTapChanger();
 
     // transformer voltage control
 

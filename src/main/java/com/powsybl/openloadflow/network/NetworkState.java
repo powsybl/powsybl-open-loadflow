@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -51,7 +52,10 @@ public class NetworkState {
         List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
         List<HvdcState> hvdcStates = ElementState.save(network.getHvdcs(), HvdcState::save);
         List<AreaState> areaStates = ElementState.save(network.getAreas(), AreaState::save);
-        return new NetworkState(network, busStates, branchStates, hvdcStates, network.getExcludedSlackBuses(), areaStates);
+        Set<LfBus> excludedSlackBuses = network.getSynchronousNetworks().stream()
+            .flatMap(lfScNetwork -> lfScNetwork.getExcludedSlackBuses().stream())
+            .collect(Collectors.toSet());
+        return new NetworkState(network, busStates, branchStates, hvdcStates, excludedSlackBuses, areaStates);
     }
 
     public void restore() {
@@ -60,6 +64,7 @@ public class NetworkState {
         ElementState.restore(branchStates);
         ElementState.restore(hvdcStates);
         ElementState.restore(areaStates);
-        network.setExcludedSlackBuses(excludedSlackBuses);
+        // Set excluded slack buses of each synchronous network
+        network.getSynchronousNetworks().forEach(scLfNetwork -> scLfNetwork.setExcludedSlackBuses(excludedSlackBuses));
     }
 }

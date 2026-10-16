@@ -15,15 +15,17 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -38,7 +40,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Valentin Mouradian {@literal <valentin.mouradian at artelys.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class AreaInterchangeControlTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AreaInterchangeControlTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     private LoadFlow.Runner loadFlowRunner;
     private LoadFlowParameters parameters;
@@ -49,7 +58,7 @@ class AreaInterchangeControlTest {
 
     @BeforeEach
     void setUp() {
-        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters();
         runParameters = new LoadFlowRunParameters().setParameters(parameters);
         parametersExt = OpenLoadFlowParameters.create(parameters)
@@ -72,9 +81,9 @@ class AreaInterchangeControlTest {
     }
 
     @Test
-    void twoAreasWithUnpairedDanglingLine() {
-        Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
-        double interchangeTarget1 = -60; // area a1 has a boundary that is an unpaired dangling line with P0 = 20MW
+    void twoAreasWithUnpairedBoundaryLine() {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithBoundaryLine();
+        double interchangeTarget1 = -60; // area a1 has a boundary that is an unpaired boundary line with P0 = 20MW
         double interchangeTarget2 = 40;
         runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 3);
         parameters.setDc(true);
@@ -83,9 +92,9 @@ class AreaInterchangeControlTest {
 
     @Test
     void zeroImpedanceBoundaryBranchesNetworkConversion() {
-        Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithBoundaryLine();
         network.getLine("l23_A1").setX(0);          // boundary
-        network.getDanglingLine("dl1").setX(0);     // boundary
+        network.getBoundaryLine("dl1").setX(0);     // boundary
         network.getLine("l12").setX(0);             // not boundary
 
         LfNetwork lfNetwork = Networks.load(network, new LfNetworkParameters().setAreaInterchangeControl(false)).get(0);
@@ -104,11 +113,11 @@ class AreaInterchangeControlTest {
 
     @Test
     void twoAreasWithZeroImpedanceBoundaryBranches() {
-        Network network = MultiAreaNetworkFactory.createTwoAreasWithDanglingLine();
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithBoundaryLine();
         double interchangeTarget1 = -40;
         double interchangeTarget2 = 20;
         network.getLine("l23_A1").setX(0);
-        network.getDanglingLine("dl1").setX(0);
+        network.getBoundaryLine("dl1").setX(0);
         parametersExt.setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
         runLfTwoAreas(network, interchangeTarget1, interchangeTarget2, -10, 2);
         parameters.setDc(true);
@@ -141,13 +150,15 @@ class AreaInterchangeControlTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("allSlackDistributionFailureBehaviors")
-    void slackDistributionFailureBehaviorsTest(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior, double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
+    void slackDistributionFailureBehaviorsTest(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior,
+                                               double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
         runLfOneAreaSlackDistributionFailure(slackDistributionFailureBehavior, expectedGen1P, expectedMismatch, expectedDistributedP);
         parameters.setDc(true);
         runLfOneAreaSlackDistributionFailure(slackDistributionFailureBehavior, expectedGen1P, expectedMismatch, expectedDistributedP);
     }
 
-    private void runLfOneAreaSlackDistributionFailure(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior, double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
+    private void runLfOneAreaSlackDistributionFailure(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior,
+                                                      double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
         parametersExt.setSlackDistributionFailureBehavior(slackDistributionFailureBehavior);
         Network network = MultiAreaNetworkFactory.createOneAreaBase();
         network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target
@@ -305,6 +316,7 @@ class AreaInterchangeControlTest {
                             Network balance: active generation=140 MW, active load=110 MW, reactive generation=0 MVar, reactive load=15 MVar
                             Angle reference bus: bx1_vl_0
                             Slack bus: bx1_vl_0
+                         Voltage initialization with method Uniform Values
                          + Outer loop AreaInterchangeControl
                             + Outer loop iteration 1
                                Area a1 interchange mismatch (10.168852 MW) distributed in 1 distribution iteration(s)
@@ -313,20 +325,13 @@ class AreaInterchangeControlTest {
                                Area a1 slack distribution share (0.293861 MW) distributed in 1 distribution iteration(s)
                                Area a2 slack distribution share (0.331121 MW) distributed in 1 distribution iteration(s)
                          Outer loop ReactiveLimits
-                         Outer loop AreaInterchangeControl
-                         Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
                 """;
         LoadFlowAssert.assertTxtReportEquals(expectedReport, node);
     }
 
-    @Test
-    void remainingSlackDistributionShares() throws IOException {
+    Network prepareAicRemainingSlackDistribution() {
         Network network = MultiAreaNetworkFactory.createTwoAreasWithXNode();
-        ReportNode node = ReportNode.newRootReportNode()
-                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
-                .withMessageTemplate("test")
-                .build();
 
         // slack bus in area a1
         parameters.setReadSlackBus(true);
@@ -339,6 +344,17 @@ class AreaInterchangeControlTest {
         parametersExt.setAreaInterchangePMaxMismatch(0.5);
         network.getArea("a1").setInterchangeTarget(-10); // will have a margin of 0.9 for slack distribution  (interchange with slack =-10.4 and max acceptable interchange = -9.5)
         network.getArea("a2").setInterchangeTarget(9.51); // will have a margin of 0.01 for slack distribution (interchange with slack = 10 and max acceptable interchange = 10.01)
+        return network;
+    }
+
+    @Test
+    void remainingSlackDistributionShares() throws IOException {
+        ReportNode node = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+
+        Network network = prepareAicRemainingSlackDistribution();
 
         var result = loadFlowRunner.run(network, runParameters.setReportNode(node));
         assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, result.getStatus());
@@ -352,14 +368,83 @@ class AreaInterchangeControlTest {
                             Network balance: active generation=110.4 MW, active load=110 MW, reactive generation=0 MVar, reactive load=15 MVar
                             Angle reference bus: vl1_0
                             Slack bus: vl1_0
+                         Voltage initialization with method Uniform Values
                          + Outer loop AreaInterchangeControl
                             + Outer loop iteration 1
                                Area a1 slack distribution share (-0.395604 MW) distributed in 1 distribution iteration(s)
                                Area a2 slack distribution share (-0.004396 MW) distributed in 1 distribution iteration(s)
                          Outer loop ReactiveLimits
-                         Outer loop AreaInterchangeControl
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """;
+        LoadFlowAssert.assertTxtReportEquals(expectedReport, node);
+    }
+
+    @Test
+    void remainingSlackDistributionSharesOneAreaDistributionFails() throws IOException {
+        ReportNode node = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+
+        Network network = prepareAicRemainingSlackDistribution();
+        network.getGenerator("g1").setMinP(70.3); // target is 70.4, will have an initial share of 0,29 but will be able to distribute only 0.1. The rest will be distributed by a2
+        parametersExt.setAreaInterchangePMaxMismatch(1); // keep interchanges within max mismatch while having readable differences in distribution
+
+        var result = loadFlowRunner.run(network, runParameters.setReportNode(node));
+        assertEquals(LoadFlowResult.Status.FULLY_CONVERGED, result.getStatus());
+        assertEquals(0, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), parametersExt.getSlackBusPMaxMismatch());
+        String expectedReport = """
+                + test
+                   + Load flow on network 'areas'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 4 buses and 3 branches
+                            Network balance: active generation=110.4 MW, active load=110 MW, reactive generation=0 MVar, reactive load=15 MVar
+                            Angle reference bus: vl1_0
+                            Slack bus: vl1_0
+                         Voltage initialization with method Uniform Values
+                         + Outer loop AreaInterchangeControl
+                            + Outer loop iteration 1
+                               Area a1 slack distribution share (-0.1 MW) distributed in 1 distribution iteration(s)
+                               Area a2 slack distribution share (-0.3 MW) distributed in 2 distribution iteration(s)
                          Outer loop ReactiveLimits
                          AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """;
+        LoadFlowAssert.assertTxtReportEquals(expectedReport, node);
+    }
+
+    @Test
+    void remainingSlackDistributionSharesAllAreasDistributionFails() throws IOException {
+        ReportNode node = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+
+        Network network = prepareAicRemainingSlackDistribution();
+        // There is 0.4 MW of slack to distribute, but the two areas can distribute only 0.3 MW total, the distribution will fail
+        network.getGenerator("g1").setMinP(70.2);
+        network.getGenerator("gen3").setMinP(39.9);
+
+        var result = loadFlowRunner.run(network, runParameters.setReportNode(node));
+        assertEquals(LoadFlowResult.Status.FAILED, result.getStatus());
+        assertEquals(-0.4, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), parametersExt.getSlackBusPMaxMismatch());
+        String expectedReport = """
+                + test
+                   + Load flow on network 'areas'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 4 buses and 3 branches
+                            Network balance: active generation=110.4 MW, active load=110 MW, reactive generation=0 MVar, reactive load=15 MVar
+                            Angle reference bus: vl1_0
+                            Slack bus: vl1_0
+                         Voltage initialization with method Uniform Values
+                         + Outer loop AreaInterchangeControl
+                            + Outer loop iteration 1
+                               + Failed to distribute interchange active power mismatch
+                                  Remaining slack distribution mismatch for Area a1: -0.00101 MW
+                                  Remaining slack distribution mismatch for Area a2: -0.1 MW
+                            Outer loop unsuccessful with status: FAILED
+                         AC load flow completed with error (solverStatus=CONVERGED, outerloopStatus=FAILED)
                 """;
         LoadFlowAssert.assertTxtReportEquals(expectedReport, node);
     }
@@ -382,5 +467,25 @@ class AreaInterchangeControlTest {
         return result;
     }
 
+    @Test
+    void testTwoAreasWithEmbeddedDcNetworkDetailedModel() {
+        // Validate that AreaInterchangeControl outer loop supports AC-DC networks with only one synchronous component
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithXNodeAndEmbeddedDcDetailed();
+        parametersExt.setSlackBusPMaxMismatch(1e-2) // Mismatch is between 1e-2 and 1e-3
+            .setAcDcNetwork(true);
+        runLfTwoAreas(network, -40, 40, -30, 2);
+    }
+
+    @Test
+    void twoSynchronousComponentsConnectedByDetailedDcNetworkIsForbidden() {
+        // Network has an area that has buses in two different synchronous components (connected by a DC network)
+        // This is currently not supported
+        Network network = MultiAreaNetworkFactory.createAreaTwoSynchronousComponentsDetailedDcModel();
+        parametersExt.setAcDcNetwork(true);
+
+        // Run load flow
+        CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("AreaInterchangeControl outer loop is not allowed with AC/DC networks with several synchronous components", e5.getCause().getMessage());
+    }
 }
 

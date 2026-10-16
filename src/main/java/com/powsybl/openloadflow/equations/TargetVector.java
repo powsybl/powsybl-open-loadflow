@@ -78,6 +78,11 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
                 }
             }
         }
+
+        @Override
+        public void onHvdcAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus) {
+            invalidateValues();
+        }
     };
 
     public TargetVector(LfNetwork network, EquationSystem<V, E> equationSystem, Initializer<V, E> initializer) {

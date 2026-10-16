@@ -60,16 +60,31 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         return lfParameters.isShuntCompensatorVoltageControlOn();
     }
 
+    private void warnOverridenParameter(String parameterName, String wantedValue, String usedValue) {
+        LOGGER.warn("Load flow parameter {}={} is not handled in AC security analysis, using parameter value {} instead", parameterName, wantedValue, usedValue);
+    }
+
+    private void overrideUnsupportedParameters(OpenLoadFlowParameters lfParametersExt, AcLoadFlowParameters acParameters) {
+        if (lfParametersExt.getMaxSlackBusCount() > 1) {
+            warnOverridenParameter("maxSlackBusCount", Integer.toString(lfParametersExt.getMaxSlackBusCount()), "1");
+        }
+        if (lfParametersExt.isNetworkCacheEnabled()) {
+            warnOverridenParameter("networkCacheEnabled", "true", "false");
+        }
+        if (lfParametersExt.getReferenceBusSelectionMode() != ReferenceBusSelector.DEFAULT_MODE) {
+            warnOverridenParameter("referenceBusSelectionMode", lfParametersExt.getReferenceBusSelectionMode().name(), ReferenceBusSelector.DEFAULT_MODE.name());
+        }
+        acParameters.getNetworkParameters()
+                .setMaxSlackBusCount(1)
+                .setCacheEnabled(false)
+                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR);
+    }
+
     @Override
     protected AcLoadFlowParameters createParameters(LoadFlowParameters lfParameters, OpenLoadFlowParameters lfParametersExt, boolean breakers, boolean areas) {
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, matrixFactory, connectivityFactory, breakers, false);
-        if (acParameters.getNetworkParameters().getMaxSlackBusCount() > 1) {
-            LOGGER.warn("Multiple slack buses in a security analysis is not supported, force to 1");
-        }
+        overrideUnsupportedParameters(lfParametersExt, acParameters);
         acParameters.getNetworkParameters()
-                .setCacheEnabled(false) // force not caching as not supported in secu analysis
-                .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR) // not supported yet
-                .setMaxSlackBusCount(1)
                 .setAreaInterchangeControl(areas);
         acParameters.setDetailedReport(lfParametersExt.getReportedFeatures().contains(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));
         return acParameters;
@@ -86,13 +101,19 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected void afterPreContingencySimulation(AcLoadFlowParameters acParameters) {
+    protected AcLoadFlowParameters copyParameters(AcLoadFlowParameters parameters) {
+        return new AcLoadFlowParameters(parameters);
+    }
+
+    @Override
+    protected void afterPreContingencySimulation(AcLoadFlowParameters parameters) {
         // in some post-contingency computation, it does not remain elements to participate to slack distribution.
         // in that case, no exception should be thrown. If parameters were configured to throw, reconfigure to FAIL.
         // (the contingency will be marked as not converged)
-        if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW == acParameters.getSlackDistributionFailureBehavior()) {
-            acParameters.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW == parameters.getSlackDistributionFailureBehavior()) {
+            parameters.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
         }
+        parameters.setVoltageInitReport(false); // there is no point in reporting the PreviousVoltageValue initializer
     }
 
     public static PostContingencyComputationStatus postContingencyStatusFromAcLoadFlowResult(AcLoadFlowResult result) {
@@ -123,7 +144,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
     }
 
     @Override
-    protected void applySpecificContingencyParameters(AcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyParameters, LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
+    protected void applySpecificContingencyParameters(AcLoadFlowParameters parameters, ContingencyLoadFlowParameters contingencyParameters,
+                                                      LoadFlowParameters loadFlowParameters, OpenLoadFlowParameters openLoadFlowParameters) {
         AcOuterLoopConfig outerLoopConfig = AbstractAcOuterLoopConfig.getOuterLoopConfig()
                 .orElseGet(() -> contingencyParameters.getOuterLoopNames().isPresent() ? new ExplicitAcOuterLoopConfig()
                         : new DefaultAcOuterLoopConfig());

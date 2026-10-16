@@ -8,8 +8,10 @@
 package com.powsybl.openloadflow.util;
 
 import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.report.ReportNodeAdder;
 import com.powsybl.commons.report.TypedValue;
 import com.powsybl.openloadflow.OpenLoadFlowReportConstants;
+import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChange;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
@@ -17,6 +19,7 @@ import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -35,12 +38,18 @@ public final class Reports {
 
     private static final String IMPACTED_SHUNT_COUNT = "impactedShuntCount";
     private static final String BUS_ID = "busId";
+    private static final String GENERATOR_ID = "generatorId";
     private static final String GENERATORS_ID = "generatorIds";
     private static final String CONTROLLER_BUS_ID = "controllerBusId";
     private static final String CONTROLLED_BUS_ID = "controlledBusId";
     private static final String ACTION_ID = "actionId";
     private static final String CONTINGENCY_ID = "contingencyId";
-    public static final String MISMATCH = "mismatch";
+    private static final String HVDC_ID = "hvdcId";
+    private static final String CONTROLLER_STATION_ID = "controllerStationId";
+    private static final String NON_CONTROLLER_STATION_ID = "nonControllerStationId";
+    private static final String MISMATCH = "mismatch";
+    private static final String TARGET_V = "targetV";
+    private static final String TARGET_P = "targetP";
 
     public static final String LF_NETWORK_KEY = "olf.lfNetwork";
     public static final String POST_CONTINGENCY_SIMULATION_KEY = "olf.postContingencySimulation";
@@ -124,7 +133,8 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportBusAlreadyControlledWithDifferentTargetV(ReportNode reportNode, String controllerBusId, String controlledBusId, String busesId, Double keptTargetV, Double ignoredTargetV) {
+    public static void reportBusAlreadyControlledWithDifferentTargetV(ReportNode reportNode, String controllerBusId,
+                                                                      String controlledBusId, String busesId, Double keptTargetV, Double ignoredTargetV) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.busAlreadyControlledWithDifferentTargetV")
                 .withUntypedValue(CONTROLLER_BUS_ID, controllerBusId)
@@ -352,7 +362,7 @@ public final class Reports {
                 // busV and targetV need a higher precision than usual Voltage rounding to understand
                 // the difference. Their unit is not given to avoid a too high formatting based on Unit
                 .withUntypedValue("busV", controlledBus.getV() * controlledBus.getNominalV())
-                .withUntypedValue("targetV", targetV * controlledBus.getNominalV())
+                .withUntypedValue(TARGET_V, targetV * controlledBus.getNominalV())
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build();
         if (log) {
@@ -370,13 +380,124 @@ public final class Reports {
                 // busV and targetV need a higher precision than usual Voltage rounding to understand
                 // the difference. Their unit is not given to avoid a too high formatting based on Unit
                 .withUntypedValue("busV", controlledBus.getV() * controlledBus.getNominalV())
-                .withUntypedValue("targetV", targetV * controlledBus.getNominalV())
+                .withUntypedValue(TARGET_V, targetV * controlledBus.getNominalV())
                 .withSeverity(TypedValue.TRACE_SEVERITY)
                 .build();
         if (log) {
             logger.trace(result.getMessage());
         }
         return result;
+    }
+
+    public static ReportNode createRootReportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(ReportNode firstRootReportNode, LfGenerator generator) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorDiscardedFromVoltageControlBecauseNotStarted")
+                .withUntypedValue(GENERATOR_ID, generator.getId())
+                .withUntypedValue(TARGET_P, generator.getTargetP() * PerUnit.SB)
+                .withUntypedValue("minP", generator.getMinP() * PerUnit.SB)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+    }
+
+    public static ReportNode createRootReportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(ReportNode firstRootReportNode, LfGenerator generator) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits")
+                .withUntypedValue(GENERATOR_ID, generator.getId())
+                .withUntypedValue(TARGET_P, generator.getTargetP() * PerUnit.SB)
+                .withUntypedValue("minP", generator.getMinP() * PerUnit.SB)
+                .withUntypedValue("maxP", generator.getMaxP() * PerUnit.SB)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+    }
+
+    public static ReportNode createRootReportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(ReportNode firstRootReportNode, LfGenerator generator) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall")
+                .withUntypedValue(GENERATOR_ID, generator.getId())
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+    }
+
+    public static ReportNode createRootReportGeneratorsDiscardedFromVoltageControlBecauseImplausibleTargetVoltage(ReportNode firstRootReportNode, String generatorId, double targetV) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorDiscardedFromVoltageControlBecauseImplausibleTargetVoltage")
+                .withUntypedValue(GENERATOR_ID, generatorId)
+                .withUntypedValue(TARGET_V, targetV)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+    }
+
+    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero(ReportNode firstRootReportNode, String generatorId, double targetP) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorDiscardedFromActivePowerControlBecauseTargetEqualsToZero")
+                .withUntypedValue(GENERATOR_ID, generatorId)
+                .withUntypedValue(TARGET_P, targetP)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+    }
+
+    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(ReportNode firstRootReportNode,
+                                                                                                                    String generatorId,
+                                                                                                                    double targetP,
+                                                                                                                    double maxTargetP) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP")
+                .withUntypedValue(GENERATOR_ID, generatorId)
+                .withUntypedValue(TARGET_P, targetP)
+                .withUntypedValue("maxTargetP", maxTargetP)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+    }
+
+    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP(ReportNode firstRootReportNode,
+                                                                                                                  String generatorId,
+                                                                                                                  double targetP,
+                                                                                                                  double minTargetP) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP")
+                .withUntypedValue(GENERATOR_ID, generatorId)
+                .withUntypedValue(TARGET_P, targetP)
+                .withUntypedValue("minTargetP", minTargetP)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+    }
+
+    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible(ReportNode firstRootReportNode, String generatorId, double maxP, double plausibleLimit) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorDiscardedFromActivePowerControlBecauseMaxPNotPlausible")
+                .withUntypedValue(GENERATOR_ID, generatorId)
+                .withUntypedValue("maxP", maxP)
+                .withUntypedValue("plausibleLimit", plausibleLimit)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
+    }
+
+    public static ReportNode createRootReportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP(ReportNode firstRootReportNode, String generatorId, double maxP, double minP) {
+        return ReportNode.newRootReportNode()
+                .withLocale(firstRootReportNode.getTreeContext().getLocale())
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+                .withMessageTemplate("olf.oneGeneratorDiscardedFromActivePowerControlBecauseMaxPEqualsMinP")
+                .withUntypedValue(GENERATOR_ID, generatorId)
+                .withUntypedValue("maxP", maxP)
+                .withUntypedValue("minP", minP)
+                .withSeverity(TypedValue.TRACE_SEVERITY)
+                .build();
     }
 
     public static void reportBusForcedToBePv(ReportNode reportNode, String busId) {
@@ -390,7 +511,7 @@ public final class Reports {
     public static String reportGeneratorWithUpdatedTargetQ(ReportNode reportNode, LfGenerator generator, double oldTargetQ, double newTargetQ) {
         ReportNode result = reportNode.newReportNode()
                 .withMessageTemplate("olf.generatorWithUpdatedTargetQ")
-                .withUntypedValue("generatorId", generator.getId())
+                .withUntypedValue(GENERATOR_ID, generator.getId())
                 .withUntypedValue("oldTargetQ", oldTargetQ)
                 .withUntypedValue("newTargetQ", newTargetQ)
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -465,23 +586,25 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportCurrentLimiterPstsChangedTaps(ReportNode reportNode, int numOfCurrentLimiterPstsThatChangedTap) {
-        reportNode.newReportNode()
+    public static ReportNode reportCurrentLimiterPstsChangedTaps(ReportNode reportNode, int numOfCurrentLimiterPstsThatChangedTap) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.currentLimiterPstsChangedTaps")
                 .withUntypedValue("numOfCurrentLimiterPstsThatChangedTap", numOfCurrentLimiterPstsThatChangedTap)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
 
-    public static void reportActivePowerControlPstsChangedTaps(ReportNode reportNode, int numOfActivePowerControlPstsThatChangedTap) {
-        reportNode.newReportNode()
+    public static ReportNode reportActivePowerControlPstsChangedTaps(ReportNode reportNode, int numOfActivePowerControlPstsThatChangedTap) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.activePowerControlPstsChangedTaps")
                 .withUntypedValue("numOfActivePowerControlPstsThatChangedTap", numOfActivePowerControlPstsThatChangedTap)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
     }
 
-    public static void reportTransformerControlAlreadyExistsWithDifferentTargetV(ReportNode reportNode, String firstControllerId, String newControllerId, String controlledBusId, double vcTargetValue, double targetValue) {
+    public static void reportTransformerControlAlreadyExistsWithDifferentTargetV(ReportNode reportNode, String firstControllerId,
+                                                                                 String newControllerId, String controlledBusId,
+                                                                                 double vcTargetValue, double targetValue) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.transformerControlAlreadyExistsWithDifferentTargetV")
                 .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
@@ -493,7 +616,9 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportTransformerControlAlreadyExistsUpdateDeadband(ReportNode reportNode, String firstControllerId, String newControllerId, String controlledBusId, double newTargetDeadband, Double oldTargetDeadband) {
+    public static void reportTransformerControlAlreadyExistsUpdateDeadband(ReportNode reportNode, String firstControllerId,
+                                                                           String newControllerId, String controlledBusId,
+                                                                           double newTargetDeadband, Double oldTargetDeadband) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.transformerControlAlreadyExistsUpdateDeadband")
                 .withUntypedValue(CONTROLLED_BUS_ID, controlledBusId)
@@ -521,11 +646,24 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportTransformerControlChangedTaps(ReportNode reportNode, int numTransformerControlAdjusted) {
-        reportNode.newReportNode()
+    public static ReportNode reportTransformerControlChangedTaps(ReportNode reportNode, int numTransformerControlAdjusted) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.transformerControlChangedTaps")
                 .withUntypedValue("numTransformerControlAdjusted", numTransformerControlAdjusted)
                 .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportTransformerControlChangedTapsDetail(ReportNode reportNode, DiscreteControllerChange change) {
+        ReportNodeAdder adder = reportNode.newReportNode();
+        change.getSide().ifPresentOrElse(
+            side -> adder.withMessageTemplate("olf.transformerControlChangedTapsDetailWithSide")
+                    .withUntypedValue("side", side.getNum()),
+            () -> adder.withMessageTemplate("olf.transformerControlChangedTapsDetail"));
+        adder.withUntypedValue("transformerId", change.getElementId())
+                .withUntypedValue("oldTapPosition", change.getOldPosition())
+                .withUntypedValue("newTapPosition", change.getNewPosition())
+                .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }
 
@@ -545,11 +683,21 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportShuntVoltageControlChangedSection(ReportNode reportNode, int numShuntVoltageControlAdjusted) {
-        reportNode.newReportNode()
+    public static ReportNode reportShuntVoltageControlChangedSection(ReportNode reportNode, int numShuntVoltageControlAdjusted) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.shuntVoltageControlChangedSection")
                 .withUntypedValue("numShuntVoltageControlAdjusted", numShuntVoltageControlAdjusted)
                 .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
+    public static void reportShuntVoltageControlChangedSectionDetail(ReportNode reportNode, DiscreteControllerChange change) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.shuntVoltageControlChangedSectionDetail")
+                .withUntypedValue("shuntId", change.getElementId())
+                .withUntypedValue("oldPosition", change.getOldPosition())
+                .withUntypedValue("newPosition", change.getNewPosition())
+                .withSeverity(TypedValue.TRACE_SEVERITY)
                 .add();
     }
 
@@ -589,32 +737,32 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(ReportNode reportNode, int impactedGeneratorCount) {
-        reportNode.newReportNode()
+    public static ReportNode reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.generatorsDiscardedFromVoltageControlBecauseNotStarted")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(ReportNode reportNode, int impactedGeneratorCount) {
-        reportNode.newReportNode()
+    public static ReportNode reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(ReportNode reportNode, int impactedGeneratorCount) {
-        reportNode.newReportNode()
+    public static ReportNode reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
     }
 
-    public static void reportGeneratorsDiscardedFromVoltageControlBecauseTargetVIsImplausible(ReportNode reportNode, int impactedGeneratorCount) {
-        reportNode.newReportNode()
+    public static ReportNode reportGeneratorsDiscardedFromVoltageControlBecauseImplausibleTargetVoltage(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
                 .withMessageTemplate("olf.generatorsDiscardedFromVoltageControlBecauseTargetVIsImplausible")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
@@ -632,6 +780,46 @@ public final class Reports {
     public static void reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages(ReportNode reportNode, int impactedGeneratorCount) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static ReportNode reportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("olf.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static ReportNode reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("olf.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static ReportNode reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("olf.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static ReportNode reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("olf.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible")
+                .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
+                .withSeverity(TypedValue.WARN_SEVERITY)
+                .add();
+    }
+
+    public static ReportNode reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP(ReportNode reportNode, int impactedGeneratorCount) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("olf.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP")
                 .withUntypedValue(IMPACTED_GENERATOR_COUNT, impactedGeneratorCount)
                 .withSeverity(TypedValue.WARN_SEVERITY)
                 .add();
@@ -695,6 +883,33 @@ public final class Reports {
                 .build();
     }
 
+    /**
+     * Create a Root report node for an AC-DC network. It is identified only by its connected component number.
+     * @param firstRootReportNode original root report node. Used to get locale parameter.
+     * @param networkNumCc number of the connected component represented by the LfNetwork associated to this report node.
+     * @return a new report node to be attached to a LfNetwork.
+     */
+    public static ReportNode createRootAcDcLfNetworkReportNode(ReportNode firstRootReportNode, int networkNumCc) {
+        return ReportNode.newRootReportNode()
+            .withLocale(firstRootReportNode.getTreeContext().getLocale())
+            .withAllResourceBundlesFromClasspath()
+            .withMessageTemplate("olf.lfCcNetwork")
+            .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
+            .build();
+    }
+
+    /**
+     * Create a report node for a synchronous network. It is identified only by its synchronous component number.
+     * @param networkNumSc number of the synchronous component represented by the LfSynchronousNetwork associated to this report node.
+     * @return a new report node to be used by a LfSynchronousNetwork.
+     */
+    public static ReportNode createLfSynchronousNetworkReportNode(ReportNode reportNode, int networkNumSc) {
+        return reportNode.newReportNode()
+            .withMessageTemplate("olf.lfScNetwork")
+            .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
+            .add();
+    }
+
     public static ReportNode includeLfNetworkReportNode(ReportNode reportNode, ReportNode lfNetworkReportNode) {
         reportNode.include(lfNetworkReportNode);
         return lfNetworkReportNode;
@@ -718,6 +933,15 @@ public final class Reports {
                 .withMessageTemplate("olf.OuterLoopIteration")
                 .withUntypedValue("outerLoopIteration", outerLoopIteration)
                 .add();
+    }
+
+    public static ReportNode createRootOuterLoopIterationReporter(ReportNode firstRootReportNode, int outerLoopIteration) {
+        return ReportNode.newRootReportNode()
+            .withLocale(firstRootReportNode.getTreeContext().getLocale())
+            .withAllResourceBundlesFromClasspath()
+            .withMessageTemplate("olf.OuterLoopIteration")
+            .withUntypedValue("outerLoopIteration", outerLoopIteration)
+            .build();
     }
 
     public static ReportNode createSensitivityAnalysis(ReportNode reportNode, String networkId) {
@@ -757,7 +981,7 @@ public final class Reports {
     public static ReportNode createPostContingencySimulation(ReportNode reportNode, String contingencyId) {
         return reportNode.newReportNode()
                 .withMessageTemplate(POST_CONTINGENCY_SIMULATION_KEY)
-                .withUntypedValue(CONTINGENCY_ID, contingencyId)
+                .withUntypedValue(CONTINGENCY_ID, Objects.toString(contingencyId))
                 .add();
     }
 
@@ -770,6 +994,15 @@ public final class Reports {
 
     public static ReportNode createDetailedSolverReporter(ReportNode reportNode, String solverName, int networkNumCc, int networkNumSc) {
         ReportNode subReportNode = createSolverReport(reportNode, solverName, networkNumCc, networkNumSc);
+        return createDetailedSolverReporter(subReportNode);
+    }
+
+    public static ReportNode createDetailedSolverReporterConnectedComponent(ReportNode reportNode, String solverName, int networkNumCc) {
+        ReportNode subReportNode = createSolverReportConnectedComponent(reportNode, solverName, networkNumCc);
+        return createDetailedSolverReporter(subReportNode);
+    }
+
+    public static ReportNode createDetailedSolverReporter(ReportNode subReportNode) {
         subReportNode.newReportNode()
                 .withMessageTemplate("olf.solverNoOuterLoops")
                 .withSeverity(TypedValue.INFO_SEVERITY)
@@ -780,6 +1013,16 @@ public final class Reports {
     public static ReportNode createDetailedSolverReporterOuterLoop(ReportNode reportNode, String solverName, int networkNumCc, int networkNumSc,
                                                                    int outerLoopIteration, String outerLoopType) {
         ReportNode subReportNode = createSolverReport(reportNode, solverName, networkNumCc, networkNumSc);
+        return createDetailedSolverReporterOuterLoopConnectedComponent(subReportNode, solverName, outerLoopIteration, outerLoopType);
+    }
+
+    public static ReportNode createDetailedSolverReporterOuterLoopConnectedComponent(ReportNode reportNode, String solverName, int networkNumCc,
+                                                                                     int outerLoopIteration, String outerLoopType) {
+        ReportNode subReportNode = createSolverReportConnectedComponent(reportNode, solverName, networkNumCc);
+        return createDetailedSolverReporterOuterLoopConnectedComponent(subReportNode, solverName, outerLoopIteration, outerLoopType);
+    }
+
+    public static ReportNode createDetailedSolverReporterOuterLoopConnectedComponent(ReportNode subReportNode, String solverName, int outerLoopIteration, String outerLoopType) {
         subReportNode.newReportNode()
                 .withMessageTemplate("olf.solverOuterLoopCurrentType")
                 .withUntypedValue(SOLVER_NAME, solverName)
@@ -795,6 +1038,14 @@ public final class Reports {
                 .withMessageTemplate("olf.solver")
                 .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
                 .withUntypedValue(NETWORK_NUM_SC, networkNumSc)
+                .withUntypedValue(SOLVER_NAME, solverName)
+                .add();
+    }
+
+    public static ReportNode createSolverReportConnectedComponent(ReportNode reportNode, String solverName, int networkNumCc) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("olf.solverCc")
+                .withUntypedValue(NETWORK_NUM_CC, networkNumCc)
                 .withUntypedValue(SOLVER_NAME, solverName)
                 .add();
     }
@@ -894,7 +1145,8 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportNewtonRaphsonBusesOutOfRealisticVoltageRange(ReportNode reportNode, Map<String, Double> busesOutOfRealisticVoltageRange, double minRealisticVoltage, double maxRealisticVoltage) {
+    public static void reportNewtonRaphsonBusesOutOfRealisticVoltageRange(ReportNode reportNode, Map<String, Double> busesOutOfRealisticVoltageRange,
+                                                                          double minRealisticVoltage, double maxRealisticVoltage) {
         ReportNode voltageOutOfRangeReport = reportNode.newReportNode()
                 .withMessageTemplate("olf.newtonRaphsonBusesOutOfRealisticVoltageRange")
                 .withUntypedValue("busCountOutOfRealisticVoltageRange", busesOutOfRealisticVoltageRange.size())
@@ -924,6 +1176,16 @@ public final class Reports {
                 .add());
     }
 
+    public static void reportAutomaticVdcReferenceConverter(ReportNode reportNode, int dcComponentNum, String converterId, double targetVdc) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.automaticVdcReferenceConverter")
+                .withUntypedValue("dcComponentNum", dcComponentNum)
+                .withUntypedValue("converterId", converterId)
+                .withUntypedValue("targetVdc", targetVdc)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
     public static void reportAcEmulationDisabledInWoodburyDcSecurityAnalysis(ReportNode reportNode) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.acEmulationDisabledInWoodburyDcSecurityAnalysis")
@@ -941,12 +1203,55 @@ public final class Reports {
                 .add();
     }
 
-    public static void reportFreezeHvdc(ReportNode reportNode, String hvdcId, String stationId, double setPoint, Logger logger) {
+    public static void reportAcEmulationFromLinearToSaturated(ReportNode reportNode, String hvdcId, String controllerStationId, String nonControllerStationId, double pMax, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.acEmulationFromLinearToSaturated")
+                .withUntypedValue(HVDC_ID, hvdcId)
+                .withUntypedValue(CONTROLLER_STATION_ID, controllerStationId)
+                .withUntypedValue(NON_CONTROLLER_STATION_ID, nonControllerStationId)
+                .withUntypedValue("pMax", pMax)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
+    public static void reportAcEmulationSaturationSideSwitch(ReportNode reportNode, String hvdcId, String newControllerStationId, String newNonControllerStationId, double pMax, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.acEmulationSaturationSideSwitch")
+                .withUntypedValue(HVDC_ID, hvdcId)
+                .withUntypedValue(CONTROLLER_STATION_ID, newControllerStationId)
+                .withUntypedValue(NON_CONTROLLER_STATION_ID, newNonControllerStationId)
+                .withUntypedValue("pMax", pMax)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
+    public static void reportAcEmulationBackToLinear(ReportNode reportNode, String hvdcId, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.acEmulationBackToLinear")
+                .withUntypedValue(HVDC_ID, hvdcId)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
+    public static void reportFreezeHvdc(ReportNode reportNode, String hvdcId, String controllerStationId, String nonControllerStationId, double setPoint, Logger logger) {
         ReportNode node = reportNode.newReportNode()
                 .withMessageTemplate("olf.freezeHvdc")
-                .withUntypedValue("hvdcId", hvdcId)
-                .withUntypedValue("stationId", stationId)
+                .withUntypedValue(HVDC_ID, hvdcId)
+                .withUntypedValue(CONTROLLER_STATION_ID, controllerStationId)
+                .withUntypedValue(NON_CONTROLLER_STATION_ID, nonControllerStationId)
                 .withUntypedValue("setPoint", setPoint)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+        logger.info(node.getMessage());
+    }
+
+    public static void reportNoFreezeBecauseHvdcAction(ReportNode reportNode, String hvdcId, Logger logger) {
+        ReportNode node = reportNode.newReportNode()
+                .withMessageTemplate("olf.noFreezeBecauseHvdcAction")
+                .withUntypedValue(HVDC_ID, hvdcId)
                 .withSeverity(TypedValue.INFO_SEVERITY)
                 .add();
         logger.info(node.getMessage());
@@ -1000,6 +1305,13 @@ public final class Reports {
                 .withUntypedValue("bus2", idBus2)
                 .withUntypedValue("indicator", indicator)
                 .withUntypedValue("elements", deactivatedElements)
+                .add();
+    }
+
+    public static ReportNode reportVoltageInitializer(ReportNode reportNode, String initializerName) {
+        return reportNode.newReportNode()
+                .withMessageTemplate("olf.voltageInitializer")
+                .withUntypedValue("initializerName", initializerName)
                 .add();
     }
 

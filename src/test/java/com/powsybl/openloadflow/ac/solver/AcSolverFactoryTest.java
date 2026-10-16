@@ -15,9 +15,10 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
@@ -31,9 +32,11 @@ import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,7 +44,14 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
+@ExtendWith(ServiceParameterResolver.class)
 class AcSolverFactoryTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcSolverFactoryTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
 
     public record AcSolverMockParameters(int maxIterations) implements AcSolverParameters {
 
@@ -59,7 +69,7 @@ class AcSolverFactoryTest {
         private final EquationSystem<AcVariableType, AcEquationType> equationSystem;
         private final AcSolverMockParameters parameters;
 
-        public AcSolverMock(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, AcSolverMockParameters parameters) {
+        AcSolverMock(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, AcSolverMockParameters parameters) {
             this.network = network;
             this.equationSystem = equationSystem;
             this.parameters = parameters;
@@ -74,7 +84,7 @@ class AcSolverFactoryTest {
         public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
             AcSolverUtil.initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
             LOGGER.info("I am a not so advanced solver only able to return flat 1 p.u. /_ 0.0, in max iterations, leaving 34 MW slack mismatch.");
-            return new AcSolverResult(AcSolverStatus.CONVERGED, parameters.maxIterations(), 0.34);
+            return new AcSolverResult(AcSolverStatus.CONVERGED, parameters.maxIterations(), Collections.singletonMap(0, 0.34));
         }
     }
 
@@ -99,7 +109,9 @@ class AcSolverFactoryTest {
         }
 
         @Override
-        public AcSolver create(LfNetwork network, AcLoadFlowParameters parameters, EquationSystem<AcVariableType, AcEquationType> equationSystem, JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector, EquationVector<AcVariableType, AcEquationType> equationVector) {
+        public AcSolver create(LfNetwork network, AcLoadFlowParameters parameters, EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                               JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
+                               EquationVector<AcVariableType, AcEquationType> equationVector) {
             return new AcSolverMock(network, equationSystem, (AcSolverMockParameters) parameters.getAcSolverParameters());
         }
     }
@@ -115,7 +127,7 @@ class AcSolverFactoryTest {
     @Test
     void testMockAcSolverType() {
         Network network = FourBusNetworkFactory.createBaseNetwork();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters().setDistributedSlack(false);
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
         parametersExt.setAcSolverType(AcSolverFactoryMock.NAME);
@@ -124,7 +136,7 @@ class AcSolverFactoryTest {
                 network,
                 parameters,
                 parametersExt,
-                new DenseMatrixFactory(),
+                commonTestConfig.matrixFactory(),
                 new EvenShiloachGraphDecrementalConnectivityFactory<>()
         );
         assertEquals("AcSolverMockParameters(maxIterations=12)", acLoadFlowParameters.getAcSolverParameters().toString());

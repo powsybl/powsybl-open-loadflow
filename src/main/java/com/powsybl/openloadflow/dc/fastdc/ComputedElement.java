@@ -7,11 +7,19 @@
  */
 package com.powsybl.openloadflow.dc.fastdc;
 
+import com.powsybl.action.GeneratorAction;
+import com.powsybl.action.LoadAction;
+import com.powsybl.action.PhaseTapChangerTapPositionAction;
+import com.powsybl.action.SwitchAction;
+import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
+import com.powsybl.openloadflow.dc.equations.AbstractClosedBranchDcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
+import com.powsybl.openloadflow.dc.equations.DcApproximationType;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.Equation;
@@ -19,12 +27,18 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.TapPositionChange;
+import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
+import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
+import com.powsybl.openloadflow.network.action.LfAction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -32,13 +46,15 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public interface ComputedElement {
 
+    Logger LOGGER = LoggerFactory.getLogger(ComputedElement.class);
+
     int getComputedElementIndex();
 
-    void setComputedElementIndex(final int index);
+    void setComputedElementIndex(int index);
 
     int getLocalIndex();
 
-    void setLocalIndex(final int index);
+    void setLocalIndex(int index);
 
     double getAlphaForWoodburyComputation();
 
@@ -118,5 +134,72 @@ public interface ComputedElement {
         DenseMatrix elementsStates = initRhs(loadFlowContext.getEquationSystem(), computedElements); // rhs with +1 -1 on computed elements
         loadFlowContext.getJacobianMatrix().solveTransposed(elementsStates);
         return elementsStates;
+    }
+
+    static Map<LfAction, List<ComputedElement>> createActionElementsIndexByLfAction(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                                                                    DcEquationSystemCreationParameters creationParameters) {
+        Map<LfAction, List<ComputedElement>> computedElements = lfActionById.values().stream()
+            .flatMap(lfAction -> computeActionElementsIndexByLfAction(lfAction, equationSystem, creationParameters))
+            .filter(e -> e.getValue().stream().filter(b -> b.getLfBranchEquation() == null).findAny().isEmpty())
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (existing, replacement) -> existing,
+                LinkedHashMap::new
+            ));
+        ComputedElement.setComputedElementIndexes(computedElements.values().stream().flatMap(Collection::stream).toList());
+        return computedElements;
+    }
+
+    private static Stream<Map.Entry<LfAction, List<ComputedElement>>> computeActionElementsIndexByLfAction(LfAction lfAction,
+                                                                                                    EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                                                                                    DcEquationSystemCreationParameters creationParameters) {
+        List<ComputedElement> elements = new ArrayList<>();
+        switch (lfAction.getType()) {
+            case SwitchAction.NAME, TerminalsConnectionAction.NAME -> {
+                AbstractLfBranchAction<?> lfBranchAction = (AbstractLfBranchAction<?>) lfAction;
+                if (!lfBranchAction.getEnabledBranches().isEmpty()) {
+                    elements.addAll(lfBranchAction.getEnabledBranches().stream().map(b -> ComputedSwitchBranchElement.create(b, true, equationSystem)).toList());
+                } else if (!lfBranchAction.getDisabledBranches().isEmpty()) {
+                    elements.addAll(lfBranchAction.getDisabledBranches().stream().map(b -> ComputedSwitchBranchElement.create(b, false, equationSystem)).toList());
+                }
+            }
+            case PhaseTapChangerTapPositionAction.NAME -> {
+                TapPositionChange change = ((AbstractLfTapChangerAction<?>) lfAction).getChange();
+                // a pure phase shift (no impedance/ratio change) does not modify the branch power and is fully
+                // handled through the target vector: it must not produce a Woodbury element, otherwise its
+                // diagonal term (1 / (oldPower - newPower)) would be infinite and corrupt the alpha solve
+                if (changesBranchPower(change, creationParameters)) {
+                    elements.add(new ComputedTapPositionChangeElement(change, equationSystem));
+                }
+            }
+            case GeneratorAction.NAME -> { /* generator actions modify the target vector, they produce no Woodbury elements */ }
+            case LoadAction.NAME -> { /* load actions modify the target vector, they produce no Woodbury elements */ }
+            default -> throw new IllegalStateException("Only tap position change and branch enabling/disabling are supported in WoodburyDcSecurityAnalysis");
+        }
+        if (elements.isEmpty()) {
+            return Stream.empty();
+        }
+        return Stream.of(Map.entry(lfAction, elements));
+    }
+
+    /**
+     * Returns true if the tap position change modifies the branch power. The Woodbury element built for such a change
+     * has a diagonal term {@code 1 / (oldPower - newPower)} (see {@link WoodburyEngine}), so it must only be created
+     * when the power actually changes, otherwise that term is infinite and corrupts the alpha solve. The power is
+     * evaluated with the exact same inputs as the diagonal, i.e. through
+     * {@link AbstractClosedBranchDcFlowEquationTerm#computePower} with the configured DC approximation type and
+     * transformer ratio usage: depending on those, the power ignores the resistance (IGNORE_R) or the first side ratio
+     * (transformer ratio not used), so comparing the pi model resistance, reactance and ratio directly would wrongly
+     * flag as power changes some tap changes that leave the power unchanged (e.g. a pure phase shift, but also a
+     * resistance-only change in IGNORE_R).
+     */
+    private static boolean changesBranchPower(TapPositionChange change, DcEquationSystemCreationParameters creationParameters) {
+        PiModel oldPiModel = change.getBranch().getPiModel();
+        PiModel newPiModel = change.getNewPiModel();
+        boolean useTransformerRatio = creationParameters.isUseTransformerRatio();
+        DcApproximationType dcApproximationType = creationParameters.getDcApproximationType();
+        return AbstractClosedBranchDcFlowEquationTerm.computePower(useTransformerRatio, dcApproximationType, oldPiModel)
+                != AbstractClosedBranchDcFlowEquationTerm.computePower(useTransformerRatio, dcApproximationType, newPiModel);
     }
 }
