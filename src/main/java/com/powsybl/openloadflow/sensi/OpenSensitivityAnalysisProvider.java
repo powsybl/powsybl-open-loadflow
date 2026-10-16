@@ -35,6 +35,7 @@ import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -223,10 +224,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }
 
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory;
-        if (operatorStrategies.isEmpty()) {
-            selectedConnectivityFactory = connectivityFactory;
-        } else {
+        if (!operatorStrategies.isEmpty() && connectivityFactory instanceof EvenShiloachGraphDecrementalConnectivity<?, ?>) {
             selectedConnectivityFactory = new DTreeGraphConnectivityFactory<>();
+        } else {
+            selectedConnectivityFactory = connectivityFactory;
         }
 
         AbstractSensitivityAnalysis<?, ?> analysis;

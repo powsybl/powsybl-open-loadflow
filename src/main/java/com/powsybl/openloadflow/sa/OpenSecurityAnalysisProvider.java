@@ -17,6 +17,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -74,10 +75,11 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
         OpenLoadFlowParameters.log(loadFlowParameters, loadFlowParametersExt);
 
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory;
-        if (runParameters.getOperatorStrategies().isEmpty() && !loadFlowParametersExt.isSimulateAutomationSystems()) {
-            selectedConnectivityFactory = connectivityFactory;
-        } else {
+        if ((!runParameters.getOperatorStrategies().isEmpty() || loadFlowParametersExt.isSimulateAutomationSystems())
+                && connectivityFactory instanceof EvenShiloachGraphDecrementalConnectivityFactory<LfBus, LfBranch>) {
             selectedConnectivityFactory = new DTreeGraphConnectivityFactory<>();
+        } else {
+            selectedConnectivityFactory = connectivityFactory;
         }
 
         AbstractSecurityAnalysis<?, ?, ?, ?, ?> securityAnalysis;
