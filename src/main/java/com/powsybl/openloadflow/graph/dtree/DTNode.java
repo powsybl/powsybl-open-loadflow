@@ -340,6 +340,10 @@ public class DTNode<V, E> {
         return graph;
     }
 
+    public DTreeGraphConnectivity<V, E> getDTree() {
+        return graph.getDTree();
+    }
+
     public V getVertex() {
         return vertex;
     }

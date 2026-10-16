@@ -7,8 +7,8 @@
  */
 package com.powsybl.openloadflow.graph.dtree;
 
-import com.powsybl.openloadflow.graph.GraphModel;
 import com.powsybl.openloadflow.graph.Component;
+import com.powsybl.openloadflow.graph.GraphModel;
 
 import java.util.*;
 
@@ -20,6 +20,8 @@ import java.util.*;
  */
 public class DTGraph<V, E> implements GraphModel<V, E> {
 
+    private DTreeGraphConnectivity<V, E> dtree;
+
     /**
      * map a vertex to a node in a spanning tree
      */
@@ -30,6 +32,10 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     private final Map<E, Edge<V, E>> edges = new HashMap<>();
 
     private final Set<DTNode<V, E>> roots = new LinkedHashSet<>();
+
+    public void setDTree(DTreeGraphConnectivity<V, E> dtree) {
+        this.dtree = Objects.requireNonNull(dtree);
+    }
 
     public DTNode<V, E> getNodeOrThrow(V v) {
         DTNode<V, E> node = vertexToTreeNode.get(v);
@@ -391,5 +397,9 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
 
     Set<DTNode<V, E>> getRoots() {
         return roots;
+    }
+
+    public DTreeGraphConnectivity<V, E> getDTree() {
+        return dtree;
     }
 }
