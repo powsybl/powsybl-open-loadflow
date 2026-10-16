@@ -445,4 +445,107 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
 
         return network;
     }
+
+    /**
+     *  load L_2 + g G_2              g G       bl BL (+ optional generation)
+     *       |                          |          |
+     *     BUS_2 -------- LINE_12 ---- BUS --------+
+     *
+     * Both buses are in voltage level VL. LINE_12 has a permanent current limit on both sides,
+     * set to (afterGDisconnectionCurrent - 2), so that disconnecting generator G provokes limit violations.
+     */
+    public static Network createWithTwoGeneratorsAndLimits(boolean withGeneration, boolean withVoltageRegulation, double afterGDisconnectionCurrent) {
+        double currentLimit = afterGDisconnectionCurrent - 2.0;
+
+        Network network = Network.create("boundary-line", "test");
+        Substation substation = network.newSubstation()
+                .setId("S")
+                .setCountry(Country.FR)
+                .add();
+        VoltageLevel vl = substation.newVoltageLevel()
+                .setId("VL")
+                .setNominalV(100.0)
+                .setLowVoltageLimit(80.0)
+                .setHighVoltageLimit(120.0)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl.getBusBreakerView().newBus()
+                .setId("BUS")
+                .add();
+        vl.newGenerator()
+                .setId("G")
+                .setBus("BUS")
+                .setTargetP(50.0)
+                .setTargetV(100.0)
+                .setTargetQ(0)
+                .setMinP(0.0)
+                .setMaxP(100.0)
+                .setVoltageRegulatorOn(true)
+                .add();
+        vl.getBusBreakerView().newBus()
+                .setId("BUS_2")
+                .add();
+        vl.newGenerator()
+                .setId("G_2")
+                .setConnectableBus("BUS_2")
+                .setBus("BUS_2")
+                .setMinP(0)
+                .setMaxP(100)
+                .setTargetP(50)
+                .setTargetQ(25)
+                .setTargetV(100)
+                .setVoltageRegulatorOn(true)
+                .add();
+        vl.newLoad()
+                .setId("L_2")
+                .setConnectableBus("BUS_2")
+                .setBus("BUS_2")
+                .setP0(50)
+                .setQ0(30)
+                .add();
+
+        Line line12 = network.newLine()
+                .setId("LINE_12")
+                .setBus1("BUS_2")
+                .setBus2("BUS")
+                .setR(0.00001)
+                .setX(8)
+                .add();
+        line12.newCurrentLimits1()
+                .setPermanentLimit(currentLimit)
+                .add();
+        line12.newCurrentLimits2()
+                .setPermanentLimit(currentLimit)
+                .add();
+
+        addBoundaryLine(vl, withGeneration, withVoltageRegulation);
+        return network;
+    }
+
+    private static void addBoundaryLine(VoltageLevel vl, boolean withGeneration, boolean withVoltageRegulation) {
+        BoundaryLineAdder adder = vl.newBoundaryLine()
+                .setId("BL")
+                .setBus("BUS")
+                .setR(0.00001)
+                .setX(3)
+                .setP0(50.0)
+                .setQ0(10.0);
+        if (withGeneration) {
+            BoundaryLine boundaryLine = adder.newGeneration()
+                    .setTargetP(20)
+                    .setTargetQ(-9)
+                    .setMinP(0.0)
+                    .setMaxP(40)
+                    .setTargetV(101.0)
+                    .setVoltageRegulationOn(withVoltageRegulation)
+                    .add()
+                    .add();
+            boundaryLine.getGeneration().newReactiveCapabilityCurve()
+                    .beginPoint().setP(0.0).setMinQ(-59.3).setMaxQ(60.0).endPoint()
+                    .beginPoint().setP(70.0).setMinQ(-54.55).setMaxQ(46.25).endPoint()
+                    .add();
+        } else {
+            adder.add();
+        }
+    }
 }

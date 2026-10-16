@@ -53,7 +53,9 @@ import com.powsybl.security.results.PostContingencyResult;
 import com.powsybl.security.results.PreContingencyResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.ByteArrayInputStream;
@@ -64,11 +66,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_POWER;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_V;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -1763,6 +1764,110 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
             () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP));
         assertEquals("Shunt compensator 'DUMMY' not found", exception.getCause().getMessage());
 
+    }
+
+    static Stream<Arguments> boundaryLineActionProvider() {
+        return Stream.of(
+                Arguments.of(true, true, 180.182),
+                Arguments.of(true, false, 209.613),
+                Arguments.of(false, false, 298.172)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("boundaryLineActionProvider")
+    void testBoundaryLineAction(boolean withGeneration, boolean withVoltageRegulation, double lineCurrentAfterContingency) {
+        // current values expected on LINE_12 (on both sides) after disconnection of generator G and a LF
+        double boundaryLineActionP0 = 25.0;
+        double boundaryLineActionQ0 = 10.0;
+
+        Network network = BoundaryFactory.createWithTwoGeneratorsAndLimits(withGeneration, withVoltageRegulation, lineCurrentAfterContingency);
+
+        // Set contingency, action and operator strategy and parameters for the security analysis
+        BoundaryLineAction boundaryLineAction = new BoundaryLineActionBuilder()
+                .withId("boundary_line_action")
+                .withBoundaryLineId("BL")
+                .withActivePowerValue(boundaryLineActionP0)
+                .withReactivePowerValue(boundaryLineActionQ0)
+                .withRelativeValue(false)
+                .build();
+
+        List<Action> actions = List.of(boundaryLineAction);
+        Contingency generatorContingency = new Contingency("G", new GeneratorContingency("G"));
+        List<Contingency> contingencies = List.of(generatorContingency);
+        List<OperatorStrategy> operatorStrategies = List.of(
+                new OperatorStrategy("strategy1", ContingencyContext.specificContingency(generatorContingency.getId()), new TrueCondition(), List.of(boundaryLineAction.getId())));
+
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+        OpenLoadFlowParameters.create(parameters.getLoadFlowParameters())
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL)
+                .setSlackBusPMaxMismatch(1e-3);
+
+        // StateMonitor
+        // List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<StateMonitor> monitors = new ArrayList<>();
+        Set<String> allBranchIds = network.getBranchStream().map(Identifiable::getId).collect(Collectors.toSet());
+        monitors.add(new StateMonitor(ContingencyContext.all(), allBranchIds, Collections.emptySet(), Collections.emptySet()));
+        monitors.add(new StateMonitor(ContingencyContext.all(), Set.of("BL"), Collections.emptySet(), Collections.emptySet()));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, parameters, operatorStrategies, actions, ReportNode.NO_OP);
+
+        // Check on SA results and values
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        assertEquals(0, result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().size());
+        // One contingency has been simulated
+        assertEquals(1, result.getPostContingencyResults().size());
+        // contingency CONVERGED with 2 limit violations
+        assertEquals(PostContingencyComputationStatus.CONVERGED, result.getPostContingencyResults().get(0).getStatus());
+        List<LimitViolation> postContingencyLimitViolations = result.getPostContingencyResults().get(0).getLimitViolationsResult().getLimitViolations();
+        assertEquals(2, postContingencyLimitViolations.size());
+        assertEquals(LimitViolationType.CURRENT, postContingencyLimitViolations.get(0).getLimitType());
+        assertEquals(LimitViolationType.CURRENT, postContingencyLimitViolations.get(1).getLimitType());
+        assertEquals(lineCurrentAfterContingency, postContingencyLimitViolations.get(0).getValue(), DELTA_I);
+        assertEquals(lineCurrentAfterContingency, postContingencyLimitViolations.get(1).getValue(), DELTA_I);
+
+        // The computation of the OperatorStrategy on the contingency CONVERGED and resolved all the limit violations
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy1");
+        assertEquals(PostContingencyComputationStatus.CONVERGED, operatorStrategyResult.getConditionalActionsResults().get(0).getStatus());
+        assertEquals(0, operatorStrategyResult.getLimitViolationsResult().getLimitViolations().size());
+
+        // Check LINE_12 current value after contingency (currents should be bigger than the line current limits)
+        assertTrue(result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("LINE_12").getI1() > network.getLine("LINE_12").getCurrentLimits1().orElseThrow().getPermanentLimit());
+        assertTrue(result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("LINE_12").getI2() > network.getLine("LINE_12").getCurrentLimits2().orElseThrow().getPermanentLimit());
+        assertEquals(lineCurrentAfterContingency, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("LINE_12").getI1(), DELTA_I);
+        assertEquals(lineCurrentAfterContingency, result.getPostContingencyResults().get(0).getNetworkResult().getBranchResult("LINE_12").getI2(), DELTA_I);
+        // After operator strategy current should be smaller than the line current limits
+        assertTrue(result.getOperatorStrategyResults().get(0).getNetworkResult().getBranchResult("LINE_12").getI1() < network.getLine("LINE_12").getCurrentLimits1().orElseThrow().getPermanentLimit());
+        assertTrue(result.getOperatorStrategyResults().get(0).getNetworkResult().getBranchResult("LINE_12").getI2() < network.getLine("LINE_12").getCurrentLimits2().orElseThrow().getPermanentLimit());
+
+        // Compare with network modification (Contingency=disconnect G / action = set boundary line P0 and Q0) + loadflow
+        network.getGenerator("G").disconnect();
+        network.getBoundaryLine("BL").setP0(boundaryLineActionP0);
+        network.getBoundaryLine("BL").setQ0(boundaryLineActionQ0);
+        loadFlowRunner.run(network);
+
+        assertEquals(network.getLine("LINE_12").getTerminal1().getP(),
+                getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("LINE_12").getP1(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getLine("LINE_12").getTerminal2().getP(),
+                getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("LINE_12").getP2(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(network.getBoundaryLine("BL").getTerminals().get(0).getP(),
+                getOperatorStrategyResult(result, "strategy1").getNetworkResult().getBranchResult("BL").getP1(), LoadFlowAssert.DELTA_POWER);
+
+    }
+
+    @Test
+    void testWrongBoundaryLineAction() {
+        Network network = BoundaryFactory.createWithTwoGeneratorsAndLimits(false, false, 100);
+
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        List<Contingency> contingencies = List.of(new Contingency("tr2", new TwoWindingsTransformerContingency("tr2")));
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        List<Action> actions = List.of(new BoundaryLineActionBuilder().withId("action").withBoundaryLineId("DUMMY").withActivePowerValue(10).withRelativeValue(true).build());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("tr2"), new TrueCondition(), List.of("action")));
+
+        CompletionException exception = assertThrows(CompletionException.class,
+                () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP));
+        assertEquals("Boundary line 'DUMMY' not found", exception.getCause().getMessage());
     }
 
     @Test
