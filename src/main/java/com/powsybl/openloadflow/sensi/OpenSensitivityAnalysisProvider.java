@@ -35,9 +35,9 @@ import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.action.Actions;
@@ -88,7 +88,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
     }
 
     public OpenSensitivityAnalysisProvider(MatrixFactory matrixFactory) {
-        this(matrixFactory, new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        this(matrixFactory, new DTreeGraphConnectivityFactory<>());
     }
 
     public OpenSensitivityAnalysisProvider(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
@@ -224,11 +224,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }
 
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory;
-        if (operatorStrategies.isEmpty()) {
-            selectedConnectivityFactory = connectivityFactory;
+        if (!operatorStrategies.isEmpty() && connectivityFactory instanceof EvenShiloachGraphDecrementalConnectivity<?, ?>) {
+            selectedConnectivityFactory = new DTreeGraphConnectivityFactory<>();
         } else {
-            LOGGER.warn("Naive (and slow!!!) connectivity algorithm has been selected because at least one operator strategy is configured");
-            selectedConnectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+            selectedConnectivityFactory = connectivityFactory;
         }
 
         AbstractSensitivityAnalysis<?, ?> analysis;

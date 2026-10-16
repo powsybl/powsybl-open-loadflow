@@ -9,12 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.PhaseTapChanger;
-import com.powsybl.iidm.network.StaticVarCompensator;
-import com.powsybl.iidm.network.Terminal;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControlAdder;
 import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.regulation.RegulationMode;
@@ -23,32 +18,9 @@ import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.ac.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.AcloadFlowEngine;
-import com.powsybl.openloadflow.ac.AsymmetricalLoadFlowTest;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.network.AcDcNetworkFactory;
-import com.powsybl.openloadflow.network.AutomationSystemNetworkFactory;
-import com.powsybl.openloadflow.network.BoundaryFactory;
-import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
-import com.powsybl.openloadflow.network.EurostagFactory;
-import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfSynchronousNetwork;
-import com.powsybl.openloadflow.network.LfTopoConfig;
-import com.powsybl.openloadflow.network.LoadFlowModel;
-import com.powsybl.openloadflow.network.MultiAreaNetworkFactory;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
-import com.powsybl.openloadflow.network.PhaseControlFactory;
-import com.powsybl.openloadflow.network.ReactivePowerControlNetworkFactory;
-import com.powsybl.openloadflow.network.ShuntNetworkFactory;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.network.T3wtFactory;
-import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.ac.*;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
+import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -246,7 +218,7 @@ class LfNetworkCopierTest {
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
 
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(c.network(), parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         if (!c.topoConfig().getSwitchesToOpen().isEmpty()) {
             acParameters.getNetworkParameters().setBreakers(true);
         }
@@ -309,9 +281,8 @@ class LfNetworkCopierTest {
 
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
-        // naive connectivity: supports the direct component queries below
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
-                new DenseMatrixFactory(), new com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory<>(LfBus::getNum));
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         acParameters.getNetworkParameters().setBreakers(true);
 
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig,
@@ -350,7 +321,7 @@ class LfNetworkCopierTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters).setAcDcNetwork(true);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(acDcNetwork, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         List<LfNetwork> lfNetworks = Networks.load(acDcNetwork, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP);
         for (LfNetwork original : lfNetworks) {
             LfNetwork copy = LfNetworkCopier.copy(original, LoadFlowModel.AC, ReportNode.NO_OP);
@@ -369,7 +340,7 @@ class LfNetworkCopierTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         List<LfNetwork> lfNetworks = Networks.load(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP);
         LfNetwork original = lfNetworks.get(0);
         AcLoadFlowResult solveResult = run(original, acParameters);
@@ -399,7 +370,7 @@ class LfNetworkCopierTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         LfNetwork original = Networks.load(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP).get(0);
 
         LfSynchronousNetwork originalSc = original.getSynchronousNetworks().get(0);

@@ -17,7 +17,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -61,7 +61,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, commonTestConfig.matrixFactory(),
-            new EvenShiloachGraphDecrementalConnectivityFactory<>());
+            new DTreeGraphConnectivityFactory<>());
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             new AcloadFlowEngine(context)
                     .run();
@@ -102,7 +102,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, commonTestConfig.matrixFactory(),
-            new EvenShiloachGraphDecrementalConnectivityFactory<>());
+            new DTreeGraphConnectivityFactory<>());
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             new AcloadFlowEngine(context)
                     .run();
@@ -124,7 +124,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, commonTestConfig.matrixFactory(),
-            new EvenShiloachGraphDecrementalConnectivityFactory<>());
+            new DTreeGraphConnectivityFactory<>());
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             new AcloadFlowEngine(context)
                     .run();
@@ -145,7 +145,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, commonTestConfig.matrixFactory(),
-            new EvenShiloachGraphDecrementalConnectivityFactory<>());
+            new DTreeGraphConnectivityFactory<>());
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             new AcloadFlowEngine(context)
                     .run();
@@ -166,7 +166,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, commonTestConfig.matrixFactory(),
-            new EvenShiloachGraphDecrementalConnectivityFactory<>());
+            new DTreeGraphConnectivityFactory<>());
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             new AcloadFlowEngine(context)
                     .run();
@@ -188,7 +188,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, commonTestConfig.matrixFactory(),
-            new EvenShiloachGraphDecrementalConnectivityFactory<>());
+            new DTreeGraphConnectivityFactory<>());
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             new AcloadFlowEngine(context)
                     .run();
@@ -206,7 +206,7 @@ class OperationalLimitsTest extends AbstractLoadFlowNetworkFactory {
         assertEquals(1, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, commonTestConfig.matrixFactory(),
-            new EvenShiloachGraphDecrementalConnectivityFactory<>());
+            new DTreeGraphConnectivityFactory<>());
         try (var context = new AcLoadFlowContext(lfNetwork, acParameters)) {
             new AcloadFlowEngine(context)
                     .run();
