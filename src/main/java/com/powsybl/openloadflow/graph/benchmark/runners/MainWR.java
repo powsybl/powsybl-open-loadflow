@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.graph.benchmark.runners;
 
 import com.powsybl.openloadflow.graph.DnDTreeStandaloneFactory;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.benchmark.workload.Workload;
 
 import java.io.IOException;
@@ -25,10 +26,10 @@ public final class MainWR {
 
     private static RunParameters.Performance performance() {
         RunParameters.Performance perf = new RunParameters.Performance()
-                .setWarmup(10)
-                .setMeasurement(10);
+                .setWarmup(0)
+                .setMeasurement(1);
         perf.output()
-                .setOutputFormat("results/workload_final/${workload}/${class}.${ext}")
+                .setOutputFormat(null) // "results/workload_final/${workload}/${class}.${ext}")
                 .setOverwrite(true); //.setReplacement("results/workload/${workload}/${class}_list_of_root.${ext}");
         return perf;
     }
@@ -46,7 +47,7 @@ public final class MainWR {
 
     public static void main(String[] args) throws IOException {
         WorkloadRunner wr = new WorkloadRunner();
-        wr.setRunParameters(validator());
+        wr.setRunParameters(performance());
 
         if (args.length >= 1) {
             switch (args[0]) {
@@ -61,14 +62,15 @@ public final class MainWR {
                 wr.addInput(Workload.inMemory(Path.of(args[i])));
             }
         } else {
-            addAllWorkloadInFolder(wr, Path.of("workload/final"));
+            // addAllWorkloadInFolder(wr, Path.of("workload/final"));
             // wr.addInput(Workload.inMemory(Path.of("workload/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt")));
             // wr.addInput(Workload.inMemory(Path.of("workload/spy_5541_1_1_5541_1_1_2026-07-03T11:50:06.510031405Z.txt")));
             // wr.addInput(Workload.inMemory(Path.of("workload/spy_10000_10_10_10000_10_10_2026-08-07T07:59:16.649371906Z.zip")));
+            wr.addInput(Workload.inMemory(Path.of("workload/final/spy_10000_10_10_10000_10_10_2026-10-08T15:25:11.925388791Z.zip")));
         }
 
         // wr.addConnectivityFactory(new OldNaiveGraphConnectivity.Factory<>((Integer i) -> i));
-        // wr.addConnectivityFactory(new NaiveGraphConnectivityFactory<>((Integer i) -> i));
+        wr.addConnectivityFactory(new NaiveGraphConnectivityFactory<>((Integer i) -> i));
         // wr.addConnectivityFactory(new NeighborNaiveGraphConnectivityFactory<>((Integer i) -> i));
         // wr.addConnectivityFactory(new AdjacencyListNaiveGraphConnectivityFactory<>((Integer i) -> i));
         // wr.addConnectivityFactory(new MinimumSpanningTreeGraphConnectivityFactory<>());
@@ -84,7 +86,7 @@ public final class MainWR {
         // wr.addConnectivityFactory(new ReplaceWithBestDTreeStandalone.Factory<>());
         // wr.addConnectivityFactory(IDTreeStandalone::new);
         // wr.addConnectivityFactory(new IndexedDTreeStandalone2ndVerFactory<>((Integer i) -> i, (Integer i) -> i));
-        wr.addConnectivityFactory(new DnDTreeStandaloneFactory<>());
+        // wr.addConnectivityFactory(new DnDTreeStandaloneFactory<>());
         // wr.addConnectivityFactory(new OptDTreeStandaloneFactory<>());
 
         wr.run();

@@ -143,6 +143,9 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
     @CommandLine.Option(names = {"--prefix"})
     private String prefix;
 
+    @CommandLine.Option(names = {"--filter"})
+    private List<BenchmarkMethod> filter;
+
     private ResultToPgfPlotInput() { }
 
     public static void main(String[] args) throws IOException {
@@ -163,13 +166,17 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
             filePrefix = prefix + "_";
         }
 
+        if (!filter.isEmpty()) {
+            filePrefix += "filter_";
+        }
+
         if (averageTime) {
             for (Map.Entry<String, Map<String, Plot>> entry : plots.entrySet()) {
                 Path out = output.resolve(filePrefix + "mean_" + entry.getKey() + ".txt");
                 System.out.println("Writing to " + out);
 
                 try (BufferedWriter bw = Files.newBufferedWriter(out)) {
-                    writeAverageTimePerMethod(bw, entry.getValue().values());
+                    writeAverageTimePerMethod(bw, entry.getValue().values(), filter);
                 }
             }
         } else {
@@ -184,7 +191,7 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
         return 0;
     }
 
-    private static void writeAverageTimePerMethod(BufferedWriter bw, Collection<Plot> plots) throws IOException {
+    private static void writeAverageTimePerMethod(BufferedWriter bw, Collection<Plot> plots, List<BenchmarkMethod> filter) throws IOException {
         // write header
         bw.write("method");
         for (Plot plot : plots) {
@@ -196,18 +203,20 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
         // write rows
         List<BenchmarkMethod> allMethods = getAllMethods(plots);
         for (BenchmarkMethod method : allMethods) {
-            bw.write(method.camelCase());
-            for (Plot plot : plots) {
-                bw.write("   ");
-                Aggregator agg = plot.measures.get(method);
+            if (filter.isEmpty() || filter.contains(method)) {
+                bw.write(method.camelCase());
+                for (Plot plot : plots) {
+                    bw.write("   ");
+                    Aggregator agg = plot.measures.get(method);
 
-                if (agg == null) {
-                    bw.write("nan");
-                } else {
-                    bw.write(String.valueOf(agg.getMean(TimeUnit.MICROSECONDS)));
+                    if (agg == null) {
+                        bw.write("nan");
+                    } else {
+                        bw.write(String.valueOf(agg.getMean(TimeUnit.MICROSECONDS)));
+                    }
                 }
+                bw.newLine();
             }
-            bw.newLine();
         }
     }
 
