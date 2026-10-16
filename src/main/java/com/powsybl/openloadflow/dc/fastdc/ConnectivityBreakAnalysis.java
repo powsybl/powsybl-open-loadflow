@@ -264,9 +264,9 @@ public final class ConnectivityBreakAnalysis {
     private static Set<String> computeElementsToReconnect(GraphConnectivity<LfBus, LfBranch> connectivity,
                                                           Set<ComputedElement> breakingConnectivityElements,
                                                           int nbConnectedComponentsBefore) {
-        Set<String> elementsToReconnect = new LinkedHashSet<>();
-
         if (connectivity.supportTemporaryChangesNesting()) {
+            Set<String> elementsToReconnect = new LinkedHashSet<>();
+
             connectivity.startTemporaryChanges(false);
 
             for (ComputedElement element : breakingConnectivityElements) {
@@ -279,36 +279,45 @@ public final class ConnectivityBreakAnalysis {
             }
 
             connectivity.undoTemporaryChanges();
+            return elementsToReconnect;
         } else {
-            // We suppose we're reconnecting one by one each element breaking connectivity.
-            // At each step we look if the reconnection was needed on the connectivity level by maintaining a list of grouped connected components.
-            List<Set<Integer>> reconnectedCc = new ArrayList<>();
-            for (ComputedElement element : breakingConnectivityElements) {
-                int cc1 = connectivity.getComponentNumber(element.getLfBranch().getBus1());
-                int cc2 = connectivity.getComponentNumber(element.getLfBranch().getBus2());
+            return computeElementsToReconnectNoTemporaryChanges(connectivity, breakingConnectivityElements, nbConnectedComponentsBefore);
+        }
+    }
 
-                Set<Integer> recCc1 = reconnectedCc.stream().filter(s -> s.contains(cc1)).findFirst().orElseGet(() -> new HashSet<>(List.of(cc1)));
-                Set<Integer> recCc2 = reconnectedCc.stream().filter(s -> s.contains(cc2)).findFirst().orElseGet(() -> Set.of(cc2));
-                if (recCc1 != recCc2) {
-                    // cc1 and cc2 are still separated:
-                    // - mark the element as needed to reconnect all connected components together
-                    // - update the list of grouped connected components
-                    elementsToReconnect.add(element.getLfBranch().getId());
-                    reconnectedCc.remove(recCc2);
-                    if (recCc1.size() == 1) {
-                        // adding the new set (the list of grouped connected components is not initialized with the singleton sets)
-                        reconnectedCc.add(recCc1);
-                    }
-                    recCc1.addAll(recCc2);
+    private static Set<String> computeElementsToReconnectNoTemporaryChanges(GraphConnectivity<LfBus, LfBranch> connectivity,
+                                                                            Set<ComputedElement> breakingConnectivityElements,
+                                                                            int nbConnectedComponentsBefore) {
+        Set<String> elementsToReconnect = new LinkedHashSet<>();
+
+        // We suppose we're reconnecting one by one each element breaking connectivity.
+        // At each step we look if the reconnection was needed on the connectivity level by maintaining a list of grouped connected components.
+        List<Set<Integer>> reconnectedCc = new ArrayList<>();
+        for (ComputedElement element : breakingConnectivityElements) {
+            int cc1 = connectivity.getComponentNumber(element.getLfBranch().getBus1());
+            int cc2 = connectivity.getComponentNumber(element.getLfBranch().getBus2());
+
+            Set<Integer> recCc1 = reconnectedCc.stream().filter(s -> s.contains(cc1)).findFirst().orElseGet(() -> new HashSet<>(List.of(cc1)));
+            Set<Integer> recCc2 = reconnectedCc.stream().filter(s -> s.contains(cc2)).findFirst().orElseGet(() -> Set.of(cc2));
+            if (recCc1 != recCc2) {
+                // cc1 and cc2 are still separated:
+                // - mark the element as needed to reconnect all connected components together
+                // - update the list of grouped connected components
+                elementsToReconnect.add(element.getLfBranch().getId());
+                reconnectedCc.remove(recCc2);
+                if (recCc1.size() == 1) {
+                    // adding the new set (the list of grouped connected components is not initialized with the singleton sets)
+                    reconnectedCc.add(recCc1);
                 }
+                recCc1.addAll(recCc2);
             }
+        }
 
-            // !!! we can have more than one connected component on base case because of actions potentially reconnecting
-            // some elements
-            int createdConnectedComponents = connectivity.getNbConnectedComponents() - nbConnectedComponentsBefore;
-            if (reconnectedCc.size() != 1 || reconnectedCc.getFirst().size() - 1 != createdConnectedComponents) {
-                LOGGER.error("Elements to reconnect computed do not reconnect all connected components together");
-            }
+        // !!! we can have more than one connected component on base case because of actions potentially reconnecting
+        // some elements
+        int createdConnectedComponents = connectivity.getNbConnectedComponents() - nbConnectedComponentsBefore;
+        if (reconnectedCc.size() != 1 || reconnectedCc.getFirst().size() - 1 != createdConnectedComponents) {
+            LOGGER.error("Elements to reconnect computed do not reconnect all connected components together");
         }
 
         return elementsToReconnect;
