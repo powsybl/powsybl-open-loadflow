@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2021-2025, RTE (http://www.rte-france.com)
+/**
+ * Copyright (c) 2021-2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -355,11 +355,11 @@ public class PropagatedContingency {
     private static boolean isSlackBusIsolated(GraphConnectivity<LfBus, LfBranch> connectivity, LfBus slackBus) {
         // check that slack bus belongs to the largest component.
         // Largest component has always the number 0.
-        int number = connectivity.getComponentNumber(slackBus);
-        if (number != 0) {
+        Set<LfBus> largest = connectivity.getLargestConnectedComponent();
+        if (!largest.contains(slackBus)) {
             // if not main component anymore but same size as the main one, still consider it as not isolated
             // (mainly useful for unit test small networks...)
-            return connectivity.getLargestConnectedComponent().size() != connectivity.getConnectedComponent(slackBus).size();
+            return largest.size() != connectivity.getConnectedComponent(slackBus).size();
         }
         return false;
     }
