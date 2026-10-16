@@ -9,14 +9,17 @@ package com.powsybl.openloadflow.reduction;
 
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.adm.*;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.reduction.Reducer.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,8 +60,55 @@ public class WardEquivalent {
         WardAdmittance wardAdmittance = new WardAdmittance(lfNetwork, zones, wardParameters.getReductionType(), wardParameters.getMatrixFactory());
 
         // Reduce the network with equivalents
-        Reducer reducer = new Reducer(network, lfNetwork, zones, wardAdmittance);
+        List<Reducer.EquivalentBranch> equivalentBranches = findEquivalentBranches(zones.getBoundaryBuses(), wardAdmittance.getYeq().toDense());
+        List<Reducer.EquivalentShunt> equivalentShunts = findEquivalentShunts(zones.getBoundaryBuses(), wardAdmittance.getYeq().toDense());
+        List<Reducer.EquivalentInjection> equivalentInjections = findEquivalentInjections(zones.getBoundaryBuses(), wardAdmittance.getIeq().toDense());
+        Reducer reducer = new Reducer(network, lfNetwork, zones, equivalentBranches, equivalentShunts, equivalentInjections);
         reducer.reduce();
+    }
+
+    private List<EquivalentBranch> findEquivalentBranches(List<LfBus> boundaryBuses, DenseMatrix yeq) {
+        List<EquivalentBranch> equivalentBranches = new ArrayList<>();
+        for (int i = 0; i < boundaryBuses.size(); i++) {
+            for (int j = i + 1; j < boundaryBuses.size(); j++) {
+                double g = -yeq.get(2 * i, 2 * j);
+                double b = yeq.get(2 * i, 2 * j + 1);
+                equivalentBranches.add(new EquivalentBranch(boundaryBuses.get(i), boundaryBuses.get(j), g, b));
+            }
+        }
+        return equivalentBranches;
+    }
+
+    private List<EquivalentShunt> findEquivalentShunts(List<LfBus> boundaryBuses, DenseMatrix yeq) {
+        List<EquivalentShunt> equivalentShunts = new ArrayList<>();
+        for (int j = 0; j < boundaryBuses.size(); j++) {
+            double g = 0.0;
+            double b = 0.0;
+            for (int i = 0; i < boundaryBuses.size(); i++) {
+                g += yeq.get(2 * i, 2 * j);
+                b += yeq.get(2 * i, 2 * j);
+            }
+            equivalentShunts.add(new EquivalentShunt(boundaryBuses.get(j), g, b));
+        }
+        return equivalentShunts;
+    }
+
+    private List<EquivalentInjection> findEquivalentInjections(List<LfBus> boundaryBuses, DenseMatrix ieq) {
+        List<EquivalentInjection> equivalentInjections = new ArrayList<>();
+        for (int i = 0; i < boundaryBuses.size(); i++) {
+            // S = P + jQ = U I*
+            //            = (Ux + j Uy) (Ix - j Iy)
+            //            = Ux Ix + Uy Iy + j (-Ux Iy + Uy Ix)
+            LfBus bus = boundaryBuses.get(i);
+            double ux = bus.getNominalV() * bus.getV() * Math.cos(Math.toRadians(bus.getAngle()));
+            double uy = bus.getNominalV() * bus.getV() * Math.sin(Math.toRadians(bus.getAngle()));
+            double ix = ieq.get(2 * i, 0);
+            double iy = ieq.get(2 * i + 1, 0);
+            double p = ux * ix + uy * iy;
+            double q = -ux * iy + uy * ix;
+            equivalentInjections.add(new EquivalentInjection(bus, p, q));
+        }
+        return equivalentInjections;
     }
 
 }
