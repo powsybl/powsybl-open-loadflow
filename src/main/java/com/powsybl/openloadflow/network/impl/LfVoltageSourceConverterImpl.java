@@ -15,11 +15,7 @@ import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
@@ -37,9 +33,9 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
     // Droop curve bands (only populated in DC_DROOP control mode), sorted by DC voltage, all values in per unit.
     private final List<LfDroopReference> droopBands;
 
-    public LfVoltageSourceConverterImpl(VoltageSourceConverter converter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1,
+    public LfVoltageSourceConverterImpl(VoltageSourceConverter converter, LfNetwork network, int numDC, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1,
                                         LfNetworkParameters parameters, Optional<Double> vdcOverride) {
-        super(converter, network, dcBus1, dcBus2, bus1, vdcOverride);
+        super(converter, network, numDC, dcBus1, dcBus2, bus1, vdcOverride);
         bus1.addConverter(this);
         this.converterRef = Ref.create(converter, parameters.isCacheEnabled());
         this.isVoltageRegulatorOn = converter.isRegulatingWithMode(RegulationMode.VOLTAGE);
@@ -150,7 +146,7 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
                 copyNetwork.getBusById(bus1.getId()));
     }
 
-    public static LfVoltageSourceConverterImpl create(VoltageSourceConverter acDcConverter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1, LfNetworkParameters parameters,
+    public static LfVoltageSourceConverterImpl create(VoltageSourceConverter acDcConverter, LfNetwork network, int numDC, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1, LfNetworkParameters parameters,
                                                       Optional<Double> vdcOverride) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(acDcConverter);
@@ -159,7 +155,7 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         Objects.requireNonNull(bus1);
         Objects.requireNonNull(parameters);
         Objects.requireNonNull(vdcOverride);
-        return new LfVoltageSourceConverterImpl(acDcConverter, network, dcBus1, dcBus2, bus1, parameters, vdcOverride);
+        return new LfVoltageSourceConverterImpl(acDcConverter, network, numDC, dcBus1, dcBus2, bus1, parameters, vdcOverride);
 
     }
 

@@ -71,6 +71,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     private final List<LfSynchronousNetwork> synchronousNetworks;
 
+    private final List<LfDcNetwork> dcNetworks;
+
     private final SlackBusSelector slackBusSelector;
 
     private final ReferenceBusSelector referenceBusSelector;
@@ -209,6 +211,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         this.reportNode = Objects.requireNonNull(reportNode);
 
         this.synchronousNetworks = new ArrayList<>();
+        this.dcNetworks = new ArrayList<>();
     }
 
     public LfNetwork(int numCC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
@@ -235,6 +238,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     public LfSynchronousNetwork getSynchronousNetwork(int numSC) {
         return synchronousNetworks.stream().filter(n -> n.getNumSC() == numSC).findFirst().orElseThrow();
+    }
+
+    public List<LfDcNetwork> getDcNetworks() {
+        return dcNetworks;
     }
 
     public ReportNode getReportNode() {
@@ -1400,6 +1407,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     public void addVoltageSourceConverter(LfVoltageSourceConverter voltageSourceConverter) {
         voltageSourceConverter.setNum(voltageSourceConvertersByIndex.size());
         voltageSourceConvertersByIndex.add(voltageSourceConverter);
+
+        // Create a new LfDcNetwork if this VSC belongs to a DC component not stored yet
+        if (!dcNetworks.stream().map(LfDcNetwork::getNumDC).toList().contains(voltageSourceConverter.getNumDC())) {
+            dcNetworks.add(new LfDcNetworkImpl(this, voltageSourceConverter.getNumDC()));
+        }
     }
 
     public List<LfVoltageSourceConverter> getVoltageSourceConverters() {

@@ -624,23 +624,23 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createDcLines(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkParameters parameters) {
+    private static void createDcLines(LfNetwork lfNetwork, int numDcc, LoadingContext loadingContext, LfNetworkParameters parameters) {
         for (DcLine dcLine : loadingContext.dcLineSet) {
             LfDcBus lfDcBus1 = getLfDcBus(dcLine.getDcTerminal1(), lfNetwork);
             LfDcBus lfDcBus2 = getLfDcBus(dcLine.getDcTerminal2(), lfNetwork);
-            LfDcLineImpl lfDcLine = LfDcLineImpl.create(dcLine, lfNetwork, lfDcBus1, lfDcBus2, parameters);
+            LfDcLineImpl lfDcLine = LfDcLineImpl.create(dcLine, lfNetwork, numDcc, lfDcBus1, lfDcBus2, parameters);
             addDcLine(lfNetwork, lfDcLine);
         }
     }
 
-    private static void createAcDcConverters(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkParameters parameters,
+    private static void createAcDcConverters(LfNetwork lfNetwork, int numDcc, LoadingContext loadingContext, LfNetworkParameters parameters,
                                              List<AcDcConverter<?>> convertersToSetInVdcMode, double dcNominalV) {
         for (AcDcConverter<?> acDcConverter : loadingContext.acDcConverterSet) {
-            createAcDcConverter(acDcConverter, lfNetwork, parameters, convertersToSetInVdcMode.contains(acDcConverter) ? Optional.of(dcNominalV) : Optional.empty());
+            createAcDcConverter(acDcConverter, lfNetwork, numDcc, parameters, convertersToSetInVdcMode.contains(acDcConverter) ? Optional.of(dcNominalV) : Optional.empty());
         }
     }
 
-    private static void createAcDcConverter(AcDcConverter<?> acDcConverter, LfNetwork lfNetwork, LfNetworkParameters parameters, Optional<Double> vdcOverride) {
+    private static void createAcDcConverter(AcDcConverter<?> acDcConverter, LfNetwork lfNetwork, int numDcc, LfNetworkParameters parameters, Optional<Double> vdcOverride) {
 
         if (acDcConverter.getTerminal2().isPresent()) {
             throw new PowsyblException("Open Load Flow does not support AC/DC converters with two AC terminals");
@@ -651,7 +651,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         LfDcBus lfDcBus2 = getLfDcBus(acDcConverter.getDcTerminal2(), lfNetwork);
         if (lfBus1 != null && lfDcBus1 != null && lfDcBus2 != null) { // The converter is fully connected
             if (acDcConverter instanceof VoltageSourceConverter voltageSourceConverter) {
-                LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, lfDcBus1, lfDcBus2, lfBus1, parameters, vdcOverride);
+                LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, numDcc, lfDcBus1, lfDcBus2, lfBus1, parameters, vdcOverride);
 
                 if (voltageSourceConverterImpl.isVoltageRegulatorOn()) {
                     VoltageSourceConverterVoltageControl voltageControl = new VoltageSourceConverterVoltageControl(lfBus1,
@@ -1367,7 +1367,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         List<LfDcBus> lfDcBuses = new ArrayList<>();
         createDcBuses(dcBuses, parameters, lfNetwork, lfDcBuses, loadingContext);
         createDcGrounds(lfNetwork, dcGrounds);
-        createDcLines(lfNetwork, loadingContext, parameters);
+        createDcLines(lfNetwork, numDcc, loadingContext, parameters);
 
         // TO DO : Handle switches that have non zero resistance
         network.getDcSwitchStream().filter(s -> !s.isOpen() && s.getR() != 0)
@@ -1387,7 +1387,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         });
 
         // Add AC-DC converters to the LfNetwork
-        createAcDcConverters(lfNetwork, loadingContext, parameters, convertersToSetInVdcMode, dcNominalV);
+        createAcDcConverters(lfNetwork, numDcc, loadingContext, parameters, convertersToSetInVdcMode, dcNominalV);
 
         postProcessors.forEach(pp -> pp.onLfNetworkLoaded(network, lfNetwork));
     }

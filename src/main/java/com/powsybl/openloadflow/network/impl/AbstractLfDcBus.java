@@ -21,17 +21,26 @@ public abstract class AbstractLfDcBus extends AbstractElement implements LfDcBus
 
     protected final double nominalV; // in kV
 
-    protected AbstractLfDcBus(LfNetwork network, double nominalV, double v) {
+    private final int numDC;
+
+    protected AbstractLfDcBus(LfNetwork network, int numDC, double nominalV, double v) {
         super(network);
+        this.numDC = numDC;
         this.nominalV = nominalV;
         this.v = v;
     }
 
     protected AbstractLfDcBus(AbstractLfDcBus other, LfNetwork network) {
         super(network);
+        this.numDC = other.numDC;
         this.nominalV = other.nominalV;
         this.v = other.v;
         this.disabled = other.disabled;
+    }
+
+    @Override
+    public int getNumDC() {
+        return numDC;
     }
 
     @Override

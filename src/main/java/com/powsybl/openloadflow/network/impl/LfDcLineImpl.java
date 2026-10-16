@@ -20,8 +20,8 @@ public class LfDcLineImpl extends AbstractLfDcLine {
 
     private final Ref<DcLine> dcLineRef;
 
-    public LfDcLineImpl(LfDcBus dcBus1, LfDcBus dcBus2, LfNetwork network, DcLine dcLine, LfNetworkParameters parameters) {
-        super(network, dcBus1, dcBus2, dcLine.getR());
+    public LfDcLineImpl(LfDcBus dcBus1, LfDcBus dcBus2, LfNetwork network, int numDC, DcLine dcLine, LfNetworkParameters parameters) {
+        super(network, numDC, dcBus1, dcBus2, dcLine.getR());
         this.dcLineRef = Ref.create(dcLine, parameters.isCacheEnabled());
     }
 
@@ -38,12 +38,12 @@ public class LfDcLineImpl extends AbstractLfDcLine {
                 copyNetwork.getDcBusById(dcBus2.getId()));
     }
 
-    public static LfDcLineImpl create(DcLine dcLine, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2,
+    public static LfDcLineImpl create(DcLine dcLine, LfNetwork network, int numDC, LfDcBus dcBus1, LfDcBus dcBus2,
                                       LfNetworkParameters parameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(dcLine);
         Objects.requireNonNull(parameters);
-        return new LfDcLineImpl(dcBus1, dcBus2, network, dcLine, parameters);
+        return new LfDcLineImpl(dcBus1, dcBus2, network, numDC, dcLine, parameters);
     }
 
     private DcLine getDcLine() {

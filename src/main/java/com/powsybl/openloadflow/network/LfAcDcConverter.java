@@ -16,6 +16,11 @@ import com.powsybl.openloadflow.util.Evaluable;
 public interface LfAcDcConverter extends LfElement {
 
     /**
+     * @return The number of the DC component this converter belongs to.
+     */
+    int getNumDC();
+
+    /**
      * @param iconv evaluable computing the current going from the first DC bus to the second one in per unit.
      */
     void setCalculatedIconv1(Evaluable iconv);
