@@ -71,16 +71,11 @@ class LfNetworkJsonStateTest {
                 new Case("ieee300", IeeeCdfNetworkFactory::create300, p -> { }),
                 new Case("phaseControlT2wt", PhaseControlFactory::createNetworkWithT2wt, p -> p.setPhaseShifterRegulationOn(true)),
                 new Case("hvdcAcEmulation", HvdcNetworkFactory::createNetworkWithGenerators, p -> p.setHvdcAcEmulation(true)),
-                // carries the HvdcAngleDroopActivePowerControl extension: the written state contains the
-                // acEmulationStatus field, exercising its readJson restore branch
                 new Case("hvdcAcEmulationDroop", HvdcNetworkFactory::createHvdcInAcEmulationInSymetricNetwork,
                         p -> p.setHvdcAcEmulation(true)),
-                // controller shunt: exercises the shunt voltageControlEnabled/b/g readJson branches
                 new Case("shuntVoltageControl", ShuntNetworkFactory::create, p -> p.setShuntCompensatorVoltageControlOn(true)),
-                // regulating ratio tap changer: exercises the branch voltageControlEnabled and tapPosition/modifiedR1 branches
                 new Case("transformerVoltageControl", LfNetworkJsonStateTest::createNetworkWithRegulatingT2wt,
                         p -> p.setTransformerVoltageControlOn(true)),
-                // areas: exercises the interchangeTarget readJson branch
                 new Case("areas", MultiAreaNetworkFactory::createTwoAreasWithTieLine,
                         p -> OpenLoadFlowParameters.create(p).setAreaInterchangeControl(true)),
                 new Case("acDcThreeConverters", AcDcNetworkFactory::createAcDcNetworkWithThreeConverters,
@@ -109,7 +104,6 @@ class LfNetworkJsonStateTest {
         c.parametersCustomizer().accept(parameters);
         OpenLoadFlowParameters parametersExt = parameters.getExtension(OpenLoadFlowParameters.class);
 
-        // two identical builds of the same case
         Network network = c.networkSupplier().get();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
                 new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
@@ -119,12 +113,10 @@ class LfNetworkJsonStateTest {
                 new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
         LfNetwork restored = Networks.load(network2, new LfTopoConfig(), acParameters2.getNetworkParameters(), ReportNode.NO_OP).get(0);
 
-        // solve the original and save its state
         AcLoadFlowResult solveResult = run(original, acParameters);
         assertEquals(AcSolverStatus.CONVERGED, solveResult.getSolverStatus());
         String state = dump(original);
 
-        // restore on the fresh build: same dump, and a warm run converges like on the original
         restored.readJson(new StringReader(state));
         assertEquals(state, dump(restored), "json state round trip should be stable");
 
@@ -141,10 +133,8 @@ class LfNetworkJsonStateTest {
 
     @Test
     void testReadJsonOptionalStateBranches() {
-        // A hand crafted json state exercising the optional readJson restore branches that a plain
-        // round trip (which never emits these fields when they hold their default value) does not reach:
-        // bus disabled, branch connectedSide1/connectedSide2/disabled/phaseControlEnabled, simple pi model
-        // r1/a1 overrides and the controller shunt b/g restore.
+        // hand crafted json state: a plain round trip never emits these optional fields when they hold
+        // their default value
         Network network = ShuntNetworkFactory.create();
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
@@ -173,7 +163,6 @@ class LfNetworkJsonStateTest {
         assertEquals(1.5, branch.getPiModel().getR1());
         assertEquals(0.25, branch.getPiModel().getA1());
 
-        // controller shunt b/g restore (matched by the original shunt compensator id)
         String shuntId = controllerShunt.getOriginalIds().get(0);
         LfBus shuntBus = lfNetwork.getBuses().stream()
                 .filter(b -> b.getControllerShunt().filter(s -> s == controllerShunt).isPresent())
@@ -187,9 +176,6 @@ class LfNetworkJsonStateTest {
 
     @Test
     void testWriteReadJsonDisabledAndShuntGState() {
-        // force a disabled bus, a disabled generator, a disabled original load, a non-zero shunt g and a
-        // disabled load id: the dump then emits those optional fields (write side) and reading the dump back
-        // exercises the matching restore branches (read side, in particular the disabledLoadIds loop)
         Network network = IeeeCdfNetworkFactory.create14();
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
@@ -197,7 +183,6 @@ class LfNetworkJsonStateTest {
                 new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
         LfNetwork original = Networks.load(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP).get(0);
 
-        // pick a load bearing bus that is not the slack/reference (to keep the dump readable into a clone)
         LfBus slackBus = original.getSynchronousNetworks().get(0).getSlackBuses().get(0);
         LfBus busWithLoad = original.getBuses().stream()
                 .filter(b -> !b.getLoads().isEmpty() && b != slackBus)
@@ -205,23 +190,20 @@ class LfNetworkJsonStateTest {
         com.powsybl.openloadflow.network.LfLoad load = busWithLoad.getLoads().get(0);
         java.util.Map<String, Boolean> disabling = new java.util.LinkedHashMap<>(load.getOriginalLoadsDisablingStatus());
         String firstLoadId = disabling.keySet().iterator().next();
-        disabling.put(firstLoadId, true); // mark one original load disabled -> disabledLoadIds in the dump
+        disabling.put(firstLoadId, true);
         load.setOriginalLoadsDisablingStatus(disabling);
 
-        // a non-zero shunt g on a controller shunt so the shunt g field is written
         LfShunt shunt = original.getBuses().stream()
                 .map(b -> b.getShunt().or(b::getControllerShunt).orElse(null))
                 .filter(s -> s != null)
                 .findFirst().orElseThrow();
         shunt.setG(0.07);
 
-        // a disabled generator on another bus
         original.getBuses().stream()
                 .flatMap(b -> b.getGenerators().stream())
                 .findFirst().orElseThrow()
                 .setDisabled(true);
 
-        // a disabled bus (so the bus disabled field is written and restored)
         LfBus busToDisable = original.getBuses().stream()
                 .filter(b -> b != slackBus && b != busWithLoad)
                 .findFirst().orElseThrow();
@@ -240,8 +222,6 @@ class LfNetworkJsonStateTest {
 
     @Test
     void testRemoveConnectivityRemovedBranch() {
-        // removeBranch must also drop the branch from the connectivity-removed set: build a topology
-        // restored network (which carries connectivity-removed branches) and remove one of them
         Network network = com.powsybl.openloadflow.network.NodeBreakerNetworkFactory.create3Bars();
         network.getSwitch("C1").setOpen(true);
         network.getSwitch("C2").setOpen(true);
@@ -268,8 +248,6 @@ class LfNetworkJsonStateTest {
 
     @Test
     void testReadJsonDcStateRoundTrip() {
-        // round trip on the AC/DC composite network that actually carries DC buses and DC lines, so the
-        // dcBus v/disabled and dcLine disabled readJson restore branches are exercised
         Network network = AcDcNetworkFactory.createAcDcNetworkWithThreeConverters();
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters).setAcDcNetwork(true);
@@ -291,16 +269,13 @@ class LfNetworkJsonStateTest {
 
     @Test
     void testReadJsonTopologyRestoredStateRoundTrip() {
-        // a network carrying disconnection allowed branches and disabled elements (initial topology
-        // restoration): the dump emits connectedSide1/connectedSide2 and disabled flags, so reading it
-        // back exercises those readJson restore branches plus the disabled bus/branch/generator ones
         Network network = com.powsybl.openloadflow.network.NodeBreakerNetworkFactory.create3Bars();
         network.getSwitch("C1").setOpen(true);
         network.getSwitch("C2").setOpen(true);
         LfTopoConfig topoConfig = new LfTopoConfig();
         topoConfig.getSwitchesToClose().add(network.getSwitch("C1"));
         topoConfig.getSwitchesToClose().add(network.getSwitch("C2"));
-        // mark a line openable so its LfBranch allows disconnection: the dump then emits connectedSide
+        // mark a line openable so that the dump emits connectedSide1 and connectedSide2
         topoConfig.getBranchIdsOpenableSide1().add("L1");
         topoConfig.getBranchIdsOpenableSide2().add("L1");
 
@@ -339,7 +314,6 @@ class LfNetworkJsonStateTest {
 
     @Test
     void testReadJsonTooManyLoads() {
-        // more loads in the json state than on the bus must raise
         Network network = IeeeCdfNetworkFactory.create14();
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
@@ -349,7 +323,6 @@ class LfNetworkJsonStateTest {
         LfBus busWithLoad = lfNetwork.getBuses().stream()
                 .filter(b -> !b.getLoads().isEmpty())
                 .findFirst().orElseThrow();
-        // declare more loads than the bus actually owns
         StringBuilder loads = new StringBuilder();
         for (int i = 0; i <= busWithLoad.getLoads().size(); i++) {
             loads.append(i > 0 ? "," : "").append("{\"targetP\":0.0}");
@@ -362,7 +335,6 @@ class LfNetworkJsonStateTest {
 
     @Test
     void testReadJsonShuntNotFound() {
-        // the json state declares a shunt on a bus that has none: must raise rather than silently ignore
         Network network = IeeeCdfNetworkFactory.create14();
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
@@ -380,7 +352,6 @@ class LfNetworkJsonStateTest {
 
     @Test
     void testReadJsonFromPath() throws java.io.IOException {
-        // exercise the Path based readJson overload (round trip through a temporary file)
         Network network = IeeeCdfNetworkFactory.create14();
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);

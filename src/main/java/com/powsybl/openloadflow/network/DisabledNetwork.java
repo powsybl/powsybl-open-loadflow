@@ -56,4 +56,22 @@ public final class DisabledNetwork {
     public Set<LfHvdc> getHvdcs() {
         return hvdcs;
     }
+
+    public void apply() {
+        for (Map.Entry<LfBranch, DisabledBranchStatus> e : branchesStatus.entrySet()) {
+            LfBranch branch = e.getKey();
+            DisabledBranchStatus status = e.getValue();
+            switch (status) {
+                case BOTH_SIDES -> branch.setDisabled(true);
+                case SIDE_1 -> branch.setConnectedSide1(false);
+                case SIDE_2 -> branch.setConnectedSide2(false);
+            }
+        }
+        for (LfHvdc hvdc : hvdcs) {
+            hvdc.setDisabled(true);
+        }
+        for (LfBus bus : buses) {
+            bus.setDisabled(true);
+        }
+    }
 }

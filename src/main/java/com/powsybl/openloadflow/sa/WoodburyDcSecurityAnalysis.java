@@ -37,7 +37,7 @@ import com.powsybl.security.LimitViolationsResult;
 import com.powsybl.security.PostContingencyComputationStatus;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisResult;
-import com.powsybl.security.limitreduction.LimitReduction;
+import com.powsybl.security.limitscaling.LimitScaling;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.*;
@@ -60,7 +60,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
     private record WoodburyContext(DcLoadFlowContext dcLoadFlowContext, Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId, Map<String, LfAction> lfActionById,
                                    boolean createResultExtension, SecurityAnalysisParameters.IncreasedViolationsParameters violationsParameters,
-                                   List<LimitReduction> limitReductions, SecurityAnalysisParameters.ModifiedMonitoredElementsParameters modifiedMonitoredElementsParameters) {
+                                   List<LimitScaling> limitReductions, SecurityAnalysisParameters.ModifiedMonitoredElementsParameters modifiedMonitoredElementsParameters) {
     }
 
     private record ToFastDcResults(Function<ConnectivityAnalysisResult, double[]> toPostContingencyStates,
@@ -227,7 +227,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 postContingencyNetworkResult.getBusResults(),
                 postContingencyNetworkResult.getThreeWindingsTransformerResults()),
                 connectivityResult,
-                Double.NaN  // TODO: report distributed active power in Fast DC SA
+                Double.NaN, // TODO: report distributed active power in Fast DC SA
+                postContingencyNetworkResult.getChangedPhaseTapChangers().values().stream().toList()
         );
     }
 
@@ -389,7 +390,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         SecurityAnalysisParameters securityAnalysisParameters = securityContext.getSecurityAnalysisParameters();
         Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId = securityContext.getOperatorStrategiesById();
         Set<Action> neededActions = securityContext.getNeededActions();
-        List<LimitReduction> limitReductions = securityContext.getLimitReductions();
+        List<LimitScaling> limitReductions = securityContext.getLimitReductions();
 
         // DC security analysis does not support AC-DC networks.
         // Therefore, we can also assume that lfNetwork contains only one synchronous network
@@ -444,7 +445,8 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults = ConnectivityBreakAnalysis.run(context, propagatedContingencies);
 
             // the map is indexed by lf actions as different kind of actions can be given on the same branch
-            Map<LfAction, List<ComputedElement>> actionElementsIndexByLfAction = ComputedElement.createActionElementsIndexByLfAction(lfActionById, context.getEquationSystem());
+            Map<LfAction, List<ComputedElement>> actionElementsIndexByLfAction = ComputedElement.createActionElementsIndexByLfAction(lfActionById, context.getEquationSystem(),
+                    context.getParameters().getEquationSystemCreationParameters());
 
             // compute states with +1 -1 to model the actions in Woodbury engine
             // note that the number of columns in the matrix depends on the number of distinct branches affected by the action elements

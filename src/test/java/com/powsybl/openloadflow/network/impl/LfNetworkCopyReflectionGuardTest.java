@@ -79,8 +79,7 @@ class LfNetworkCopyReflectionGuardTest {
      * managed at network level (slack selection). Keyed by declaring class simple name + field name.
      */
     private static final Set<String> SKIPPED_FIELDS = Set.of(
-            // selection flags and results, lazily re-run on the copy (slack/reference selection and its
-            // excluded slack buses input now live on the synchronous networks)
+            // selection flags and results, lazily re-run on the copy
             "AbstractLfBus#slack", "AbstractLfBus#reference",
             "LfSynchronousNetworkImpl#slackBuses", "LfSynchronousNetworkImpl#referenceBus",
             "LfSynchronousNetworkImpl#referenceGenerator", "LfSynchronousNetworkImpl#excludedSlackBuses",
@@ -135,9 +134,8 @@ class LfNetworkCopyReflectionGuardTest {
         nodeBreakerTopoConfig.getSwitchesToOpen().add(nodeBreakerNetwork.getSwitch("C"));
 
         return Stream.of(
-                // solved network: mutable state (solved voltages, distributed targets, PV->PQ switches
-                // with frozen reactive targets) differs from the freshly built defaults, so the
-                // equality checks actually discriminate
+                // solved network: mutable state differs from the freshly built defaults, so the equality
+                // checks actually discriminate
                 new Case("ieee300Solved", IeeeCdfNetworkFactory.create300(), p -> { }, new LfTopoConfig(), true),
                 new Case("nodeBreakerRetainedSwitch", nodeBreakerNetwork, p -> { }, nodeBreakerTopoConfig, false),
                 new Case("phaseControlT2wt", PhaseControlFactory.createNetworkWithT2wt(), p -> p.setPhaseShifterRegulationOn(true), new LfTopoConfig(), false),
@@ -185,8 +183,6 @@ class LfNetworkCopyReflectionGuardTest {
 
     @org.junit.jupiter.api.Test
     void testReflectiveCopyEquivalenceOnRestoredTopologyNetwork() {
-        // switches built closed (for a closing remedial action) then reopened by the initial topology
-        // restoration: disabled elements and removed connectivity edges must be reproduced
         Network network = NodeBreakerNetworkFactory.create3Bars();
         network.getSwitch("C1").setOpen(true);
         network.getSwitch("C2").setOpen(true);
@@ -240,7 +236,6 @@ class LfNetworkCopyReflectionGuardTest {
                 return;
             }
             if (!original.getClass().getName().startsWith(OUR_PACKAGE)) {
-                // foreign objects (IIDM, commons) are shared by design
                 assertSame(original, copy, path + ": foreign object must be shared");
                 return;
             }

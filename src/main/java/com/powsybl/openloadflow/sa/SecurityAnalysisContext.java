@@ -8,7 +8,7 @@ import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.sa.ContingencyActivePowerLossDistribution;
 import com.powsybl.openloadflow.util.Indexed;
 import com.powsybl.security.SecurityAnalysisParameters;
-import com.powsybl.security.limitreduction.LimitReduction;
+import com.powsybl.security.limitscaling.LimitScaling;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 
 import java.util.List;
@@ -25,7 +25,7 @@ public class SecurityAnalysisContext<P extends AbstractLoadFlowParameters<P>> {
     private final Map<Pair<Integer, Integer>, Queue<PropagatedContingency>> queueContingenciesByComponent;
     private final Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId;
     private final Set<Action> neededActions;
-    private final List<LimitReduction> limitReductions;
+    private final List<LimitScaling> limitReductions;
     private final ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution;
     private final LoadFlowParameters lfParameters;
 
@@ -35,7 +35,7 @@ public class SecurityAnalysisContext<P extends AbstractLoadFlowParameters<P>> {
                                    Map<Pair<Integer, Integer>, Queue<PropagatedContingency>> queueContingenciesByComponent,
                                    Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId,
                                    Set<Action> neededActions,
-                                   List<LimitReduction> limitReductions,
+                                   List<LimitScaling> limitReductions,
                                    ContingencyActivePowerLossDistribution contingencyActivePowerLossDistribution,
                                    LoadFlowParameters lfParameters) {
         this.networksToSimulate = networksToSimulate;
@@ -73,7 +73,7 @@ public class SecurityAnalysisContext<P extends AbstractLoadFlowParameters<P>> {
         return neededActions;
     }
 
-    public List<LimitReduction> getLimitReductions() {
+    public List<LimitScaling> getLimitReductions() {
         return limitReductions;
     }
 

@@ -17,7 +17,9 @@ import com.powsybl.security.results.BusResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -52,6 +54,16 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         update(LfBranch::isDisabled);
     }
 
+    @Override
+    protected void storeInitialPhaseTapChangerInfo() {
+        phaseTapChangerInfos = network.getBranches().stream()
+                .filter(b -> !b.isDisabled())
+                .filter(LfBranch::hasPhaseControllerCapability)
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        b -> b.getPhaseTapChanger().orElseThrow().getTapPosition()));
+    }
+
     public void update(Predicate<LfBranch> isBranchDisabled) {
         clear();
         Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getNoneStateMonitor(), network);
@@ -59,6 +71,8 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         zeroImpedanceFlows.clear();
         zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getAllStateMonitor(), network);
         addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
+        storeInitialPhaseTapChangerInfo();
+        updateChangedPhaseTapChanger();
     }
 
     public BranchResult getBranchResult(String branchId) {

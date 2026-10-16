@@ -88,7 +88,6 @@ public class LfBusImpl extends AbstractLfBus {
         this.bbsIds = other.bbsIds;
         this.fictitiousInjectionTargetP = other.fictitiousInjectionTargetP;
         this.fictitiousInjectionTargetQ = other.fictitiousInjectionTargetQ;
-        // violationLocation is a lazy cache, left to be recomputed
     }
 
     private static void createAsym(Bus bus, LfBusImpl lfBus) {

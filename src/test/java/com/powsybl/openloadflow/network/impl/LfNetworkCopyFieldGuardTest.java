@@ -99,7 +99,7 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(LfDcLineImpl.class, Set.of("dcLineRef"));
         expected.put(AbstractLfAcDcConverter.class, Set.of("calculatedPac", "calculatedQac", "calculatedIconv1", "calculatedIconv2", "targetP", "pAc", "qAc", "lossFactors",
                 "targetVdc", "controlMode", "dcBus1", "dcBus2", "bus1"));
-        expected.put(LfVoltageSourceConverterImpl.class, Set.of("converterRef", "isVoltageRegulatorOn", "targetQ", "targetVac"));
+        expected.put(LfVoltageSourceConverterImpl.class, Set.of("converterRef", "isVoltageRegulatorOn", "targetQ", "targetVac", "droopBands"));
         expected.put(LfAsymBus.class, Set.of("bus", "totalDeltaPa", "totalDeltaQa", "totalDeltaPb", "totalDeltaQb", "totalDeltaPc", "totalDeltaQc", "vz", "angleZ", "vn",
                 "angleN", "bzEquiv", "gzEquiv", "bnEquiv", "gnEquiv", "ixZ", "iyZ", "ixN", "iyN"));
         expected.put(LfAsymGenerator.class, Set.of("bz", "gz", "gn", "bn"));
@@ -119,7 +119,7 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(GeneratorReactivePowerControl.class, Set.of("controllerBuses"));
         expected.put(TransformerReactivePowerControl.class, Set.of("controllerBranch", "targetDeadband"));
         expected.put(TransformerPhaseControl.class, Set.of("controllerBranch", "controlledBranch", "targetDeadband", "controlledSide", "mode", "unit"));
-        expected.put(LfSecondaryVoltageControl.class, Set.of("zoneName", "pilotBus", "participatingControlUnitIds", "generatorVoltageControls", "targetValue"));
+        expected.put(LfSecondaryVoltageControl.class, Set.of("controlUnits", "pilotBus", "targetValue", "zoneName"));
         expected.put(LfOverloadManagementSystem.class, Set.of("monitoredBranch", "monitoredSide", "branchTrippingList"));
         expected.put(LfNetwork.class, Set.of("numCC", "synchronousNetworks", "slackBusSelector", "referenceBusSelector", "maxSlackBusCount", "busesById", "busesByIndex",
                 "branches", "branchesById", "branchesByOriginalId", "shuntCount", "shuntsByIndex", "shuntsById", "generatorsById", "loadsById", "areasById", "areas", "hvdcs",

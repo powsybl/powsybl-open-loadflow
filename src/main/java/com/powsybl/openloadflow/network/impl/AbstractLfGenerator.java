@@ -68,10 +68,6 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         this.extrapolateReactiveLimits = parameters.isExtrapolateReactiveLimits();
     }
 
-    /**
-     * Deep copy constructor (see {@link LfNetworkCopier}). The bus is set when the copy is added
-     * to the copied bus; the asymmetrical data is an immutable value object, shared.
-     */
     protected AbstractLfGenerator(AbstractLfGenerator other, LfNetwork network) {
         super(other.initialTargetP, other.targetP);
         this.network = Objects.requireNonNull(network);
@@ -158,6 +154,14 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     public boolean switchToLocalVoltageControl() {
         switchedToLocalVoltageRegulation = true;
+        return false;
+    }
+
+    /**
+     * Returns true if an equivalent local target voltage is defined, meaning this generator can be switched from
+     * remote to local voltage control without having to rescale its target voltage.
+     */
+    public boolean hasEquivalentLocalTargetV() {
         return false;
     }
 

@@ -54,7 +54,7 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         return Optional.empty();
     }
 
-    protected static Optional<AcOuterLoop> createAcHvdcAcEmulationLimitsOuterLoop(LoadFlowParameters parameters) {
+    protected static Optional<AcOuterLoop> createHvdcAcEmulationLimitsOuterLoop(LoadFlowParameters parameters) {
         if (parameters.isHvdcAcEmulation()) {
             return Optional.of(new AcHvdcAcEmulationLimitsOuterLoop());
         }

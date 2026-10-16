@@ -69,7 +69,6 @@ public class LfLoadImpl extends AbstractLfInjection implements LfLoad {
         this.loadsAbsVariableTargetP.putAll(other.loadsAbsVariableTargetP);
         this.absVariableTargetP = other.absVariableTargetP;
         this.loadsDisablingStatus = new LinkedHashMap<>(other.loadsDisablingStatus);
-        // p and q are solver injected and stay at their default value
     }
 
     public LfLoad copy(LfBus copyBus) {

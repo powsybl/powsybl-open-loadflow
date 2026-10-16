@@ -38,7 +38,7 @@ public class LfBoundaryLineBus extends AbstractLfBus {
     }
 
     private LfBoundaryLineBus(LfBoundaryLineBus other, LfNetwork network) {
-        super(other, network); // loads and generators are copied generically by the super copy constructor
+        super(other, network);
         this.boundaryLineRef = other.boundaryLineRef;
         this.nominalV = other.nominalV;
     }

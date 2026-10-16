@@ -53,14 +53,7 @@ public class LfAsymBus implements LfCopyable<LfAsymBus, LfNetwork> {
         this.totalDeltaQc = totalDeltaQc;
     }
 
-    /**
-     * Deep copy constructor (see {@code LfNetworkCopier}). The solver state (zero and negative
-     * sequence voltages and angles) is copied; the equivalent shunts are left at zero because they
-     * are not build state: the asymmetrical equation system creator accumulates the generator
-     * contributions into them at creation time, which the copy's own equation system will redo.
-     * Solver injected evaluables are left at their default. The bus back reference is wired by
-     * {@link LfBus#setAsym}.
-     */
+    // equivalent shunts are not copied: they are accumulated again at equation system creation
     private LfAsymBus(LfAsymBus other) {
         this.totalDeltaPa = other.totalDeltaPa;
         this.totalDeltaQa = other.totalDeltaQa;

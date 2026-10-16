@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -117,12 +118,6 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         this.forceTargetQInReactiveLimits = parameters.isForceTargetQInReactiveLimits() && parameters.isReactiveLimits();
     }
 
-    /**
-     * Deep copy constructor (see {@link LfNetworkCopier}). Owned injections are copied here; controls,
-     * branch/hvdc links and area membership are wired at network level. Solver injected evaluables stay
-     * at their default value and the lazily computed structures (zero impedance networks, slack flags)
-     * are left to be recomputed by the copied network.
-     */
     protected AbstractLfBus(AbstractLfBus other, LfNetwork network) {
         super(network);
         this.numSC = other.numSC;
@@ -158,16 +153,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         this.qLimitType = other.qLimitType;
         this.loadTargetP = other.loadTargetP;
         this.loadTargetQ = other.loadTargetQ;
-        // slack and reference flags are intentionally not copied: selection is lazily re-run
-        // on the copied network by updateSlackBusesAndReferenceBus
+        // slack and reference flags are not copied: selection is lazily re-run on the copied network
     }
 
-    /**
-     * Restore the generator voltage control and reactive target state copied from the original bus:
-     * the control wiring done at network level by {@link LfNetworkCopier} forces some of these flags
-     * (e.g. adding a controller bus enables its voltage control), which would lose the simulation
-     * state of an already solved network (PV to PQ switched buses with a frozen reactive target).
-     */
     void copyReactiveStateFrom(AbstractLfBus other) {
         this.generatorVoltageControlEnabled = other.generatorVoltageControlEnabled;
         this.generatorReactivePowerControlEnabled = other.generatorReactivePowerControlEnabled;
@@ -457,8 +445,8 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     static boolean checkVoltageControl(ShuntCompensator shuntCompensator, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         double nominalV = shuntCompensator.getRegulatingTerminal().getVoltageLevel().getNominalV();
-        double targetV = shuntCompensator.getTargetV();
-        if (!shuntCompensator.isVoltageRegulatorOn()) {
+        double targetV = shuntCompensator.getRegulatingTargetV();
+        if (!shuntCompensator.isRegulatingWithMode(RegulationMode.VOLTAGE)) {
             return false;
         }
         if (!VoltageControl.checkTargetV(targetV / nominalV, nominalV, parameters)) {
