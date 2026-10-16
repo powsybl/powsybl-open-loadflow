@@ -267,7 +267,7 @@ public final class ConnectivityBreakAnalysis {
         Set<String> elementsToReconnect = new LinkedHashSet<>();
 
         if (connectivity.supportTemporaryChangesNesting()) {
-            connectivity.startTemporaryChanges(); // FIXME: disable comparisons
+            connectivity.startTemporaryChanges(false);
 
             for (ComputedElement element : breakingConnectivityElements) {
                 LfBranch branch = element.getLfBranch();

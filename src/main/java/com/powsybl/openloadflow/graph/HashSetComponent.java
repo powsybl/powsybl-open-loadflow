@@ -45,4 +45,14 @@ public class HashSetComponent<V> extends AbstractComponent<V> {
     public int size() {
         return set.size();
     }
+
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
 }

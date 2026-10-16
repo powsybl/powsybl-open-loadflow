@@ -24,4 +24,14 @@ public abstract class AbstractComponent<V> extends AbstractSetView<V> implements
     void setNum(int num) {
         this.num = num;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
 }
