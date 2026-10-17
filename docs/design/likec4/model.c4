@@ -111,6 +111,15 @@ model {
     test = module 'powsybl-na-test' {
       description 'Test networks and test utilities, used with the test scope'
     }
+    stateEstimation = analysis 'State estimation' {
+      description 'Planned module powsybl-na-state-estimation, added by the end of 2026'
+    }
+    shortCircuit = analysis 'Short circuit' {
+      description 'Today powsybl-open-sc, outside this repository; joins it, date not set'
+    }
+    reduction = analysis 'Network reduction' {
+      description 'Proof of concept in powsybl-incubator; joins this repository, date not set'
+    }
 
     graph -> commons 'uses'
     network -> graph 'tracks connectivity with'
@@ -122,6 +131,14 @@ model {
     olf -[testScope]-> test 'tests with'
     equations -[testScope]-> test 'tests with'
     network -[testScope]-> test 'tests with'
+
+    stateEstimation -> equations 'measurement equations'
+    stateEstimation -> network 'network model'
+    shortCircuit -> equations 'admittance matrix'
+    shortCircuit -> network 'network model'
+    reduction -> equations 'admittance matrix'
+    reduction -> network 'network model'
+    reduction -> graph 'internal and external areas'
   }
 
   na.network -> core.iidm 'is built from'
@@ -132,21 +149,4 @@ model {
   na.olf -> core.sensiapi 'implements'
   pypowsybl -> na.olf 'runs computations through providers'
 
-  stateEstimation = analysis 'State estimation' {
-    description 'Future analysis, in this repository or elsewhere'
-  }
-  shortCircuit = analysis 'Short circuit' {
-    description 'Future analysis, in this repository or elsewhere'
-  }
-  reduction = analysis 'Network reduction (Ward)' {
-    description 'Future analysis, in this repository or elsewhere'
-  }
-
-  stateEstimation -> na.equations 'measurement equations'
-  stateEstimation -> na.network 'network model'
-  shortCircuit -> na.equations 'admittance matrix'
-  shortCircuit -> na.network 'network model'
-  reduction -> na.equations 'admittance matrix'
-  reduction -> na.network 'network model'
-  reduction -> na.graph 'internal and external areas'
 }

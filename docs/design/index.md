@@ -23,7 +23,11 @@ A large part of the code base is not specific to load flow:
 - utilities such as per-unit conversion and Fortescue transforms.
 
 These building blocks are needed by other network analyses: state estimation, short circuit calculation and network
-reduction (e.g. Ward equivalents). Today they can only be reused by depending on the whole load flow artifact, and
+reduction. These analyses will all be part of `powsybl-network-analysis`. State estimation will be added by the end
+of 2026. Short circuit and network reduction can start outside the repository and join it later: short circuit is
+today provided by [powsybl-open-sc](https://github.com/powsybl/powsybl-open-sc), which will join with a timeline still
+to be decided. Network reduction has a proof of concept in
+[powsybl-incubator](https://github.com/powsybl/powsybl-incubator/tree/main/simulator/network-reduction). Today the building blocks can only be reused by depending on the whole load flow artifact, and
 nothing prevents load flow or security analysis concerns from leaking into them. Splitting the repository into
 modules makes the reusable parts explicit and enforces the dependency direction at build time.
 
@@ -46,7 +50,8 @@ In scope:
 - [code issues](code_issues.md): the existing package dependencies that prevent the split and how to fix them.
 
 Out of scope:
-- the implementation of state estimation, short circuit or network reduction,
+- the design of state estimation, short circuit and network reduction themselves: this section only defines the
+  modules they build on,
 - any change of the public load flow, security analysis and sensitivity analysis behavior.
 
 ## Diagrams

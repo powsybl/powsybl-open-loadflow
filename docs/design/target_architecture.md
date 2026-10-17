@@ -3,8 +3,8 @@
 ## Landscape
 
 The repository is renamed `powsybl-network-analysis`. It still sits between powsybl-core and the users of the load
-flow, security analysis and sensitivity analysis providers, and it exposes reusable modules on which future analyses
-can be built.
+flow, security analysis and sensitivity analysis providers. It will also host the state estimation, short circuit
+and network reduction modules.
 
 ```{raw} html
 <likec4-view view-id="index"></likec4-view>
@@ -59,10 +59,11 @@ module can use it in its tests without creating a cycle in the Maven reactor.
 - Test code of downstream projects using the test-jar must switch to `powsybl-na-test` and update its imports. This
   only affects test code.
 
-### Reuse by future analyses
+### Planned analyses
 
-State estimation, short circuit and network reduction depend on the reusable modules only. Whether they are new
-modules of this repository or separate repositories is not decided here.
+State estimation, short circuit and network reduction will be modules of `powsybl-network-analysis`. They depend
+on the reusable modules only, never on `powsybl-open-loadflow`. Short circuit and network reduction can be developed
+outside the repository first, depending on the published `powsybl-na-*` artifacts, and join it later as modules.
 
 ```{raw} html
 <likec4-view view-id="targetReuse"></likec4-view>
@@ -72,11 +73,14 @@ modules of this repository or separate repositories is not decided here.
 The interactive diagram of this section is available in the online documentation.
 ```
 
-| Analysis | Reuses |
-|---|---|
-| State estimation | network model, AC/DC equation terms for measurement equations, equation system and Jacobian |
-| Short circuit | network model, admittance matrix |
-| Network reduction (Ward) | network model, admittance matrix, graph connectivity to split internal and external areas |
+| Analysis | Status | Joins the repository | Reuses |
+|---|---|---|---|
+| State estimation | developed in the repository (module `powsybl-na-state-estimation`, proposed name) | by the end of 2026 | network model, AC/DC equation terms for measurement equations, equation system and Jacobian |
+| Short circuit | exists outside: [powsybl-open-sc](https://github.com/powsybl/powsybl-open-sc) | timeline to be decided | network model, admittance matrix |
+| Network reduction | proof of concept outside: [powsybl-incubator](https://github.com/powsybl/powsybl-incubator/tree/main/simulator/network-reduction) | timeline to be decided | network model, admittance matrix, graph connectivity to split internal and external areas |
+
+State estimation will be added by the end of 2026, so at least the code issues blocking `powsybl-na-commons`,
+`powsybl-na-graph`, `powsybl-na-network` and `powsybl-na-equations` should be fixed before then.
 
 ## SPI, resources and test utilities
 
