@@ -54,4 +54,5 @@ security/index.md
 sensitivity/index.md
 detailed_models_description/index.md
 advanced_programming/index.md
+design/index.md
 ```
