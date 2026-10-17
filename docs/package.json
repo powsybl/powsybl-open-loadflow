@@ -3,7 +3,7 @@
   "private": true,
   "description": "Tooling for the LikeC4 diagrams of the documentation",
   "scripts": {
-    "likec4:build": "likec4 codegen webcomponent design/likec4 -o _static/likec4/likec4-views.js",
+    "likec4:build": "likec4 codegen webcomponent --no-use-dot design/likec4 -o _static/likec4/likec4-views.js",
     "likec4:start": "likec4 start design/likec4"
   },
   "devDependencies": {
