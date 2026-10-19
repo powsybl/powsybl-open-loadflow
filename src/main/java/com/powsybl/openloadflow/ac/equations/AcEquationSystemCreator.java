@@ -996,7 +996,7 @@ public class AcEquationSystemCreator {
         LfDcBus dcBus1 = converter.getDcBus1();
         LfDcBus dcBus2 = converter.getDcBus2();
 
-        // Create the equations corresponding to each control mode. Then activate only the required one
+        // Create the equations corresponding to each control mode. Then, activate only the required one
 
         // in PCC mode, we add an equation to set Pac injected into the converter
         Equation<AcVariableType, AcEquationType> pPccEquation = equationSystem.createEquation(converter, AcEquationType.AC_CONV_TARGET_P_REF)

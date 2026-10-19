@@ -19,7 +19,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of LfDCNetwork that provides a filtered view of LfNetwork DC equipment for a single DC component.
+ * Implementation of LfDcNetwork that provides a filtered view of LfNetwork DC equipment for a single DC component.
  *
  * @author Baptiste Perreyon {@literal <baptiste.perreyon at supergrid-institute.com>}
  */
@@ -78,7 +78,7 @@ public class LfDcNetworkImpl implements LfDcNetwork {
         List<LfAcDcConverter> convertersInSubComponent = getAcDcConvertersInSubComponent(dcBusesInSubComponent);
         if (isSubComponentConnectedToGround(dcBusesInSubComponent) ||
                 convertersInSubComponent.stream().anyMatch(conv -> controlsDcVoltage(conv) || convertersToUpdate.contains(conv))) {
-            return; // already has (or was just given, while resolving an adjacent dcSubComponent) an element imposing DC voltage
+            return; // already has (or was just given, while resolving an adjacent DC subcomponent) an element imposing DC voltage
         } else {
             if (convertersInSubComponent.isEmpty()) {
                 throw new PowsyblException("DC component " + numDCC + " has a DC subcomponent with no DC ground "
@@ -89,8 +89,7 @@ public class LfDcNetworkImpl implements LfDcNetwork {
     }
 
     /**
-     * Tells whether a converter settles the DC voltage: V_DC does it directly, DC_DROOP does it
-     * through the droop law.
+     * Tells whether a converter settles the DC voltage: V_DC does it directly, DC_DROOP does it through the droop law.
      */
     private boolean controlsDcVoltage(LfAcDcConverter converter) {
         return converter.getControlMode() == AcDcConverter.ControlMode.V_DC || converter.getControlMode() == AcDcConverter.ControlMode.DC_DROOP;
@@ -147,14 +146,15 @@ public class LfDcNetworkImpl implements LfDcNetwork {
      * @return A graph with LfDcBuses as vertices and LfDcLines as edges.
      */
     private GraphConnectivity<LfDcBus, LfDcLine> buildDcSubComponentGraph() {
-        // The function to get the vertex number from the LfDcBus cannot be LfDcBus::getNum because the LfDcNetwork does
-        // not necessarily contain all DC buses of a LfNetwork (i.e. there might be several DC component).
+        // The function to get the vertex number from the LfDcBus cannot be LfDcBus::getNum because that number refers
+        // to its numbering in the LfNetwork. However,the LfDcNetwork does not necessarily contain all DC buses of a
+        // LfNetwork (i.e. there might be several DC components).
         // Therefore, we use List.indexOf as a ToIntFunction for the connectivity graph.
         List<LfDcBus> dcBusesInSubComponent = getDcBuses();
         GraphConnectivity<LfDcBus, LfDcLine> graph = new NaiveGraphConnectivityFactory<LfDcBus, LfDcLine>(dcBusesInSubComponent::indexOf).create();
         dcBusesInSubComponent.forEach(graph::addVertex);
         getDcLines().stream()
-                .filter(l -> l.getDcBus1() != null && l.getDcBus2() != null)
+                .filter(l -> l.getDcBus1() != null && l.getDcBus2() != null)  // DC line must be fully connected
                 .forEach(l -> graph.addEdge(l.getDcBus1(), l.getDcBus2(), l));
 
         graph.startTemporaryChanges(false); // We need to call this to start using connectivity graph

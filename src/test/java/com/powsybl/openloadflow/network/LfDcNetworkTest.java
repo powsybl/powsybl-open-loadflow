@@ -95,6 +95,7 @@ public class LfDcNetworkTest {
 
     @Test
     void allPccConverterArePromotedWhenTwoShareAnDcSubComponent() {
+        // No converters control V_DC.
         Network network = AcDcNetworkFactory.createAcDcNetworkTwoPccConvertersWithoutVdcReference();
         LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
 
@@ -103,7 +104,7 @@ public class LfDcNetworkTest {
 
     @Test
     void converterWithNoDcBusReachingGroundIsRejected() {
-        // DC node dn3 is not grounded
+        // Converter conv23 negative pole is not grounded
         Network network = AcDcNetworkFactory.createAcDcNetwork1();
         network.getDcGround("dg3").disconnectDc();
 
