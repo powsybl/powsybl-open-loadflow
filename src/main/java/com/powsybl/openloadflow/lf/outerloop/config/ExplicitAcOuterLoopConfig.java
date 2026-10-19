@@ -48,16 +48,19 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
     private static Optional<AcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
         return switch (name) {
             case AbstractIncrementalPhaseControlOuterLoop.NAME -> createPhaseControlOuterLoop(parameters,
-                                                                                               OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL);
+                                                                                               OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL,
+                                                                                               parametersExt.getIncrementalControlInteractionScope());
             case DistributedSlackOuterLoop.NAME -> createDistributedSlackOuterLoop(parameters, parametersExt, loadFlowParametersOverride);
             case IncrementalShuntVoltageControlOuterLoop.NAME -> createShuntVoltageControlOuterLoop(parameters,
                                                                                                     OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL,
-                                                                                                    parametersExt.getIncrementalShuntControlOuterLoopMaxSectionShift());
+                                                                                                    parametersExt.getIncrementalShuntControlOuterLoopMaxSectionShift(),
+                                                                                                    parametersExt.getIncrementalControlInteractionScope());
             case IncrementalTransformerVoltageControlOuterLoop.NAME -> createTransformerVoltageControlOuterLoop(parameters,
                                                                                                                 parametersExt.isTransformerVoltageControlUseInitialTapPosition(),
                                                                                                                 OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL,
                                                                                                                 parametersExt.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift(),
-                                                                                                                parametersExt.getGeneratorVoltageControlMinNominalVoltage());
+                                                                                                                parametersExt.getGeneratorVoltageControlMinNominalVoltage(),
+                                                                                                                parametersExt.getIncrementalControlInteractionScope());
             case MonitoringVoltageOuterLoop.NAME -> createMonitoringVoltageOuterLoop(parametersExt);
             case PhaseControlOuterLoop.NAME -> createPhaseControlOuterLoop(parameters,
                                                                                   OpenLoadFlowParameters.PhaseShifterControlMode.CONTINUOUS_WITH_DISCRETISATION);
