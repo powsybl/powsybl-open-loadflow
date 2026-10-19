@@ -75,7 +75,7 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(AbstractLfDcLine.class, Set.of("numDC", "dcBus1", "dcBus2", "p1", "i1", "p2", "i2", "r"));
         expected.put(LfDcLineImpl.class, Set.of("dcLineRef"));
         expected.put(AbstractLfAcDcConverter.class, Set.of("numDC", "calculatedPac", "calculatedQac", "calculatedIconv1", "calculatedIconv2", "targetP", "pAc", "qAc", "lossFactors",
-                "targetVdc", "controlMode", "dcBus1", "dcBus2", "bus1"));
+                "targetVdc", "initialControlMode", "controlMode", "dcBus1", "dcBus2", "bus1"));
         expected.put(LfVoltageSourceConverterImpl.class, Set.of("converterRef", "isVoltageRegulatorOn", "targetQ", "targetVac", "droopBands"));
         expected.put(LfAsymBus.class, Set.of("bus", "totalDeltaPa", "totalDeltaQa", "totalDeltaPb", "totalDeltaQb", "totalDeltaPc", "totalDeltaQc", "vz", "angleZ", "vn",
                 "angleN", "bzEquiv", "gzEquiv", "bnEquiv", "gnEquiv", "ixZ", "iyZ", "ixN", "iyN"));

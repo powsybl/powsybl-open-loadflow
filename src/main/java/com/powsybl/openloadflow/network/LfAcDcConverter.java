@@ -68,6 +68,12 @@ public interface LfAcDcConverter extends LfElement {
     double getTargetVdc();
 
     /**
+     * @param targetVdc The new target DC voltage difference, that is the target voltage difference between the first
+     *                  and the second DC bus. In per unit.
+     */
+    void setTargetVdc(double targetVdc);
+
+    /**
      * @return the per-unit base used for the DC voltage of this converter.
      */
     double getDcVoltageBase();
@@ -88,9 +94,19 @@ public interface LfAcDcConverter extends LfElement {
     LossFactors getLossFactors();
 
     /**
+     * @return The converter initial control mode, as defined in the IIDM.
+     */
+    AcDcConverter.ControlMode getInitialControlMode();
+
+    /**
      * @return The converter control mode.
      */
     AcDcConverter.ControlMode getControlMode();
+
+    /**
+     * @param controlMode The new control mode of the converter
+     */
+    void setControlMode(AcDcConverter.ControlMode controlMode);
 
     /**
      * @return the active power on the AC side of the converter in per unit.

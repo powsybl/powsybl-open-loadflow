@@ -152,13 +152,17 @@ public class LfDcNetworkImpl implements LfDcNetwork {
      * @return A graph with LfDcBuses as vertices and LfDcLines as edges.
      */
     private GraphConnectivity<LfDcBus, LfDcLine> buildDcSubComponentGraph() {
-        GraphConnectivity<LfDcBus, LfDcLine> graph = new NaiveGraphConnectivityFactory<LfDcBus, LfDcLine>(LfDcBus::getNum).create();
-        getDcBuses().forEach(graph::addVertex);
+        // The function to get the vertex number from the LfDcBus cannot be LfDcBus::getNum because the LfDcNetwork does
+        // not necessarily contain all DC buses of a LfNetwork (i.e. there might be several DC component).
+        // Therefore, we use List.indexOf as a ToIntFunction for the connectivity graph.
+        List<LfDcBus> dcBusesInSubComponent = getDcBuses();
+        GraphConnectivity<LfDcBus, LfDcLine> graph = new NaiveGraphConnectivityFactory<LfDcBus, LfDcLine>(dcBusesInSubComponent::indexOf).create();
+        dcBusesInSubComponent.forEach(graph::addVertex);
         getDcLines().stream()
                 .filter(l -> l.getDcBus1() != null && l.getDcBus2() != null)
                 .forEach(l -> graph.addEdge(l.getDcBus1(), l.getDcBus2(), l));
 
-        graph.startTemporaryChanges(); // We need to call this to start using connectivity graph
+        graph.startTemporaryChanges(false); // We need to call this to start using connectivity graph
         return graph;
     }
 }

@@ -244,6 +244,10 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         return dcNetworks;
     }
 
+    public LfDcNetwork getDcNetwork(int numDC) {
+        return dcNetworks.stream().filter(n -> n.getNumDC() == numDC).findFirst().orElseThrow();
+    }
+
     public ReportNode getReportNode() {
         return reportNode;
     }
@@ -1376,6 +1380,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         dcBus.setNum(dcBusByIndex.size());
         dcBusByIndex.add(dcBus);
         dcBusById.put(dcBus.getId(), dcBus);
+
+        // Create a new LfDcNetwork if this DC bus belongs to a DC component not stored yet
+        if (!dcNetworks.stream().map(LfDcNetwork::getNumDC).toList().contains(dcBus.getNumDC())) {
+            dcNetworks.add(new LfDcNetworkImpl(this, dcBus.getNumDC()));
+        }
     }
 
     public LfDcBus getDcBusById(String id) {
@@ -1407,11 +1416,6 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     public void addVoltageSourceConverter(LfVoltageSourceConverter voltageSourceConverter) {
         voltageSourceConverter.setNum(voltageSourceConvertersByIndex.size());
         voltageSourceConvertersByIndex.add(voltageSourceConverter);
-
-        // Create a new LfDcNetwork if this VSC belongs to a DC component not stored yet
-        if (!dcNetworks.stream().map(LfDcNetwork::getNumDC).toList().contains(voltageSourceConverter.getNumDC())) {
-            dcNetworks.add(new LfDcNetworkImpl(this, voltageSourceConverter.getNumDC()));
-        }
     }
 
     public List<LfVoltageSourceConverter> getVoltageSourceConverters() {

@@ -12,8 +12,6 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
-import java.util.Optional;
-
 /**
  * Base class of the AC/DC converters of a {@link LfNetwork}.
  * <p>Usage rules for subclasses, which IIDM does not enforce:
@@ -46,7 +44,9 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected double targetVdc; // in pu
 
-    protected final AcDcConverter.ControlMode controlMode;
+    protected final AcDcConverter.ControlMode initialControlMode;
+
+    protected AcDcConverter.ControlMode controlMode;
 
     protected final LfDcBus dcBus1;
 
@@ -56,7 +56,7 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     private final int numDC;
 
-    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, int numDC, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1, Optional<Double> vdcOverride) {
+    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, int numDC, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
         super(network);
 
         this.numDC = numDC;
@@ -64,12 +64,10 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         this.dcBus2 = dcBus2;
         this.bus1 = bus1;
         this.lossFactors = new LossFactors(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
-        // vdcOverride is set when this converter has been automatically promoted to V_DC control because its DC
-        // island had no other element imposing the DC voltage (see DcComponentValidator.resolveDcComponent)
-        this.controlMode = vdcOverride.isPresent() ? AcDcConverter.ControlMode.V_DC : converter.getControlMode();
+        this.initialControlMode = converter.getControlMode();
+        this.controlMode = converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
-        double rawTargetVdc = vdcOverride.orElseGet(converter::getTargetVdc);
-        this.targetVdc = rawTargetVdc / getDcVoltageBase();
+        this.targetVdc = converter.getTargetVdc() / getDcVoltageBase();
         this.pAc = converter.getTerminal1().getP();
         this.qAc = converter.getTerminal1().getQ();
     }
@@ -81,6 +79,7 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         this.dcBus2 = dcBus2;
         this.bus1 = bus1;
         this.lossFactors = other.lossFactors;
+        this.initialControlMode = other.initialControlMode;
         this.controlMode = other.controlMode;
         this.targetP = other.targetP;
         this.targetVdc = other.targetVdc;
@@ -135,13 +134,38 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     }
 
     @Override
+    public AcDcConverter.ControlMode getInitialControlMode() {
+        return initialControlMode;
+    }
+
+    @Override
     public AcDcConverter.ControlMode getControlMode() {
         return controlMode;
     }
 
     @Override
+    public void setControlMode(AcDcConverter.ControlMode newControlMode) {
+        if (newControlMode != controlMode) {
+            controlMode = newControlMode;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onAcDcConverterControlModeChange(this, newControlMode);
+            }
+        }
+    }
+
+    @Override
     public double getTargetVdc() {
         return targetVdc;
+    }
+
+    @Override
+    public void setTargetVdc(double newTargetVdc) {
+        if (newTargetVdc != targetVdc) {
+            targetVdc = newTargetVdc;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onAcDcConverterTargetVdcChange(this, newTargetVdc);
+            }
+        }
     }
 
     @Override

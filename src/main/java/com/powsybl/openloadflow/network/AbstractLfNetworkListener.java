@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.TwoSides;
 
 import java.util.List;
@@ -118,6 +119,16 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
 
     @Override
     public void onHvdcAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus) {
+        // empty
+    }
+
+    @Override
+    public void onAcDcConverterControlModeChange(LfAcDcConverter converter, AcDcConverter.ControlMode newControlMode) {
+        // empty
+    }
+
+    @Override
+    public void onAcDcConverterTargetVdcChange(LfAcDcConverter converter, double newTargetVdc) {
         // empty
     }
 }
