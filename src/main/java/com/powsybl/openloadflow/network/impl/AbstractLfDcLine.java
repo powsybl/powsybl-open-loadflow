@@ -19,7 +19,7 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
  */
 public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLine {
 
-    private final int numDC;
+    private final int numDCC;
 
     protected final LfDcBus dcBus1;
 
@@ -35,9 +35,9 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
 
     private final double r; // in Ohm
 
-    protected AbstractLfDcLine(LfNetwork network, int numDC, LfDcBus dcBus1, LfDcBus dcBus2, double r) {
+    protected AbstractLfDcLine(LfNetwork network, int numDCC, LfDcBus dcBus1, LfDcBus dcBus2, double r) {
         super(network);
-        this.numDC = numDC;
+        this.numDCC = numDCC;
         this.dcBus1 = dcBus1;
         this.dcBus2 = dcBus2;
         this.r = r;
@@ -45,7 +45,7 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
 
     protected AbstractLfDcLine(AbstractLfDcLine other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2) {
         super(network);
-        this.numDC = other.numDC;
+        this.numDCC = other.numDCC;
         this.dcBus1 = dcBus1;
         this.dcBus2 = dcBus2;
         this.r = other.r;
@@ -53,8 +53,8 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
     }
 
     @Override
-    public int getNumDC() {
-        return numDC;
+    public int getNumDCC() {
+        return numDCC;
     }
 
     @Override

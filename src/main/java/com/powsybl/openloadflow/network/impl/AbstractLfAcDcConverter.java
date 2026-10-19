@@ -54,12 +54,12 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected final LfBus bus1;
 
-    private final int numDC;
+    private final int numDCC;
 
-    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, int numDC, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
+    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, int numDCC, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
         super(network);
 
-        this.numDC = numDC;
+        this.numDCC = numDCC;
         this.dcBus1 = dcBus1;
         this.dcBus2 = dcBus2;
         this.bus1 = bus1;
@@ -74,7 +74,7 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected AbstractLfAcDcConverter(AbstractLfAcDcConverter other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
         super(network);
-        this.numDC = other.numDC;
+        this.numDCC = other.numDCC;
         this.dcBus1 = dcBus1;
         this.dcBus2 = dcBus2;
         this.bus1 = bus1;
@@ -89,8 +89,8 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     }
 
     @Override
-    public int getNumDC() {
-        return numDC;
+    public int getNumDCC() {
+        return numDCC;
     }
 
     @Override

@@ -14,7 +14,8 @@ import com.powsybl.iidm.network.VoltageSourceConverter;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -32,34 +33,29 @@ public class LfDcNetworkTest {
         Network network = AcDcNetworkFactory.createAcDcNetworkTwoDcSubNetworks();
         LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
 
-        assertEquals(0, lfNetwork.getDcNetworks().get(0).getNumDC());
-        assertEquals(1, lfNetwork.getDcNetworks().get(1).getNumDC());
-    }
-
-    // --- getAcDcConverters ---
-
-    @Test
-    void getAcDcConvertersReturnsOnlyTheConvertersInTheDcComponent() {
-        Network network = AcDcNetworkFactory.createAcDcNetworkTwoDcSubNetworks();
-        LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
-
-        List<LfAcDcConverter> converters1 = lfNetwork.getDcNetworks().get(0).getAcDcConverters();
-        assertEquals(List.of("conv12", "conv36"), converters1.stream().map(LfAcDcConverter::getId).toList());
-
-        List<LfAcDcConverter> converters2 = lfNetwork.getDcNetworks().get(1).getAcDcConverters();
-        assertEquals(List.of("conv14", "conv56"), converters2.stream().map(LfAcDcConverter::getId).toList());
+        assertEquals(0, lfNetwork.getDcNetworks().get(0).getNumDCC());
+        assertEquals(1, lfNetwork.getDcNetworks().get(1).getNumDCC());
     }
 
     // --- resolve ---
+    // LfDcNetwork.resolve() is called during network loading, so we test it the same way as this is how end-user
+    // witness its effect.
+
+    Set<String> getConvertersSwitchedToVdcMode(LfNetwork lfNetwork) {
+        return lfNetwork.getVoltageSourceConverters().stream()
+                .filter(vsc -> vsc.getControlMode() == AcDcConverter.ControlMode.V_DC
+                        && vsc.getInitialControlMode() != AcDcConverter.ControlMode.V_DC)
+                .map(LfAcDcConverter::getId)
+                .collect(Collectors.toSet());
+    }
 
     @Test
     void dcSubComponentAlreadyResolvedByVDcConverterNeedsNoPromotion() {
         // conv23 (P_PCC) and conv45 (V_DC) share the dn3/dn4 subcomponent: conv45 already settles its DC voltage
         Network network = AcDcNetworkFactory.createAcDcNetwork1();
         LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
-        List<LfAcDcConverter> convertersToSetInVdcMode = lfNetwork.getDcNetworks().getFirst().resolve();
 
-        assertTrue(convertersToSetInVdcMode.isEmpty());
+        assertTrue(getConvertersSwitchedToVdcMode(lfNetwork).isEmpty());
     }
 
     @Test
@@ -73,9 +69,8 @@ public class LfDcNetworkTest {
                 .beginSegment().setMinV(-400).setMaxV(400).setK(0.01).endSegment()
                 .add();
         LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
-        List<LfAcDcConverter> convertersToSetInVdcMode = lfNetwork.getDcNetworks().getFirst().resolve();
 
-        assertTrue(convertersToSetInVdcMode.isEmpty());
+        assertTrue(getConvertersSwitchedToVdcMode(lfNetwork).isEmpty());
     }
 
     @Test
@@ -88,28 +83,22 @@ public class LfDcNetworkTest {
         // AC disconnection
         conv45.disconnect();
         LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
-        List<LfAcDcConverter> convertersToSetInVdcMode = lfNetwork.getDcNetworks().getFirst().resolve();
-
-        assertEquals(1, convertersToSetInVdcMode.size());
-        assertEquals("conv23", convertersToSetInVdcMode.getFirst().getId());
+        assertEquals(Set.of("conv23"), getConvertersSwitchedToVdcMode(lfNetwork));
 
         // DC disconnection
         conv45.connect();
         conv45.disconnectDc();
         LfNetwork lfNetwork2 = Networks.load(network, networkParameters).getFirst();
-        List<LfAcDcConverter> convertersToSetInVdcMode2 = lfNetwork2.getDcNetworks().getFirst().resolve();
+        assertEquals(Set.of("conv23"), getConvertersSwitchedToVdcMode(lfNetwork2));
 
-        assertEquals(1, convertersToSetInVdcMode2.size());
-        assertEquals("conv23", convertersToSetInVdcMode2.getFirst().getId());
     }
 
     @Test
     void allPccConverterArePromotedWhenTwoShareAnDcSubComponent() {
         Network network = AcDcNetworkFactory.createAcDcNetworkTwoPccConvertersWithoutVdcReference();
         LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
-        List<LfAcDcConverter> convertersToSetInVdcMode = lfNetwork.getDcNetworks().getFirst().resolve();
 
-        assertEquals(2, convertersToSetInVdcMode.size());
+        assertEquals(Set.of("conv23", "conv45"), getConvertersSwitchedToVdcMode(lfNetwork));
     }
 
     @Test
@@ -118,10 +107,8 @@ public class LfDcNetworkTest {
         Network network = AcDcNetworkFactory.createAcDcNetwork1();
         network.getDcGround("dg3").disconnectDc();
 
-        LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
-
         PowsyblException exception = assertThrows(PowsyblException.class,
-                () -> lfNetwork.getDcNetworks().getFirst().resolve());
+                () -> Networks.load(network, networkParameters));
         assertTrue(exception.getMessage().contains("not indirectly connected to a DC ground"));
     }
 

@@ -21,7 +21,7 @@ public interface LfDcNetwork {
     /**
      * @return The DC component number
      */
-    int getNumDC();
+    int getNumDCC();
 
     /**
      * Check that a DC component is a configuration Open Load Flow can solve, and resolve any DC subcomponent (i.e. set
@@ -35,17 +35,4 @@ public interface LfDcNetwork {
      * @throws PowsyblException If the DC component configuration is invalid and cannot be resolved automatically.
      */
     List<LfAcDcConverter> resolve();
-
-    /**
-     * @return All AC/DC converters in the DC component.
-     */
-    List<LfAcDcConverter> getAcDcConverters();
-
-    /**
-     * Explores the DC subcomponent around {@code dcBus} and list connected Ac/DC converters
-     *
-     * @param dcBus DC bus from which the exploration starts. If null, an empty list is returned.
-     * @return The list of AC/DC converters in the same DC subcomponent as the DC bus.
-     */
-    List<LfAcDcConverter> getAcDcConvertersAround(LfDcBus dcBus);
 }

@@ -18,7 +18,7 @@ public interface LfAcDcConverter extends LfElement {
     /**
      * @return The number of the DC component this converter belongs to.
      */
-    int getNumDC();
+    int getNumDCC();
 
     /**
      * @param iconv evaluable computing the current going from the first DC bus to the second one in per unit.
@@ -99,7 +99,7 @@ public interface LfAcDcConverter extends LfElement {
     AcDcConverter.ControlMode getInitialControlMode();
 
     /**
-     * @return The converter control mode.
+     * @return The converter control mode. It may be different from the one defined in the IIDM.
      */
     AcDcConverter.ControlMode getControlMode();
 

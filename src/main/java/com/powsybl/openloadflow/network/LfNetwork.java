@@ -244,8 +244,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         return dcNetworks;
     }
 
-    public LfDcNetwork getDcNetwork(int numDC) {
-        return dcNetworks.stream().filter(n -> n.getNumDC() == numDC).findFirst().orElseThrow();
+    public LfDcNetwork getDcNetwork(int numDCC) {
+        return dcNetworks.stream().filter(n -> n.getNumDCC() == numDCC).findFirst().orElseThrow();
     }
 
     public ReportNode getReportNode() {
@@ -1382,8 +1382,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         dcBusById.put(dcBus.getId(), dcBus);
 
         // Create a new LfDcNetwork if this DC bus belongs to a DC component not stored yet
-        if (!dcNetworks.stream().map(LfDcNetwork::getNumDC).toList().contains(dcBus.getNumDC())) {
-            dcNetworks.add(new LfDcNetworkImpl(this, dcBus.getNumDC()));
+        if (!dcNetworks.stream().map(LfDcNetwork::getNumDCC).toList().contains(dcBus.getNumDCC())) {
+            dcNetworks.add(new LfDcNetworkImpl(this, dcBus.getNumDCC()));
         }
     }
 

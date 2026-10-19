@@ -15,7 +15,7 @@ public interface LfDcBus extends LfElement, LfCopyable<LfDcBus, LfNetwork> {
     /**
      * @return The number of the DC component this DC bus belongs to.
      */
-    int getNumDC();
+    int getNumDCC();
 
     /**
      * @return The DC bus voltage in per unit.

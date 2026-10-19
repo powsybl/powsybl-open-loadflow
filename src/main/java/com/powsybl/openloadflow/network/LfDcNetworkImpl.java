@@ -27,16 +27,16 @@ public class LfDcNetworkImpl implements LfDcNetwork {
 
     private final LfNetwork lfNetwork;
 
-    private final int numDC;
+    private final int numDCC;
 
-    public LfDcNetworkImpl(LfNetwork lfNetwork, int numDC) {
+    public LfDcNetworkImpl(LfNetwork lfNetwork, int numDCC) {
         this.lfNetwork = lfNetwork;
-        this.numDC = numDC;
+        this.numDCC = numDCC;
     }
 
     @Override
-    public int getNumDC() {
-        return numDC;
+    public int getNumDCC() {
+        return numDCC;
     }
 
     @Override
@@ -81,7 +81,7 @@ public class LfDcNetworkImpl implements LfDcNetwork {
             return; // already has (or was just given, while resolving an adjacent dcSubComponent) an element imposing DC voltage
         } else {
             if (convertersInSubComponent.isEmpty()) {
-                throw new PowsyblException("DC component " + numDC + " has a DC subcomponent with no DC ground "
+                throw new PowsyblException("DC component " + numDCC + " has a DC subcomponent with no DC ground "
                         + "and no AC-DC converter able to settle the DC voltage");
             }
             convertersToUpdate.addAll(convertersInSubComponent);
@@ -103,23 +103,25 @@ public class LfDcNetworkImpl implements LfDcNetwork {
         return dcBusesInSubComponent.stream().anyMatch(LfDcBus::isGrounded);
     }
 
-    @Override
-    public List<LfAcDcConverter> getAcDcConverters() {
-        return lfNetwork.getVoltageSourceConverters().stream().filter(vsc -> vsc.getNumDC() == numDC).map(vsc -> (LfAcDcConverter) vsc).toList();
+    /**
+     * @return All AC/DC converters in the DC component.
+     */
+    private List<LfAcDcConverter> getAcDcConverters() {
+        return lfNetwork.getVoltageSourceConverters().stream().filter(vsc -> vsc.getNumDCC() == numDCC).map(vsc -> (LfAcDcConverter) vsc).toList();
     }
 
     /**
      * @return All DC buses in the DC component.
      */
     private List<LfDcBus> getDcBuses() {
-        return lfNetwork.getDcBuses().stream().filter(b -> b.getNumDC() == numDC).toList();
+        return lfNetwork.getDcBuses().stream().filter(b -> b.getNumDCC() == numDCC).toList();
     }
 
     /**
      * @return All DC lines in the DC component.
      */
     private List<LfDcLine> getDcLines() {
-        return lfNetwork.getDcLines().stream().filter(l -> l.getNumDC() == numDC).toList();
+        return lfNetwork.getDcLines().stream().filter(l -> l.getNumDCC() == numDCC).toList();
     }
 
     /**
@@ -136,13 +138,6 @@ public class LfDcNetworkImpl implements LfDcNetwork {
             }
         }
         return convertersInSubComponent;
-    }
-
-    @Override
-    public List<LfAcDcConverter> getAcDcConvertersAround(LfDcBus dcBus) {
-        GraphConnectivity<LfDcBus, LfDcLine> graph = buildDcSubComponentGraph();
-        Set<LfDcBus> dcBusesInSubComponent = graph.getConnectedComponent(dcBus);
-        return getAcDcConvertersInSubComponent(dcBusesInSubComponent);
     }
 
     /**

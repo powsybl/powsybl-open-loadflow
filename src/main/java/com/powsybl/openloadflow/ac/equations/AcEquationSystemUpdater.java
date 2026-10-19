@@ -252,6 +252,11 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
         return AcVariableType.BUS_PHI;
     }
 
+    /**
+     * Activate the equation corresponding to the converter current control mode and deactivate the others.
+     * @param converter The converter which control mode has been changed.
+     * @param newControlMode The new control mode of the converter.
+     */
     @Override
     public void onAcDcConverterControlModeChange(LfAcDcConverter converter, AcDcConverter.ControlMode newControlMode) {
         Equation<AcVariableType, AcEquationType> pPccEquation = equationSystem.getEquation(converter.getNum(), AcEquationType.AC_CONV_TARGET_P_REF).orElseThrow();
@@ -261,6 +266,13 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
         activateControlModeEquation(pPccEquation, droopEquation, vDcEquation, newControlMode);
     }
 
+    /**
+     * Activate the equation corresponding to the converter current control mode and deactivate the others.
+     * @param pPccEquation Equation to represent the converter in P_PCC mode.
+     * @param droopEquation Equation to represent the converter in DC_DROOP mode.
+     * @param vDcEquation Equation to represent the converter in V_DC mode.
+     * @param controlMode The current control mode of the converter.
+     */
     public static void activateControlModeEquation(Equation<AcVariableType, AcEquationType> pPccEquation, Equation<AcVariableType, AcEquationType> droopEquation,
                                                    Equation<AcVariableType, AcEquationType> vDcEquation, AcDcConverter.ControlMode controlMode) {
         switch (controlMode) {
