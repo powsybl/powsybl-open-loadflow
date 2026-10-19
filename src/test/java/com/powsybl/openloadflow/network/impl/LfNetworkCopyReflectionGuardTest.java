@@ -17,16 +17,8 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.AsymmetricalLoadFlowTest;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.network.AcDcNetworkFactory;
-import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfTopoConfig;
-import com.powsybl.openloadflow.network.LoadFlowModel;
-import com.powsybl.openloadflow.network.MultiAreaNetworkFactory;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
-import com.powsybl.openloadflow.network.PhaseControlFactory;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -34,19 +26,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Reflective guard of {@link LfNetworkCopier}: walks the original and copied object graphs in
@@ -161,7 +145,7 @@ class LfNetworkCopyReflectionGuardTest {
         OpenLoadFlowParameters parametersExt = parameters.getExtension(OpenLoadFlowParameters.class);
 
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(c.network(), parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         if (!c.topoConfig().getSwitchesToOpen().isEmpty()) {
             acParameters.getNetworkParameters().setBreakers(true);
         }
@@ -193,7 +177,7 @@ class LfNetworkCopyReflectionGuardTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         acParameters.getNetworkParameters().setBreakers(true);
 
         try (var lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig,

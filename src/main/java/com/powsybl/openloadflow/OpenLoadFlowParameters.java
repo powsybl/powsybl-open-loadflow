@@ -32,7 +32,7 @@ import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.outerloop.config.*;
 import com.powsybl.openloadflow.network.*;
@@ -2439,7 +2439,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                             GraphConnectivityFactory<LfBus, LfBranch> defaultConnectivityFactory) {
         return parametersExt.isNetworkCacheEnabled() && !parametersExt.getActionableSwitchesIds().isEmpty()
                 || parametersExt.isSimulateAutomationSystems()
-                ? new NaiveGraphConnectivityFactory<>(LfBus::getNum)
+                ? new DTreeGraphConnectivityFactory<>()
                 : defaultConnectivityFactory;
     }
 
