@@ -2439,7 +2439,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                                                                             GraphConnectivityFactory<LfBus, LfBranch> defaultConnectivityFactory) {
         if ((parametersExt.isNetworkCacheEnabled() && !parametersExt.getActionableSwitchesIds().isEmpty()
                 || parametersExt.isSimulateAutomationSystems())
-                && defaultConnectivityFactory.supportsIncremental()) {
+                && !defaultConnectivityFactory.supportsIncremental()) {
             return new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         } else {
             return defaultConnectivityFactory;

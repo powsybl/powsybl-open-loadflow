@@ -224,7 +224,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }
 
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory;
-        if (!operatorStrategies.isEmpty() && connectivityFactory.supportsIncremental()) {
+        if (!operatorStrategies.isEmpty() && !connectivityFactory.supportsIncremental()) {
             selectedConnectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
         } else {
             selectedConnectivityFactory = connectivityFactory;
