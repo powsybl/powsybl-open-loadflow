@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.reduction;
 
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
+import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -50,11 +51,16 @@ class WardEquivalentTest {
         LoadFlowParameters lfParameters = new LoadFlowParameters();
         OpenLoadFlowParameters olfParametersExt = OpenLoadFlowParameters.create(lfParameters);
 
+        LoadFlow.Runner runner = LoadFlow.find();
+        runner.run(network, lfParameters);
+
         WardReductionParameters parameters = new WardReductionParameters()
             .setInternalVoltageLevelIds(internalVlIds)
             .setLoadFlowParameters(lfParameters)
             .setReductionType(ReductionType.WARD_ADMITTANCE);
 
         new WardEquivalent().reduce(network, parameters);
+
+        runner.run(network, lfParameters);
     }
 }

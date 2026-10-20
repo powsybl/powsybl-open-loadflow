@@ -20,6 +20,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.reduction.Reducer.*;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,11 +70,15 @@ public class WardEquivalent {
 
     private List<EquivalentBranch> findEquivalentBranches(List<LfBus> boundaryBuses, DenseMatrix yeq) {
         List<EquivalentBranch> equivalentBranches = new ArrayList<>();
+        double zb;
         for (int i = 0; i < boundaryBuses.size(); i++) {
             for (int j = i + 1; j < boundaryBuses.size(); j++) {
-                double g = -yeq.get(2 * i, 2 * j);
-                double b = yeq.get(2 * i, 2 * j + 1);
-                equivalentBranches.add(new EquivalentBranch(boundaryBuses.get(i), boundaryBuses.get(j), g, b));
+                LfBus bus1 = boundaryBuses.get(i);
+                LfBus bus2 = boundaryBuses.get(j);
+                zb = bus1.getNominalV() * bus2.getNominalV() / PerUnit.SB;
+                double g = -yeq.get(2 * i, 2 * j) / zb;
+                double b = yeq.get(2 * i, 2 * j + 1) / zb;
+                equivalentBranches.add(new EquivalentBranch(bus1, bus2, g, b));
             }
         }
         return equivalentBranches;
@@ -81,13 +86,18 @@ public class WardEquivalent {
 
     private List<EquivalentShunt> findEquivalentShunts(List<LfBus> boundaryBuses, DenseMatrix yeq) {
         List<EquivalentShunt> equivalentShunts = new ArrayList<>();
+        double zb;
         for (int j = 0; j < boundaryBuses.size(); j++) {
             double g = 0.0;
             double b = 0.0;
             for (int i = 0; i < boundaryBuses.size(); i++) {
                 g += yeq.get(2 * i, 2 * j);
-                b += yeq.get(2 * i, 2 * j);
+                b += yeq.get(2 * i + 1, 2 * j);
             }
+            LfBus bus = boundaryBuses.get(j);
+            zb = PerUnit.zb(bus.getNominalV());
+            g = g / zb;
+            b = b / zb;
             equivalentShunts.add(new EquivalentShunt(boundaryBuses.get(j), g, b));
         }
         return equivalentShunts;
@@ -96,16 +106,18 @@ public class WardEquivalent {
     private List<EquivalentInjection> findEquivalentInjections(List<LfBus> boundaryBuses, DenseMatrix ieq) {
         List<EquivalentInjection> equivalentInjections = new ArrayList<>();
         for (int i = 0; i < boundaryBuses.size(); i++) {
-            // S = P + jQ = U I*
-            //            = (Ux + j Uy) (Ix - j Iy)
-            //            = Ux Ix + Uy Iy + j (-Ux Iy + Uy Ix)
+            // P + j Q
+            //   = S
+            //   = U I*
+            //   = (Ux + j Uy) (Ix - j Iy)
+            //   = (Ux Ix + Uy Iy) + j (-Ux Iy + Uy Ix)
             LfBus bus = boundaryBuses.get(i);
-            double ux = bus.getNominalV() * bus.getV() * Math.cos(Math.toRadians(bus.getAngle()));
-            double uy = bus.getNominalV() * bus.getV() * Math.sin(Math.toRadians(bus.getAngle()));
+            double ux = bus.getV() * Math.cos(bus.getAngle());
+            double uy = bus.getV() * Math.sin(bus.getAngle());
             double ix = ieq.get(2 * i, 0);
             double iy = ieq.get(2 * i + 1, 0);
-            double p = ux * ix + uy * iy;
-            double q = -ux * iy + uy * ix;
+            double p = (ux * ix + uy * iy) * PerUnit.SB;
+            double q = (-ux * iy + uy * ix) * PerUnit.SB;
             equivalentInjections.add(new EquivalentInjection(bus, p, q));
         }
         return equivalentInjections;

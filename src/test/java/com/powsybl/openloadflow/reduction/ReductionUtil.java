@@ -42,53 +42,54 @@ public class ReductionUtil {
         createSubstation(network, 3);
         createSubstation(network, 4);
 
-        createGenerator(network, 1);
-        createLoad(network, 4);
+        createGenerator(network);
+        createLoad(network);
 
-        createLine(network, 1, 2, 0.12, -1.2);
-        createLine(network, 1, 3, 0.13, -1.3);
-        createLine(network, 2, 3, 0.23, -2.3);
-        createLine(network, 2, 4, 0.24, -2.4);
-        createLine(network, 3, 4, 0.34, -3.4);
+        createLine(network, 1, 2, 0.012, -0.12);
+        createLine(network, 1, 3, 0.013, -0.13);
+        createLine(network, 2, 3, 0.023, -0.23);
+        createLine(network, 2, 4, 0.024, -0.24);
+        createLine(network, 3, 4, 0.034, -0.34);
 
         return network;
     }
 
     private static void createSubstation(Network network, int num) {
-        Substation substation1 = network.newSubstation()
+        Substation substation = network.newSubstation()
             .setId("ST" + num)
             .add();
-        VoltageLevel voltageLevel1 = substation1.newVoltageLevel()
+        VoltageLevel voltageLevel = substation.newVoltageLevel()
             .setId("VL" + num)
-            .setNominalV(10.0)
+            .setNominalV(100.0)
             .setTopologyKind(TopologyKind.BUS_BREAKER)
             .add();
-        voltageLevel1.getBusBreakerView().newBus()
+        voltageLevel.getBusBreakerView().newBus()
             .setId("BUS" + num)
             .add();
     }
 
-    private static void createGenerator(Network network, int num) {
-        network.getVoltageLevel("VL" + num)
+    private static void createGenerator(Network network) {
+        network.getVoltageLevel("VL1")
             .newGenerator()
-            .setId("GEN" + num)
-            .setBus("BUS" + num)
-            .setTargetP(10.0)
+            .setId("GEN1")
+            .setBus("BUS1")
+            .setTargetP(100.0)
+            .setLocalTargetQ(10.0)
             .setMinP(0.0)
             .setMaxP(200.0)
-            .setLocalTargetV(10.0)
+            .setLocalTargetV(network.getVoltageLevel("VL1").getNominalV())
             .newVoltageRegulation()
             .withMode(RegulationMode.VOLTAGE)
             .add()
             .add();
     }
 
-    private static void createLoad(Network network, int num) {
-        network.getVoltageLevel("VL" + num).newLoad()
-            .setId("LOAD" + num)
-            .setBus("BUS" + num)
-            .setP0(10.0)
-            .setQ0(1.0)
+    private static void createLoad(Network network) {
+        network.getVoltageLevel("VL4").newLoad()
+            .setId("LOAD4")
+            .setBus("BUS4")
+            .setP0(100.0)
+            .setQ0(10.0)
             .add();
     }
 
@@ -98,10 +99,10 @@ public class ReductionUtil {
             .setId("L-" + from + to)
             .setR(g / ySquare)
             .setX(-b / ySquare)
-            .setG1(0.1 * g)
-            .setB1(0.1 * b)
-            .setG2(0.01 * g)
-            .setB2(0.01 * b)
+            .setG1(1E-5 * g)
+            .setB1(1E-5 * b)
+            .setG2(2E-5 * g)
+            .setB2(2E-5 * b)
             .setVoltageLevel1("VL" + from)
             .setVoltageLevel2("VL" + to)
             .setBus1("BUS" + from)
