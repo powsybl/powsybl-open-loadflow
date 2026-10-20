@@ -70,11 +70,11 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(LfBoundaryLineBranch.class, Set.of("boundaryLineRef"));
         expected.put(LfSwitch.class, Set.of("switchRef"));
         expected.put(LfHvdcImpl.class, Set.of("id", "bus1", "bus2", "p1", "p2", "r", "nominalV", "converterStation1", "converterStation2", "acEmulation", "acEmulationControl"));
-        expected.put(AbstractLfDcBus.class, Set.of("numDC", "v", "nominalV"));
+        expected.put(AbstractLfDcBus.class, Set.of("numDCC", "v", "nominalV"));
         expected.put(LfDcBusImpl.class, Set.of("dcBusRef", "isGrounded"));
-        expected.put(AbstractLfDcLine.class, Set.of("numDC", "dcBus1", "dcBus2", "p1", "i1", "p2", "i2", "r"));
+        expected.put(AbstractLfDcLine.class, Set.of("numDCC", "dcBus1", "dcBus2", "p1", "i1", "p2", "i2", "r"));
         expected.put(LfDcLineImpl.class, Set.of("dcLineRef"));
-        expected.put(AbstractLfAcDcConverter.class, Set.of("numDC", "calculatedPac", "calculatedQac", "calculatedIconv1", "calculatedIconv2", "targetP", "pAc", "qAc", "lossFactors",
+        expected.put(AbstractLfAcDcConverter.class, Set.of("numDCC", "calculatedPac", "calculatedQac", "calculatedIconv1", "calculatedIconv2", "targetP", "pAc", "qAc", "lossFactors",
                 "targetVdc", "initialControlMode", "controlMode", "dcBus1", "dcBus2", "bus1"));
         expected.put(LfVoltageSourceConverterImpl.class, Set.of("converterRef", "isVoltageRegulatorOn", "targetQ", "targetVac", "droopBands"));
         expected.put(LfAsymBus.class, Set.of("bus", "totalDeltaPa", "totalDeltaQa", "totalDeltaPb", "totalDeltaQb", "totalDeltaPc", "totalDeltaQc", "vz", "angleZ", "vn",
