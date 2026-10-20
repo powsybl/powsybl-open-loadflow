@@ -147,9 +147,9 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     public void setControlMode(AcDcConverter.ControlMode newControlMode) {
         if (newControlMode != controlMode) {
             controlMode = newControlMode;
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onAcDcConverterControlModeChange(this, newControlMode);
-            }
+            // At the moment, this is only called when initialising the LfNetwork. At this stage, there is no LfNetworkListeners
+            // This will need to be updated if the AcDcConverter control mode can change at a different step than DC
+            // network validation (e.g. when reaching a power limit)
         }
     }
 
@@ -162,9 +162,9 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     public void setTargetVdc(double newTargetVdc) {
         if (newTargetVdc != targetVdc) {
             targetVdc = newTargetVdc;
-            for (LfNetworkListener listener : network.getListeners()) {
-                listener.onAcDcConverterTargetVdcChange(this, newTargetVdc);
-            }
+            // This is only called when initialising the LfNetwork. At this stage, there is no LfNetworkListeners.
+            // This will need to be updated if DC network validation is used outside the LfNetwork initialisation
+            // (e.g. in security analysis)
         }
     }
 
