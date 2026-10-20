@@ -21,7 +21,7 @@ import java.util.Objects;
  */
 public class Reducer {
 
-    record EquivalentBranch(LfBus bus1, LfBus bus2, double g, double b) { }
+    record EquivalentBranch(LfBus bus1, LfBus bus2, double g, double b, double g1, double b1, double g2, double b2) { }
     record EquivalentShunt(LfBus bus, double g, double b) { }
     record EquivalentInjection(LfBus bus, double p, double q) { }
 
@@ -137,6 +137,10 @@ public class Reducer {
             .setEquivalent(true)
             .setR(equivalentBranch.g / ySquare)
             .setX(-equivalentBranch.b / ySquare)
+            .setG1(equivalentBranch.g1)
+            .setB1(equivalentBranch.b1)
+            .setG2(equivalentBranch.g2)
+            .setB2(equivalentBranch.b2)
             .setVoltageLevel1(bus1.getVoltageLevel().getId())
             .setBus1(bus1.getId())
             .setVoltageLevel2(bus2.getVoltageLevel().getId())

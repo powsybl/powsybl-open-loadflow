@@ -77,10 +77,16 @@ public class WardEquivalent {
                 LfBus bus1 = boundaryBuses.get(i);
                 LfBus bus2 = boundaryBuses.get(j);
                 // Get the admittance values in engineering units
-                zb = bus1.getNominalV() * bus2.getNominalV() / PerUnit.SB;
+                double v1 = bus1.getNominalV();
+                double v2 = bus2.getNominalV();
+                zb = v1 * v2 / PerUnit.SB;
                 double g = -yeq.get(2 * i, 2 * j) / zb;
                 double b = yeq.get(2 * i, 2 * j + 1) / zb;
-                equivalentBranches.add(new EquivalentBranch(bus1, bus2, g, b));
+                double g1 = (v2 - v1) / v1 * g;
+                double b1 = (v2 - v1) / v1 * b;
+                double g2 = (v1 - v2) / v2 * g;
+                double b2 = (v1 - v2) / v2 * b;
+                equivalentBranches.add(new EquivalentBranch(bus1, bus2, g, b, g1, b1, g2, b2));
             }
         }
         return equivalentBranches;
