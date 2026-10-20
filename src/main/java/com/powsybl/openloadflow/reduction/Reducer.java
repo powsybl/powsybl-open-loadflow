@@ -53,7 +53,7 @@ public class Reducer {
         List<Substation> externalSubstations = externalVoltageLevels.stream()
             .map(VoltageLevel::getNullableSubstation)
             .filter(Objects::nonNull)
-            // because an external and boundary voltage level may be in the same substation
+            // because an external and a boundary voltage level may be in the same substation
             .filter(s -> s.getVoltageLevelStream().noneMatch(boundaryVoltageLevels::contains))
             .distinct()
             .toList();
@@ -111,8 +111,10 @@ public class Reducer {
     }
 
     private void removeBranch(LfBranch lfBranch) {
+        // Remove the given branch from the network
         if (lfBranch instanceof LfLegBranch legBranch) {
             ThreeWindingsTransformer tw3 = network.getThreeWindingsTransformer(legBranch.getTwt().getId());
+            // The three-winding transformer may have already been removed from another leg branch
             if (tw3 != null) {
                 tw3.remove();
             }
@@ -123,6 +125,7 @@ public class Reducer {
     }
 
     private void addEquivalentBranch(EquivalentBranch equivalentBranch) {
+        // Add an equivalent branch to the network
         double ySquare = equivalentBranch.g * equivalentBranch.g + equivalentBranch.b * equivalentBranch.b;
 
         Bus bus1 = network.getBusBreakerView().getBus(getBusId(equivalentBranch.bus1));
@@ -142,6 +145,7 @@ public class Reducer {
     }
 
     private void addEquivalentShunt(EquivalentShunt equivalentShunt) {
+        // Add an equivalent shunt to the network
         Bus bus = network.getBusBreakerView().getBus(getBusId(equivalentShunt.bus));
 
         bus.getVoltageLevel().newShuntCompensator()
@@ -159,6 +163,7 @@ public class Reducer {
     }
 
     private void addEquivalentInjection(EquivalentInjection equivalentInjection) {
+        // Add an equivalent injection to the network
         Bus bus = network.getBusBreakerView().getBus(getBusId(equivalentInjection.bus));
 
         bus.getVoltageLevel().newGenerator()

@@ -69,12 +69,14 @@ public class WardEquivalent {
     }
 
     private List<EquivalentBranch> findEquivalentBranches(List<LfBus> boundaryBuses, DenseMatrix yeq) {
+        // Retrieve the equivalent branches between boundary buses from the mutual admittances of equivalent Y matrix
         List<EquivalentBranch> equivalentBranches = new ArrayList<>();
         double zb;
         for (int i = 0; i < boundaryBuses.size(); i++) {
             for (int j = i + 1; j < boundaryBuses.size(); j++) {
                 LfBus bus1 = boundaryBuses.get(i);
                 LfBus bus2 = boundaryBuses.get(j);
+                // Get the admittance values in engineering units
                 zb = bus1.getNominalV() * bus2.getNominalV() / PerUnit.SB;
                 double g = -yeq.get(2 * i, 2 * j) / zb;
                 double b = yeq.get(2 * i, 2 * j + 1) / zb;
@@ -85,6 +87,7 @@ public class WardEquivalent {
     }
 
     private List<EquivalentShunt> findEquivalentShunts(List<LfBus> boundaryBuses, DenseMatrix yeq) {
+        // Retrieve the equivalent shunts at boundary buses from the self and mutual admittances of equivalent Y matrix
         List<EquivalentShunt> equivalentShunts = new ArrayList<>();
         double zb;
         for (int j = 0; j < boundaryBuses.size(); j++) {
@@ -95,6 +98,7 @@ public class WardEquivalent {
                 b += yeq.get(2 * i + 1, 2 * j);
             }
             LfBus bus = boundaryBuses.get(j);
+            // Get the admittance values in engineering units
             zb = PerUnit.zb(bus.getNominalV());
             g = g / zb;
             b = b / zb;
@@ -104,10 +108,10 @@ public class WardEquivalent {
     }
 
     private List<EquivalentInjection> findEquivalentInjections(List<LfBus> boundaryBuses, DenseMatrix ieq) {
+        // Retrieve the equivalent power injections at boundary buses from the equivalent I matrix
         List<EquivalentInjection> equivalentInjections = new ArrayList<>();
         for (int i = 0; i < boundaryBuses.size(); i++) {
-            // P + j Q
-            //   = S
+            // S = P + j Q
             //   = U I*
             //   = (Ux + j Uy) (Ix - j Iy)
             //   = (Ux Ix + Uy Iy) + j (-Ux Iy + Uy Ix)
@@ -116,6 +120,7 @@ public class WardEquivalent {
             double uy = bus.getV() * Math.sin(bus.getAngle());
             double ix = ieq.get(2 * i, 0);
             double iy = ieq.get(2 * i + 1, 0);
+            // Get the power values in engineering units
             double p = (ux * ix + uy * iy) * PerUnit.SB;
             double q = (-ux * iy + uy * ix) * PerUnit.SB;
             equivalentInjections.add(new EquivalentInjection(bus, p, q));

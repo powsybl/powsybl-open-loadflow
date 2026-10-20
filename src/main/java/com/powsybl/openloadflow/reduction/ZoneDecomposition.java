@@ -38,6 +38,7 @@ public final class ZoneDecomposition {
     }
 
     private void decompose() {
+        // Decompose the network into internal, boundary and external buses
         lfNetwork.getBuses().stream()
             .sorted(Comparator.comparing(LfBus::getNum))
             .forEach(b -> {

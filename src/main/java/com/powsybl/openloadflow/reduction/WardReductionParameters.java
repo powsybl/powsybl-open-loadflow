@@ -30,7 +30,8 @@ public class WardReductionParameters {
     private Set<String> internalVoltageLevelIds;
 
     public enum ReductionType {
-        WARD_ADMITTANCE;
+        STANDARD_WARD;
+        // WARD_ADMITTANCE
         // WARD_INJECTION
         // WARD_PV
         // EXTENDED_WARD

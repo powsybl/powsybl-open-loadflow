@@ -71,7 +71,7 @@ public class WardAdmittance {
         //   Ybb(b+e) contains the branch admittances between non-internal buses
         // the distinction is important since the former will be kept while the later will be reduced
 
-        // Calculate sub admittance matrices using selectors
+        // Get sub admittance matrices using selectors
         Matrix boundaryRowsSelector = getRowSelectorMatrix(boundaryBuses);
         Matrix externalRowsSelector = getRowSelectorMatrix(externalBuses);
         Matrix internalColsSelector = getColSelectorMatrix(internalBuses);
@@ -103,6 +103,7 @@ public class WardAdmittance {
         // where:
         //   Ieq = Ib - Ybe * Yee⁻1 * Ie
         //   Yeq = Ybb(b+e) - Ybe * Yee^-1 * Yeb
+        //   Ybb(i) and Ybb(b+e) have been defined above
         DenseMatrix yeeInv = getIdentityMatrix(2 * externalBuses.size()).toDense();
         try (LUDecomposition lu = yee.decomposeLU()) {
             lu.solve(yeeInv);
@@ -112,6 +113,7 @@ public class WardAdmittance {
     }
 
     private Matrix getRowSelectorMatrix(List<LfBus> buses) {
+        // Return a row selector matrix for the given buses
         List<Integer> busNums = buses.stream().map(LfBus::getNum).toList();
         Matrix selector = matrixFactory.create(2 * busNums.size(), yMatrix.getColumnCount(), 2 * busNums.size());
         List<Integer> eqColNums = getEqColNums(busNums);
@@ -122,6 +124,7 @@ public class WardAdmittance {
     }
 
     private Matrix getColSelectorMatrix(List<LfBus> buses) {
+        // Return a column selector matrix for the given buses
         List<Integer> busNums = buses.stream().map(LfBus::getNum).toList();
         Matrix selector = matrixFactory.create(yMatrix.getColumnCount(), 2 * busNums.size(), 2 * busNums.size());
         List<Integer> eqColNums = getEqColNums(busNums);
@@ -131,8 +134,8 @@ public class WardAdmittance {
         return selector;
     }
 
-    //TODO is it necessary? It looks like the equation numbers are 2 * busNum and 2 * busNum + 1
     private List<Integer> getEqColNums(List<Integer> busNums) {
+        // Return the column numbers of equations associated with the given bus numbers
         return yEquationSystem.getEquationSystem().getEquations().stream()
             .filter(eq -> busNums.contains(eq.getElementNum()))
             .map(SingleEquation::getColumn)
@@ -141,6 +144,7 @@ public class WardAdmittance {
     }
 
     private Matrix getVoltageVector(List<LfBus> buses) {
+        // Return a vector containing bus voltages real part and imaginary part
         Matrix voltageVector = matrixFactory.create(2 * buses.size(), 1, 2 * buses.size());
         for (int i = 0; i < buses.size(); i++) {
             voltageVector.set(2 * i, 0, buses.get(i).getV() * Math.cos(buses.get(i).getAngle()));
@@ -150,6 +154,7 @@ public class WardAdmittance {
     }
 
     private Matrix getIdentityMatrix(int size) {
+        // Return an identity matrix of given size
         Matrix identity = matrixFactory.create(size, size, size);
         for (int i = 0; i < size; i++) {
             identity.set(i, i, 1.0);

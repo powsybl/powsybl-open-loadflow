@@ -37,7 +37,7 @@ class WardEquivalentTest {
             .setInternalVoltageLevelIds(internalVlIds)
             .setLoadFlowParameters(lfParameters)
             .setMatrixFactory(new DenseMatrixFactory())
-            .setReductionType(ReductionType.WARD_ADMITTANCE);
+            .setReductionType(ReductionType.STANDARD_WARD);
 
         new WardEquivalent().reduce(network, parameters);
     }
@@ -57,7 +57,7 @@ class WardEquivalentTest {
         WardReductionParameters parameters = new WardReductionParameters()
             .setInternalVoltageLevelIds(internalVlIds)
             .setLoadFlowParameters(lfParameters)
-            .setReductionType(ReductionType.WARD_ADMITTANCE);
+            .setReductionType(ReductionType.STANDARD_WARD);
 
         new WardEquivalent().reduce(network, parameters);
 
