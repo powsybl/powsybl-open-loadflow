@@ -113,7 +113,7 @@ public class ValidatorGraphConnectivity<V, E> extends AbstractSpyGraphConnectivi
         Component<V> expected = checker.getConnectedComponent(vertex);
         Component<V> current = delegate.getConnectedComponent(vertex);
         assertEquals(expected, current);
-        return current;
+        return new ComponentSpy(expected, current);
     }
 
     @Override
@@ -121,7 +121,7 @@ public class ValidatorGraphConnectivity<V, E> extends AbstractSpyGraphConnectivi
         Component<V> expected = checker.getLargestConnectedComponent();
         Component<V> current = delegate.getLargestConnectedComponent();
         assertEquals(expected, current);
-        return current;
+        return new ComponentSpy(expected, current);
     }
 
     @Override
