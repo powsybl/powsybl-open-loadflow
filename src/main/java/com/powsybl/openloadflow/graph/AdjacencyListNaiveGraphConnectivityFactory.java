@@ -13,7 +13,7 @@ import java.util.function.ToIntFunction;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class AdjacencyListNaiveGraphConnectivityFactory<V, E> implements GraphConnectivityFactory<V, E> {
+public class AdjacencyListNaiveGraphConnectivityFactory<V, E> extends IncrementalGraphConnectivityFactory<V, E> {
 
     private final ToIntFunction<V> numGetter;
 

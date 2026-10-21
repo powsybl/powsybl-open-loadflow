@@ -99,6 +99,11 @@ public class SpyWorkloadGenerator implements IGenerateWorkload {
             return spy;
         }
 
+        @Override
+        public boolean supportsIncremental() {
+            return delegate.supportsIncremental();
+        }
+
         public List<Path> finish() throws IOException {
             List<Path> paths = new ArrayList<>();
             for (Context context : contextMap.values()) {

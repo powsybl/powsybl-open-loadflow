@@ -36,6 +36,11 @@ public class StatsWriterGraphConnectivityFactory<V, E> implements ISpyGraphConne
     }
 
     @Override
+    public boolean supportsIncremental() {
+        return delegateFactory.supportsIncremental();
+    }
+
+    @Override
     public synchronized ISpyGraphConnectivity<V, E> create(Operations operations) {
         output.setOperations(operations);
         return createImpl();

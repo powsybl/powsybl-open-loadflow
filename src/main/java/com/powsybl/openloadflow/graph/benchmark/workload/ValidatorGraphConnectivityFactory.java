@@ -31,6 +31,14 @@ public class ValidatorGraphConnectivityFactory<V, E> implements ISpyGraphConnect
     }
 
     @Override
+    public boolean supportsIncremental() {
+        if (checkFactory.supportsIncremental() != delegateFactory.supportsIncremental()) {
+            throw new AssertionError();
+        }
+        return delegateFactory.supportsIncremental();
+    }
+
+    @Override
     public GraphConnectivityFactory<V, E> getDelegateFactory() {
         return delegateFactory;
     }

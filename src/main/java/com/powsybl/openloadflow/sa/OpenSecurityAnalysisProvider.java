@@ -74,13 +74,13 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
         OpenLoadFlowParameters loadFlowParametersExt = OpenLoadFlowParameters.get(loadFlowParameters);
         OpenLoadFlowParameters.log(loadFlowParameters, loadFlowParametersExt);
 
-        // FIXME implement a fast incremental connectivity algorithm
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory;
-        if (runParameters.getOperatorStrategies().isEmpty() && !loadFlowParametersExt.isSimulateAutomationSystems() || connectivityFactory.create().supportTemporaryChangesNesting()) {
-            selectedConnectivityFactory = connectivityFactory;
-        } else {
-            LOGGER.warn("Naive (and slow!!!) connectivity algorithm has been selected because at least one operator strategy is configured");
+        if ((!runParameters.getOperatorStrategies().isEmpty() || loadFlowParametersExt.isSimulateAutomationSystems())
+                && !connectivityFactory.supportsIncremental()) {
             selectedConnectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+            LOGGER.warn("Naive (and slow!!!) connectivity algorithm has been selected because at least one operator strategy is configured");
+        } else {
+            selectedConnectivityFactory = connectivityFactory;
         }
         System.out.println("Using " + selectedConnectivityFactory);
 

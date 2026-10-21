@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.graph;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class HolmEtAlGraphConnectivityFactory<V, E> implements GraphConnectivityFactory<V, E> {
+public class HolmEtAlGraphConnectivityFactory<V, E> extends IncrementalGraphConnectivityFactory<V, E> {
     @Override
     public GraphConnectivity<V, E> create() {
         return new HolmEtAlGraphConnectivity<>();

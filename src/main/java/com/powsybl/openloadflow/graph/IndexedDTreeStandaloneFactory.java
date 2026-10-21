@@ -12,7 +12,7 @@ import java.util.function.ToIntFunction;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class IndexedDTreeStandaloneFactory<V, E> implements GraphConnectivityFactory<V, E> {
+public class IndexedDTreeStandaloneFactory<V, E> extends IncrementalGraphConnectivityFactory<V, E> {
 
     private final ToIntFunction<V> vertexAsInt;
     private final ToIntFunction<E> edgeAsInt;

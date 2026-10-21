@@ -13,4 +13,6 @@ package com.powsybl.openloadflow.graph;
 public interface GraphConnectivityFactory<V, E> {
 
     GraphConnectivity<V, E> create();
+
+    boolean supportsIncremental();
 }

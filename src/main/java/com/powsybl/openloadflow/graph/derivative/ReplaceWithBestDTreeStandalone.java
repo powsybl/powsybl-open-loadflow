@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.graph.derivative;
 
 import com.powsybl.openloadflow.graph.DTreeStandalone;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.IncrementalGraphConnectivityFactory;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -21,7 +21,7 @@ public class ReplaceWithBestDTreeStandalone<V, E> extends DTreeStandalone<V, E> 
         return true;
     }
 
-    public static class Factory<V, E> implements GraphConnectivityFactory<V, E> {
+    public static class Factory<V, E> extends IncrementalGraphConnectivityFactory<V, E> {
 
         @Override
         public GraphConnectivity<V, E> create() {
