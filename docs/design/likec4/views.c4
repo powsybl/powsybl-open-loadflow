@@ -16,21 +16,21 @@ views {
   view currentViolations {
     title 'Dependencies blocking the split'
     description 'Only the dependencies from reusable package groups to load flow or security analysis code of this repository'
-    include olf.network, olf.equations, olf.util, olf.providers, olf.sa, olf.engines
+    include olf.network, olf.equations, olf.util, olf.providers, olf.sa, olf.engines, olf.graph
     exclude * -> * where kind is not violates
   }
 
   view target of na {
     title 'Target architecture'
-    description 'Modules of powsybl-network-analysis. Dependencies only point towards the network model and commons.'
+    description 'Modules of powsybl-network-analysis. Reusable modules only depend on lower modules; analyses sit on top.'
     include na.*
     exclude na.stateEstimation, na.shortCircuit, na.reduction
   }
 
   view targetReuse {
-    title 'Reuse by planned analyses'
-    description 'Planned analyses depend on the reusable modules, never on powsybl-open-loadflow'
-    include na.commons, na.graph, na.network, na.equations
+    title 'Reuse by the analyses'
+    description 'Analyses depend on the reusable modules, and on powsybl-open-loadflow only when they need a load flow'
+    include na.commons, na.graph, na.network, na.equations, na.olf
     exclude * -> * where kind is testScope
     include na.stateEstimation, na.shortCircuit, na.reduction
   }

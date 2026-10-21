@@ -33,7 +33,7 @@ The interactive diagram of this section is available in the online documentation
 | Admittance matrix | `adm` | admittance equation system, used by `VoltageTargetChecker` |
 | Network model | `network`, `network.impl`, `network.util`, `network.action` | `LfNetwork` model, IIDM loader, contingencies and actions |
 | Graph connectivity | `graph`, `graph.dtree` | incremental connectivity algorithms |
-| Utilities | `util`, `util.report`, `util.mt` | per-unit, Fortescue, evaluables, reports, multi-threading helpers |
+| Utilities | `util`, `util.report`, `util.mt` | per-unit, Fortescue, evaluables, reports, multi-threading helpers, `PowsyblOpenLoadFlowVersion` (generated from `src/main/java-templates`) |
 
 ## External dependencies
 
@@ -48,6 +48,14 @@ The interactive diagram of this section is available in the online documentation
 
 The contingency, action, `iidm.criteria` and computation APIs are used in the code but not declared in `pom.xml`;
 they only come in transitively.
+
+Some test utilities (network factories, `LoadFlowAssert`, `LoadFlowResultBuilder`, `AbstractOpenSecurityAnalysisTest`)
+are published in a test-jar, used by other PowSyBl projects.
+
+## Short circuit
+
+Short circuit is provided by a separate repository, [powsybl-open-sc](https://github.com/powsybl/powsybl-open-sc),
+which depends on Open Load Flow: network model, equation system and AC load flow engine.
 
 ## Dependencies that do not respect the layering
 
