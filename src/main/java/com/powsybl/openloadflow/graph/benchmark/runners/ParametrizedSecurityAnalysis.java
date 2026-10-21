@@ -10,12 +10,8 @@ package com.powsybl.openloadflow.graph.benchmark.runners;
 import com.powsybl.action.Action;
 import com.powsybl.action.SwitchAction;
 import com.powsybl.action.TerminalsConnectionAction;
-import com.powsybl.computation.ComputationManager;
-import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
-import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.*;
@@ -35,14 +31,8 @@ import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisRunParameters;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 /**
@@ -123,40 +113,11 @@ public class ParametrizedSecurityAnalysis implements Simulation {
     }
 
     public void setContingenciesAllLines() {
-        contingencies.addAll(createContingenciesAllLines(network));
-    }
-
-    public static List<Contingency> createContingenciesAllLines(Network network) {
-        return network.getLineStream()
-                .filter(l -> !l.getId().contains(".") && l.getTerminal1().isConnected() && l.getTerminal2().isConnected())
-                .sorted(Comparator.comparing(Line::getId))
-                .map(line -> new Contingency("N-1: " + line.getId(), new BranchContingency(line.getId())))
-                .collect(Collectors.toList());
+        contingencies.addAll(SimulationUtils.createContingenciesAllLines(network));
     }
 
     public void setContingencies(int contingencyCount, int minLine, int maxLine) {
-        contingencies.addAll(createContingencies("ct", network, random, contingencyCount, minLine, maxLine));
-    }
-
-    public static List<Contingency> createContingencies(String prefix, Network network, Random random, int contingencyCount, int minLine, int maxLine) {
-        List<String> lineIds = network.getLineStream()
-                .filter(l -> !l.getId().contains(".") && l.getTerminal1().isConnected() && l.getTerminal2().isConnected())
-                .map(Identifiable::getId)
-                .sorted() // force the initial ordering to be constant, such that shuffle will always lead the same result
-                .collect(Collectors.toList());
-
-        return createContingencies(prefix, lineIds, random, contingencyCount, minLine, maxLine);
-    }
-
-    public static List<Contingency> createContingencies(String prefix, List<String> lineIds, Random random, int contingencyCount, int minLine, int maxLine) {
-        AtomicInteger index = new AtomicInteger();
-        return RandomUtils.distinctSubsets(random, lineIds, contingencyCount, minLine, maxLine)
-                .stream()
-                .map(lines -> lines.stream()
-                        .map(line -> (ContingencyElement) new BranchContingency(line))
-                        .toList())
-                .map(lines -> new Contingency(prefix + "-" + index.getAndIncrement(), lines))
-                .toList();
+        contingencies.addAll(SimulationUtils.createContingencies("ct", network, random, contingencyCount, minLine, maxLine));
     }
 
     @Deprecated
@@ -181,7 +142,7 @@ public class ParametrizedSecurityAnalysis implements Simulation {
                 .sorted() // constant ordering
                 .collect(Collectors.toList());
 
-        List<Contingency> contingencies = createContingencies("ct", linesInComponent, random, contingencyCount, linePerCt, linePerCt);
+        List<Contingency> contingencies = SimulationUtils.createContingencies("ct", linesInComponent, random, contingencyCount, linePerCt, linePerCt);
         this.contingencies.addAll(contingencies);
 
         // create actions
@@ -260,7 +221,7 @@ public class ParametrizedSecurityAnalysis implements Simulation {
         throw new IllegalStateException();
     }
 
-    public AverageStopWatch run() {
+    public SimulationResult run() {
         return run(connectivity);
     }
 
@@ -285,7 +246,7 @@ public class ParametrizedSecurityAnalysis implements Simulation {
     }
 
     @Override
-    public AverageStopWatch run(GraphConnectivityFactory<LfBus, LfBranch> connectivity) {
+    public SimulationResult run(GraphConnectivityFactory<LfBus, LfBranch> connectivity) {
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(new LoadFlowParameters()
                 .setDc(mode != Mode.AC)
@@ -302,7 +263,7 @@ public class ParametrizedSecurityAnalysis implements Simulation {
 
         SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
                 .setSecurityAnalysisParameters(securityAnalysisParameters)
-                .setComputationManager(getDefaultComputationManager());
+                .setComputationManager(SimulationUtils.getDefaultComputationManager());
 
         if (!actions.isEmpty() || !operatorStrategies.isEmpty()) {
             if (actions.isEmpty() || operatorStrategies.isEmpty()) {
@@ -319,35 +280,9 @@ public class ParametrizedSecurityAnalysis implements Simulation {
         System.out.println(Instant.now() + " - Contingency: " + contingencies.size() + " - OperatorStrategy: " + operatorStrategies.size());
         AverageStopWatch sa = new AverageStopWatch();
         sa.start();
-        new SecurityAnalysis.Runner(provider).run(network, contingencies, runParameters);
+        var result = new SecurityAnalysis.Runner(provider).run(network, contingencies, runParameters);
         sa.stop();
-        return sa;
-    }
-
-    private static final Lock LOCK = new ReentrantLock();
-    private static ComputationManager computationManager;
-
-    private static ComputationManager getDefaultComputationManager() {
-        LOCK.lock();
-        try {
-            if (computationManager == null) {
-                try {
-                    ExecutorWithException executor = (ExecutorWithException) ExecutorWithException.newCachedThreadPool(); // let openloadflow use the appropriate number of threads
-                    executor.allowCoreThreadTimeOut(true);
-                    executor.setKeepAliveTime(250, TimeUnit.MILLISECONDS);
-                    computationManager = new LocalComputationManager(executor);
-                    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                        computationManager.close();
-                        executor.shutdown();
-                    }));
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
-                }
-            }
-            return computationManager;
-        } finally {
-            LOCK.unlock();
-        }
+        return new SimulationResult(sa, result);
     }
 
     public enum Mode {

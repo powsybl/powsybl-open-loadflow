@@ -75,7 +75,7 @@ public class SimulationRunner extends AbstractRunner<SimulationInput, LfBus, LfB
             spy.beginIterations(measurementContext);
             for (int i = 0; i < measurement; i++) {
                 spy.beginIteration(measurementContext, i);
-                asw.merge(simulation.run(spy));
+                asw.merge(simulation.run(spy).time());
                 spy.endIteration(measurementContext, i);
             }
             spy.endIterations(measurementContext, asw);

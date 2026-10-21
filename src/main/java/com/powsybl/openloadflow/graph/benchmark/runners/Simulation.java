@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.graph.benchmark.runners;
 
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.graph.benchmark.AverageStopWatch;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 
@@ -25,5 +24,5 @@ public interface Simulation {
 
     int threadCount();
 
-    AverageStopWatch run(GraphConnectivityFactory<LfBus, LfBranch> connectivity);
+    SimulationResult run(GraphConnectivityFactory<LfBus, LfBranch> connectivity);
 }
