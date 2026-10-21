@@ -229,6 +229,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     public LfNetwork(LfNetwork network, ReportNode reportNode) {
         this(network.numCC, network.slackBusSelector, network.maxSlackBusCount,
                 network.connectivityFactory, network.referenceBusSelector, reportNode);
+        this.threadId = network.threadId;
+        this.networkId = network.networkId;
     }
 
     public int getNumCC() {

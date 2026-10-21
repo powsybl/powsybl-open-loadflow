@@ -124,7 +124,8 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(LfNetwork.class, Set.of("numCC", "synchronousNetworks", "slackBusSelector", "referenceBusSelector", "maxSlackBusCount", "busesById", "busesByIndex",
                 "branches", "branchesById", "branchesByOriginalId", "shuntCount", "shuntsByIndex", "shuntsById", "generatorsById", "loadsById", "areasById", "areas", "hvdcs",
                 "hvdcsById", "dcBusByIndex", "dcBusById", "dcLinesByIndex", "voltageSourceConvertersByIndex", "listeners", "validity", "connectivityFactory", "connectivity",
-                "zeroImpedanceNetworksByModel", "reportNode", "secondaryVoltageControls", "voltageAngleLimits", "overloadManagementSystems", "connectivityRemovedBranches"));
+                "zeroImpedanceNetworksByModel", "reportNode", "secondaryVoltageControls", "voltageAngleLimits", "overloadManagementSystems", "connectivityRemovedBranches",
+                "threadId", "networkId"));
         expected.put(LfSynchronousNetworkImpl.class, Set.of("lfNetwork", "numSC", "slackBusSelector", "referenceBusSelector", "maxSlackBusCount", "referenceBus", "slackBuses",
                 "excludedSlackBuses", "referenceGenerator"));
 

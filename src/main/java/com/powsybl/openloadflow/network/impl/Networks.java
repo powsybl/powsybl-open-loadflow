@@ -251,7 +251,7 @@ public final class Networks {
                                                               LfNetworkList.VariantProvider variantProvider, LfNetworkList.VariantCleanerFactory variantCleanerFactory,
                                                               ReportNode reportNode, boolean keepForPermanentContingency) {
         return loadWithReconnectableElements(network, topoConfig, networkParameters, variantProvider,
-                variantCleanerFactory, reportNode, keepForPermanentContingency);
+                variantCleanerFactory, reportNode, keepForPermanentContingency, 0);
     }
 
     public static LfNetworkList loadWithReconnectableElements(Network network, LfTopoConfig topoConfig, LfNetworkParameters networkParameters,
