@@ -15,14 +15,16 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
+import com.powsybl.openloadflow.lf.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
-import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.FourBusNetworkFactory;
+import com.powsybl.openloadflow.test.LoadFlowAssert;
+import com.powsybl.openloadflow.test.MultiAreaNetworkFactory;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -142,28 +144,28 @@ class AreaInterchangeControlTest {
     }
 
     static Stream<Arguments> allSlackDistributionFailureBehaviors() {
-        return Stream.of(Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS, -90, -20, -10),
-                Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL, Double.NaN, -30, 0),
-                Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR, Double.NaN, -30, 0),
-                Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW, Double.NaN, Double.NaN, Double.NaN));
+        return Stream.of(Arguments.of(SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS, -90, -20, -10),
+                Arguments.of(SlackDistributionFailureBehavior.FAIL, Double.NaN, -30, 0),
+                Arguments.of(SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR, Double.NaN, -30, 0),
+                Arguments.of(SlackDistributionFailureBehavior.THROW, Double.NaN, Double.NaN, Double.NaN));
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("allSlackDistributionFailureBehaviors")
-    void slackDistributionFailureBehaviorsTest(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior,
+    void slackDistributionFailureBehaviorsTest(SlackDistributionFailureBehavior slackDistributionFailureBehavior,
                                                double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
         runLfOneAreaSlackDistributionFailure(slackDistributionFailureBehavior, expectedGen1P, expectedMismatch, expectedDistributedP);
         parameters.setDc(true);
         runLfOneAreaSlackDistributionFailure(slackDistributionFailureBehavior, expectedGen1P, expectedMismatch, expectedDistributedP);
     }
 
-    private void runLfOneAreaSlackDistributionFailure(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior,
+    private void runLfOneAreaSlackDistributionFailure(SlackDistributionFailureBehavior slackDistributionFailureBehavior,
                                                       double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
         parametersExt.setSlackDistributionFailureBehavior(slackDistributionFailureBehavior);
         Network network = MultiAreaNetworkFactory.createOneAreaBase();
         network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target
 
-        if (slackDistributionFailureBehavior != OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW) {
+        if (slackDistributionFailureBehavior != SlackDistributionFailureBehavior.THROW) {
             var result = loadFlowRunner.run(network, parameters);
             var mainComponentResult = result.getComponentResults().get(0);
             assertEquals(expectedGen1P, network.getGenerator("g1").getTerminal().getP(), 1e-3);

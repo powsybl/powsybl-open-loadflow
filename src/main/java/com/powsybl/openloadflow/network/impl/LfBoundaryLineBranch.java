@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.sa.LimitScalingManager;
+import com.powsybl.openloadflow.network.LimitScalingManager;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 

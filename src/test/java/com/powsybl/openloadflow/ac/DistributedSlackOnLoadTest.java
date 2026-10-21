@@ -19,23 +19,24 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
-import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
-import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.ReferenceBusSelectionMode;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.util.LoadFlowResultBuilder;
+import com.powsybl.openloadflow.network.SlackDistributionFailureBehavior;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.DistributedSlackNetworkFactory;
+import com.powsybl.openloadflow.test.EurostagFactory;
+import com.powsybl.openloadflow.test.LoadFlowResultBuilder;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.concurrent.CompletionException;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -197,7 +198,7 @@ class DistributedSlackOnLoadTest {
         parameters
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
         parametersExt
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+                .setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
@@ -207,7 +208,7 @@ class DistributedSlackOnLoadTest {
         assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?\\d*\\.\\d* MW remains", reportNode);
 
         parametersExt
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+                .setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.FAIL);
         reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         componentResult = result.getComponentResults().get(0);
@@ -217,11 +218,11 @@ class DistributedSlackOnLoadTest {
         assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?\\d*\\.\\d* MW remains", reportNode);
 
         parametersExt
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
+                .setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.THROW);
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
 
         parametersExt
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR)
+                .setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR)
                 .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
         ReferencePriority.set(network.getGenerator("g1"), 1);
         reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
@@ -241,7 +242,7 @@ class DistributedSlackOnLoadTest {
         parameters
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
         parametersExt
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR)
+                .setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR)
                 .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
         ReferencePriority.set(network.getGenerator("g1"), 1);
         var result = loadFlowRunner.run(network, parameters);

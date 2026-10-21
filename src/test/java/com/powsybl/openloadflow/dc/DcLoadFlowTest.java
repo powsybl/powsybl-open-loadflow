@@ -21,12 +21,16 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
+import com.powsybl.openloadflow.lf.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.test.EurostagFactory;
+import com.powsybl.openloadflow.test.FourBusNetworkFactory;
+import com.powsybl.openloadflow.test.LoadFlowAssert;
+import com.powsybl.openloadflow.test.MultiAreaNetworkFactory;
+import com.powsybl.openloadflow.test.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -37,7 +41,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -527,7 +531,7 @@ class DcLoadFlowTest {
         parameters.setPhaseShifterRegulationOn(true);
         parametersExt.setAreaInterchangeControl(true);
         parametersExt.setAreaInterchangePMaxMismatch(1)
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+                .setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.FAIL);
 
         var result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged());
@@ -616,7 +620,7 @@ class DcLoadFlowTest {
     void testDcResidualMismatchRemaining() {
         Network network = IeeeCdfNetworkFactory.create9();
         // The purpose of this test is to verify the report when slack distribution mismatch is left on slack bus.
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        parametersExt.setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         parametersExt.setPlausibleActivePowerLimit(5000); // remove large generators from slack distribution to cause slack distribution failure
         network.getGenerator("B1-G").setTargetP(67.99); // Setting target P to have an initially almost balanced network
         ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
@@ -638,7 +642,7 @@ class DcLoadFlowTest {
         // Remove large generators from slack distribution to cause a slack distribution failure
         parametersExt.setPlausibleActivePowerLimit(5000);
 
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        parametersExt.setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         var runParameters = LoadFlowRunParameters.getDefault()
                 .setParameters(parameters)
@@ -651,7 +655,7 @@ class DcLoadFlowTest {
         assertEquals(0, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
         assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?321\\.\\d* MW remains", reportNode);
 
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        parametersExt.setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.FAIL);
         reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         runParameters.setReportNode(reportNode);
         result = loadFlowRunner.run(network, runParameters);
@@ -663,11 +667,11 @@ class DcLoadFlowTest {
         assertEquals(0, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
         assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?321\\.\\d* MW remains", reportNode);
 
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
+        parametersExt.setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.THROW);
         CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
         assertEquals("Failed to distribute slack bus active power mismatch, 321.90 MW remains", e.getCause().getMessage());
 
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
+        parametersExt.setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
         parametersExt.setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
         reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         runParameters.setReportNode(reportNode);

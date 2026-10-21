@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.sa.LimitScalingManager;
+import com.powsybl.openloadflow.network.LimitScalingManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import net.jafama.FastMath;
 import org.slf4j.Logger;

@@ -26,7 +26,10 @@ import com.powsybl.openloadflow.network.action.LfActionUtils;
 import com.powsybl.openloadflow.network.action.LfPhaseTapChangerAction;
 import com.powsybl.openloadflow.network.action.LfSwitchAction;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.test.FourBusNetworkFactory;
+import com.powsybl.openloadflow.test.LoadFlowAssert;
+import com.powsybl.openloadflow.test.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.test.PhaseControlFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

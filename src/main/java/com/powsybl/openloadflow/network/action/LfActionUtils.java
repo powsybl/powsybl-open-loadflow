@@ -13,7 +13,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.util.Reports;
+import com.powsybl.openloadflow.network.NetworkReports;
 
 import java.util.*;
 import java.util.function.Function;
@@ -85,7 +85,7 @@ public final class LfActionUtils {
         // then process remaining changes of actions
         otherActions.forEach(action -> {
             if (!action.apply(network, contingency, networkParameters)) {
-                Reports.reportActionApplicationFailure(action.getId(), contingency.getId(), network.getReportNode());
+                NetworkReports.reportActionApplicationFailure(action.getId(), contingency.getId(), network.getReportNode());
             }
         });
     }

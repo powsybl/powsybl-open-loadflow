@@ -61,13 +61,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String MODULE_SPECIFIC_PARAMETERS = "open-loadflow-default-parameters";
 
-    public enum SlackDistributionFailureBehavior {
-        THROW,
-        FAIL,
-        LEAVE_ON_SLACK_BUS,
-        DISTRIBUTE_ON_REFERENCE_GENERATOR
-    }
-
     public static final SlackDistributionFailureBehavior SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE = SlackDistributionFailureBehavior.FAIL;
 
     public static final boolean VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE = true;
@@ -137,18 +130,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String NETWORK_CACHE_SCOPE_DEFAULT_VALUE = null;
 
-    public enum FictitiousGeneratorVoltageControlCheckMode {
-        FORCED,
-        NORMAL
-    }
-
     protected static final FictitiousGeneratorVoltageControlCheckMode FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE = FictitiousGeneratorVoltageControlCheckMode.FORCED;
 
-    public static final boolean AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE = false;
+    public static final boolean AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE = LfNetworkParameters.AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
 
     public static final double AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE = 2.0;
 
-    public static final boolean FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE = false;
+    public static final boolean FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE = LfNetworkParameters.FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE;
 
     public static final boolean AC_DC_NETWORK_DEFAULT_VALUE = false;
 
@@ -745,12 +733,6 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private double minNominalVoltageRealisticVoltageCheck = AcLoadFlowParameters.DEFAULT_MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK;
 
     private double lowImpedanceThreshold = LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
-
-    public enum ReactiveRangeCheckMode {
-        MIN_MAX,
-        MAX,
-        TARGET_P
-    }
 
     private ReactiveRangeCheckMode reactiveRangeCheckMode = LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
 

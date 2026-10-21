@@ -10,7 +10,6 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 
@@ -20,6 +19,10 @@ import java.util.*;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfNetworkParameters {
+
+    public static final boolean AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE = false;
+
+    public static final boolean FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE = false;
 
     public static final double PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE = 10000;
 
@@ -38,7 +41,7 @@ public class LfNetworkParameters {
 
     public static final double LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE = Math.pow(10, -8); // in per unit
 
-    public static final OpenLoadFlowParameters.ReactiveRangeCheckMode REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE = OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX;
+    public static final ReactiveRangeCheckMode REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE = ReactiveRangeCheckMode.MAX;
 
     public static final int DEFAULT_MAX_SLACK_BUS_COUNT = 1;
 
@@ -126,7 +129,7 @@ public class LfNetworkParameters {
 
     private Set<String> loaderPostProcessorSelection = Collections.emptySet();
 
-    private OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode = REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
+    private ReactiveRangeCheckMode reactiveRangeCheckMode = REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
 
     private double lowImpedanceThreshold = LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
 
@@ -152,13 +155,13 @@ public class LfNetworkParameters {
 
     private List<String> voltageTargetPriorities = VOLTAGE_CONTROL_PRIORITIES_DEFAULT_VALUE;
 
-    private OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode = OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
+    private FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode = FictitiousGeneratorVoltageControlCheckMode.FORCED;
 
-    private boolean areaInterchangeControl = OpenLoadFlowParameters.AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
+    private boolean areaInterchangeControl = AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
 
     private String areaInterchangeControlAreaType = AREA_INTERCHANGE_CONTROL_AREA_TYPE_DEFAULT_VALUE;
 
-    private boolean forceTargetQInReactiveLimits = OpenLoadFlowParameters.FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE;
+    private boolean forceTargetQInReactiveLimits = FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE;
 
     private boolean disableInconsistentVoltageControls = DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_DEFAULT_VALUE;
 
@@ -457,20 +460,20 @@ public class LfNetworkParameters {
         return this;
     }
 
-    public OpenLoadFlowParameters.ReactiveRangeCheckMode getReactiveRangeCheckMode() {
+    public ReactiveRangeCheckMode getReactiveRangeCheckMode() {
         return reactiveRangeCheckMode;
     }
 
-    public LfNetworkParameters setReactiveRangeCheckMode(OpenLoadFlowParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
+    public LfNetworkParameters setReactiveRangeCheckMode(ReactiveRangeCheckMode reactiveRangeCheckMode) {
         this.reactiveRangeCheckMode = reactiveRangeCheckMode;
         return this;
     }
 
-    public OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode getFictitiousGeneratorVoltageControlCheckMode() {
+    public FictitiousGeneratorVoltageControlCheckMode getFictitiousGeneratorVoltageControlCheckMode() {
         return fictitiousGeneratorVoltageControlCheckMode;
     }
 
-    public LfNetworkParameters setFictitiousGeneratorVoltageControlCheckMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode) {
+    public LfNetworkParameters setFictitiousGeneratorVoltageControlCheckMode(FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode) {
         this.fictitiousGeneratorVoltageControlCheckMode = fictitiousGeneratorVoltageControlCheckMode;
         return this;
     }

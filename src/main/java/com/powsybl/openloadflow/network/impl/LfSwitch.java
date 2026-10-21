@@ -14,7 +14,7 @@ import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.sa.LimitScalingManager;
+import com.powsybl.openloadflow.network.LimitScalingManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 import org.slf4j.Logger;

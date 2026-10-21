@@ -11,9 +11,9 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FictitiousSwitchFactory;
-import com.powsybl.openloadflow.network.EurostagFactory;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.impl.ContingencyTripping;
+import com.powsybl.openloadflow.test.EurostagFactory;
+import com.powsybl.openloadflow.test.NodeBreakerNetworkFactory;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;

@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Network;
-import com.powsybl.openloadflow.NetworkVariantPool;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.Collections;

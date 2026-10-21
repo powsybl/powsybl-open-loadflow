@@ -11,7 +11,6 @@ package com.powsybl.openloadflow.network.action;
 import com.powsybl.action.Action;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.Reports;
 
 import java.util.*;
 
@@ -121,7 +120,7 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
 
         for (AbstractLfBranchAction<?> action : actions) {
             if (!action.updateConnectivity(connectivity)) {
-                Reports.reportActionApplicationFailure(action.getId(), contingency != null ? contingency.getId() : "", network.getReportNode());
+                NetworkReports.reportActionApplicationFailure(action.getId(), contingency != null ? contingency.getId() : "", network.getReportNode());
             }
         }
 

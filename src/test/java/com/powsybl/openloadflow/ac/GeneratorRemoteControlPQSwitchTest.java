@@ -17,14 +17,15 @@ import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
+import com.powsybl.openloadflow.lf.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
-import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
+import com.powsybl.openloadflow.network.SlackDistributionFailureBehavior;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.LoadFlowAssert;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,9 +35,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEqualsString;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.assertReactivePowerEquals;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.assertReportEqualsString;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -172,7 +173,7 @@ class GeneratorRemoteControlPQSwitchTest {
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
                 .setVoltageRemoteControl(true)
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+                .setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.FAIL);
 
         // Activate trace logs to ensure ReactiveLimitsLoop trace logs are run at least once per build
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();

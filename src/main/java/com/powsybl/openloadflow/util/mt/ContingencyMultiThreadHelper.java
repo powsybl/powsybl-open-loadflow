@@ -13,12 +13,13 @@ import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
+import com.powsybl.openloadflow.lf.Reports;
 import com.powsybl.openloadflow.network.LfTopoConfig;
+import com.powsybl.openloadflow.network.NetworkReports;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
-import com.powsybl.openloadflow.util.Reports;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,17 +44,17 @@ public final class ContingencyMultiThreadHelper {
     public static void mergeReportThreadResults(ReportNode mainReport, ReportNode toMerge) {
 
         Map<LfNetworkId, ReportNode> mainNodes = mainReport.getChildren().stream()
-                .filter(r -> r.getMessageKey().equals(Reports.LF_NETWORK_KEY))
+                .filter(r -> r.getMessageKey().equals(NetworkReports.LF_NETWORK_KEY))
                 .collect(Collectors.toMap(
-                        n -> new LfNetworkId(n.getValue(Reports.NETWORK_NUM_CC).orElseThrow().getValue(),
-                                                       n.getValue(Reports.NETWORK_NUM_SC).orElseThrow().getValue()),
+                        n -> new LfNetworkId(n.getValue(NetworkReports.NETWORK_NUM_CC).orElseThrow().getValue(),
+                                                       n.getValue(NetworkReports.NETWORK_NUM_SC).orElseThrow().getValue()),
                                   n -> n));
 
         Map<LfNetworkId, ReportNode> toMergeNodes = toMerge.getChildren().stream()
-                .filter(r -> r.getMessageKey().equals(Reports.LF_NETWORK_KEY))
+                .filter(r -> r.getMessageKey().equals(NetworkReports.LF_NETWORK_KEY))
                 .collect(Collectors.toMap(
-                        n -> new LfNetworkId(n.getValue(Reports.NETWORK_NUM_CC).orElseThrow().getValue(),
-                                n.getValue(Reports.NETWORK_NUM_SC).orElseThrow().getValue()),
+                        n -> new LfNetworkId(n.getValue(NetworkReports.NETWORK_NUM_CC).orElseThrow().getValue(),
+                                n.getValue(NetworkReports.NETWORK_NUM_SC).orElseThrow().getValue()),
                         n -> n));
 
         // By construction all threads should have the same lfNetwork List

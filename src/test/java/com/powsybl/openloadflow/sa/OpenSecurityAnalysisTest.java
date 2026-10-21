@@ -39,12 +39,12 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
+import com.powsybl.openloadflow.lf.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
@@ -53,8 +53,27 @@ import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.network.impl.OlfThreeWindingsTransformerResult;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
-import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
+import com.powsybl.openloadflow.test.BoundaryFactory;
+import com.powsybl.openloadflow.test.BusBreakerNetworkFactory;
+import com.powsybl.openloadflow.test.BusContingencyOpenLinesNetworkFactory;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ConnectedComponentNetworkFactory;
+import com.powsybl.openloadflow.test.DistributedSlackNetworkFactory;
+import com.powsybl.openloadflow.test.DoubleBusNetworkFactory;
+import com.powsybl.openloadflow.test.EurostagFactory;
+import com.powsybl.openloadflow.test.FourBusNetworkFactory;
+import com.powsybl.openloadflow.test.HvdcNetworkFactory;
+import com.powsybl.openloadflow.test.LoadFlowAssert;
+import com.powsybl.openloadflow.test.MultiAreaNetworkFactory;
+import com.powsybl.openloadflow.test.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.test.PhaseControlFactory;
+import com.powsybl.openloadflow.test.ReactivePowerControlNetworkFactory;
+import com.powsybl.openloadflow.test.ShuntNetworkFactory;
+import com.powsybl.openloadflow.test.SwitchLoopIssueNetworkFactory;
+import com.powsybl.openloadflow.test.T3wtFactory;
+import com.powsybl.openloadflow.test.TwoBusNetworkFactory;
+import com.powsybl.openloadflow.test.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.test.ZeroImpedanceNetworkFactory;
 import com.powsybl.security.PostContingencyComputationStatus;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisResult;
@@ -76,9 +95,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.google.common.collect.testing.Helpers.assertEmpty;
-import static com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory.createWith3BusesNonImpedantSubNetwork;
-import static com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory.createWithNonImpedantThreeWindingsTransformer;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.test.ZeroImpedanceNetworkFactory.createWith3BusesNonImpedantSubNetwork;
+import static com.powsybl.openloadflow.test.ZeroImpedanceNetworkFactory.createWithNonImpedantThreeWindingsTransformer;
 import static java.util.Collections.emptySet;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -1676,7 +1695,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         params.setHvdcAcEmulation(true);
         params.addExtension(OpenLoadFlowParameters.class,
                 new OpenLoadFlowParameters()
-                        .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL));
+                        .setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.FAIL));
         LoadFlowResult r = runLoadFlow(n, params);
         assertTrue(r.isFullyConverged());
         assertActivePowerEquals(0.0126, n.getLine("l12").getTerminal1());
@@ -3260,7 +3279,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         Network network = DistributedSlackNetworkFactory.create();
         Load l1 = network.getLoad("l1");
         LoadFlowParameters lfParameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(lfParameters).setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
+        OpenLoadFlowParameters.create(lfParameters).setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.THROW);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
                 .setLoadFlowParameters(lfParameters);
         List<Contingency> contingencies = List.of(new Contingency("l1", List.of(new LoadContingency("l1"))));
@@ -3286,7 +3305,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(600., postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower(), 1e-6);
 
         // check OLF parameters weren't modified to reach this
-        assertEquals(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW, OpenLoadFlowParameters.get(lfParameters).getSlackDistributionFailureBehavior());
+        assertEquals(SlackDistributionFailureBehavior.THROW, OpenLoadFlowParameters.get(lfParameters).getSlackDistributionFailureBehavior());
     }
 
     @Test
@@ -4958,7 +4977,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .setHvdcAcEmulation(false);
 
         p.addExtension(OpenLoadFlowParameters.class, new OpenLoadFlowParameters()
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL));
+                .setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.FAIL));
 
         SecurityAnalysisParameters sp = new SecurityAnalysisParameters();
         sp.setLoadFlowParameters(p);

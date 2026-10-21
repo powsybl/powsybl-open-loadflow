@@ -9,8 +9,8 @@ package com.powsybl.openloadflow.lf;
 
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
+import com.powsybl.openloadflow.network.SlackDistributionFailureBehavior;
 
 import java.util.Objects;
 
@@ -25,7 +25,7 @@ public abstract class AbstractLoadFlowParameters<P extends AbstractLoadFlowParam
     protected LfNetworkParameters networkParameters;
 
     protected MatrixFactory matrixFactory;
-    protected OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
+    protected SlackDistributionFailureBehavior slackDistributionFailureBehavior = SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
 
     protected AbstractLoadFlowParameters() {
         this(new LfNetworkParameters(), new SparseMatrixFactory());
@@ -54,11 +54,11 @@ public abstract class AbstractLoadFlowParameters<P extends AbstractLoadFlowParam
         return (P) this;
     }
 
-    public OpenLoadFlowParameters.SlackDistributionFailureBehavior getSlackDistributionFailureBehavior() {
+    public SlackDistributionFailureBehavior getSlackDistributionFailureBehavior() {
         return slackDistributionFailureBehavior;
     }
 
-    public P setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior) {
+    public P setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior slackDistributionFailureBehavior) {
         this.slackDistributionFailureBehavior = Objects.requireNonNull(slackDistributionFailureBehavior);
         return (P) this;
     }

@@ -7,7 +7,7 @@
  */
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.openloadflow.ac.equations.AbstractHvdcAcEmulationFlowEquationTerm;
+import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
@@ -15,6 +15,11 @@ import com.powsybl.openloadflow.util.PerUnit;
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
 public interface LfHvdc extends LfElement, LfCopyable<LfHvdc, LfNetwork> {
+
+    static double getAbsActivePowerWithLosses(double pController, double lossController, double lossNonController, double r) {
+        double lineInputPower = (1 - lossController) * Math.abs(pController);
+        return (1 - lossNonController) * (lineInputPower - HvdcUtils.getHvdcLineLosses(lineInputPower, 1, r));
+    }
 
     class AcEmulationControl {
         public enum AcEmulationStatus {
@@ -77,7 +82,7 @@ public interface LfHvdc extends LfElement, LfCopyable<LfHvdc, LfNetwork> {
             double lossController = controllerStation.getLossFactor() / 100;
             double lossNonController = nonControllerStation.getLossFactor() / 100;
             double pNonController = computeLoss ?
-                    -AbstractHvdcAcEmulationFlowEquationTerm.getAbsActivePowerWithLosses(pController, lossController, lossNonController, lineResistance)
+                    -getAbsActivePowerWithLosses(pController, lossController, lossNonController, lineResistance)
                     : -pController;
             // VSC are in load convention
             controllerStation.setTargetP(-pController);

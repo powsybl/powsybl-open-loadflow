@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.sensi;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.CommonTestConfig;
+import com.powsybl.openloadflow.test.CommonTestConfig;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

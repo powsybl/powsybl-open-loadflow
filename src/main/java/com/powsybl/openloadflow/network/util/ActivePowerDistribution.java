@@ -10,13 +10,13 @@ package com.powsybl.openloadflow.network.util;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfLoad;
 import com.powsybl.openloadflow.network.LfSynchronousNetwork;
+import com.powsybl.openloadflow.network.NetworkReports;
+import com.powsybl.openloadflow.network.SlackDistributionFailureBehavior;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -152,7 +152,7 @@ public final class ActivePowerDistribution {
 
     public record ResultWithFailureBehaviorHandling(boolean failed, String failedMessage, int iteration, double remainingMismatch, boolean movedBuses, double failedDistributedActivePower) { }
 
-    public static ResultWithFailureBehaviorHandling handleDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior behavior,
+    public static ResultWithFailureBehaviorHandling handleDistributionFailureBehavior(SlackDistributionFailureBehavior behavior,
                                                                                       LfGenerator referenceGenerator,
                                                                                       double activePowerMismatch,
                                                                                       Result result, String failMessageTemplate) {
@@ -160,10 +160,10 @@ public final class ActivePowerDistribution {
         Objects.requireNonNull(result);
         ResultWithFailureBehaviorHandling resultWithFailureBehaviorHandling;
 
-        final OpenLoadFlowParameters.SlackDistributionFailureBehavior effectiveBehavior;
+        final SlackDistributionFailureBehavior effectiveBehavior;
         // if requested behavior is to distribute on reference generator, but there is no reference generator, we fall back internally to FAIL mode
-        if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR == behavior && referenceGenerator == null) {
-            effectiveBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL;
+        if (SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR == behavior && referenceGenerator == null) {
+            effectiveBehavior = SlackDistributionFailureBehavior.FAIL;
             LOGGER.debug("Distribution failure behavior is DISTRIBUTE_ON_REFERENCE_GENERATOR but no reference generator selected, switching to FAIL mode");
         } else {
             effectiveBehavior = behavior;
@@ -209,7 +209,7 @@ public final class ActivePowerDistribution {
     }
 
     public static void reportAndLogSuccess(ReportNode reportNode, double slackBusActivePowerMismatch, ResultWithFailureBehaviorHandling result) {
-        Reports.reportMismatchDistributionSuccess(reportNode, slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
+        NetworkReports.reportMismatchDistributionSuccess(reportNode, slackBusActivePowerMismatch * PerUnit.SB, result.iteration());
 
         LOGGER.info("Slack bus active power ({} MW) distributed in {} distribution iteration(s)",
                 slackBusActivePowerMismatch * PerUnit.SB, result.iteration());

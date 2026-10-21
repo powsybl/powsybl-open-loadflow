@@ -20,6 +20,7 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.outerloop.AcOuterLoop;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.lf.Reports;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.lf.outerloop.config.AbstractAcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.AcOuterLoopConfig;
@@ -28,7 +29,6 @@ import com.powsybl.openloadflow.lf.outerloop.config.ExplicitAcOuterLoopConfig;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
-import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.PostContingencyComputationStatus;
 import com.powsybl.security.monitor.StateMonitor;
 
@@ -110,8 +110,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         // in some post-contingency computation, it does not remain elements to participate to slack distribution.
         // in that case, no exception should be thrown. If parameters were configured to throw, reconfigure to FAIL.
         // (the contingency will be marked as not converged)
-        if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW == parameters.getSlackDistributionFailureBehavior()) {
-            parameters.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        if (SlackDistributionFailureBehavior.THROW == parameters.getSlackDistributionFailureBehavior()) {
+            parameters.setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.FAIL);
         }
         parameters.setVoltageInitReport(false); // there is no point in reporting the PreviousVoltageValue initializer
     }

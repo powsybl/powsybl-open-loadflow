@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
-import com.powsybl.openloadflow.network.AcDcNetworkFactory;
+import com.powsybl.openloadflow.test.AcDcNetworkFactory;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

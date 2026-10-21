@@ -20,13 +20,14 @@ import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
+import com.powsybl.openloadflow.lf.Reports;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfSynchronousNetwork;
+import com.powsybl.openloadflow.network.NetworkReports;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
-import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -227,7 +228,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 .anyMatch(b -> b.isGeneratorVoltageControlEnabled() && !b.isDisabled() && !b.getGeneratorVoltageControl().orElseThrow().isDisabled());
         if (!hasVoltageRegulatedBus) {
             LOGGER.info("Network must have at least one bus with generator voltage control enabled");
-            Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
+            NetworkReports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
             Map<Integer, Double> nonInitializedSlackMismatch = new TreeMap<>();
             context.getNetwork().getSynchronousNetworks().forEach(lfScNetwork -> nonInitializedSlackMismatch.put(lfScNetwork.getNumSC(), Double.NaN));
             runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.SOLVER_FAILED, 0, nonInitializedSlackMismatch);

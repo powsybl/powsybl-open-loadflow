@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.AbstractExtension;
+import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
 import com.powsybl.security.SecurityAnalysisParameters;
 
 import java.util.List;
@@ -35,7 +36,7 @@ public class OpenSecurityAnalysisParameters extends AbstractExtension<SecurityAn
     public static final String CREATE_RESULT_EXTENSION_PARAM_NAME = "createResultExtension";
     public static final boolean CREATE_RESULT_EXTENSION_DEFAULT_VALUE = false;
     public static final String CONTINGENCY_PROPAGATION_PARAM_NAME = "contingencyPropagation";
-    public static final boolean CONTINGENCY_PROPAGATION_DEFAULT_VALUE = true;
+    public static final boolean CONTINGENCY_PROPAGATION_DEFAULT_VALUE = PropagatedContingencyCreationParameters.CONTINGENCY_PROPAGATION_DEFAULT_VALUE;
     public static final String THREAD_COUNT_PARAM_NAME = "threadCount";
     public static final int THREAD_COUNT_DEFAULT_VALUE = 1;
     public static final String DC_FAST_MODE_PARAM_NAME = "dcFastMode";

@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.test.EurostagFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

@@ -17,15 +17,16 @@ import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
+import com.powsybl.openloadflow.network.FictitiousGeneratorVoltageControlCheckMode;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -126,7 +127,7 @@ class FictitiousGeneratorTest {
 
     @Test
     void testFictitiousGeneratorWithDefaultParameters() {
-        assertEquals(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED, parametersExt.getFictitiousGeneratorVoltageControlCheckMode());
+        assertEquals(FictitiousGeneratorVoltageControlCheckMode.FORCED, parametersExt.getFictitiousGeneratorVoltageControlCheckMode());
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
@@ -137,7 +138,7 @@ class FictitiousGeneratorTest {
 
     @Test
     void testFictitiousGeneratorNormalMode() {
-        parametersExt.setFictitiousGeneratorVoltageControlCheckMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.NORMAL);
+        parametersExt.setFictitiousGeneratorVoltageControlCheckMode(FictitiousGeneratorVoltageControlCheckMode.NORMAL);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
@@ -170,7 +171,7 @@ class FictitiousGeneratorTest {
         assertVoltageEquals(224, b2);
 
         // This parameter has no effect on condensers
-        parametersExt.setFictitiousGeneratorVoltageControlCheckMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.NORMAL);
+        parametersExt.setFictitiousGeneratorVoltageControlCheckMode(FictitiousGeneratorVoltageControlCheckMode.NORMAL);
 
         result = loadFlowRunner.run(network, parameters);
 

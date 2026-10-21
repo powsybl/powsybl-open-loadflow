@@ -10,6 +10,8 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.test.AcDcNetworkFactory;
+import com.powsybl.openloadflow.test.HvdcNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

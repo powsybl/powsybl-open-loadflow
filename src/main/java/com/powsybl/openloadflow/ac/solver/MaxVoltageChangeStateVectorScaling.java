@@ -15,7 +15,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.equations.Vectors;
-import com.powsybl.openloadflow.util.Reports;
+import com.powsybl.openloadflow.lf.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

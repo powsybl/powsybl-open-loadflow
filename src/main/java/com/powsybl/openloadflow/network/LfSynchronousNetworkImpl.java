@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
-import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,7 +120,7 @@ public class LfSynchronousNetworkImpl implements LfSynchronousNetwork {
             if (!hasAtLeastOneBusGeneratorVoltageControlEnabled) {
                 LOGGER.warn("Network {} must have at least one bus with generator voltage control enabled", this);
                 if (reportNode != null) {
-                    Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
+                    NetworkReports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
                 }
                 return LfNetwork.Validity.INVALID_NO_GENERATOR_VOLTAGE_CONTROL;
             }

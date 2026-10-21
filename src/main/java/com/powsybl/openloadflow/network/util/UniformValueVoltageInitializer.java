@@ -13,7 +13,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
-import com.powsybl.openloadflow.util.Reports;
+import com.powsybl.openloadflow.network.NetworkReports;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,7 +30,7 @@ public class UniformValueVoltageInitializer implements VoltageInitializer {
 
     @Override
     public void prepare(LfNetwork network, ReportNode reportNode) {
-        Reports.reportVoltageInitializer(reportNode, NAME);
+        NetworkReports.reportVoltageInitializer(reportNode, NAME);
 
         // We need to ensure that two LfDcBuses connected to the same converter are initialized with different voltage
         // values. There is no such constraints for other LfDcBuses.

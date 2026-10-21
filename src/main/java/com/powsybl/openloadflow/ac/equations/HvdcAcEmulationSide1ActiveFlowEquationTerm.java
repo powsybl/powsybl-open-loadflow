@@ -27,7 +27,7 @@ public class HvdcAcEmulationSide1ActiveFlowEquationTerm extends AbstractHvdcAcEm
     public static double p1(double p0, double k, double lossFactor1, double lossFactor2, double r, double ph1, double ph2) {
         double rawP = rawP(p0, k, ph1, ph2);
         // if converterStation1 is controller, then p1 is positive, otherwise it is negative
-        return isController(rawP) ? rawP : -getAbsActivePowerWithLosses(rawP, lossFactor1, lossFactor2, r);
+        return isController(rawP) ? rawP : -LfHvdc.getAbsActivePowerWithLosses(rawP, lossFactor1, lossFactor2, r);
     }
 
     private static boolean isController(double rawP) {

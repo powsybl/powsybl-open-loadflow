@@ -14,7 +14,6 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
-import com.powsybl.openloadflow.util.Reports;
 import gnu.trove.list.array.TDoubleArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -190,7 +189,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
 
     @Override
     public void prepare(LfNetwork network, ReportNode reportNode) {
-        Reports.reportVoltageInitializer(reportNode, NAME);
+        NetworkReports.reportVoltageInitializer(reportNode, NAME);
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         // create the equation system:

@@ -1,0 +1,131 @@
+/**
+ * Copyright (c) 2024, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package com.powsybl.openloadflow.test;
+
+import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
+
+/**
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
+ */
+public class ZeroImpedanceNetworkFactory extends AbstractLoadFlowNetworkFactory {
+
+    /**
+     *
+     * g0 (regulate b1)                     g4
+     * |                                    | t34 (regulate b3)
+     * b0 ----- b1 ===== b2 ===== b3 --OO-- b4
+     *          |                 |
+     *           ------- b5 ------
+     *                   |
+     *                   ld5
+     */
+    public static Network createWithVoltageControl() {
+        Network network = Network.create("test", "code");
+        Bus b0 = createBus(network, "s", "b0");
+        Bus b1 = createBus(network, "s", "b1");
+        Bus b2 = createBus(network, "s", "b2");
+        Bus b3 = createBus(network, "s", "b3");
+        Bus b4 = createBus(network, "s", "b4");
+        Bus b5 = createBus(network, "s", "b5");
+        Generator g0 = createGenerator(b0, "g0", 2, 1); // 1 kV
+        createGenerator(b4, "g4", 2, 1.15); // 1.15 kV
+        createLoad(b5, "ld5", 4);
+        Line l01 = createLine(network, b0, b1, "l01", 0.1);
+        createLine(network, b1, b2, "l12", 0.0);
+        createLine(network, b2, b3, "l23", 0.0);
+        createLine(network, b1, b5, "l15", 0.1);
+        createLine(network, b5, b3, "l53", 0.1);
+        g0.getVoltageRegulation().setTerminal(l01.getTerminal2(), g0.getRegulatingTargetV()); // remote
+        TwoWindingsTransformer t34 = createTransformer(network, "s", b3, b4, "tr34", 0.15, 1);
+        t34.newRatioTapChanger()
+                .beginStep()
+                .setRho(0.9)
+                .endStep()
+                .beginStep()
+                .setRho(1)
+                .endStep()
+                .beginStep()
+                .setRho(1.1)
+                .endStep()
+                .beginStep()
+                .setRho(1.2)
+                .endStep()
+                .setTapPosition(1)
+                .setLoadTapChangingCapabilities(true)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(t34.getTerminal1())
+                    .withTargetValue(1.1)
+                    .withTargetDeadband(0.01)
+                    .add()
+                .add();
+        return network;
+    }
+
+    /**
+     * l1 --- b1 ---- b2 ==== b3 ---- b4 --- l4
+     *                ||      ||
+     *                  ||  ||
+     *                    b5
+     *                    |
+     *                    |
+     *                   b6
+     *                   |
+     *                  g6
+     */
+    public static Network createWith3BusesNonImpedantSubNetwork() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "s", "b1");
+        Bus b2 = createBus(network, "s", "b2");
+        Bus b3 = createBus(network, "s", "b3");
+        Bus b4 = createBus(network, "s", "b4");
+        Bus b5 = createBus(network, "s", "b5");
+        Bus b6 = createBus(network, "s", "b6");
+        createGenerator(b6, "g6", 3, 1);
+        createLoad(b1, "ld1", 2);
+        createLoad(b4, "ld4", 1);
+        createLine(network, b1, b2, "l12", 0.1);
+        createLine(network, b2, b3, "l23", 0.0);
+        createLine(network, b3, b4, "l34", 0.1);
+        createLine(network, b2, b5, "l25", 0.0);
+        createLine(network, b3, b5, "l35", 0.0);
+        createLine(network, b5, b6, "l56", 0.1);
+        return network;
+    }
+
+    /**
+     * l1 --- b1 ---- b2 ==== b3 ---- b4 --- l4
+     *                 |      |
+     *                   T3WT
+     *                     |
+     *                    b5
+     *                    |
+     *                    |
+     *                   b6
+     *                   |
+     *                  g6
+     */
+    public static Network createWithNonImpedantThreeWindingsTransformer() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "s", "b1");
+        Bus b2 = createBus(network, "s", "b2");
+        Bus b3 = createBus(network, "s", "b3");
+        Bus b4 = createBus(network, "s", "b4");
+        Bus b5 = createBus(network, "s", "b5");
+        Bus b6 = createBus(network, "s", "b6");
+        createGenerator(b6, "g6", 3, 1);
+        createLoad(b1, "ld1", 2);
+        createLoad(b4, "ld4", 1);
+        createLine(network, b1, b2, "l12", 0.1);
+        createLine(network, b3, b4, "l34", 0.1);
+        createLine(network, b5, b6, "l56", 0.1);
+        createThreeWindingsTransformer(network, "s", b2, b3, b5, "t3wt", 0., 1., 0., 1., 0., 1.);
+        return network;
+    }
+}

@@ -17,7 +17,6 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -787,7 +786,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
     }
 
     private void reportSize(ReportNode reportNode) {
-        Reports.reportNetworkSize(reportNode, busesById.values().size(), branches.size());
+        NetworkReports.reportNetworkSize(reportNode, busesById.values().size(), branches.size());
         LOGGER.info("Network {} has {} buses and {} branches",
             this, busesById.values().size(), branches.size());
     }
@@ -807,7 +806,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             }
         }
         if (fictitiousTargetPNormInf + fictitiousTargetQNormInf > 0) {
-            Reports.reportFictitiousInjectionTotal(reportNode,
+            NetworkReports.reportFictitiousInjectionTotal(reportNode,
                     fictitiousTargetPNormInf * PerUnit.SB,
                     fictitiousTargetQNormInf * PerUnit.SB,
                     busCount,
@@ -827,7 +826,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             reactiveLoad += b.getLoadTargetQ() * PerUnit.SB;
         }
 
-        Reports.reportNetworkBalance(reportNode, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
+        NetworkReports.reportNetworkBalance(reportNode, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
         LOGGER.info("Network {} balance: active generation={} MW, active load={} MW, reactive generation={} MVar, reactive load={} MVar",
             this, activeGeneration, activeLoad, reactiveGeneration, reactiveLoad);
     }
@@ -884,7 +883,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         List<LfNetwork> lfNetworks = networkLoader.load(network, topoConfig, parameters, reportNode);
         int deadComponentsCount = 0;
         for (LfNetwork lfNetwork : lfNetworks) {
-            ReportNode networkReport = Reports.createNetworkInfoReporter(lfNetwork.getReportNode());
+            ReportNode networkReport = NetworkReports.createNetworkInfoReporter(lfNetwork.getReportNode());
             lfNetwork.fix(parameters.isMinImpedance(), parameters.getLowImpedanceThreshold());
             lfNetwork.validate(parameters.getLoadFlowModel(), networkReport);
             switch (lfNetwork.getValidity()) {
@@ -895,27 +894,27 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
                     if (lfNetwork.getSynchronousNetworks().size() == 1) {
                         // Report slacks and reference buses at the same indent level
                         LfSynchronousNetwork lfScNetwork = lfNetwork.getSynchronousNetworks().getFirst();
-                        Reports.reportAngleReferenceBusAndSlackBuses(networkReport, lfScNetwork.getReferenceBus().getId(), lfScNetwork.getSlackBuses().stream().map(LfBus::getId).toList());
+                        NetworkReports.reportAngleReferenceBusAndSlackBuses(networkReport, lfScNetwork.getReferenceBus().getId(), lfScNetwork.getSlackBuses().stream().map(LfBus::getId).toList());
                     } else {
                         // We create one sub-report per synchronous component
                         for (LfSynchronousNetwork lfScNetwork : lfNetwork.getSynchronousNetworks()) {
-                            ReportNode synchronousNetworkReport = Reports.createLfSynchronousNetworkReportNode(networkReport, lfScNetwork.getNumSC());
-                            Reports.reportAngleReferenceBusAndSlackBuses(synchronousNetworkReport, lfScNetwork.getReferenceBus().getId(),
+                            ReportNode synchronousNetworkReport = NetworkReports.createLfSynchronousNetworkReportNode(networkReport, lfScNetwork.getNumSC());
+                            NetworkReports.reportAngleReferenceBusAndSlackBuses(synchronousNetworkReport, lfScNetwork.getReferenceBus().getId(),
                                 lfScNetwork.getSlackBuses().stream().map(LfBus::getId).toList());
                         }
                     }
-                    lfNetwork.setReportNode(Reports.includeLfNetworkReportNode(reportNode, lfNetwork.getReportNode()));
+                    lfNetwork.setReportNode(NetworkReports.includeLfNetworkReportNode(reportNode, lfNetwork.getReportNode()));
                 }
                 case INVALID_NO_GENERATOR_VOLTAGE_CONTROL -> {
                     LOGGER.info("Network {} is invalid, no calculation will be done", lfNetwork);
                     // we want to report this
-                    lfNetwork.setReportNode(Reports.includeLfNetworkReportNode(reportNode, lfNetwork.getReportNode()));
+                    lfNetwork.setReportNode(NetworkReports.includeLfNetworkReportNode(reportNode, lfNetwork.getReportNode()));
                 }
                 case INVALID_NO_GENERATOR -> deadComponentsCount++; // will be reported later on altogether
             }
         }
         if (deadComponentsCount > 0) {
-            Reports.reportComponentsWithoutGenerators(reportNode, deadComponentsCount);
+            NetworkReports.reportComponentsWithoutGenerators(reportNode, deadComponentsCount);
             LOGGER.info("No calculation will be done on {} network(s) that have no generators", deadComponentsCount);
         }
         return lfNetworks;

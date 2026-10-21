@@ -13,14 +13,15 @@ import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.lf.Reports;
 import com.powsybl.openloadflow.lf.outerloop.AbstractActivePowerDistributionOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfSynchronousNetwork;
+import com.powsybl.openloadflow.network.NetworkReports;
 import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,7 +106,7 @@ public class DistributedSlackOuterLoop
             LOGGER.debug("Already balanced");
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
-        ReportNode iterationReportNode = createSubReport ? Reports.createLfSynchronousNetworkReportNode(reportNode, lfScNetwork.getNumSC()) : reportNode;
+        ReportNode iterationReportNode = createSubReport ? NetworkReports.createLfSynchronousNetworkReportNode(reportNode, lfScNetwork.getNumSC()) : reportNode;
         ActivePowerDistribution.Result result = activePowerDistribution.run(lfScNetwork, slackBusActivePowerMismatch);
         ActivePowerDistribution.ResultWithFailureBehaviorHandling resultWbh = ActivePowerDistribution.handleDistributionFailureBehavior(
                 context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior(),
