@@ -7,6 +7,8 @@
  */
 package com.powsybl.openloadflow.graph.dtree;
 
+import com.powsybl.openloadflow.graph.Component;
+
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -20,7 +22,7 @@ import java.util.Set;
  *     <li>its parent in the tree and the edge linking them,</li>
  *     <li>its children in the tree and the edges linking them,</li>
  *     <li>all non tree edges having at least one endpoint that is the DTNode</li>
- *     <li>if the node is a root, its index in the list of components</li>
+ *     <li>if the node is a root, its index in the list of roots ({@link DTGraph#getRoots()})</li>
  * </ul>
  *
  * <p>
@@ -81,7 +83,9 @@ public class DTNode<V, E> {
     private final Set<Edge<V, E>> nonTreeEdges = new HashSet<>();
 
     // index in the list of roots, valid only if this node is a root
-    private int rootIndex = -1;
+    private int rootIndex;
+
+    private ComponentView<V, E> componentView = null;
 
     DTNode(DTGraph<V, E> graph, V vertex) {
         this.graph = graph;
@@ -145,8 +149,6 @@ public class DTNode<V, E> {
 
         // child is the old root
         DTNode<V, E> oldRoot = child;
-        rootIndex = oldRoot.rootIndex;
-        oldRoot.rootIndex = -1;
 
         // update the list of roots
         if (updateRoots) {
@@ -167,10 +169,8 @@ public class DTNode<V, E> {
      * @param parentRoot root of parent
      * @param parent     node that will become the parent of {@code this}.
      * @param edge       the edge linking {@code this} and {@code parent}
-     * @return root of the merged tree. In some cases {@code parentRoot} won't be the final root
-     * because of the restoration of the centroid property
      */
-    public DTNode<V, E> link(DTNode<V, E> parentRoot, DTNode<V, E> parent, Edge<V, E> edge) {
+    public void link(DTNode<V, E> parentRoot, DTNode<V, E> parent, Edge<V, E> edge) {
         // first: update parent/child relations
         parent.addChildUnchecked(this);
         this.parent = parent;
@@ -196,9 +196,6 @@ public class DTNode<V, E> {
         // eventually, change the root to a better one
         if (newCentroid != null) {
             newCentroid.makeRoot(true);
-            return newCentroid;
-        } else {
-            return parentRoot;
         }
     }
 
@@ -293,7 +290,7 @@ public class DTNode<V, E> {
         return node;
     }
 
-    public DTNodeAndDepth<V, E> findRootAndDepth() {
+    public DTNodeWithDepth<V, E> findRootWithDepth() {
         DTNode<V, E> node = this;
         int depth = 0;
 
@@ -302,7 +299,7 @@ public class DTNode<V, E> {
             depth++;
         }
 
-        return new DTNodeAndDepth<>(node, depth);
+        return new DTNodeWithDepth<>(node, depth);
     }
 
     public void addNonTreeEdge(Edge<V, E> edge) {
@@ -313,8 +310,12 @@ public class DTNode<V, E> {
         nonTreeEdges.remove(edge);
     }
 
-    ComponentView<V, E> componentView() {
-        return new ComponentView<>(this);
+    public Component<V> componentView() {
+        if (componentView == null) {
+            componentView = new ComponentView<>(this);
+        }
+
+        return componentView;
     }
 
     public Set<E> getNeighborEdges() {

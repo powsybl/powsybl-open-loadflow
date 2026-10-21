@@ -5,12 +5,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.graph.dtree;
+package com.powsybl.openloadflow.graph.dtreedyn;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphModification;
-import com.powsybl.openloadflow.graph.dtree.StateMap.State;
+import com.powsybl.openloadflow.graph.dtreedyn.StateMap.State;
 
 import java.util.ArrayDeque;
 import java.util.Deque;

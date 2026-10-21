@@ -8,13 +8,11 @@
 package com.powsybl.openloadflow.graph.benchmark.workload;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.github.jsonldjava.utils.Obj;
 import com.powsybl.openloadflow.graph.Component;
 import com.powsybl.openloadflow.graph.benchmark.Aggregator;
 import com.powsybl.openloadflow.graph.benchmark.AverageStopWatch;
 import com.powsybl.openloadflow.graph.benchmark.BenchmarkMethod;
 import com.powsybl.openloadflow.graph.dtree.AbstractSetView;
-import com.powsybl.openloadflow.network.LfBus;
 import org.nocrala.tools.texttablefmt.BorderStyle;
 import org.nocrala.tools.texttablefmt.CellStyle;
 import org.nocrala.tools.texttablefmt.Table;

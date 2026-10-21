@@ -8,9 +8,9 @@
 package com.powsybl.openloadflow.graph.dtree;
 
 import com.powsybl.openloadflow.graph.Component;
+import com.powsybl.openloadflow.graph.GraphModel;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * A graph maintaining a spanning forest over its connected component.
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  * @see DTreeGraphConnectivity
  */
-public class DTGraph<V, E> {
+public class DTGraph<V, E> implements GraphModel<V, E> {
 
     public static boolean debug = false;
 
@@ -31,24 +31,21 @@ public class DTGraph<V, E> {
      */
     private final Map<E, Edge<V, E>> edges = new HashMap<>();
 
+    /**
+     * the list of tree roots. Roots are maintained in a way such that
+     * the value of the attribute 'rootIndex' of the DTNode at index i is i.
+     * In other words: roots.get(i).rootIndex == i
+     */
     private final Set<DTNode<V, E>> roots = new LinkedHashSet<>();
-
-    private List<ComponentView<V, E>> components;
-
-    private Modifications<V, E> currentModificationsContext;
 
     public long sumOfDistances() {
         long sum = 0;
 
         for (DTNode<V, E> node : vertexToTreeNode.values()) {
-            sum += node.findRootAndDepth().depth();
+            sum += node.findRootWithDepth().depth();
         }
 
         return sum;
-    }
-
-    public int vertexCount() {
-        return vertexToTreeNode.size();
     }
 
     public DTNode<V, E> getNodeOrThrow(V v) {
@@ -70,46 +67,36 @@ public class DTGraph<V, E> {
         return getNodeOrThrow(vertex).findRoot();
     }
 
-    void setCurrentModificationsContext(Modifications<V, E> currentModificationsContext) {
-        this.currentModificationsContext = currentModificationsContext;
-    }
-
-    public boolean addVertex(V v) {
+    @Override
+    public void addVertex(V v) {
         if (containsVertex(v)) {
-            return false;
+            return;
         }
-
-        components = null;
 
         DTNode<V, E> newNode = new DTNode<>(this, v);
         vertexToTreeNode.put(v, newNode);
         addRoot(newNode);
-
-        return true;
     }
 
-    public boolean removeVertex(V v) {
+    @Override
+    public void removeVertex(V v) {
         if (!containsVertex(v)) {
-            return false;
+            return;
         }
-
-        components = null;
 
         for (E edge : getNeighborEdgesOf(v)) {
             removeEdge(edge);
         }
+
         DTNode<V, E> root = vertexToTreeNode.remove(v);
         removeRoot(root);
-
-        return true;
     }
 
-    public boolean addEdge(V u, V v, E e) {
+    @Override
+    public void addEdge(V u, V v, E e) {
         if (containsEdge(e)) {
-            return false;
+            return;
         }
-
-        components = null;
 
         DTNode<V, E> nodeU = getNodeOrThrow(u);
         DTNode<V, E> nodeV = getNodeOrThrow(v);
@@ -119,22 +106,18 @@ public class DTGraph<V, E> {
         edges.put(e, edge);
 
         // update spanning trees
-        var rootAndDepthU = nodeU.findRootAndDepth();
-        var rootAndDepthV = nodeV.findRootAndDepth();
+        DTNodeWithDepth<V, E> rootUdepth = nodeU.findRootWithDepth();
+        DTNodeWithDepth<V, E> rootVdepth = nodeV.findRootWithDepth();
 
-        if (rootAndDepthU.node() == rootAndDepthV.node()) {
-            // insert an edge inside a component, "reinforcing" connectivity  (insertNonTreeEdge in the article)
-            beforeInsertingEdgeInComponent(rootAndDepthU.node(), edge);
-            insertEdgeInComponent(rootAndDepthU.node(), nodeU, rootAndDepthU.depth(), nodeV, rootAndDepthV.depth(), edge);
+        if (rootUdepth.node() == rootVdepth.node()) {
+            // insert non tree edge
+            insertEdgeInComponent(rootUdepth.node(), nodeU, rootUdepth.depth(), nodeV, rootVdepth.depth(), edge);
         } else {
-            // merge two components by a tree edge (insertTreeEdge in the article)
-            beforeInsertingEdgeBetweenComponents(rootAndDepthU.node(), rootAndDepthV.node(), edge);
-            DTNode<V, E> mergedTree = insertEdgeBetweenComponents(rootAndDepthU.node(), nodeU, rootAndDepthV.node(), nodeV, edge);
-            afterInsertingEdgeBetweenComponents(mergedTree);
+            // insert tree edge
+            insertTreeEdge(rootUdepth.node(), nodeU, rootVdepth.node(), nodeV, edge);
         }
 
         check();
-        return true;
     }
 
     /**
@@ -197,8 +180,7 @@ public class DTGraph<V, E> {
 
     /**
      * Insert a tree edge between {@code nodeU} (in tree rooted at {@code rootU})
-     * and {@code nodeV} (in tree rooted at {@code rootV}); that is, merge two
-     * components.
+     * and {@code nodeV} (in tree rooted at {@code rootV}).
      * Assuming the size of rootU is less than the size of rootV, we simply
      * make {@code nodeU} a root and link it with {@code nodeV}.
      *
@@ -207,37 +189,33 @@ public class DTGraph<V, E> {
      * @param rootV {@code nodeV} tree root
      * @param nodeV the other endpoint of the edge to add.
      * @param edge  edge linking {@code nodeU} and {@code nodeV}
-     * @return root of the merged tree.
      */
-    private DTNode<V, E> insertEdgeBetweenComponents(DTNode<V, E> rootU, DTNode<V, E> nodeU, DTNode<V, E> rootV, DTNode<V, E> nodeV, Edge<V, E> edge) {
+    private void insertTreeEdge(DTNode<V, E> rootU, DTNode<V, E> nodeU, DTNode<V, E> rootV, DTNode<V, E> nodeV, Edge<V, E> edge) {
         if (rootU.size() < rootV.size()) {
             nodeU.makeRoot(true);
             removeRoot(nodeU);
-            return nodeU.link(rootV, nodeV, edge);
+            nodeU.link(rootV, nodeV, edge);
         } else {
             nodeV.makeRoot(true);
             removeRoot(nodeV);
-            return nodeV.link(rootU, nodeU, edge);
+            nodeV.link(rootU, nodeU, edge);
         }
     }
 
-    public Edge<V, E> removeEdge(E e) {
+    @Override
+    public void removeEdge(E e) {
         Edge<V, E> edge = edges.remove(e);
         if (edge == null) {
-            return null;
+            return;
         }
-
-        components = null;
 
         if (edge.isTreeEdge()) {
             removeTreeEdge(edge);
         } else {
             removeNonTreeEdge(edge);
-            afterRemovingNonBreakingConnectivityEdge(edge.nodeU().findRoot(), edge);
         }
 
         check();
-        return edge;
     }
 
     /**
@@ -245,7 +223,7 @@ public class DTGraph<V, E> {
      * Remove the tree edge between {@code nodeU} and {@code nodeV}.
      * Assuming nodeU is a child of {@code nodeV}, this is a two steps process :
      * <ol>
-     *     <li>Unlink {@code nodeU} from {@code nodeV}. This creates two trees with a smaller one called {@code small},</li>
+     *     <li>Unlink nodeU from nodeV. This creates two trees with a smaller one called {@code small},</li>
      *     <li>Search for a replacement edge and a potential new centroid by iterating over {@code small}.</li>
      *     <ul>
      *         <li>if one is found, it is a non-tree edge so it is removed and then added as a tree edge</li>
@@ -269,20 +247,17 @@ public class DTGraph<V, E> {
         addRoot(child);
 
         DTNode<V, E> small;
-        DTNode<V, E> large;
         if (child.size() < otherTree.size()) {
             small = child;
-            large = otherTree;
         } else {
             small = otherTree;
-            large = child;
         }
 
         // try to reconnect them
-        replace(edge, small, large);
+        replace(small);
     }
 
-    private void replace(Edge<V, E> removedEdge, DTNode<V, E> rootSmall, DTNode<V, E> rootLarge) {
+    private void replace(DTNode<V, E> rootSmall) {
         DTNode<V, E> newRoot = null; // a potential new root in case no replacement edge is found
 
         // iterate over the nodes of rootSmall using a BFS.
@@ -305,8 +280,8 @@ public class DTGraph<V, E> {
                 if (oppRoot != rootSmall) {
                     // found a replacement edge
                     removeNonTreeEdge(nonTreeEdge);
-                    DTNode<V, E> mergedTreeRoot = insertEdgeBetweenComponents(rootSmall, n, oppRoot, oppNode, nonTreeEdge);
-                    afterRemovingNonBreakingConnectivityEdge(mergedTreeRoot, removedEdge);
+                    insertTreeEdge(rootSmall, n, oppRoot, oppNode, nonTreeEdge);
+
                     return;
                 }
             }
@@ -322,9 +297,6 @@ public class DTGraph<V, E> {
         // fix centroid property
         if (newRoot != null) {
             newRoot.makeRoot(true);
-            afterRemovingEdgeBreakingConnectivity(newRoot, rootLarge, removedEdge);
-        } else {
-            afterRemovingEdgeBreakingConnectivity(rootSmall, rootLarge, removedEdge);
         }
     }
 
@@ -336,36 +308,6 @@ public class DTGraph<V, E> {
     private void removeNonTreeEdge(Edge<V, E> edge) {
         edge.nodeU().removeNonTreeEdge(edge);
         edge.nodeV().removeNonTreeEdge(edge);
-    }
-
-    private void beforeInsertingEdgeInComponent(DTNode<V, E> treeRoot, Edge<V, E> edge) {
-        if (currentModificationsContext != null) {
-            currentModificationsContext.beforeInsertingEdgeInComponent(treeRoot, edge);
-        }
-    }
-
-    private void beforeInsertingEdgeBetweenComponents(DTNode<V, E> rootU, DTNode<V, E> rootV, Edge<V, E> edge) {
-        if (currentModificationsContext != null) {
-            currentModificationsContext.beforeInsertingEdgeBetweenComponents(rootU, rootV, edge);
-        }
-    }
-
-    private void afterInsertingEdgeBetweenComponents(DTNode<V, E> mergedTree) {
-        if (currentModificationsContext != null) {
-            currentModificationsContext.afterInsertingEdgeBetweenComponents(mergedTree);
-        }
-    }
-
-    private void afterRemovingNonBreakingConnectivityEdge(DTNode<V, E> treeRoot, Edge<V, E> edge) {
-        if (currentModificationsContext != null) {
-            currentModificationsContext.afterRemovingNonBreakingConnectivityEdge(treeRoot, edge);
-        }
-    }
-
-    private void afterRemovingEdgeBreakingConnectivity(DTNode<V, E> smallRoot, DTNode<V, E> largeRoot, Edge<V, E> edge) {
-        if (currentModificationsContext != null) {
-            currentModificationsContext.afterRemovingEdgeBreakingConnectivity(smallRoot, largeRoot, edge);
-        }
     }
 
     /**
@@ -397,16 +339,39 @@ public class DTGraph<V, E> {
         roots.add(newRoot);
     }
 
+    @Override
     public boolean containsVertex(V vertex) {
         return vertexToTreeNode.containsKey(vertex);
     }
 
+    @Override
     public boolean containsEdge(E edge) {
         return edges.containsKey(edge);
     }
 
+    @Override
+    public V getEdgeSource(E edge) {
+        return switch (edges.get(edge)) {
+            case null -> null;
+            case Edge<V, E> e -> e.nodeU().getVertex();
+        };
+    }
+
+    @Override
+    public V getEdgeTarget(E edge) {
+        return switch (edges.get(edge)) {
+            case null -> null;
+            case Edge<V, E> e -> e.nodeV().getVertex();
+        };
+    }
+
+    @Override
     public Set<E> getNeighborEdgesOf(V v) {
         return vertexToTreeNode.get(v).getNeighborEdges();
+    }
+
+    public Set<V> getVertices() {
+        return vertexToTreeNode.keySet();
     }
 
     public int getNbConnectedComponent() {
@@ -417,38 +382,21 @@ public class DTGraph<V, E> {
         return getNodeOrThrow(vertex).componentView();
     }
 
-    DTNode<V, E> getBiggestRoot() {
-        if (components == null) {
-            DTNode<V, E> biggestRoot = null;
-
-            for (DTNode<V, E> root : roots) {
-                if (biggestRoot == null || root.size() > biggestRoot.size()) {
-                    biggestRoot = root;
-                }
-            }
-
-            return biggestRoot;
-        } else {
-            return components.getFirst().getRoot();
-        }
-    }
-
     /**
      * Builds a list of components, sort it by size in reverse order and update index for every root.
      *
      * @return a list of components sorted by size in reverse order.
      */
-    List<ComponentView<V, E>> buildAndSortComponents() {
-        if (components == null) {
-            components = roots.stream()
-                    .map(DTNode::componentView)
-                    .sorted(Comparator.<Set<V>>comparingInt(Set::size).reversed())
-                    .collect(Collectors.toCollection(ArrayList::new));
+    public List<Component<V>> allComponents() {
+        List<Component<V>> components = new ArrayList<>(roots.size());
+        for (DTNode<V, E> root : roots) {
+            components.add(root.componentView());
+        }
 
-            for (int i = 0; i < components.size(); i++) {
-                ComponentView<V, E> comp = components.get(i);
-                comp.getRoot().setIndex(i);
-            }
+        components.sort(Comparator.<Set<V>>comparingInt(Set::size).reversed());
+        for (int i = 0; i < components.size(); i++) {
+            ComponentView<V, E> comp = (ComponentView<V, E>) components.get(i);
+            comp.setIndex(i);
         }
 
         return components;

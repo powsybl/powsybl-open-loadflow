@@ -34,7 +34,7 @@ public interface Component<V> extends Set<V> {
      *
      * @return a set whose data is owned by the caller.
      * @implNote Implementations aren't required to copy data when unnecessary
-     * @see com.powsybl.openloadflow.graph.dtree.ComponentView#toOwnedSet()
+     * @see com.powsybl.openloadflow.graph.dtreedyn.ComponentView#toOwnedSet()
      * @see HashSetComponent#toOwnedSet()
      */
     Set<V> toOwnedSet();

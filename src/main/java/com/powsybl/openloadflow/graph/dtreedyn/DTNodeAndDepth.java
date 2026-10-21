@@ -5,12 +5,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.graph.dtreepr;
+package com.powsybl.openloadflow.graph.dtreedyn;
 
 /**
  * A node with its depth in some unspecified spanning tree.
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public record DTNodeWithDepth<V, E>(DTNode<V, E> node, int depth) {
+public record DTNodeAndDepth<V, E>(DTNode<V, E> node, int depth) {
 }

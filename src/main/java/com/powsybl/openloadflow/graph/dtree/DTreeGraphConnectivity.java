@@ -7,12 +7,10 @@
  */
 package com.powsybl.openloadflow.graph.dtree;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.*;
 
-import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.Objects;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -42,166 +40,135 @@ import java.util.Set;
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnectivity<V, E> {
+public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E, DTGraph<V, E>> implements SpanningForestGraphConnectivity<V, E> {
 
-    private final DTGraph<V, E> graph = new DTGraph<>();
-
-    private final Deque<Modifications<V, E>> modificationsStack = new ArrayDeque<>();
-    private V defaultMainComponentVertex;
-
-    @Override
-    public void addVertex(V vertex) {
-        Objects.requireNonNull(vertex);
-
-        if (graph.addVertex(vertex)) {
-            // keep track of modifications
-            Modifications<V, E> modifications = modificationsStack.peek();
-
-            if (modifications != null) {
-                modifications.push(new VertexAdd<>(vertex));
-            }
-        }
+    public DTreeGraphConnectivity() {
+        super(new DTGraph<>());
     }
 
     @Override
-    public void addEdge(V vertex1, V vertex2, E edge) {
-        Objects.requireNonNull(vertex1);
-        Objects.requireNonNull(vertex2);
-        Objects.requireNonNull(edge);
-
-        if (graph.addEdge(vertex1, vertex2, edge)) {
-            // keep track of modifications
-            Modifications<V, E> modifications = modificationsStack.peek();
-
-            if (modifications != null) {
-                modifications.push(new EdgeAdd<>(vertex1, vertex2, edge));
-            }
-        }
+    protected void updateConnectivity(EdgeRemove<V, E> edgeRemove) {
+        // only invalidate components.
+        // update is done directly in DTGraph because the graph is stored inside the spanning forest.
+        componentSets = null;
     }
 
     @Override
-    public void removeEdge(E edge) {
-        Objects.requireNonNull(edge);
+    protected void updateConnectivity(EdgeAdd<V, E> edgeAdd) {
+        // only invalidate components.
+        // update is done directly in DTGraph because the graph is stored inside the spanning forest.
+        componentSets = null;
+    }
 
-        Edge<V, E> e = graph.removeEdge(edge);
-        if (e != null) {
-            // keep track of modifications
-            Modifications<V, E> modifications = modificationsStack.peek();
+    @Override
+    protected void updateConnectivity(VertexAdd<V, E> vertexAdd) {
+        // only invalidate components.
+        // update is done directly in DTGraph because the graph is stored inside the spanning forest.
+        componentSets = null;
+    }
 
-            if (modifications != null) {
-                modifications.push(new EdgeRemove<>(e.nodeU().getVertex(), e.nodeV().getVertex(), e.edgeData()));
+    @Override
+    protected void resetConnectivity(Deque<GraphModification<V, E>> m) {
+        // only invalidate components.
+        // update is done directly in undoTemporaryChanges because the graph is stored inside the spanning forest.
+        componentSets = null;
+    }
+
+    @Override
+    protected void updateComponents() {
+        if (componentSets != null) {
+            return;
+        }
+
+        DTGraph<V, E> graph = getGraph();
+        componentSets = graph.allComponents();
+    }
+
+    @Override
+    protected int getQuickComponentNumber(V vertex) {
+        return getGraph().rootOf(vertex).getIndex();
+    }
+
+    @Override
+    public int getNbConnectedComponents() {
+        checkSavedContext();
+        return getGraph().getNbConnectedComponent();
+    }
+
+    @Override
+    public Component<V> getConnectedComponent(V vertex) {
+        checkSavedContext();
+        checkVertex(vertex);
+        return getGraph().componentView(vertex);
+    }
+
+    @Override
+    protected Set<V> getNonConnectedVertices(V vertex) {
+        checkSavedContext();
+        checkVertex(vertex);
+
+        DTGraph<V, E> graph = getGraph();
+        DTNode<V, E> excludedTree = graph.rootOf(vertex);
+
+        Set<V> components = new HashSet<>();
+        for (DTNode<V, E> root : graph.getRoots()) {
+            if (root != excludedTree) {
+                components.addAll(root.componentView());
             }
+        }
+
+        return components;
+    }
+
+    @Override
+    protected Set<V> getVerticesNotInMainComponent(V mainComponentVertex) {
+        // first determine the excluded tree: either the tree containing
+        // the mainComponentVertex, either the biggest tree
+        DTNode<V, E> excludedTree = getMainComponentRoot(mainComponentVertex);
+        return new VerticesNotInMainComponent<>(getGraph(), excludedTree);
+    }
+
+    @Override
+    public long computeSumOfDistances() {
+        long sum = 0;
+
+        for (V vertex : getGraph().getVertices()) {
+            sum += getGraph().getNodeOrThrow(vertex).findRootWithDepth().depth();
+        }
+
+        return sum;
+    }
+
+    @Override
+    public int vertexCount() {
+        return getGraph().getVertices().size();
+    }
+
+    /**
+     * @param mainComponentVertex a vertex in the main component tree, may be null
+     * @return the root of the tree containing mainComponentVertex, if not null,
+     * or the root of the biggest tree
+     */
+    private DTNode<V, E> getMainComponentRoot(V mainComponentVertex) {
+        DTGraph<V, E> graph = getGraph();
+
+        if (mainComponentVertex != null) {
+            return graph.rootOf(mainComponentVertex);
+        } else {
+            DTNode<V, E> biggestRoot = null;
+
+            for (DTNode<V, E> root : getGraph().getRoots()) {
+                if (biggestRoot == null || root.size() > biggestRoot.size()) {
+                    biggestRoot = root;
+                }
+            }
+
+            return biggestRoot;
         }
     }
 
     @Override
     public boolean supportTemporaryChangesNesting() {
         return true;
-    }
-
-    @Override
-    public void startTemporaryChanges(boolean computeComparisons) {
-        modificationsStack.push(new Modifications<>(graph, defaultMainComponentVertex, computeComparisons));
-        graph.setCurrentModificationsContext(modificationsStack.peek());
-    }
-
-    @Override
-    public void undoTemporaryChanges() {
-        if (modificationsStack.isEmpty()) {
-            throw new PowsyblException("Cannot reset, no remaining saved connectivity");
-        }
-
-        Modifications<V, E> modifications = modificationsStack.peek(); // FIXME: pop() ?
-        graph.setCurrentModificationsContext(null);
-
-        for (GraphModification<V, E> gm : modifications) {
-            switch (gm) {
-                case EdgeAdd<V, E> edgeAdd -> graph.removeEdge(edgeAdd.e());
-                case EdgeRemove<V, E> edgeRemove -> graph.addEdge(edgeRemove.v1(), edgeRemove.v2(), edgeRemove.e());
-                case VertexAdd<V, E> vertexAdd -> graph.removeVertex(vertexAdd.v());
-                default -> throw new IllegalStateException("Unexpected value: " + gm);
-            }
-        }
-
-        modificationsStack.pop();
-        graph.setCurrentModificationsContext(modificationsStack.peek());
-    }
-
-    @Override
-    public int getComponentNumber(V vertex) {
-        return getConnectedComponent(vertex).getNumber();
-    }
-
-    @Override
-    public boolean connected(V vertex1, V vertex2) {
-        return graph.rootOf(vertex1) == graph.rootOf(vertex2);
-    }
-
-    @Override
-    public void setMainComponentVertex(V mainComponentVertex) {
-        if (!modificationsStack.isEmpty()) {
-            Modifications<V, E> modifications = modificationsStack.peek();
-            modifications.setMainComponentVertex(mainComponentVertex);
-        }
-        defaultMainComponentVertex = mainComponentVertex;
-    }
-
-    @Override
-    public int getNbConnectedComponents() {
-        checkSavedContext();
-        return graph.getNbConnectedComponent();
-    }
-
-    @Override
-    public Component<V> getConnectedComponent(V vertex) {
-        checkSavedContext();
-        return graph.componentView(vertex);
-    }
-
-    @Override
-    public Component<V> getLargestConnectedComponent() {
-        checkSavedContext();
-        return graph.getBiggestRoot().componentView();
-    }
-
-    @Override
-    public Set<V> getVerticesRemovedFromMainComponent() {
-        return checkSavedContext().getVerticesRemovedFromMainComponent();
-    }
-
-    @Override
-    public Set<E> getEdgesRemovedFromMainComponent() {
-        return checkSavedContext().getEdgesRemovedFromMainComponent();
-    }
-
-    @Override
-    public Set<V> getVerticesAddedToMainComponent() {
-        return checkSavedContext().getVerticesAddedToMainComponent();
-    }
-
-    @Override
-    public Set<E> getEdgesAddedToMainComponent() {
-        return checkSavedContext().getEdgesAddedToMainComponent();
-    }
-
-    private Modifications<V, E> checkSavedContext() {
-        if (modificationsStack.isEmpty()) {
-            throw new PowsyblException("Cannot compute connectivity without a saved state, please call GraphConnectivity::startTemporaryChanges at least once beforehand");
-        }
-        return modificationsStack.peek();
-    }
-
-    public DTGraph<V, E> getGraph() {
-        return graph;
-    }
-
-    @Override
-    public long computeSumOfDistances() {
-        return graph.sumOfDistances();
-    }
-
-    @Override
-    public int vertexCount() {
-        return graph.vertexCount();
     }
 }

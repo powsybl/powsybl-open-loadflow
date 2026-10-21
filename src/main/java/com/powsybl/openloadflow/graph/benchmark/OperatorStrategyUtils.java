@@ -20,7 +20,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.benchmark.ng.BusBreakerGraph;
 import com.powsybl.openloadflow.graph.benchmark.ng.Edge;
 import com.powsybl.openloadflow.graph.benchmark.ng.Vertex;
-import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
+import com.powsybl.openloadflow.graph.dtreedyn.DTreeGraphConnectivity;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.Graph;

@@ -11,7 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
-import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
+import com.powsybl.openloadflow.graph.dtreedyn.DTreeGraphConnectivity;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import org.junit.jupiter.api.Test;
@@ -832,7 +832,7 @@ class ConnectivityTest {
                 Arguments.of(new NewHolmGraphConnectivity<>()),
                 Arguments.of(new ETTreeGraphConnectivity<>()),
                 Arguments.of(new DTreeGraphConnectivity<>()),
-                Arguments.of(new com.powsybl.openloadflow.graph.dtreepr.DTreeGraphConnectivity<>()),
+                Arguments.of(new com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity<>()),
                 Arguments.of(new DTreeStandalone<>()),
                 Arguments.of(new Delta2DTreeStandalone<>()),
                 Arguments.of(new Delta2ReplaceWithBestDTreeStandalone<>()),

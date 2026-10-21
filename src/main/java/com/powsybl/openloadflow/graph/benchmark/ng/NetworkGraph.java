@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.graph.benchmark.ng;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
+import com.powsybl.openloadflow.graph.dtreedyn.DTreeGraphConnectivity;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import org.jgrapht.graph.Pseudograph;

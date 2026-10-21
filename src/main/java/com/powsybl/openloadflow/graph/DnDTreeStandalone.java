@@ -9,8 +9,8 @@ package com.powsybl.openloadflow.graph;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.graph.dtree.AbstractSetView;
-import com.powsybl.openloadflow.graph.dtree.DTGraph;
-import com.powsybl.openloadflow.graph.dtree.StateMap;
+import com.powsybl.openloadflow.graph.dtreedyn.DTGraph;
+import com.powsybl.openloadflow.graph.dtreedyn.StateMap;
 
 import java.util.*;
 

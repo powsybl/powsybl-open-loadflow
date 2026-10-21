@@ -5,9 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.graph.dtreepr;
-
-import com.powsybl.openloadflow.graph.dtree.AbstractSetView;
+package com.powsybl.openloadflow.graph.dtree;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;

@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.graph.dtree;
 
 import com.powsybl.openloadflow.graph.GraphConnectivity;
+import com.powsybl.openloadflow.graph.dtreedyn.DTreeGraphConnectivity;
 import gnu.trove.set.hash.THashSet;
 
 import java.util.AbstractSet;
