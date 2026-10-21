@@ -1,0 +1,92 @@
+#
+# Copyright (c) 2022, Jean-Baptiste Heyberger & Geoffroy Jamgotchian
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+
+# query: synchronousMachineShortCircuit
+SELECT *
+{
+    ?ID
+        a cim:SynchronousMachine ;
+    OPTIONAL { ?ID cim:SynchronousMachine.satDirectSubtransX ?satDirectSubtransX }
+    OPTIONAL { ?ID cim:SynchronousMachine.satDirectTransX ?satDirectTransX }
+    OPTIONAL { ?ID cim:SynchronousMachine.r0 ?r0 }
+    OPTIONAL { ?ID cim:SynchronousMachine.r2 ?r2 }
+    OPTIONAL { ?ID cim:SynchronousMachine.x0 ?x0 }
+    OPTIONAL { ?ID cim:SynchronousMachine.x2 ?x2 }
+    OPTIONAL { ?ID cim:SynchronousMachine.r ?r }
+    OPTIONAL { ?ID cim:SynchronousMachine.shortCircuitRotorType ?shortCircuitRotorType }
+    OPTIONAL { ?ID cim:SynchronousMachine.voltageRegulationRange ?voltageRegulationRange }
+    OPTIONAL { ?ID cim:SynchronousMachine.earthing ?earthing }
+    OPTIONAL { ?ID cim:RotatingMachine.ratedU ?ratedU }
+    OPTIONAL { ?ID cim:RotatingMachine.ratedPowerFactor ?ratedPowerFactor }
+}
+
+# query: externalNetworkInjectionShortCircuit
+SELECT *
+{
+    ?ID
+        a cim:ExternalNetworkInjection ;
+    OPTIONAL { ?ID cim:ExternalNetworkInjection.maxInitialSymShCCurrent ?maxInitialSymShCCurrent }
+    OPTIONAL { ?ID cim:ExternalNetworkInjection.maxR0ToX0Ratio ?maxR0ToX0Ratio }
+    OPTIONAL { ?ID cim:ExternalNetworkInjection.maxR1ToX1Ratio ?maxR1ToX1Ratio }
+    OPTIONAL { ?ID cim:ExternalNetworkInjection.maxZ0ToZ1Ratio ?maxZ0ToZ1Ratio }
+    OPTIONAL { ?ID cim:ExternalNetworkInjection.voltageFactor ?voltageFactor }
+}
+
+# query: asynchronousMachineShortCircuit
+SELECT *
+{
+    ?ID
+        a cim:AsynchronousMachine ;
+    OPTIONAL { ?ID cim:AsynchronousMachine.ratedMechanicalPower ?ratedMechanicalPower }
+    OPTIONAL { ?ID cim:RotatingMachine.ratedPowerFactor ?ratedPowerFactor }
+    OPTIONAL { ?ID cim:RotatingMachine.ratedS ?ratedS }
+    OPTIONAL { ?ID cim:RotatingMachine.ratedU ?ratedU }
+    OPTIONAL { ?ID cim:AsynchronousMachine.efficiency ?efficiency }
+    OPTIONAL { ?ID cim:AsynchronousMachine.iaIrRatio ?iaIrRatio }
+    OPTIONAL { ?ID cim:AsynchronousMachine.polePairNumber ?polePairNumber }
+    OPTIONAL { ?ID cim:AsynchronousMachine.rxLockedRotorRatio ?rxLockedRotorRatio }
+}
+
+# query: acLineSegmentShortCircuit
+SELECT *
+{
+    ?ID
+        a cim:ACLineSegment ;
+    OPTIONAL { ?ID cim:ACLineSegment.r0 ?r0 }
+    OPTIONAL { ?ID cim:ACLineSegment.x0 ?x0 }
+    OPTIONAL { ?ID cim:ACLineSegment.b0ch ?b0ch }
+    OPTIONAL { ?ID cim:ACLineSegment.g0ch ?g0ch }
+}
+
+# query: powerTransformerShortCircuit
+SELECT *
+{
+    ?ID
+        a cim:PowerTransformer ;
+    OPTIONAL { ?ID cim:PowerTransformer.isPartOfGeneratorUnit ?isPartOfGeneratorUnit }
+}
+
+# query: powerTransformerEndShortCircuit
+SELECT *
+{
+    ?ID
+        a cim:PowerTransformer ;
+    OPTIONAL { ?ID cim:Equipment.EquipmentContainer ?EquipmentContainer }
+    ?TransformerEnd
+        a cim:PowerTransformerEnd ;
+        cim:PowerTransformerEnd.PowerTransformer ?ID ;
+    OPTIONAL { ?TransformerEnd cim:PowerTransformerEnd.r0 ?r0 }
+    OPTIONAL { ?TransformerEnd cim:PowerTransformerEnd.x0 ?x0 }
+    OPTIONAL { ?TransformerEnd cim:PowerTransformerEnd.b0 ?b0 }
+    OPTIONAL { ?TransformerEnd cim:PowerTransformerEnd.g0 ?g0 }
+    OPTIONAL { ?TransformerEnd cim:PowerTransformerEnd.ratedS ?ratedS }
+    OPTIONAL { ?TransformerEnd cim:TransformerEnd.endNumber ?endNumber }
+    OPTIONAL { ?TransformerEnd cim:TransformerEnd.rground ?rground }
+    OPTIONAL { ?TransformerEnd cim:TransformerEnd.xground ?xground }
+    OPTIONAL { ?TransformerEnd cim:TransformerEnd.grounded ?grounded }
+    OPTIONAL { ?TransformerEnd cim:PowerTransformerEnd.connectionKind ?connectionKind }
+}

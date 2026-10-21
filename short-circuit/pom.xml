@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (c) 2022, Jean-Baptiste Heyberger & Geoffroy Jamgotchian
+    This Source Code Form is subject to the terms of the Mozilla Public
+    License, v. 2.0. If a copy of the MPL was not distributed with this
+    file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.powsybl</groupId>
+        <artifactId>powsybl-network-analysis</artifactId>
+        <version>2.5.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>powsybl-na-short-circuit</artifactId>
+    <packaging>pom</packaging>
+
+    <name>powsybl network analysis short circuit</name>
+    <description>An open source short-circuit calculation based on PowSyBl</description>
+
+    <developers>
+        <developer>
+            <name>Jean-Baptiste HEYBERGER</name>
+            <email>jean-baptiste.heyberger@rte-france.com</email>
+            <organization>RTE</organization>
+            <organizationUrl>https://www.rte-france.com</organizationUrl>
+        </developer>
+        <developer>
+            <name>Geoffroy JAMGOTCHIAN</name>
+            <email>geoffroy.jamgotchian@rte-france.com</email>
+            <organization>RTE</organization>
+            <organizationUrl>https://www.rte-france.com</organizationUrl>
+        </developer>
+    </developers>
+
+    <modules>
+        <module>extensions</module>
+        <module>cgmes</module>
+        <module>implementation</module>
+    </modules>
+</project>
