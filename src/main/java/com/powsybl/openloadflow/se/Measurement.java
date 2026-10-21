@@ -7,9 +7,9 @@
  */
 package com.powsybl.openloadflow.se;
 
-import com.powsybl.openloadflow.ac.equations.measurement.MeasuredQuantity;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.se.equations.MeasuredQuantity;
 
 import java.util.Objects;
 

@@ -10,13 +10,13 @@ package com.powsybl.openloadflow.se;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.equations.measurement.MeasurementEquation;
-import com.powsybl.openloadflow.ac.equations.measurement.MeasurementEquations;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.se.equations.MeasurementEquation;
+import com.powsybl.openloadflow.se.equations.MeasurementEquations;
 
 import java.util.ArrayList;
 import java.util.List;
