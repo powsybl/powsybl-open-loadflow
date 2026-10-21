@@ -938,7 +938,8 @@ public final class Reports {
     public static ReportNode createRootOuterLoopIterationReporter(ReportNode firstRootReportNode, int outerLoopIteration) {
         return ReportNode.newRootReportNode()
             .withLocale(firstRootReportNode.getTreeContext().getLocale())
-            .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)            .withMessageTemplate("olf.OuterLoopIteration")
+            .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
+            .withMessageTemplate("olf.OuterLoopIteration")
             .withUntypedValue("outerLoopIteration", outerLoopIteration)
             .build();
     }
