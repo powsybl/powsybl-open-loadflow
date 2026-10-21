@@ -25,7 +25,7 @@ print(f'appended {source_path}')
 
 # Only those 4 parameters have to be modified for each specific repository
 project = 'powsybl-open-loadflow'
-module_name = "powsybl-open-loadflow"
+module_name = "powsybl-network-analysis"
 github_repository = "https://github.com/powsybl/powsybl-open-loadflow/"
 
 # Build year for the copyright
