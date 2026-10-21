@@ -7,26 +7,15 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.generators;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
 public interface IGenerateWorkload {
 
-    default void generate(Path folder) throws IOException {
-        String filename = getName() + "_" + Instant.now() + ".txt";
-
-        try (BufferedWriter bw = Files.newBufferedWriter(folder.resolve(filename))) {
-            generateOperations(bw);
-        }
-    }
-
     String getName();
 
-    void generateOperations(BufferedWriter bw) throws IOException;
+    void generate(Path folder) throws IOException;
 }

@@ -13,7 +13,7 @@ import com.powsybl.openloadflow.network.LfElement;
 
 import java.io.IOException;
 
-import static com.powsybl.openloadflow.graph.benchmark.runners.SingleSecurityAnalysisRunner.Mode.DC;
+import static com.powsybl.openloadflow.graph.benchmark.runners.ParametrizedSecurityAnalysis.Mode.DC;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -46,7 +46,7 @@ public final class MainSAR {
     }
 
     public static void main(String[] args) throws IOException {
-        SecurityAnalysisRunner sar = new SecurityAnalysisRunner();
+        SimulationRunner sar = new SimulationRunner();
         sar.setRunParameters(performance());
 
         if (args.length >= 1) {
@@ -57,22 +57,22 @@ public final class MainSAR {
             }
         }
 
-        sar.addInput(new SARInputBuilder()
+        sar.addInput(new SAInput.Builder()
                 .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
                 .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(0)
-                .setMode(DC).setThreadCount(1).createInput());
-        sar.addInput(new SARInputBuilder()
+                .setMode(DC).setThreadCount(1).build());
+        sar.addInput(new SAInput.Builder()
                 .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
                 .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(1).
-                setMode(DC).setThreadCount(1).createInput());
-        sar.addInput(new SARInputBuilder()
+                setMode(DC).setThreadCount(1).build());
+        sar.addInput(new SAInput.Builder()
                 .setNetwork("/home/carrezval/networks/case_SyntheticUSA.mat").setName("usa")
                 .setLineToDisconnect(5000).setContingencyCount(10000).setLinePerContingency(10).setActionPerOp(0)
-                .setMode(DC).setThreadCount(8).createInput());
-        sar.addInput(new SARInputBuilder()
+                .setMode(DC).setThreadCount(8).build());
+        sar.addInput(new SAInput.Builder()
                 .setNetwork("/home/carrezval/networks/case_SyntheticUSA.mat").setName("usa")
                 .setLineToDisconnect(5000).setContingencyCount(10000).setLinePerContingency(10).setActionPerOp(10)
-                .setMode(DC).setThreadCount(8).createInput());
+                .setMode(DC).setThreadCount(8).build());
 
         // sar.addInput(new SARInputBuilder()
         //         .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")

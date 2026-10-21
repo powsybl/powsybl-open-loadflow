@@ -10,9 +10,7 @@ package com.powsybl.openloadflow.graph.benchmark.generators;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Switch;
-import com.powsybl.openloadflow.graph.benchmark.runners.SARInputBuilder;
-import com.powsybl.openloadflow.graph.benchmark.runners.SecurityAnalysisRunner;
-import com.powsybl.openloadflow.graph.benchmark.runners.SingleSecurityAnalysisRunner;
+import com.powsybl.openloadflow.graph.benchmark.runners.*;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -28,7 +26,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.powsybl.openloadflow.graph.benchmark.runners.SingleSecurityAnalysisRunner.Mode.DC;
+import static com.powsybl.openloadflow.graph.benchmark.runners.ParametrizedSecurityAnalysis.Mode.DC;
 
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
@@ -68,30 +66,29 @@ public class GenerateWorkload {
         // workload.sar.threadCount = Runtime.getRuntime().availableProcessors();
         // workload.sar.mode = SingleSecurityAnalysisRunner.Mode.DC;
 
-        List<SecurityAnalysisRunner.Input> inputs = new ArrayList<>();
-        inputs.add(new SARInputBuilder()
+        List<SimulationInput> inputs = new ArrayList<>();
+        inputs.add(new SAInput.Builder()
                 .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
                 .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(0)
-                .setMode(DC).setThreadCount(1).createInput());
-        inputs.add(new SARInputBuilder()
+                .setMode(DC).setThreadCount(1).build());
+        inputs.add(new SAInput.Builder()
                 .setNetwork("/home/carrezval/networks/20240101T1200Z_20240101T1200Z_pf.xiidm.gz").setName("fr")
                 .setLineToDisconnect(0).setContingencyCount(-1).setLinePerContingency(1).setActionPerOp(1).
-                setMode(DC).setThreadCount(1).createInput());
-        inputs.add(new SARInputBuilder()
+                setMode(DC).setThreadCount(1).build());
+        inputs.add(new SAInput.Builder()
                 .setNetwork("/home/carrezval/networks/case_SyntheticUSA.mat").setName("usa")
                 .setLineToDisconnect(5000).setContingencyCount(10000).setLinePerContingency(10).setActionPerOp(0)
-                .setMode(DC).setThreadCount(8).createInput());
-        inputs.add(new SARInputBuilder()
+                .setMode(DC).setThreadCount(8).build());
+        inputs.add(new SAInput.Builder()
                 .setNetwork("/home/carrezval/networks/case_SyntheticUSA.mat").setName("usa")
                 .setLineToDisconnect(5000).setContingencyCount(10000).setLinePerContingency(10).setActionPerOp(10)
-                .setMode(DC).setThreadCount(8).createInput());
+                .setMode(DC).setThreadCount(8).build());
 
-        for (SecurityAnalysisRunner.Input input : inputs) {
+        for (SimulationInput input : inputs) {
             System.out.println(Instant.now());
             long start = System.currentTimeMillis();
 
-            SingleSecurityAnalysisRunner ssar = input.createSingleSecurityAnalysisRunner();
-            SpyWorkloadGenerator workload = new SpyWorkloadGenerator(ssar);
+            SpyWorkloadGenerator workload = new SpyWorkloadGenerator(input.createSimulation());
             workload.generate(Path.of("workload/final/"));
             System.out.println("Workload generation time: " + (System.currentTimeMillis() - start) + " ms");
         }

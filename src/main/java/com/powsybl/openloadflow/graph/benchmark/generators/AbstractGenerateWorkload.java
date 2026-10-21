@@ -12,6 +12,9 @@ import org.jgrapht.Graph;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -71,15 +74,19 @@ public abstract class AbstractGenerateWorkload implements IGenerateWorkload {
     }
 
     @Override
-    public void generateOperations(BufferedWriter bw) throws IOException {
-        for (Integer v : vertices) {
-            WorkloadUtils.write(bw, ADD_VERTEX, v);
+    public void generate(Path folder) throws IOException {
+        String filename = getName() + "_" + Instant.now() + ".txt";
+
+        try (BufferedWriter bw = Files.newBufferedWriter(folder.resolve(filename))) {
+            for (Integer v : vertices) {
+                WorkloadUtils.write(bw, ADD_VERTEX, v);
+            }
+            for (Integer edge : initialEdges) {
+                insert(bw, edge);
+            }
+            WorkloadUtils.write(bw, START_TEMPORARY_CHANGES);
+            generateOperationsImpl(bw);
         }
-        for (Integer edge : initialEdges) {
-            insert(bw, edge);
-        }
-        WorkloadUtils.write(bw, START_TEMPORARY_CHANGES);
-        generateOperationsImpl(bw);
     }
 
     protected abstract void generateOperationsImpl(BufferedWriter bw) throws IOException;

@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
 @SuppressWarnings("checkstyle:HideUtilityClassConstructor")
-public class SingleSecurityAnalysisRunner {
+public class ParametrizedSecurityAnalysis implements Simulation {
 
     public Random random = new Random(0);
 
@@ -63,7 +63,10 @@ public class SingleSecurityAnalysisRunner {
     public Mode mode;
     public int threadCount;
 
-    public SingleSecurityAnalysisRunner(Network network) {
+    public String fileName;
+    public String directoryName;
+
+    public ParametrizedSecurityAnalysis(Network network) {
         this.network = network;
         this.busBreakerGraph = new BusBreakerGraph(network);
     }
@@ -261,6 +264,27 @@ public class SingleSecurityAnalysisRunner {
         return run(connectivity);
     }
 
+    @Override
+    public String fileName() {
+        return fileName;
+    }
+
+    @Override
+    public String directoryName() {
+        return directoryName;
+    }
+
+    @Override
+    public boolean hasOperatorStrategies() {
+        return !operatorStrategies.isEmpty();
+    }
+
+    @Override
+    public int threadCount() {
+        return threadCount;
+    }
+
+    @Override
     public AverageStopWatch run(GraphConnectivityFactory<LfBus, LfBranch> connectivity) {
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
         securityAnalysisParameters.setLoadFlowParameters(new LoadFlowParameters()

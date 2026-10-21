@@ -7,16 +7,11 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.generators;
 
-import com.powsybl.contingency.Contingency;
-import com.powsybl.contingency.strategy.ConditionalActions;
-import com.powsybl.contingency.strategy.OperatorStrategy;
-import com.powsybl.contingency.strategy.condition.TrueCondition;
-import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.graph.Component;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
-import com.powsybl.openloadflow.graph.benchmark.runners.SingleSecurityAnalysisRunner;
+import com.powsybl.openloadflow.graph.benchmark.runners.Simulation;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 
@@ -34,60 +29,25 @@ import static com.powsybl.openloadflow.graph.benchmark.BenchmarkMethod.*;
  */
 public class SpyWorkloadGenerator implements IGenerateWorkload {
 
-    public SingleSecurityAnalysisRunner sar;
+    public Simulation simulation;
 
-    public SpyWorkloadGenerator(Network network) {
-        this(new SingleSecurityAnalysisRunner(network));
-    }
-
-    public SpyWorkloadGenerator(SingleSecurityAnalysisRunner sar) {
-        this.sar = sar;
-        this.sar.connectivity = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+    public SpyWorkloadGenerator(Simulation simulation) {
+        this.simulation = simulation;
     }
 
     @Override
     public String getName() {
-        int minC = Integer.MAX_VALUE;
-        int maxC = 0;
+        /**/
 
-        for (Contingency contingency : sar.contingencies) {
-            minC = Math.min(contingency.getElements().size(), minC);
-            maxC = Math.max(contingency.getElements().size(), maxC);
-        }
-
-        String name = "spy_" + sar.contingencies.size() + "_" + minC + "_" + maxC;
-
-        if (sar.operatorStrategies != null) {
-            int minA = Integer.MAX_VALUE;
-            int maxA = 0;
-            for (OperatorStrategy operatorStrategy : sar.operatorStrategies) {
-                int min = 0;
-                int max = 0;
-                for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
-                    if (conditionalActions.getCondition() instanceof TrueCondition) {
-                        min += conditionalActions.getActionIds().size();
-                    }
-                    max += conditionalActions.getActionIds().size();
-                }
-
-                minA = Math.min(min, minA);
-                maxA = Math.max(max, maxA);
-            }
-
-            if (!sar.operatorStrategies.isEmpty()) {
-                name += "_" + sar.operatorStrategies.size() + "_" + minA + "_" + maxA;
-            }
-        }
-
-        return name;
+        return simulation.fileName();
     }
 
     @Override
     public void generate(Path folder) throws IOException {
         String filename = getName() + "_" + Instant.now();
 
-        SpyGraphConnectivityFactory factory = new SpyGraphConnectivityFactory(this.sar.connectivity);
-        sar.run(factory);
+        SpyGraphConnectivityFactory factory = new SpyGraphConnectivityFactory(new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        simulation.run(factory);
 
         // write workload
         List<Path> files = factory.finish();
@@ -110,11 +70,6 @@ public class SpyWorkloadGenerator implements IGenerateWorkload {
                 }
             }
         }
-    }
-
-    @Override
-    public void generateOperations(BufferedWriter bw) {
-        throw new UnsupportedOperationException();
     }
 
     private static final class SpyGraphConnectivityFactory implements GraphConnectivityFactory<LfBus, LfBranch> {
