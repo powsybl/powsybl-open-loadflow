@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.network.measurement;
+package com.powsybl.openloadflow.se.network;
 
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -18,9 +18,6 @@ import java.util.Optional;
 
 /**
  * Resolves the location of a meter onto the elements of an {@link LfNetwork}.
- *
- * <p>The lookup lives with the topology model, where the projection from node/breaker
- * to bus/branch already happens.</p>
  *
  * <p>Elements are keyed by identity, never by their pair of end buses: parallel circuits
  * share a bus pair, and keying on the pair silently collapses them onto whichever branch

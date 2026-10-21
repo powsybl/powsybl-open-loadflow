@@ -11,13 +11,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.openloadflow.ac.equations.measurement.MeasuredQuantity;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.network.measurement.LfMeasurementProjection;
+import com.powsybl.openloadflow.se.equations.MeasuredQuantity;
+import com.powsybl.openloadflow.se.network.LfMeasurementProjection;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
