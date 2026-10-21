@@ -19,13 +19,16 @@ import com.powsybl.security.SecurityAnalysisParameters.ModifiedMonitoredElements
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResult;
+import com.powsybl.security.results.ChangedPhaseTapChanger;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -36,17 +39,17 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
     private final List<BusResult> busResults = new ArrayList<>();
     private final List<ThreeWindingsTransformerResult> threeWindingsTransformerResults = new ArrayList<>();
 
-    private final PreContingencyNetworkResult preContingencyMonitorInfos;
+    private final PreContingencyNetworkResult preContingencyNetworkResult;
 
     private final Contingency contingency;
 
     private final ModifiedMonitoredElementsParameters modifiedMonitoredElementsParameters;
 
     public PostContingencyNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension,
-                                        PreContingencyNetworkResult preContingencyMonitorInfos, Contingency contingency, LoadFlowModel loadFlowModel, double dcPowerFactor,
+                                        PreContingencyNetworkResult preContingencyNetworkResult, Contingency contingency, LoadFlowModel loadFlowModel, double dcPowerFactor,
                                         ModifiedMonitoredElementsParameters modifiedMonitoredElementsParameters) {
         super(network, monitorIndexes, createResultExtension, loadFlowModel, dcPowerFactor);
-        this.preContingencyMonitorInfos = Objects.requireNonNull(preContingencyMonitorInfos);
+        this.preContingencyNetworkResult = Objects.requireNonNull(preContingencyNetworkResult);
         this.contingency = Objects.requireNonNull(contingency);
         this.modifiedMonitoredElementsParameters = modifiedMonitoredElementsParameters;
     }
@@ -63,7 +66,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
     }
 
     private void createBranchResults(LfBranch branch, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
-        var preContingencyBranchResult = preContingencyMonitorInfos.getBranchResult(branch.getId());
+        var preContingencyBranchResult = preContingencyNetworkResult.getBranchResult(branch.getId());
         double preContingencyBranchP1 = preContingencyBranchResult != null ? preContingencyBranchResult.getP1() : Double.NaN;
         double preContingencyBranchOfContingencyP1 = Double.NaN;
         if (contingency.getElements().size() == 1) {
@@ -72,7 +75,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
                     || contingencyElement.getType() == ContingencyElementType.LINE
                     || contingencyElement.getType() == ContingencyElementType.BOUNDARY_LINE
                     || contingencyElement.getType() == ContingencyElementType.TWO_WINDINGS_TRANSFORMER) {
-                BranchResult preContingencyBranchOfContingencyResult = preContingencyMonitorInfos.getBranchResult(contingencyElement.getId());
+                BranchResult preContingencyBranchOfContingencyResult = preContingencyNetworkResult.getBranchResult(contingencyElement.getId());
                 if (preContingencyBranchOfContingencyResult != null) {
                     preContingencyBranchOfContingencyP1 = preContingencyBranchOfContingencyResult.getP1();
                 }
@@ -105,7 +108,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
     private void createBusResults(LfBus bus) {
         List<BusResult> unfilteredBusResults = bus.createBusResults();
         for (BusResult busResult : unfilteredBusResults) {
-            var preContingencyBusResult = preContingencyMonitorInfos.getBusResult("%s_%s".formatted(busResult.getVoltageLevelId(), busResult.getBusId()));
+            var preContingencyBusResult = preContingencyNetworkResult.getBusResult("%s_%s".formatted(busResult.getVoltageLevelId(), busResult.getBusId()));
             if (preContingencyBusResult != null) {
                 double threshold = modifiedMonitoredElementsParameters.getVoltageModificationThreshold(preContingencyBusResult.getV());
                 if (Math.abs(preContingencyBusResult.getV() - busResult.getV()) < threshold) {
@@ -117,7 +120,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
     }
 
     private void create3WTransformerResults(String id, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
-        var preContingencyResult = preContingencyMonitorInfos.getThreeWindingsTransformerResult(id);
+        var preContingencyResult = preContingencyNetworkResult.getThreeWindingsTransformerResult(id);
         var postContingencyResult = LfLegBranch.createThreeWindingsTransformerResult(network, id, createResultExtension, zeroImpedanceFlows, loadFlowModel);
         if (changed(preContingencyResult, postContingencyResult)) {
             threeWindingsTransformerResults.add(postContingencyResult);
@@ -144,6 +147,22 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
         update(LfBranch::isDisabled);
     }
 
+    @Override
+    protected void storeInitialPhaseTapChangerInfo() {
+        var preContingencyChangedTaps = preContingencyNetworkResult.getChangedPhaseTapChangers();
+        phaseTapChangerInfos = network.getBranches().stream()
+                .filter(b -> !b.isDisabled())
+                .filter(LfBranch::hasPhaseControllerCapability)
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        b -> {
+                            // Finding if phase tap has been changed in previous pre contingency state
+                            ChangedPhaseTapChanger changedPhaseTapChanger = preContingencyChangedTaps.getOrDefault(b, null);
+                            // Creating initial info with either network initial tap, or pre contingency tap if it has been changed
+                            return changedPhaseTapChanger != null ? changedPhaseTapChanger.finalTap() : b.getPhaseTapChanger().orElseThrow().getTapPosition();
+                        }));
+    }
+
     public void update(Predicate<LfBranch> isBranchDisabled) {
         clear();
         StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(contingency.getId());
@@ -154,6 +173,8 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
             Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getAllStateMonitor(), network);
             addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
         }
+        storeInitialPhaseTapChangerInfo();
+        updateChangedPhaseTapChanger();
     }
 
     @Override

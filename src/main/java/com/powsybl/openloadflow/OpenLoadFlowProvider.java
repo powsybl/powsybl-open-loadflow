@@ -36,11 +36,7 @@ import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
-import com.powsybl.openloadflow.util.Markers;
-import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.ProviderConstants;
-import com.powsybl.openloadflow.util.Reports;
-import com.powsybl.tools.PowsyblCoreVersion;
+import com.powsybl.openloadflow.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,7 +84,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
     @Override
     public String getVersion() {
-        return new PowsyblCoreVersion().getMavenProjectVersion();
+        return new PowsyblOpenLoadFlowVersion().getMavenProjectVersion();
     }
 
     private void updateAcState(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,

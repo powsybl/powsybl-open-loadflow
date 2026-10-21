@@ -31,18 +31,13 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      */
     private final Map<E, Edge<V, E>> edges = new HashMap<>();
 
-    /**
-     * the list of tree roots. Roots are maintained in a way such that
-     * the value of the attribute 'rootIndex' of the DTNode at index i is i.
-     * In other words: roots.get(i).rootIndex == i
-     */
     private final Set<DTNode<V, E>> roots = new LinkedHashSet<>();
 
     public long sumOfDistances() {
         long sum = 0;
 
         for (DTNode<V, E> node : vertexToTreeNode.values()) {
-            sum += node.findRootWithDepth().depth();
+            sum += node.findRootAndDepth().depth();
         }
 
         return sum;
@@ -106,15 +101,15 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         edges.put(e, edge);
 
         // update spanning trees
-        DTNodeWithDepth<V, E> rootUdepth = nodeU.findRootWithDepth();
-        DTNodeWithDepth<V, E> rootVdepth = nodeV.findRootWithDepth();
+        var rootAndDepthU = nodeU.findRootAndDepth();
+        var rootAndDepthV = nodeV.findRootAndDepth();
 
-        if (rootUdepth.node() == rootVdepth.node()) {
-            // insert non tree edge
-            insertEdgeInComponent(rootUdepth.node(), nodeU, rootUdepth.depth(), nodeV, rootVdepth.depth(), edge);
+        if (rootAndDepthU.node() == rootAndDepthV.node()) {
+            // insert an edge inside a component, "reinforcing" connectivity  (insertNonTreeEdge in the article)
+            insertEdgeInComponent(rootAndDepthU.node(), nodeU, rootAndDepthU.depth(), nodeV, rootAndDepthV.depth(), edge);
         } else {
-            // insert tree edge
-            insertTreeEdge(rootUdepth.node(), nodeU, rootVdepth.node(), nodeV, edge);
+            // merge two components by a tree edge (insertTreeEdge in the article)
+            insertEdgeBetweenComponents(rootAndDepthU.node(), nodeU, rootAndDepthV.node(), nodeV, edge);
         }
 
         check();
@@ -180,7 +175,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
 
     /**
      * Insert a tree edge between {@code nodeU} (in tree rooted at {@code rootU})
-     * and {@code nodeV} (in tree rooted at {@code rootV}).
+     * and {@code nodeV} (in tree rooted at {@code rootV}); that is, merge two
+     * components.
      * Assuming the size of rootU is less than the size of rootV, we simply
      * make {@code nodeU} a root and link it with {@code nodeV}.
      *
@@ -190,7 +186,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      * @param nodeV the other endpoint of the edge to add.
      * @param edge  edge linking {@code nodeU} and {@code nodeV}
      */
-    private void insertTreeEdge(DTNode<V, E> rootU, DTNode<V, E> nodeU, DTNode<V, E> rootV, DTNode<V, E> nodeV, Edge<V, E> edge) {
+    private void insertEdgeBetweenComponents(DTNode<V, E> rootU, DTNode<V, E> nodeU, DTNode<V, E> rootV, DTNode<V, E> nodeV, Edge<V, E> edge) {
         if (rootU.size() < rootV.size()) {
             nodeU.makeRoot(true);
             removeRoot(nodeU);
@@ -280,7 +276,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
                 if (oppRoot != rootSmall) {
                     // found a replacement edge
                     removeNonTreeEdge(nonTreeEdge);
-                    insertTreeEdge(rootSmall, n, oppRoot, oppNode, nonTreeEdge);
+                    insertEdgeBetweenComponents(rootSmall, n, oppRoot, oppNode, nonTreeEdge);
 
                     return;
                 }
@@ -378,8 +374,20 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         return roots.size();
     }
 
-    public Component<V> componentView(V vertex) {
-        return getNodeOrThrow(vertex).componentView();
+    public Component<V> createComponentView(V vertex) {
+        return getNodeOrThrow(vertex).createComponentView();
+    }
+
+    DTNode<V, E> getBiggestRoot() {
+        DTNode<V, E> biggestRoot = null;
+
+        for (DTNode<V, E> root : roots) {
+            if (biggestRoot == null || root.size() > biggestRoot.size()) {
+                biggestRoot = root;
+            }
+        }
+
+        return biggestRoot;
     }
 
     /**
@@ -388,15 +396,14 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      * @return a list of components sorted by size in reverse order.
      */
     public List<Component<V>> allComponents() {
-        List<Component<V>> components = new ArrayList<>(roots.size());
-        for (DTNode<V, E> root : roots) {
-            components.add(root.componentView());
-        }
+        List<Component<V>> components = roots.stream()
+                .map(DTNode::createComponentView)
+                .sorted(Comparator.<Component<V>>comparingInt(Component::size).reversed())
+                .toList();
 
-        components.sort(Comparator.<Set<V>>comparingInt(Set::size).reversed());
         for (int i = 0; i < components.size(); i++) {
             ComponentView<V, E> comp = (ComponentView<V, E>) components.get(i);
-            comp.setIndex(i);
+            comp.getRoot().setIndex(i);
         }
 
         return components;

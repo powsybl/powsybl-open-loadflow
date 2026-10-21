@@ -22,7 +22,7 @@ import java.util.Set;
  *     <li>its parent in the tree and the edge linking them,</li>
  *     <li>its children in the tree and the edges linking them,</li>
  *     <li>all non tree edges having at least one endpoint that is the DTNode</li>
- *     <li>if the node is a root, its index in the list of roots ({@link DTGraph#getRoots()})</li>
+ *     <li>if the node is a root, its index in the list of {@link com.powsybl.openloadflow.graph.AbstractGraphConnectivity#componentSets}</li>
  * </ul>
  *
  * <p>
@@ -46,7 +46,11 @@ import java.util.Set;
  * |                         |
  * | +-----------------------+-----------------------+
  * v/                        |                        \
+<<<<<<< HEAD
  * 2 <-- previous sibling -- 3 <-- previous sibling -- 4
+=======
+ * 2 &lt;-- previous sibling -- 3 &lt;-- previous sibling -- 4
+>>>>>>> main
  *  \_____ next sibling _____^\_____ next sibling _____^
  * </pre>
  * X --> Y indicates that X contains a pointer to Y.
@@ -67,25 +71,25 @@ public class DTNode<V, E> {
 
     private final V vertex;
 
-    // the size of this subtree
+    /** the size of this subtree, that is the number of descendants including itself */
     private int size;
 
     private DTNode<V, E> parent = null;
     private Edge<V, E> parentEdge = null;
 
-    // the children of this node. They are stored in a doubly linked list
-    // firstChild is the head of the linked list. previousSibling and nextSibling
-    // are used to navigate the list.
+    /** The head of the doubly linked list of this node's children */
     private DTNode<V, E> firstChild = null;
+
+    /** The previous child in this node's parent's children list */
     private DTNode<V, E> previousSibling = null;
+
+    /** The next child in this node's parent's children list */
     private DTNode<V, E> nextSibling = null;
 
     private final Set<Edge<V, E>> nonTreeEdges = new HashSet<>();
 
-    // index in the list of roots, valid only if this node is a root
-    private int rootIndex;
-
-    private ComponentView<V, E> componentView = null;
+    /** index in the list of roots, valid only if this node is a root */
+    private int rootIndex = -1;
 
     DTNode(DTGraph<V, E> graph, V vertex) {
         this.graph = graph;
@@ -149,6 +153,8 @@ public class DTNode<V, E> {
 
         // child is the old root
         DTNode<V, E> oldRoot = child;
+        rootIndex = oldRoot.rootIndex;
+        oldRoot.rootIndex = -1;
 
         // update the list of roots
         if (updateRoots) {
@@ -290,7 +296,7 @@ public class DTNode<V, E> {
         return node;
     }
 
-    public DTNodeWithDepth<V, E> findRootWithDepth() {
+    public RootAndDepth<V, E> findRootAndDepth() {
         DTNode<V, E> node = this;
         int depth = 0;
 
@@ -299,7 +305,7 @@ public class DTNode<V, E> {
             depth++;
         }
 
-        return new DTNodeWithDepth<>(node, depth);
+        return new RootAndDepth<>(node, depth);
     }
 
     public void addNonTreeEdge(Edge<V, E> edge) {
@@ -310,12 +316,8 @@ public class DTNode<V, E> {
         nonTreeEdges.remove(edge);
     }
 
-    public Component<V> componentView() {
-        if (componentView == null) {
-            componentView = new ComponentView<>(this);
-        }
-
-        return componentView;
+    public Component<V> createComponentView() {
+        return new ComponentView<>(this);
     }
 
     public Set<E> getNeighborEdges() {

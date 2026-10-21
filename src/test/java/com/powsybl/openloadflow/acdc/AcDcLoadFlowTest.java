@@ -73,8 +73,7 @@ class AcDcLoadFlowTest {
                 .setDcNode2("dnDummy3")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         // Converter without losses
@@ -90,8 +89,7 @@ class AcDcLoadFlowTest {
                 .setDcNode2("dnDummy4")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         parametersExt
@@ -125,8 +123,7 @@ class AcDcLoadFlowTest {
                 .setDcNode2("dnDummy3")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         // Converter without losses
@@ -142,8 +139,7 @@ class AcDcLoadFlowTest {
                 .setDcNode2("dnDummy4")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
@@ -177,8 +173,7 @@ class AcDcLoadFlowTest {
                 .setDcNode2("dnDummy3")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         // Converter without losses
@@ -194,8 +189,7 @@ class AcDcLoadFlowTest {
                 .setDcNode2("dnDummy4")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
@@ -653,7 +647,7 @@ class AcDcLoadFlowTest {
         // Therefore, we are testing that the load flow does not converge because of the DistributedSlackOuterLoop.
         Network network = AcDcNetworkFactory.createAcDcNetworkWithTwoAcZones();
         network.getGenerator("g2").remove();
-        network.getVoltageSourceConverter("conv24").setVoltageSetpoint(400).setVoltageRegulatorOn(true);
+        network.getVoltageSourceConverter("conv24").setLocalTargetV(400).getVoltageRegulation().setRegulating(true);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFailed());
@@ -943,8 +937,7 @@ class AcDcLoadFlowTest {
                 .setDcNode2("dnDummy3")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         // Run load flow

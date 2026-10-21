@@ -99,7 +99,18 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     public Component<V> getConnectedComponent(V vertex) {
         checkSavedContext();
         checkVertex(vertex);
-        return getGraph().componentView(vertex);
+        return getGraph().createComponentView(vertex);
+    }
+
+    @Override
+    public Component<V> getLargestConnectedComponent() {
+        checkSavedContext();
+
+        if (componentSets == null) {
+            return getGraph().getBiggestRoot().createComponentView();
+        } else {
+            return componentSets.getFirst();
+        }
     }
 
     @Override
@@ -113,7 +124,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         Set<V> components = new HashSet<>();
         for (DTNode<V, E> root : graph.getRoots()) {
             if (root != excludedTree) {
-                components.addAll(root.componentView());
+                components.addAll(root.createComponentView());
             }
         }
 
@@ -125,23 +136,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         // first determine the excluded tree: either the tree containing
         // the mainComponentVertex, either the biggest tree
         DTNode<V, E> excludedTree = getMainComponentRoot(mainComponentVertex);
-        return new VerticesNotInMainComponent<>(getGraph(), excludedTree);
-    }
-
-    @Override
-    public long computeSumOfDistances() {
-        long sum = 0;
-
-        for (V vertex : getGraph().getVertices()) {
-            sum += getGraph().getNodeOrThrow(vertex).findRootWithDepth().depth();
-        }
-
-        return sum;
-    }
-
-    @Override
-    public int vertexCount() {
-        return getGraph().getVertices().size();
+        return new ComponentComplementView<>(getGraph(), excludedTree);
     }
 
     /**
@@ -155,20 +150,28 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
         if (mainComponentVertex != null) {
             return graph.rootOf(mainComponentVertex);
         } else {
-            DTNode<V, E> biggestRoot = null;
-
-            for (DTNode<V, E> root : getGraph().getRoots()) {
-                if (biggestRoot == null || root.size() > biggestRoot.size()) {
-                    biggestRoot = root;
-                }
-            }
-
-            return biggestRoot;
+            return graph.getBiggestRoot();
         }
     }
 
     @Override
     public boolean supportTemporaryChangesNesting() {
         return true;
+    }
+
+    @Override
+    public long computeSumOfDistances() {
+        long sum = 0;
+
+        for (V vertex : getGraph().getVertices()) {
+            sum += getGraph().getNodeOrThrow(vertex).findRootAndDepth().depth();
+        }
+
+        return sum;
+    }
+
+    @Override
+    public int vertexCount() {
+        return getGraph().getVertices().size();
     }
 }

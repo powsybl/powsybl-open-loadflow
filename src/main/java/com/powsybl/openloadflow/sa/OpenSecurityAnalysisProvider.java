@@ -106,7 +106,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
 
     @Override
     public String getVersion() {
-        return new PowsyblOpenLoadFlowVersion().toString();
+        return new PowsyblOpenLoadFlowVersion().getMavenProjectVersion();
     }
 
     @Override

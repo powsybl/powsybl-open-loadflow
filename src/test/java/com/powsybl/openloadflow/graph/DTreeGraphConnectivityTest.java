@@ -11,11 +11,11 @@ import com.google.common.collect.Sets;
 import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
+import com.powsybl.openloadflow.graph.dtree.DTGraph;
+import com.powsybl.openloadflow.graph.dtree.DTNode;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
-import com.powsybl.openloadflow.graph.dtreedyn.DTGraph;
-import com.powsybl.openloadflow.graph.dtreedyn.DTNode;
+import com.powsybl.openloadflow.graph.dtree.Edge;
 import com.powsybl.openloadflow.graph.dtreedyn.DTreeDynGraphConnectivity;
-import com.powsybl.openloadflow.graph.dtreedyn.Edge;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -50,7 +50,7 @@ class DTreeGraphConnectivityTest {
 
     @Test
     void testInsertNonTreeEdge() {
-        DTreeDynGraphConnectivity<Integer, String> connectivity = new DTreeDynGraphConnectivity<>();
+        DTreeGraphConnectivity<Integer, String> connectivity = new DTreeGraphConnectivity<>();
         DTGraph<Integer, String> graph = connectivity.getGraph();
 
         for (int i = 0; i < 8; i++) {
@@ -103,7 +103,7 @@ class DTreeGraphConnectivityTest {
 
     @Test
     void testMakeRootUpdateGreatParent() {
-        DTreeDynGraphConnectivity<Integer, String> connectivity = new DTreeDynGraphConnectivity<>();
+        DTreeGraphConnectivity<Integer, String> connectivity = new DTreeGraphConnectivity<>();
         DTGraph<Integer, String> graph = connectivity.getGraph();
 
         connectivity.addVertex(0);
@@ -194,19 +194,6 @@ class DTreeGraphConnectivityTest {
         assertEquals(Set.of(0, 1, 2), Sets.newHashSet(set));
     }
 
-    private static Stream<Arguments> provideDTreeConnectivities() {
-        return Stream.of(
-                Arguments.of(new DTreeGraphConnectivity<>()),
-                Arguments.of(new DTreeGraphConnectivity<>()),
-                Arguments.of(new DTreeStandalone<>()),
-                Arguments.of(new Delta2DTreeStandalone<>()),
-                Arguments.of(new Delta2ReplaceWithBestDTreeStandalone<>()),
-                Arguments.of(new ReplaceWithBestDTreeStandalone<>()),
-                Arguments.of(new IDTreeStandalone<>()),
-                Arguments.of(new DnDTreeStandalone<>()),
-                Arguments.of(new OptDTreeStandalone<>()));
-    }
-
     @Test
     void testComponentViewToOwnedSet() {
         DTreeDynGraphConnectivity<Integer, String> connectivity = new DTreeDynGraphConnectivity<>();
@@ -223,5 +210,18 @@ class DTreeGraphConnectivityTest {
 
         assertEquals(Set.of(0, 1), component); // the component should be updated as it is owned by DTree
         assertEquals(Set.of(0), set); // the set isn't owned by DTree, so shouldn't be updated
+    }
+
+    private static Stream<Arguments> provideDTreeConnectivities() {
+        return Stream.of(
+                Arguments.of(new DTreeGraphConnectivity<>()),
+                Arguments.of(new DTreeGraphConnectivity<>()),
+                Arguments.of(new DTreeStandalone<>()),
+                Arguments.of(new Delta2DTreeStandalone<>()),
+                Arguments.of(new Delta2ReplaceWithBestDTreeStandalone<>()),
+                Arguments.of(new ReplaceWithBestDTreeStandalone<>()),
+                Arguments.of(new IDTreeStandalone<>()),
+                Arguments.of(new DnDTreeStandalone<>()),
+                Arguments.of(new OptDTreeStandalone<>()));
     }
 }

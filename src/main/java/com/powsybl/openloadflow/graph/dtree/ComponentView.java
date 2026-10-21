@@ -11,14 +11,14 @@ import com.powsybl.openloadflow.graph.Component;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.Set;
 
 /**
- * A set view of a connected component in a graph. A component view is
- * represented by a single {@link DTNode} in a spanning tree. The nodes in this
- * tree are exactly the vertices of the connected component. A component view
- * is guaranteed to contain {@link #node} and every {@link DTNode} connected to
- * {@link #node}.
+ * A set view of the connected component of a graph containing a specific {@link DTNode} in a spanning tree.
+ * The nodes in this tree are exactly the vertices of the connected component.
+ * This component view is guaranteed to always contain {@link #node} and
+ * every {@link DTNode} connected to {@link #node}, according to the graph’s current state.
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
@@ -32,14 +32,14 @@ public class ComponentView<V, E> extends AbstractSetView<V> implements Component
 
     @Override
     public Iterator<V> iterator() {
-        return new DFSIterator<>(node.findRoot());
+        return new DFSIterator<>(getRoot());
     }
 
     @Override
     public boolean contains(Object o) {
         if (o != null) {
             // node might not be the root anymore, so need to use findRoot on node.
-            return node.getGraph().rootOf((V) o) == node.findRoot();
+            return node.getGraph().rootOf((V) o) == getRoot();
         }
 
         return false;
@@ -47,20 +47,34 @@ public class ComponentView<V, E> extends AbstractSetView<V> implements Component
 
     @Override
     public int size() {
-        return node.findRoot().size();
+        return getRoot().size();
     }
 
-    void setIndex(int index) {
-        node.setIndex(index);
+    DTNode<V, E> getRoot() {
+        return node.findRoot();
     }
 
     @Override
     public int getNumber() {
-        return node.findRoot().getIndex();
+        return getRoot().getIndex();
     }
 
     @Override
     public Set<V> toOwnedSet() {
         return new HashSet<>(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o instanceof ComponentView<?, ?> that) {
+            return Objects.equals(getRoot(), that.getRoot());
+        } else {
+            return super.equals(o);
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
     }
 }

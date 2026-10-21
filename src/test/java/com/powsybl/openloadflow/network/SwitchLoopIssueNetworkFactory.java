@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -79,10 +80,10 @@ public final class SwitchLoopIssueNetworkFactory {
                 .setNode(4)
                 .setMinP(-999.99)
                 .setMaxP(999.99)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(398)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(398)
                 .setTargetP(600)
-                .setTargetQ(300)
+                .setLocalTargetQ(300)
                 .add();
         vl2.getNodeBreakerView().newInternalConnection()
                 .setNode1(4)

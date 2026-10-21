@@ -13,6 +13,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
 import com.powsybl.openloadflow.graph.dtreedyn.DTreeDynGraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -87,6 +88,12 @@ class BridgesTest {
                 Arguments.of(new DnDTreeStandalone<>(), "DNDTreeStandalone"),
                 Arguments.of(new OptDTreeStandalone<>(), "OptDTreeStandalone")
         );
+    }
+
+    @Test
+    void testDTree() {
+        Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new DTreeGraphConnectivity<>(), "DTree");
+        assertEquals(bridgesSetReference, bridges);
     }
 
     @Test

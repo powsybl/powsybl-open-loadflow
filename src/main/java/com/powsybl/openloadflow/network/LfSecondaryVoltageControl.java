@@ -16,11 +16,11 @@ import java.util.stream.Collectors;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class LfSecondaryVoltageControl {
+public class LfSecondaryVoltageControl implements LfCopyable<LfSecondaryVoltageControl, LfNetwork> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LfSecondaryVoltageControl.class);
 
-    public static final class ControlUnit {
+    public static final class ControlUnit implements LfCopyable<ControlUnit, LfNetwork> {
         private final String id;
 
         private boolean participate;
@@ -31,6 +31,10 @@ public class LfSecondaryVoltageControl {
             this.id = Objects.requireNonNull(id);
             this.participate = participate;
             this.generatorVoltageControl = Objects.requireNonNull(generatorVoltageControl);
+        }
+
+        public ControlUnit copy(LfNetwork copyNetwork) {
+            return new ControlUnit(id, participate, copyNetwork.getBusById(generatorVoltageControl.getControlledBus().getId()).getGeneratorVoltageControl().orElseThrow());
         }
 
         public String getId() {
@@ -63,6 +67,13 @@ public class LfSecondaryVoltageControl {
         this.pilotBus = Objects.requireNonNull(pilotBus);
         this.targetValue = targetValue;
         this.controlUnits = List.copyOf(controlUnits);
+    }
+
+    public LfSecondaryVoltageControl copy(LfNetwork copyNetwork) {
+        return new LfSecondaryVoltageControl(zoneName,
+                copyNetwork.getBusById(pilotBus.getId()),
+                targetValue,
+                controlUnits.stream().map(controlUnit -> controlUnit.copy(copyNetwork)).toList());
     }
 
     public String getZoneName() {

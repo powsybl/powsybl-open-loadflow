@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sa.LimitScalingManager;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -34,6 +35,20 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         super(network, bus1, bus0, piModel, parameters);
         this.twtRef = Ref.create(twt, parameters.isCacheEnabled());
         this.legRef = Ref.create(leg, parameters.isCacheEnabled());
+    }
+
+    private LfLegBranch(LfLegBranch other, LfNetwork network, LfBus bus1, LfBus bus0) {
+        super(other, network, bus1, bus0);
+        this.twtRef = other.twtRef;
+        this.legRef = other.legRef;
+    }
+
+    @Override
+    public LfBranch copy(LfNetwork copyNetwork) {
+        return new LfLegBranch(this,
+                copyNetwork,
+                bus1 == null ? null : copyNetwork.getBusById(bus1.getId()),
+                bus2 == null ? null : copyNetwork.getBusById(bus2.getId()));
     }
 
     public ThreeWindingsTransformer getTwt() {
@@ -139,6 +154,11 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
     @Override
     public boolean hasPhaseControllerCapability() {
         return getLeg().getPhaseTapChanger() != null;
+    }
+
+    @Override
+    public Optional<PhaseTapChanger> getPhaseTapChanger() {
+        return Optional.ofNullable(getLeg().getPhaseTapChanger());
     }
 
     @Override

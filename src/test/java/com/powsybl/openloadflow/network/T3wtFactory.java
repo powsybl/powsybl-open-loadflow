@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 /**
  * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
@@ -50,10 +51,10 @@ public class T3wtFactory extends AbstractLoadFlowNetworkFactory {
             .setConnectableBus("b1")
             .setBus("b1")
             .setTargetP(161)
-            .setTargetV(405)
+            .setLocalTargetV(405)
             .setMinP(0)
             .setMaxP(500)
-            .setVoltageRegulatorOn(true)
+            .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
             .add();
 
         VoltageLevel vl2 = s.newVoltageLevel()
