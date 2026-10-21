@@ -110,7 +110,7 @@ public abstract class AbstractLfBranchAction<A extends Action> extends AbstractL
         GraphConnectivity<LfBus, LfBranch> connectivity = network.getConnectivity();
 
         // re-update connectivity according to post contingency state (revert after LfContingency apply)
-        connectivity.startTemporaryChanges(false);
+        connectivity.startTemporaryChanges(true);
         if (contingency != null) {
             contingency.getDisabledNetwork().getBranches().forEach(connectivity::removeEdge);
         }

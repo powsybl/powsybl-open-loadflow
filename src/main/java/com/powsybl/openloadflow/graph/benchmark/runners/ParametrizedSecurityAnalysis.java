@@ -12,6 +12,7 @@ import com.powsybl.action.SwitchAction;
 import com.powsybl.action.TerminalsConnectionAction;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
+import com.powsybl.contingency.strategy.ConditionalActions;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.*;
@@ -227,12 +228,56 @@ public class ParametrizedSecurityAnalysis implements Simulation {
 
     @Override
     public String fileName() {
+        if (fileName == null) {
+            return defaultName();
+        }
+
         return fileName;
     }
 
     @Override
     public String directoryName() {
+        if (directoryName == null) {
+            return defaultName();
+        }
+
         return directoryName;
+    }
+
+    public String defaultName() {
+        int minC = Integer.MAX_VALUE;
+        int maxC = 0;
+
+        for (Contingency contingency : contingencies) {
+            minC = Math.min(contingency.getElements().size(), minC);
+            maxC = Math.max(contingency.getElements().size(), maxC);
+        }
+
+        String name = contingencies.size() + "_" + minC + "_" + maxC;
+
+        if (operatorStrategies != null) {
+            int minA = Integer.MAX_VALUE;
+            int maxA = 0;
+            for (OperatorStrategy operatorStrategy : operatorStrategies) {
+                int min = 0;
+                int max = 0;
+                for (ConditionalActions conditionalActions : operatorStrategy.getConditionalActions()) {
+                    if (conditionalActions.getCondition() instanceof TrueCondition) {
+                        min += conditionalActions.getActionIds().size();
+                    }
+                    max += conditionalActions.getActionIds().size();
+                }
+
+                minA = Math.min(min, minA);
+                maxA = Math.max(max, maxA);
+            }
+
+            if (!operatorStrategies.isEmpty()) {
+                name += "_" + operatorStrategies.size() + "_" + minA + "_" + maxA;
+            }
+        }
+
+        return name;
     }
 
     @Override

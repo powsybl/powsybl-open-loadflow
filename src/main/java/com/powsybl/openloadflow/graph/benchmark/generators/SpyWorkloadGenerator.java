@@ -7,10 +7,7 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.generators;
 
-import com.powsybl.openloadflow.graph.Component;
-import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.*;
 import com.powsybl.openloadflow.graph.benchmark.runners.Simulation;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -30,6 +27,7 @@ import static com.powsybl.openloadflow.graph.benchmark.BenchmarkMethod.*;
 public class SpyWorkloadGenerator implements IGenerateWorkload {
 
     public Simulation simulation;
+    public GraphConnectivityFactory<LfBus, LfBranch> connectivity = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
 
     public SpyWorkloadGenerator(Simulation simulation) {
         this.simulation = simulation;
@@ -37,8 +35,6 @@ public class SpyWorkloadGenerator implements IGenerateWorkload {
 
     @Override
     public String getName() {
-        /**/
-
         return simulation.fileName();
     }
 
@@ -46,7 +42,7 @@ public class SpyWorkloadGenerator implements IGenerateWorkload {
     public void generate(Path folder) throws IOException {
         String filename = getName() + "_" + Instant.now();
 
-        SpyGraphConnectivityFactory factory = new SpyGraphConnectivityFactory(new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        SpyGraphConnectivityFactory factory = new SpyGraphConnectivityFactory(connectivity);
         simulation.run(factory);
 
         // write workload
@@ -179,10 +175,10 @@ public class SpyWorkloadGenerator implements IGenerateWorkload {
         }
 
         @Override
-        public void startTemporaryChanges(boolean quick) {
+        public void startTemporaryChanges(boolean computeComparisons) {
             useful = true;
             try {
-                WorkloadUtils.write(bw, START_TEMPORARY_CHANGES, quick);
+                WorkloadUtils.write(bw, START_TEMPORARY_CHANGES, computeComparisons);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

@@ -7,8 +7,9 @@
  */
 package com.powsybl.openloadflow.graph.benchmark.runners;
 
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.benchmark.workload.Workload;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtreedyn.DTreeDynGraphConnectivityFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -25,8 +26,8 @@ public final class MainWR {
 
     private static RunParameters.Performance performance() {
         RunParameters.Performance perf = new RunParameters.Performance()
-                .setWarmup(0)
-                .setMeasurement(1);
+                .setWarmup(100)
+                .setMeasurement(100);
         perf.output()
                 .setOutputFormat(null) // "results/workload_final/${workload}/${class}.${ext}")
                 .setOverwrite(true); //.setReplacement("results/workload/${workload}/${class}_list_of_root.${ext}");
@@ -65,11 +66,11 @@ public final class MainWR {
             // wr.addInput(Workload.inMemory(Path.of("workload/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt")));
             // wr.addInput(Workload.inMemory(Path.of("workload/spy_5541_1_1_5541_1_1_2026-07-03T11:50:06.510031405Z.txt")));
             // wr.addInput(Workload.inMemory(Path.of("workload/spy_10000_10_10_10000_10_10_2026-08-07T07:59:16.649371906Z.zip")));
-            wr.addInput(Workload.inMemory(Path.of("workload/final/spy_10000_10_10_10000_10_10_2026-10-08T15:25:11.925388791Z.zip")));
+            wr.addInput(Workload.inMemory(Path.of("workload/temp/null_2026-10-21T13:09:28.132868616Z.zip")));
         }
 
         // wr.addConnectivityFactory(new OldNaiveGraphConnectivity.Factory<>((Integer i) -> i));
-        wr.addConnectivityFactory(new NaiveGraphConnectivityFactory<>((Integer i) -> i));
+        // wr.addConnectivityFactory(new NaiveGraphConnectivityFactory<>((Integer i) -> i));
         // wr.addConnectivityFactory(new NeighborNaiveGraphConnectivityFactory<>((Integer i) -> i));
         // wr.addConnectivityFactory(new AdjacencyListNaiveGraphConnectivityFactory<>((Integer i) -> i));
         // wr.addConnectivityFactory(new MinimumSpanningTreeGraphConnectivityFactory<>());
@@ -78,7 +79,8 @@ public final class MainWR {
         // wr.addConnectivityFactory(new HolmEtAlWithoutLevelGraphConnectivityFactory<>());
         // wr.addConnectivityFactory(new NewHolmGraphConnectivityFactory<>());
         // wr.addConnectivityFactory(new ETTreeGraphConnectivityFactory<>());
-        // wr.addConnectivityFactory(new DTreeGraphConnectivityFactory<>());
+        wr.addConnectivityFactory(new DTreeGraphConnectivityFactory<>());
+        wr.addConnectivityFactory(new DTreeDynGraphConnectivityFactory<>());
         // wr.addConnectivityFactory(new DTreeStandaloneFactory<>());
         // wr.addConnectivityFactory(new Delta2DTreeStandalone.Factory<>());
         // wr.addConnectivityFactory(new Delta2ReplaceWithBestDTreeStandalone.Factory<>());

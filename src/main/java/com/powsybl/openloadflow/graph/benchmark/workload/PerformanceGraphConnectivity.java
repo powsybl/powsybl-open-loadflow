@@ -99,9 +99,9 @@ public class PerformanceGraphConnectivity<V, E> extends AbstractSpyGraphConnecti
     }
 
     @Override
-    public void startTemporaryChanges(boolean quick) {
+    public void startTemporaryChanges(boolean computeComparisons) {
         sw.start();
-        delegate.startTemporaryChanges(quick);
+        delegate.startTemporaryChanges(computeComparisons);
         sw.stop();
         current[BenchmarkMethod.START_TEMPORARY_CHANGES.ordinal()].add(sw.elapsed());
 
