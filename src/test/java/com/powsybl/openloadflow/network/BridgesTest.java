@@ -5,13 +5,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.graph;
+package com.powsybl.openloadflow.network;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.GraphConnectivity;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivity;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
-import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.test.EurostagFactory;
 import org.jgrapht.alg.connectivity.BiconnectivityInspector;
@@ -25,8 +26,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -75,33 +74,6 @@ class BridgesTest {
     void testDTree() {
         Set<String> bridges = testBridgesOnConnectivity(lfNetwork, new DTreeGraphConnectivity<>(), "DTree");
         assertEquals(bridgesSetReference, bridges);
-    }
-
-    @Test
-    void testFindBridges() {
-        BridgesFinder<LfBus> graph = new BridgesFinder<>(lfNetwork.getBuses().size(), LfBus::getNum);
-        for (LfBus bus : lfNetwork.getBuses()) {
-            graph.addVertex(bus);
-        }
-        for (LfBranch branch : lfNetwork.getBranches()) {
-            LfBus bus1 = branch.getBus1();
-            LfBus bus2 = branch.getBus2();
-            if (bus1 != null && bus2 != null) {
-                graph.addEdge(bus1, bus2);
-            }
-        }
-
-        long start = System.currentTimeMillis();
-        List<int[]> bridges = graph.getBridges();
-        LOGGER.info("Bridges calculated based on Hopcroft-Tarjan algorithm in {} ms", System.currentTimeMillis() - start);
-
-        BiFunction<Integer, Integer, String> verticesToBranchId = (v1, v2) -> {
-            Predicate<? super LfBranch> p = b -> b.getBus1() != null && b.getBus2() != null
-                && (b.getBus1().getNum() == v1 && b.getBus2().getNum() == v2 || b.getBus1().getNum() == v2 && b.getBus2().getNum() == v1);
-            return lfNetwork.getBus(v1).getBranches().stream().filter(p).findFirst().orElseThrow(PowsyblException::new).getId();
-        };
-        Set<String> set = bridges.stream().collect(HashSet::new, (h, t) -> h.add(verticesToBranchId.apply(t[0], t[1])), HashSet::addAll);
-        assertEquals(bridgesSetReference, set);
     }
 
     @Test

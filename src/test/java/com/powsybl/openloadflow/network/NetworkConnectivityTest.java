@@ -5,12 +5,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.graph;
+package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.GraphConnectivity;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivity;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
-import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.test.ConnectedComponentNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -80,13 +82,6 @@ class NetworkConnectivityTest {
     }
 
     @Test
-    void testNonConnectedComponents() {
-        testNonConnectedComponents(new NaiveGraphConnectivity<>(LfBus::getNum));
-        testNonConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
-        testNonConnectedComponents(new DTreeGraphConnectivity<>());
-    }
-
-    @Test
     void testConnectedComponents() {
         testConnectedComponents(new NaiveGraphConnectivity<>(LfBus::getNum));
         testConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
@@ -143,21 +138,6 @@ class NetworkConnectivityTest {
             PowsyblException e = assertThrows(PowsyblException.class, () -> connectivity.addEdge(bus1, bus2, lfBranch));
             assertEquals("This implementation does not support incremental connectivity: edges cannot be added once that connectivity is saved", e.getMessage());
         }
-    }
-
-    private <G extends GraphModel<LfBus, LfBranch>> void testNonConnectedComponents(AbstractGraphConnectivity<LfBus, LfBranch, G> connectivity) {
-        updateConnectivity(connectivity);
-        cutBranches(connectivity, "l34", "l48");
-
-        assertEquals(createVerticesSet("b4_vl_0", "b5_vl_0", "b6_vl_0", "b7_vl_0", "b8_vl_0", "b9_vl_0", "b10_vl_0"),
-            connectivity.getNonConnectedVertices(lfNetwork.getBusById("b3_vl_0")));
-        assertEquals(createVerticesSet("b1_vl_0", "b2_vl_0", "b3_vl_0", "b8_vl_0", "b9_vl_0", "b10_vl_0"),
-            connectivity.getNonConnectedVertices(lfNetwork.getBusById("b6_vl_0")));
-        assertEquals(createVerticesSet("b4_vl_0", "b5_vl_0", "b6_vl_0", "b7_vl_0", "b1_vl_0", "b2_vl_0", "b3_vl_0"),
-            connectivity.getNonConnectedVertices(lfNetwork.getBusById("b10_vl_0")));
-
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> connectivity.getNonConnectedVertices(null));
-        assertEquals("given vertex null is not in the graph", e.getMessage());
     }
 
     private void testConnectedComponents(GraphConnectivity<LfBus, LfBranch> connectivity) {
