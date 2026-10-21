@@ -13,9 +13,9 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 /**
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class DTreeGraphConnectivityFactory<V, E> implements GraphConnectivityFactory<V, E> {
+public class DTreeDynGraphConnectivityFactory<V, E> implements GraphConnectivityFactory<V, E> {
     @Override
     public GraphConnectivity<V, E> create() {
-        return new DTreeGraphConnectivity<>();
+        return new DTreeDynGraphConnectivity<>();
     }
 }

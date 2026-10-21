@@ -42,7 +42,7 @@ import java.util.Set;
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-public class DTreeGraphConnectivity<V, E> implements SpanningForestGraphConnectivity<V, E> {
+public class DTreeDynGraphConnectivity<V, E> implements SpanningForestGraphConnectivity<V, E> {
 
     private final DTGraph<V, E> graph = new DTGraph<>();
 

@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
  * A graph maintaining a spanning forest over its connected component.
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
- * @see DTreeGraphConnectivity
+ * @see DTreeDynGraphConnectivity
  */
 public class DTGraph<V, E> {
 

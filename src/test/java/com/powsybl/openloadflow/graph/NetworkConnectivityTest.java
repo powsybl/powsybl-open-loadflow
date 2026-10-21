@@ -12,7 +12,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
-import com.powsybl.openloadflow.graph.dtreedyn.DTreeGraphConnectivity;
+import com.powsybl.openloadflow.graph.dtreedyn.DTreeDynGraphConnectivity;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,7 +47,7 @@ class NetworkConnectivityTest {
         testConnectivity(new HolmEtAlGraphConnectivity<>());
         testConnectivity(new NewHolmGraphConnectivity<>());
         testConnectivity(new ETTreeGraphConnectivity<>());
-        testConnectivity(new DTreeGraphConnectivity<>());
+        testConnectivity(new DTreeDynGraphConnectivity<>());
         testConnectivity(new DTreeStandalone<>());
         testConnectivity(new Delta2DTreeStandalone<>());
         testConnectivity(new Delta2ReplaceWithBestDTreeStandalone<>());
@@ -67,7 +67,7 @@ class NetworkConnectivityTest {
         testReducedMainComponent(new HolmEtAlGraphConnectivity<>());
         testReducedMainComponent(new NewHolmGraphConnectivity<>());
         testReducedMainComponent(new ETTreeGraphConnectivity<>());
-        testReducedMainComponent(new DTreeGraphConnectivity<>());
+        testReducedMainComponent(new DTreeDynGraphConnectivity<>());
         testReducedMainComponent(new Delta2DTreeStandalone<>());
         testReducedMainComponent(new Delta2ReplaceWithBestDTreeStandalone<>());
         testReducedMainComponent(new ReplaceWithBestDTreeStandalone<>());
@@ -86,7 +86,7 @@ class NetworkConnectivityTest {
         testReaddEdge(new HolmEtAlGraphConnectivity<>(), true);
         testReaddEdge(new NewHolmGraphConnectivity<>(), true);
         testReaddEdge(new ETTreeGraphConnectivity<>(), true);
-        testReaddEdge(new DTreeGraphConnectivity<>(), true);
+        testReaddEdge(new DTreeDynGraphConnectivity<>(), true);
         testReaddEdge(new DTreeStandalone<>(), true);
         testReaddEdge(new Delta2DTreeStandalone<>(), true);
         testReaddEdge(new Delta2ReplaceWithBestDTreeStandalone<>(), true);
@@ -128,7 +128,7 @@ class NetworkConnectivityTest {
         testConnectedComponents(new HolmEtAlGraphConnectivity<>());
         testConnectedComponents(new NewHolmGraphConnectivity<>());
         testConnectedComponents(new ETTreeGraphConnectivity<>());
-        testConnectedComponents(new DTreeGraphConnectivity<>());
+        testConnectedComponents(new DTreeDynGraphConnectivity<>());
         testConnectedComponents(new DTreeStandalone<>());
         testConnectedComponents(new Delta2DTreeStandalone<>());
         testConnectedComponents(new Delta2ReplaceWithBestDTreeStandalone<>());

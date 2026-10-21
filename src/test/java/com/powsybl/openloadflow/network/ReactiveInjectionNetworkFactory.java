@@ -1,11 +1,6 @@
 package com.powsybl.openloadflow.network;
 
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.EnergySource;
-import com.powsybl.iidm.network.Generator;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Load;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 
 /**
  * A Network factory of various combination of manually controlled reactive injections

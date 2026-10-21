@@ -9,7 +9,7 @@ package com.powsybl.openloadflow.graph.benchmark.ng;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.graph.dtreedyn.DTreeGraphConnectivity;
+import com.powsybl.openloadflow.graph.dtreedyn.DTreeDynGraphConnectivity;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 import org.jgrapht.graph.Pseudograph;
@@ -44,8 +44,8 @@ public abstract class NetworkGraph<V extends Vertex> extends Pseudograph<V, Edge
         vertexToNum.clear();
         edgeToNum.clear();
 
-        connectivity = new DTreeGraphConnectivity<>();
-        synchronousConnectivity = new DTreeGraphConnectivity<>();
+        connectivity = new DTreeDynGraphConnectivity<>();
+        synchronousConnectivity = new DTreeDynGraphConnectivity<>();
 
         removeAllEdges(new ArrayList<>(edgeSet()));
         removeAllVertices(new ArrayList<>(vertexSet()));
@@ -115,8 +115,8 @@ public abstract class NetworkGraph<V extends Vertex> extends Pseudograph<V, Edge
     }
 
     public void resetConnectivity() {
-        connectivity = new DTreeGraphConnectivity<>();
-        synchronousConnectivity = new DTreeGraphConnectivity<>();
+        connectivity = new DTreeDynGraphConnectivity<>();
+        synchronousConnectivity = new DTreeDynGraphConnectivity<>();
 
         for (V v : vertexSet()) {
             connectivity.addVertex(v);

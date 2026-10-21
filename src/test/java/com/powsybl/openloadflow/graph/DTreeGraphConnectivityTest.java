@@ -11,9 +11,10 @@ import com.google.common.collect.Sets;
 import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
 import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
 import com.powsybl.openloadflow.graph.dtreedyn.DTGraph;
 import com.powsybl.openloadflow.graph.dtreedyn.DTNode;
-import com.powsybl.openloadflow.graph.dtreedyn.DTreeGraphConnectivity;
+import com.powsybl.openloadflow.graph.dtreedyn.DTreeDynGraphConnectivity;
 import com.powsybl.openloadflow.graph.dtreedyn.Edge;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -49,7 +50,7 @@ class DTreeGraphConnectivityTest {
 
     @Test
     void testInsertNonTreeEdge() {
-        DTreeGraphConnectivity<Integer, String> connectivity = new DTreeGraphConnectivity<>();
+        DTreeDynGraphConnectivity<Integer, String> connectivity = new DTreeDynGraphConnectivity<>();
         DTGraph<Integer, String> graph = connectivity.getGraph();
 
         for (int i = 0; i < 8; i++) {
@@ -102,7 +103,7 @@ class DTreeGraphConnectivityTest {
 
     @Test
     void testMakeRootUpdateGreatParent() {
-        DTreeGraphConnectivity<Integer, String> connectivity = new DTreeGraphConnectivity<>();
+        DTreeDynGraphConnectivity<Integer, String> connectivity = new DTreeDynGraphConnectivity<>();
         DTGraph<Integer, String> graph = connectivity.getGraph();
 
         connectivity.addVertex(0);
@@ -196,7 +197,7 @@ class DTreeGraphConnectivityTest {
     private static Stream<Arguments> provideDTreeConnectivities() {
         return Stream.of(
                 Arguments.of(new DTreeGraphConnectivity<>()),
-                Arguments.of(new com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity<>()),
+                Arguments.of(new DTreeGraphConnectivity<>()),
                 Arguments.of(new DTreeStandalone<>()),
                 Arguments.of(new Delta2DTreeStandalone<>()),
                 Arguments.of(new Delta2ReplaceWithBestDTreeStandalone<>()),
@@ -208,7 +209,7 @@ class DTreeGraphConnectivityTest {
 
     @Test
     void testComponentViewToOwnedSet() {
-        DTreeGraphConnectivity<Integer, String> connectivity = new DTreeGraphConnectivity<>();
+        DTreeDynGraphConnectivity<Integer, String> connectivity = new DTreeDynGraphConnectivity<>();
         connectivity.addVertex(0);
         connectivity.addVertex(1);
         connectivity.startTemporaryChanges();

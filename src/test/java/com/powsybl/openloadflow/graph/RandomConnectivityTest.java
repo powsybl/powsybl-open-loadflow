@@ -7,9 +7,6 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import com.google.common.collect.Sets;
-import com.google.common.collect.testing.testers.AbstractSetTester;
-import org.apache.commons.collections4.multiset.AbstractMultiSet;
 import org.jgrapht.Graph;
 import org.jgrapht.generate.ScaleFreeGraphGenerator;
 import org.jgrapht.graph.DefaultEdge;

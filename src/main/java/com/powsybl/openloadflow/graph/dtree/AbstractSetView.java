@@ -8,7 +8,7 @@
 package com.powsybl.openloadflow.graph.dtree;
 
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.graph.dtreedyn.DTreeGraphConnectivity;
+import com.powsybl.openloadflow.graph.dtreedyn.DTreeDynGraphConnectivity;
 import gnu.trove.set.hash.THashSet;
 
 import java.util.AbstractSet;
@@ -18,7 +18,7 @@ import java.util.Set;
 
 /**
  * An unmodifiable view of a set why can be backed by any structure providing
- * iteration of distinct elements. It is used by {@link DTreeGraphConnectivity} to
+ * iteration of distinct elements. It is used by {@link DTreeDynGraphConnectivity} to
  * avoid copies in {@link GraphConnectivity#getLargestConnectedComponent()} and
  * {@link GraphConnectivity#getConnectedComponent(Object)}.
  *

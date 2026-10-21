@@ -66,9 +66,7 @@ import java.util.concurrent.CompletionException;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_POWER;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_V;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEquals;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**

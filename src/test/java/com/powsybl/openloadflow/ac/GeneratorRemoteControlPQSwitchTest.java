@@ -33,12 +33,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEqualsString;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}

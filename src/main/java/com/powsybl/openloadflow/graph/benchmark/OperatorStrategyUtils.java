@@ -20,7 +20,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.benchmark.ng.BusBreakerGraph;
 import com.powsybl.openloadflow.graph.benchmark.ng.Edge;
 import com.powsybl.openloadflow.graph.benchmark.ng.Vertex;
-import com.powsybl.openloadflow.graph.dtreedyn.DTreeGraphConnectivity;
+import com.powsybl.openloadflow.graph.dtreedyn.DTreeDynGraphConnectivity;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.Graph;
@@ -50,7 +50,7 @@ public class OperatorStrategyUtils {
                 .collect(Collectors.toList());
 
         // compute connected components, but open switch are filtered
-        GraphConnectivity<BusBreakerGraph.BBVertex, Edge<BusBreakerGraph.BBVertex>> connectivity = new DTreeGraphConnectivity<>();
+        GraphConnectivity<BusBreakerGraph.BBVertex, Edge<BusBreakerGraph.BBVertex>> connectivity = new DTreeDynGraphConnectivity<>();
         initialConnectivity(ng, connectivity);
 
         // simulate each contingency
