@@ -133,7 +133,8 @@ model {
     equations -[testScope]-> test 'tests with'
     network -[testScope]-> test 'tests with'
 
-    stateEstimation -> equations 'measurement equations'
+    stateEstimation -> equations 'AC flow terms'
+    stateEstimation -> graph 'observability'
     stateEstimation -> network 'network model'
     shortCircuit -> olf 'pre-fault load flow'
     shortCircuit -> equations 'equation system'

@@ -94,12 +94,19 @@ The interactive diagram of this section is available in the online documentation
 
 | Analysis | Status | Joins the repository | Reuses |
 |---|---|---|---|
-| State estimation | developed in the repository (module `powsybl-na-state-estimation`, proposed name) | by the end of 2026 | network model, AC/DC equation terms for measurement equations, equation system and Jacobian, possibly Open Load Flow for a DC voltage initialization |
+| State estimation | developed in the repository (module `powsybl-na-state-estimation`, proposed name), draft in [#1530](https://github.com/powsybl/powsybl-open-loadflow/pull/1530) | by the end of 2026 | network model, AC equation terms for the measurement functions, `Variable`/`VariableSet`/`StateVector`, graph connectivity for observability analysis, possibly Open Load Flow for a DC voltage initialization |
 | Short circuit | exists outside: [powsybl-open-sc](https://github.com/powsybl/powsybl-open-sc), see [short circuit](#short-circuit) | to be decided by the powsybl-open-sc maintainers | network model, equation system, Open Load Flow AC engine for the pre-fault state |
 | Network reduction | proof of concept outside: [powsybl-incubator](https://github.com/powsybl/powsybl-incubator/tree/main/simulator/network-reduction) | timeline to be decided | network model, admittance matrix, graph connectivity to split internal and external areas |
 
 State estimation will be added by the end of 2026, so at least the code issues blocking `powsybl-na-commons`,
 `powsybl-na-graph`, `powsybl-na-network` and `powsybl-na-equations` should be fixed before then.
+
+State estimation does not use `EquationSystem` nor `JacobianMatrix`. `EquationSystem.createEquation` is
+get-or-create, keyed by element and equation type, so redundant meters of the same quantity at the same place would
+be merged into one equation, while redundancy is essential to state estimation. `JacobianMatrix` requires a square
+system and keeps its own LU decomposition, whereas a measurement Jacobian `H` has more rows than columns and the
+weighted least squares method factorizes the gain matrix `G = HᵀWH`, built by the estimator. This does not change
+the module boundaries: everything state estimation uses is in `powsybl-na-equations` or the modules below.
 
 An analysis that needs a load flow, such as state estimation for a DC voltage initialization, can use it either
 through the powsybl-core `LoadFlow` API or by calling Open Load Flow directly (e.g. its DC engine). Only the second
@@ -179,7 +186,6 @@ they are used by the main code of `powsybl-na-test`, its POM declares them with 
 |---|---|
 | Rename Java packages to `com.powsybl.networkanalysis.*` (or similar) for the reusable modules | Not in the first step: it breaks every downstream plugin for no functional gain. Can be done later, module by module. |
 | Split security analysis and sensitivity analysis into their own modules | Not in the first step: both depend heavily on the load flow engines and on `OpenLoadFlowParameters`, and the split would not make anything reusable. |
-| Move the Newton-Raphson solver (`ac.solver`) to `powsybl-na-equations` so that state estimation can reuse it | Only once its factories no longer depend on `OpenLoadFlowParameters`. State estimation may need a different solver (e.g. Gauss-Newton) anyway. |
 
 Contingency and action modeling (`network.action`, `LfContingency`, `PropagatedContingency`) stays in
 `powsybl-na-network`: network topology changes are needed by several analyses, and it only adds a dependency on the
