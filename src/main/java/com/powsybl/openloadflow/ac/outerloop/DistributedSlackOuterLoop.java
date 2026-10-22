@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -61,30 +62,26 @@ public class DistributedSlackOuterLoop
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         Map<Integer, Double> slackMismatchPerSynchronousComponent = context.getLastSolverResult().getSlackBusActivePowerMismatch();
 
-        // We need to create a root report node in oder to include it only if there are child reports
-        ReportNode iterationReportNode = Reports.createRootOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
+        // The iteration report node is created lazily, only if something has to be reported
+        ReportNode[] iterationReportNodeHolder = new ReportNode[1];
+        Supplier<ReportNode> iterationReportNodeSupplier = () -> {
+            if (iterationReportNodeHolder[0] == null) {
+                iterationReportNodeHolder[0] = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
+            }
+            return iterationReportNodeHolder[0];
+        };
         boolean severalSc = context.getNetwork().getSynchronousNetworks().size() > 1;
 
         OuterLoopStatus globalStatus = OuterLoopStatus.STABLE;
         for (LfSynchronousNetwork lfScNetwork : context.getNetwork().getSynchronousNetworks()) {
-            OuterLoopResult result = check(lfScNetwork, slackMismatchPerSynchronousComponent.get(lfScNetwork.getNumSC()), context, iterationReportNode, severalSc);
+            OuterLoopResult result = check(lfScNetwork, slackMismatchPerSynchronousComponent.get(lfScNetwork.getNumSC()), context, iterationReportNodeSupplier, severalSc);
             if (result.status() == OuterLoopStatus.FAILED) {
-                // Include iteration report node in the main report node if it has children reports
-                if (!iterationReportNode.getChildren().isEmpty()) {
-                    reportNode.include(iterationReportNode);
-                }
                 return result; // We do not wait for the outer loops on other synchronous components
             } else if (result.status() == OuterLoopStatus.UNSTABLE) {
                 globalStatus = OuterLoopStatus.UNSTABLE;
             }
         }
-
-        // Include iteration report node in the main report node if it has children reports
-        if (!iterationReportNode.getChildren().isEmpty()) {
-            reportNode.include(iterationReportNode);
-        }
         return new OuterLoopResult(this, globalStatus);
-
     }
 
     /**
@@ -93,11 +90,12 @@ public class DistributedSlackOuterLoop
      * @param lfScNetwork: The synchronous network on which slack bus mismatch must be checked and fixed.
      * @param slackBusActivePowerMismatch Active power mismatch in the synchronous network. In per unit.
      * @param context AC outer loop context.
-     * @param reportNode Report node of the current outer loop iteration
+     * @param iterationReportNodeSupplier Supplier of the report node of the current outer loop iteration, created only when needed
      * @param createSubReport if true, create a sub report node with the synchronous network number. Otherwise, reports are directly added to the main report node.
      * @return Outer loop result with its status and error message in case of failure.
      */
-    public OuterLoopResult check(LfSynchronousNetwork lfScNetwork, double slackBusActivePowerMismatch, AcOuterLoopContext context, ReportNode reportNode, boolean createSubReport) {
+    public OuterLoopResult check(LfSynchronousNetwork lfScNetwork, double slackBusActivePowerMismatch, AcOuterLoopContext context,
+                                    Supplier<ReportNode> iterationReportNodeSupplier, boolean createSubReport) {
         double absMismatch = Math.abs(slackBusActivePowerMismatch);
         boolean shouldDistributeSlack = absMismatch > slackBusPMaxMismatch / PerUnit.SB && absMismatch > ActivePowerDistribution.P_RESIDUE_EPS;
 
@@ -105,6 +103,7 @@ public class DistributedSlackOuterLoop
             LOGGER.debug("Already balanced");
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
+        ReportNode reportNode = iterationReportNodeSupplier.get();
         ReportNode iterationReportNode = createSubReport ? Reports.createLfSynchronousNetworkReportNode(reportNode, lfScNetwork.getNumSC()) : reportNode;
         ActivePowerDistribution.Result result = activePowerDistribution.run(lfScNetwork, slackBusActivePowerMismatch);
         ActivePowerDistribution.ResultWithFailureBehaviorHandling resultWbh = ActivePowerDistribution.handleDistributionFailureBehavior(

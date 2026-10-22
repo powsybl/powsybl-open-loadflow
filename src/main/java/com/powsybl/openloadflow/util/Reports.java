@@ -935,15 +935,6 @@ public final class Reports {
                 .add();
     }
 
-    public static ReportNode createRootOuterLoopIterationReporter(ReportNode firstRootReportNode, int outerLoopIteration) {
-        return ReportNode.newRootReportNode()
-            .withLocale(firstRootReportNode.getTreeContext().getLocale())
-            .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME)
-            .withMessageTemplate("olf.OuterLoopIteration")
-            .withUntypedValue("outerLoopIteration", outerLoopIteration)
-            .build();
-    }
-
     public static ReportNode createSensitivityAnalysis(ReportNode reportNode, String networkId) {
         return reportNode.newReportNode()
                 .withMessageTemplate("olf.sensitivityAnalysis")
