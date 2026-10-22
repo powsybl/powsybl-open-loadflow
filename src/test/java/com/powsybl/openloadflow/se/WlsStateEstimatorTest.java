@@ -75,13 +75,65 @@ class WlsStateEstimatorTest {
         estimator.initFlat();
         WlsResult result = estimator.estimate();
 
-        assertTrue(result.converged(), "the estimate must converge from a flat start");
-        assertTrue(result.iterations() <= 6, "expected a handful of iterations, got " + result.iterations());
+        assertTrue(result.isConverged(), "the estimate must converge from a flat start");
+        assertTrue(result.getIterationCount() <= 6,
+                "expected a handful of iterations, got " + result.getIterationCount());
 
-        for (int i = 0; i < trueV.length; i++) {
-            assertEquals(trueV[i], result.busV()[i], 1e-8, "voltage magnitude at bus " + i);
-            assertEquals(trueAngle[i], result.busAngleRadian()[i], 1e-8, "voltage angle at bus " + i);
+        // the result is in IIDM units and keyed by identifier, so compare through the network
+        for (LfBus b : lfNetwork.getBuses()) {
+            WlsResult.BusResult busResult = busResult(result, b.getId());
+            assertEquals(trueV[b.getNum()] * b.getNominalV(), busResult.v(), 1e-6,
+                    "voltage magnitude at " + b.getId());
+            assertEquals(Math.toDegrees(trueAngle[b.getNum()]), busResult.angle(), 1e-6,
+                    "voltage angle at " + b.getId());
+            assertEquals(b.getVoltageLevelId(), busResult.voltageLevelId());
         }
+    }
+
+    @Test
+    void derivesTheBranchFlowsTheEstimatedStateImplies() {
+        List<Measurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
+
+        WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
+        estimator.initFlat();
+        WlsResult result = estimator.estimate();
+
+        long connectedBranches = lfNetwork.getBranches().stream()
+                .filter(b -> b.getBus1() != null && b.getBus2() != null)
+                .count();
+        assertEquals(connectedBranches, result.getBranchResults().size(),
+                "one flow per branch connected at both ends");
+
+        for (WlsResult.BranchResult branchResult : result.getBranchResults()) {
+            assertTrue(Double.isFinite(branchResult.p1()) && Double.isFinite(branchResult.p2()));
+            assertTrue(branchResult.p1() + branchResult.p2() >= -1e-9,
+                    "active losses cannot be negative on branch " + branchResult.branchId());
+        }
+    }
+
+    @Test
+    void reportsTheAngleReferenceAndTheObjectiveItMinimized() {
+        List<Measurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
+
+        WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
+        estimator.initFlat();
+        WlsResult result = estimator.estimate();
+
+        assertEquals(WlsResult.Status.ESTIMATED, result.getStatus());
+        assertEquals(lfNetwork.getBuses().stream().filter(LfBus::isReference).count(),
+                result.getReferenceBusIds().size(),
+                "every pinned angle must be reported, one per synchronous component");
+        assertTrue(result.getReferenceBusIds().stream()
+                .allMatch(id -> lfNetwork.getBusById(id).isReference()));
+        assertEquals(0.0, result.getObjectiveFunctionValue(), 1e-12,
+                "noise-free measurements leave no residual to minimize");
+    }
+
+    private static WlsResult.BusResult busResult(WlsResult result, String busId) {
+        return result.getBusResults().stream()
+                .filter(b -> b.busId().equals(busId))
+                .findFirst()
+                .orElseThrow();
     }
 
     @Test
@@ -92,8 +144,8 @@ class WlsStateEstimatorTest {
         estimator.init(trueV, trueAngle);
         WlsResult result = estimator.estimate();
 
-        assertTrue(result.converged());
-        assertEquals(1, result.iterations(), "a converged start needs a single confirming iteration");
+        assertTrue(result.isConverged());
+        assertEquals(1, result.getIterationCount(), "a converged start needs a single confirming iteration");
     }
 
     @Test
@@ -109,8 +161,8 @@ class WlsStateEstimatorTest {
         estimator.initFlat();
         WlsResult result = estimator.estimate();
 
-        assertTrue(result.converged());
-        assertTrue(result.busV()[bus.getNum()] > trueV[bus.getNum()],
+        assertTrue(result.isConverged());
+        assertTrue(busResult(result, bus.getId()).v() > trueV[bus.getNum()] * bus.getNominalV(),
                 "the estimate must be pulled towards the more precise of the two readings");
     }
 

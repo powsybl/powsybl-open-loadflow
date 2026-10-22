@@ -13,10 +13,13 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.se.equations.MeasuredQuantity;
 import com.powsybl.openloadflow.se.equations.MeasurementEquation;
 import com.powsybl.openloadflow.se.equations.MeasurementEquations;
+import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +31,7 @@ import java.util.Objects;
  * proportion to its variance.
  *
  * <p>Writing z for the readings, h(x) for what those meters would read in state x, and
- * W for the diagonal of inverse variances, the estimate minimises
+ * W for the diagonal of inverse variances, the estimate minimizes
  * (z - h(x))' W (z - h(x)). Gauss-Newton solves the resulting normal equations
  * repeatedly, with H the Jacobian of h:</p>
  *
@@ -38,17 +41,7 @@ import java.util.Objects;
  * in radians. The angle of each reference bus is not an unknown. Its Jacobian column is
  * never assembled, which pins the angle origin of its synchronous component exactly.</p>
  *
- * <p>The estimator deliberately does not route its measurements through an
- * {@code EquationSystem} or a {@code JacobianMatrix}: an equation system yields one row
- * per (element, type) pair and so would collapse redundant readings of the same
- * quantity, and the load-flow Jacobian is square by contract, whereas a measurement
- * Jacobian has far more rows than columns. It therefore owns its own row indexing and
- * its own factorization of the gain matrix.</p>
- *
- * <p>The gain matrix is dense: comfortable at prototype size, not at network size.
- * Sparse assembly is a rewrite of the accumulation loop, since PowSyBl's sparse
- * matrices must be filled column by column and this one accumulates in measurement
- * order.</p>
+ * <p>The gain matrix is dense, so this is usable at prototype size only.</p>
  *
  * @author Šime Pavlić {@literal <sime.pavlic at kickstage.com>}
  */
@@ -175,11 +168,57 @@ public class WlsStateEstimator {
             }
         }
 
-        double[] busV = new double[busCount];
-        double[] busAngle = new double[busCount];
-        System.arraycopy(state, 0, busV, 0, busCount);
-        System.arraycopy(state, busCount, busAngle, 0, busCount);
-        return new WlsResult(converged, iteration, busV, busAngle);
+        return buildResult(converged, iteration, busCount);
+    }
+
+    /**
+     * The state is in per unit and radians indexed by internal bus number; the result is in the
+     * units and identifiers IIDM uses.
+     */
+    private WlsResult buildResult(boolean converged, int iteration, int busCount) {
+        List<WlsResult.BusResult> busResults = new ArrayList<>(busCount);
+        for (LfBus bus : network.getBuses()) {
+            busResults.add(new WlsResult.BusResult(bus.getId(), bus.getVoltageLevelId(),
+                    state[bus.getNum()] * bus.getNominalV(),
+                    Math.toDegrees(state[busCount + bus.getNum()])));
+        }
+
+        List<WlsResult.BranchResult> branchResults = new ArrayList<>();
+        for (LfBranch branch : network.getBranches()) {
+            if (branch.getBus1() != null && branch.getBus2() != null) {
+                branchResults.add(new WlsResult.BranchResult(branch.getId(),
+                        flow(branch, MeasuredQuantity.BRANCH_P, 1), flow(branch, MeasuredQuantity.BRANCH_Q, 1),
+                        flow(branch, MeasuredQuantity.BRANCH_P, 2), flow(branch, MeasuredQuantity.BRANCH_Q, 2)));
+            }
+        }
+
+        return new WlsResult(converged ? WlsResult.Status.ESTIMATED : WlsResult.Status.DID_NOT_CONVERGE,
+                iteration, referenceBusIds(), objectiveFunctionValue(),
+                busResults, branchResults);
+    }
+
+    /** One per synchronous component. */
+    private List<String> referenceBusIds() {
+        return network.getBuses().stream()
+                .filter(LfBus::isReference)
+                .map(LfBus::getId)
+                .toList();
+    }
+
+    /** One branch flow at the estimated state, in MW or MVar. */
+    private double flow(LfBranch branch, MeasuredQuantity quantity, int side) {
+        return MeasurementEquations.branchFlow(branch, quantity, side, variableSet, stateVector).eval()
+                * PerUnit.SB;
+    }
+
+    private double objectiveFunctionValue() {
+        double objective = 0;
+        for (int i = 0; i < equations.size(); i++) {
+            Measurement measurement = measurements.get(i);
+            double residual = measurement.valuePu() - equations.get(i).eval();
+            objective += measurement.weight() * residual * residual;
+        }
+        return objective;
     }
 
     /**

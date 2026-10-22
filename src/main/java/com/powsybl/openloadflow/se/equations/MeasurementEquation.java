@@ -16,10 +16,6 @@ import java.util.Collection;
  * One row of a measurement model: the function h_i(x) belonging to a single meter,
  * and with it one row of the measurement Jacobian H.
  *
- * <p>Deliberately not an {@code Equation}: an equation system keys equations by
- * (element, type) and yields one row per pair, whereas a measurement model must admit
- * several redundant readings of the very same quantity, each contributing its own row.</p>
- *
  * @author Šime Pavlić {@literal <sime.pavlic at kickstage.com>}
  */
 public interface MeasurementEquation {
