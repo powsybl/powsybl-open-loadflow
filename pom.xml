@@ -71,6 +71,7 @@
         <module>network</module>
         <module>equations</module>
         <module>open-loadflow</module>
+        <module>state-estimation</module>
         <module>short-circuit</module>
         <module>distribution</module>
     </modules>
