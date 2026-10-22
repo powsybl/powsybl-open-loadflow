@@ -39,8 +39,7 @@ import java.util.Set;
 
 /**
  * Builds the measurement function h(x) of a meter out of the analytic AC equation terms
- * this package already provides for load flow. These are the terms the AC load flow
- * itself evaluates, so an estimator built on them interprets the network identically.
+ * this repository already provides for load flow.
  *
  * @author Šime Pavlić {@literal <sime.pavlic at kickstage.com>}
  */
@@ -49,11 +48,16 @@ public final class MeasurementEquations {
     private MeasurementEquations() {
     }
 
+    /**
+     * h = V_i. The measured quantity is a state variable, so the term is the variable's own,
+     * whose derivative is 1.
+     */
     public static MeasurementEquation busVoltage(LfBus bus, VariableSet<AcVariableType> variableSet,
                                                  StateVector stateVector) {
         Objects.requireNonNull(bus);
-        Variable<AcVariableType> v = variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V);
-        return new VoltageMagnitudeEquation(v, stateVector);
+        SingleEquationTerm<AcVariableType, AcEquationType> v =
+                variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V).createTerm();
+        return sum(List.of(v), stateVector);
     }
 
     /**
@@ -157,26 +161,6 @@ public final class MeasurementEquations {
                                            StateVector stateVector) {
         terms.forEach(t -> t.setStateVector(stateVector));
         return new SumEquation(terms);
-    }
-
-    /** h = V_i : the measured quantity is a state variable, so the derivative is 1. */
-    private record VoltageMagnitudeEquation(Variable<AcVariableType> variable, StateVector stateVector)
-            implements MeasurementEquation {
-
-        @Override
-        public double eval() {
-            return stateVector.get(variable.getRow());
-        }
-
-        @Override
-        public Collection<Variable<AcVariableType>> variables() {
-            return List.of(variable);
-        }
-
-        @Override
-        public double der(Variable<AcVariableType> v) {
-            return v.equals(variable) ? 1.0 : 0.0;
-        }
     }
 
     /** h = sum of AC equation terms; a single flow term is the one-element case. */
