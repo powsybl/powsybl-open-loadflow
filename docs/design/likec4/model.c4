@@ -1,0 +1,155 @@
+model {
+
+  core = external 'powsybl-core' {
+    description 'Network model, computation APIs and math libraries'
+    iidm = external 'IIDM API' {
+      description 'Grid model: networks, equipment, topology'
+    }
+    lfapi = external 'LoadFlow API' {
+      description 'LoadFlowProvider, LoadFlowParameters'
+    }
+    saapi = external 'Security analysis API' {
+      description 'SecurityAnalysisProvider, results, limit violations'
+    }
+    sensiapi = external 'Sensitivity analysis API' {
+      description 'SensitivityAnalysisProvider'
+    }
+    contingency = external 'Contingency and action APIs' {
+      description 'Contingencies, remedial actions, operator strategies'
+    }
+    math = external 'powsybl-math' {
+      description 'Sparse matrices (KLU), graph utilities'
+    }
+  }
+
+  pypowsybl = consumer 'pypowsybl and other PowSyBl users' {
+    description 'Run load flow, security and sensitivity analysis through the powsybl-core APIs'
+  }
+
+  // Current architecture: a single Maven module
+
+  olf = system 'powsybl-open-loadflow (today)' {
+    description 'Single Maven module, artifact com.powsybl:powsybl-open-loadflow'
+
+    providers = pkggroup 'Providers and parameters' {
+      description 'Root package: OpenLoadFlowProvider, OpenLoadFlowParameters, network caches, VoltageTargetChecker'
+    }
+    sa = pkggroup 'Security analysis' {
+      description 'sa: AC, DC and Woodbury DC security analysis'
+    }
+    sensi = pkggroup 'Sensitivity analysis' {
+      description 'sensi: AC and DC sensitivity analysis'
+    }
+    engines = pkggroup 'Load flow engines' {
+      description 'lf, ac, ac.outerloop, ac.solver, dc, dc.fastdc'
+    }
+    equations = pkggroup 'Equation system' {
+      description 'equations framework, ac.equations and dc.equations terms'
+    }
+    adm = pkggroup 'Admittance matrix' {
+      description 'adm: admittance equation system and matrix'
+    }
+    network = pkggroup 'Network model' {
+      description 'network (LfNetwork, LfBus, LfBranch...), network.impl (IIDM loader), network.util, network.action'
+    }
+    graph = pkggroup 'Graph connectivity' {
+      description 'graph: incremental connectivity algorithms'
+    }
+    util = pkggroup 'Utilities' {
+      description 'util: per-unit, Fortescue, evaluables, reports'
+    }
+
+    providers -> engines 'runs'
+    providers -> adm 'checks voltage targets with'
+    sa -> engines 'runs'
+    sensi -> engines 'runs'
+    engines -> equations 'builds and solves'
+    adm -> equations 'builds'
+    equations -> network 'defines equations on'
+    engines -> network 'loads and updates'
+    network -> graph 'tracks connectivity with'
+    network -> util 'uses'
+    equations -> util 'uses'
+
+    network -[violates]-> providers 'I1, I4: parameters, variant pool'
+    network -[violates]-> sa 'I2: limit scaling'
+    network -[violates]-> equations 'I3: HVDC losses'
+    equations -[violates]-> engines 'I5: system updaters'
+    util -[violates]-> network 'I6, I7: reports, util.mt'
+    util -[violates]-> equations 'I6: Derivable'
+    util -[violates]-> engines 'I6, I7: reports, util.mt'
+    util -[violates]-> providers 'I6: report constants'
+    graph -[violates]-> network 'I10: graph tests use LfNetwork'
+  }
+
+  olf.network -> core.iidm 'is built from'
+  olf.network -> core.lfapi 'uses parameters'
+  olf.network -> core.saapi 'builds results, violations'
+  olf.providers -> core.lfapi 'implements'
+  olf.sa -> core.saapi 'implements'
+  olf.sensi -> core.sensiapi 'implements'
+
+  // Target architecture: multi-module powsybl-network-analysis
+
+  na = system 'powsybl-network-analysis' {
+    description 'Multi-module Maven project, parent artifact com.powsybl:powsybl-network-analysis'
+
+    commons = module 'powsybl-na-commons' {
+      description 'Per-unit, Fortescue, evaluables, report helpers'
+    }
+    graph = module 'powsybl-na-graph' {
+      description 'Incremental graph connectivity'
+    }
+    network = module 'powsybl-na-network' {
+      description 'LfNetwork model and IIDM to LfNetwork loader'
+    }
+    equations = module 'powsybl-na-equations' {
+      description 'Equation system framework, AC, DC and admittance equation terms'
+    }
+    olf = module 'powsybl-open-loadflow' {
+      description 'Load flow engines, security and sensitivity analysis, SPI providers (artifactId kept)'
+    }
+    test = module 'powsybl-na-test' {
+      description 'Test networks and test utilities, used with the test scope'
+    }
+    stateEstimation = analysis 'State estimation' {
+      description 'Planned module powsybl-na-state-estimation, added by the end of 2026'
+    }
+    shortCircuit = analysis 'Short circuit' {
+      description 'Today powsybl-open-sc, outside this repository; joining is to be decided by its maintainers'
+    }
+    reduction = analysis 'Network reduction' {
+      description 'Proof of concept in powsybl-incubator; joins this repository, date not set'
+    }
+
+    graph -> commons 'uses'
+    network -> graph 'tracks connectivity with'
+    network -> commons 'uses'
+    equations -> network 'defines equations on'
+    olf -> equations 'builds and solves'
+    olf -> network 'loads and updates'
+    test -> commons 'uses'
+    olf -[testScope]-> test 'tests with'
+    equations -[testScope]-> test 'tests with'
+    network -[testScope]-> test 'tests with'
+
+    stateEstimation -> equations 'AC flow terms'
+    stateEstimation -> graph 'observability'
+    stateEstimation -> network 'network model'
+    shortCircuit -> olf 'pre-fault load flow'
+    shortCircuit -> equations 'equation system'
+    shortCircuit -> network 'network model'
+    reduction -> equations 'admittance matrix'
+    reduction -> network 'network model'
+    reduction -> graph 'internal and external areas'
+  }
+
+  na.network -> core.iidm 'is built from'
+  na.network -> core.contingency 'models contingencies and actions'
+  na.equations -> core.math 'sparse matrices'
+  na.olf -> core.lfapi 'implements'
+  na.olf -> core.saapi 'implements'
+  na.olf -> core.sensiapi 'implements'
+  pypowsybl -> na.olf 'runs computations through providers'
+
+}
