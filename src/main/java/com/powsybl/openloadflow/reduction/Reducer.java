@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -34,7 +35,8 @@ public class Reducer {
         this.wardAdmittance = wardAdmittance;
     }
 
-    public void reduce() {
+    public ReductionChanges reduce() {
+        // Init list of reduction changes
         // Retrieve now the list of voltage levels and substations as the following operations may invalidate buses
         List<VoltageLevel> externalVoltageLevels = zones.getExternalBuses().stream()
             .map(b -> network.getVoltageLevel(b.getVoltageLevelId()))
@@ -93,9 +95,11 @@ public class Reducer {
         externalSubstations.forEach(Substation::remove);
 
         // Add equivalents
-        wardAdmittance.getEquivalentBranches().forEach(this::addEquivalentBranch);
-        wardAdmittance.getEquivalentShunts().forEach(this::addEquivalentShunt);
-        wardAdmittance.getEquivalentInjections().forEach(this::addEquivalentInjection);
+        List<Line> addedLines = addEquivalentBranches(wardAdmittance.getEquivalentBranches());
+        List<ShuntCompensator> addedShuntCompensators = addEquivalentShunts(wardAdmittance.getEquivalentShunts());
+        List<Generator> addedGenerators = addEquivalentInjections(wardAdmittance.getEquivalentInjections());
+
+        return new ReductionChanges(externalVoltageLevels, addedLines, addedShuntCompensators, addedGenerators);
     }
 
     private String getBusId(LfBus lfBus) {
@@ -116,62 +120,86 @@ public class Reducer {
         }
     }
 
-    private void addEquivalentBranch(EquivalentBranch equivalentBranch) {
-        // Add an equivalent branch to the network
-        double ySquare = equivalentBranch.g * equivalentBranch.g + equivalentBranch.b * equivalentBranch.b;
+    private List<Line> addEquivalentBranches(List<EquivalentBranch> equivalentBranches) {
+        // Add equivalent branches to the network
+        List<Line> addedLines = new ArrayList<>();
 
-        Bus bus1 = network.getBusBreakerView().getBus(getBusId(equivalentBranch.bus1));
-        Bus bus2 = network.getBusBreakerView().getBus(getBusId(equivalentBranch.bus2));
+        for (EquivalentBranch equivalentBranch : equivalentBranches) {
+            double ySquare = equivalentBranch.g * equivalentBranch.g + equivalentBranch.b * equivalentBranch.b;
 
-        network.newLine()
-            .setId(equivalentBranch.bus1.getId() + "-" + equivalentBranch.bus2.getId() + "-equivalent-branch")
-            .setName("Equivalent branch " + equivalentBranch.bus1.getId() + "-" + equivalentBranch.bus2.getId())
-            .setEquivalent(true)
-            .setR(equivalentBranch.g / ySquare)
-            .setX(-equivalentBranch.b / ySquare)
-            .setG1(equivalentBranch.g1)
-            .setB1(equivalentBranch.b1)
-            .setG2(equivalentBranch.g2)
-            .setB2(equivalentBranch.b2)
-            .setVoltageLevel1(bus1.getVoltageLevel().getId())
-            .setBus1(bus1.getId())
-            .setVoltageLevel2(bus2.getVoltageLevel().getId())
-            .setBus2(bus2.getId())
-            .add();
+            Bus bus1 = network.getBusBreakerView().getBus(getBusId(equivalentBranch.bus1));
+            Bus bus2 = network.getBusBreakerView().getBus(getBusId(equivalentBranch.bus2));
+
+            Line line = network.newLine()
+                .setId(equivalentBranch.bus1.getId() + "-" + equivalentBranch.bus2.getId() + "-equivalent-branch")
+                .setName("Equivalent branch " + equivalentBranch.bus1.getId() + "-" + equivalentBranch.bus2.getId())
+                .setEquivalent(true)
+                .setR(equivalentBranch.g / ySquare)
+                .setX(-equivalentBranch.b / ySquare)
+                .setG1(equivalentBranch.g1)
+                .setB1(equivalentBranch.b1)
+                .setG2(equivalentBranch.g2)
+                .setB2(equivalentBranch.b2)
+                .setVoltageLevel1(bus1.getVoltageLevel().getId())
+                .setBus1(bus1.getId())
+                .setVoltageLevel2(bus2.getVoltageLevel().getId())
+                .setBus2(bus2.getId())
+                .add();
+
+            addedLines.add(line);
+        }
+
+        return addedLines;
     }
 
-    private void addEquivalentShunt(EquivalentShunt equivalentShunt) {
-        // Add an equivalent shunt to the network
-        Bus bus = network.getBusBreakerView().getBus(getBusId(equivalentShunt.bus));
+    private List<ShuntCompensator> addEquivalentShunts(List<EquivalentShunt> equivalentShunts) {
+        // Add equivalent shunts to the network
+        List<ShuntCompensator> addedShuntCompensators = new ArrayList<>();
 
-        bus.getVoltageLevel().newShuntCompensator()
-            .setId(equivalentShunt.bus.getId() + "-equivalent-shunt")
-            .setName("Equivalent shunt " + equivalentShunt.bus.getId())
-            .setEquivalent(true)
-            .setSectionCount(1)
-            .newLinearModel()
-                .setMaximumSectionCount(1)
-                .setBPerSection(equivalentShunt.b)
-                .setGPerSection(equivalentShunt.g)
-                .add()
-            .setBus(bus.getId())
-            .add();
+        for (EquivalentShunt equivalentShunt : equivalentShunts) {
+            Bus bus = network.getBusBreakerView().getBus(getBusId(equivalentShunt.bus));
+
+            ShuntCompensator shunt = bus.getVoltageLevel().newShuntCompensator()
+                .setId(equivalentShunt.bus.getId() + "-equivalent-shunt")
+                .setName("Equivalent shunt " + equivalentShunt.bus.getId())
+                .setEquivalent(true)
+                .setSectionCount(1)
+                .newLinearModel()
+                    .setMaximumSectionCount(1)
+                    .setBPerSection(equivalentShunt.b)
+                    .setGPerSection(equivalentShunt.g)
+                    .add()
+                .setBus(bus.getId())
+                .add();
+
+            addedShuntCompensators.add(shunt);
+        }
+
+        return addedShuntCompensators;
     }
 
-    private void addEquivalentInjection(EquivalentInjection equivalentInjection) {
-        // Add an equivalent injection to the network
-        Bus bus = network.getBusBreakerView().getBus(getBusId(equivalentInjection.bus));
+    private List<Generator> addEquivalentInjections(List<EquivalentInjection> equivalentInjections) {
+        // Add equivalent injections to the network
+        List<Generator> addedGenerators = new ArrayList<>();
 
-        bus.getVoltageLevel().newGenerator()
-            .setId(equivalentInjection.bus.getId() + "-equivalent-injection")
-            .setName("Equivalent injection " + equivalentInjection.bus.getId())
-            .setEquivalent(true)
-            .setMinP(-Double.MAX_VALUE)
-            .setMaxP(Double.MAX_VALUE)
-            .setTargetP(equivalentInjection.p)
-            .setLocalTargetQ(equivalentInjection.q)
-            .setBus(bus.getId())
-            .add();
+        for (EquivalentInjection equivalentInjection : equivalentInjections) {
+            Bus bus = network.getBusBreakerView().getBus(getBusId(equivalentInjection.bus));
+
+            Generator generator = bus.getVoltageLevel().newGenerator()
+                .setId(equivalentInjection.bus.getId() + "-equivalent-injection")
+                .setName("Equivalent injection " + equivalentInjection.bus.getId())
+                .setEquivalent(true)
+                .setMinP(-Double.MAX_VALUE)
+                .setMaxP(Double.MAX_VALUE)
+                .setTargetP(equivalentInjection.p)
+                .setLocalTargetQ(equivalentInjection.q)
+                .setBus(bus.getId())
+                .add();
+
+            addedGenerators.add(generator);
+        }
+
+        return addedGenerators;
     }
 
     public record EquivalentBranch(LfBus bus1, LfBus bus2, double g, double b, double g1, double b1, double g2, double b2) {
@@ -181,6 +209,9 @@ public class Reducer {
     }
 
     public record EquivalentInjection(LfBus bus, double p, double q) {
+    }
+
+    public record ReductionChanges(List<VoltageLevel> removedVoltageLevels, List<Line> addedLines, List<ShuntCompensator> addedShuntCompensators, List<Generator> addedGenerators) {
     }
 
 }

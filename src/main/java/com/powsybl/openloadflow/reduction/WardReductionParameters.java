@@ -20,7 +20,6 @@ public class WardReductionParameters {
 
     private LoadFlowParameters parameters = new LoadFlowParameters();
     private MatrixFactory matrixFactory = new SparseMatrixFactory();
-
     private WardReductionType reductionType;
     private Set<String> internalVoltageLevelIds;
 

@@ -32,9 +32,8 @@ public final class WardEquivalent {
     private WardEquivalent() {
     }
 
-    //TODO return status?
     //TODO javadoc
-    public static void reduce(Network network, WardReductionParameters wardParameters) {
+    public static Reducer.ReductionChanges reduce(Network network, WardReductionParameters wardParameters) {
         // Create a LfNetwork
         LoadFlowParameters lfParameters = wardParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
@@ -50,7 +49,7 @@ public final class WardEquivalent {
         AcLoadFlowResult acLfResult = new AcloadFlowEngine(acLfContext).run();
         if (!acLfResult.isSuccess()) {
             LOGGER.error("AC load flow failed. The network must be balanced to perform a reduction.");
-            return;
+            return null;
         }
 
         // Compute internal, boundary and external zones
@@ -61,7 +60,8 @@ public final class WardEquivalent {
 
         // Reduce the network with equivalents
         Reducer reducer = new Reducer(network, lfNetwork, zones, wardAdmittance);
-        reducer.reduce();
+
+        return reducer.reduce();
     }
 
 }
