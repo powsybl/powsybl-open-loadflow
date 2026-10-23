@@ -12,8 +12,6 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
-import java.util.Optional;
-
 /**
  * Base class of the AC/DC converters of a {@link LfNetwork}.
  * <p>Usage rules for subclasses, which IIDM does not enforce:
@@ -46,7 +44,9 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected double targetVdc; // in pu
 
-    protected final AcDcConverter.ControlMode controlMode;
+    protected final AcDcConverter.ControlMode initialControlMode;
+
+    protected AcDcConverter.ControlMode controlMode;
 
     protected final LfDcBus dcBus1;
 
@@ -54,35 +54,43 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected final LfBus bus1;
 
-    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1, Optional<Double> vdcOverride) {
+    private final int numDCC;
+
+    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, int numDCC, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
         super(network);
 
+        this.numDCC = numDCC;
         this.dcBus1 = dcBus1;
         this.dcBus2 = dcBus2;
         this.bus1 = bus1;
         this.lossFactors = new LossFactors(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
-        // vdcOverride is set when this converter has been automatically promoted to V_DC control because its DC
-        // island had no other element imposing the DC voltage (see DcComponentValidator.resolveDcComponent)
-        this.controlMode = vdcOverride.isPresent() ? AcDcConverter.ControlMode.V_DC : converter.getControlMode();
+        this.initialControlMode = converter.getControlMode();
+        this.controlMode = converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
-        double rawTargetVdc = vdcOverride.orElseGet(converter::getTargetVdc);
-        this.targetVdc = rawTargetVdc / getDcVoltageBase();
+        this.targetVdc = converter.getTargetVdc() / getDcVoltageBase();
         this.pAc = converter.getTerminal1().getP();
         this.qAc = converter.getTerminal1().getQ();
     }
 
     protected AbstractLfAcDcConverter(AbstractLfAcDcConverter other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
         super(network);
+        this.numDCC = other.numDCC;
         this.dcBus1 = dcBus1;
         this.dcBus2 = dcBus2;
         this.bus1 = bus1;
         this.lossFactors = other.lossFactors;
+        this.initialControlMode = other.initialControlMode;
         this.controlMode = other.controlMode;
         this.targetP = other.targetP;
         this.targetVdc = other.targetVdc;
         this.pAc = other.pAc;
         this.qAc = other.qAc;
         this.disabled = other.disabled;
+    }
+
+    @Override
+    public int getNumDCC() {
+        return numDCC;
     }
 
     @Override
@@ -126,13 +134,38 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     }
 
     @Override
+    public AcDcConverter.ControlMode getInitialControlMode() {
+        return initialControlMode;
+    }
+
+    @Override
     public AcDcConverter.ControlMode getControlMode() {
         return controlMode;
     }
 
     @Override
+    public void setControlMode(AcDcConverter.ControlMode newControlMode) {
+        if (newControlMode != controlMode) {
+            controlMode = newControlMode;
+            // At the moment, this is only called when initialising the LfNetwork. At this stage, there is no LfNetworkListeners
+            // This will need to be updated if the AcDcConverter control mode can change at a different step than DC
+            // network validation (e.g. when reaching a power limit)
+        }
+    }
+
+    @Override
     public double getTargetVdc() {
         return targetVdc;
+    }
+
+    @Override
+    public void setTargetVdc(double newTargetVdc) {
+        if (newTargetVdc != targetVdc) {
+            targetVdc = newTargetVdc;
+            // This is only called when initialising the LfNetwork. At this stage, there is no LfNetworkListeners.
+            // This will need to be updated if DC network validation is used outside the LfNetwork initialisation
+            // (e.g. in security analysis)
+        }
     }
 
     @Override

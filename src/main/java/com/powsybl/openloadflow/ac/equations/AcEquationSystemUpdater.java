@@ -7,7 +7,9 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
@@ -248,5 +250,34 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     @Override
     protected AcVariableType getTypeBusPhi() {
         return AcVariableType.BUS_PHI;
+    }
+
+    /**
+     * Activate the equation corresponding to the converter current control mode and deactivate the others.
+     * @param pPccEquation Equation to represent the converter in P_PCC mode.
+     * @param droopEquation Equation to represent the converter in DC_DROOP mode.
+     * @param vDcEquation Equation to represent the converter in V_DC mode.
+     * @param controlMode The current control mode of the converter.
+     */
+    public static void activateControlModeEquation(Equation<AcVariableType, AcEquationType> pPccEquation, Equation<AcVariableType, AcEquationType> droopEquation,
+                                                   Equation<AcVariableType, AcEquationType> vDcEquation, AcDcConverter.ControlMode controlMode) {
+        switch (controlMode) {
+            case P_PCC -> {
+                pPccEquation.setActive(true);
+                droopEquation.setActive(false);
+                vDcEquation.setActive(false);
+            }
+            case DC_DROOP -> {
+                droopEquation.setActive(true);
+                pPccEquation.setActive(false);
+                vDcEquation.setActive(false);
+            }
+            case V_DC -> {
+                vDcEquation.setActive(true);
+                pPccEquation.setActive(false);
+                droopEquation.setActive(false);
+            }
+            default -> throw new IllegalStateException("Unsupported converter control mode: " + controlMode);
+        }
     }
 }

@@ -71,6 +71,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     private final List<LfSynchronousNetwork> synchronousNetworks;
 
+    private final List<LfDcNetwork> dcNetworks;
+
     private final SlackBusSelector slackBusSelector;
 
     private final ReferenceBusSelector referenceBusSelector;
@@ -209,6 +211,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         this.reportNode = Objects.requireNonNull(reportNode);
 
         this.synchronousNetworks = new ArrayList<>();
+        this.dcNetworks = new ArrayList<>();
     }
 
     public LfNetwork(int numCC, SlackBusSelector slackBusSelector, int maxSlackBusCount,
@@ -235,6 +238,14 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     public LfSynchronousNetwork getSynchronousNetwork(int numSC) {
         return synchronousNetworks.stream().filter(n -> n.getNumSC() == numSC).findFirst().orElseThrow();
+    }
+
+    public List<LfDcNetwork> getDcNetworks() {
+        return dcNetworks;
+    }
+
+    public LfDcNetwork getDcNetwork(int numDCC) {
+        return dcNetworks.stream().filter(n -> n.getNumDCC() == numDCC).findFirst().orElseThrow();
     }
 
     public ReportNode getReportNode() {
@@ -1369,6 +1380,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         dcBus.setNum(dcBusByIndex.size());
         dcBusByIndex.add(dcBus);
         dcBusById.put(dcBus.getId(), dcBus);
+
+        // Create a new LfDcNetwork if this DC bus belongs to a DC component not stored yet
+        if (!dcNetworks.stream().map(LfDcNetwork::getNumDCC).toList().contains(dcBus.getNumDCC())) {
+            dcNetworks.add(new LfDcNetworkImpl(this, dcBus.getNumDCC()));
+        }
     }
 
     public LfDcBus getDcBusById(String id) {
