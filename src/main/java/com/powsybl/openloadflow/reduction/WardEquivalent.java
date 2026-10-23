@@ -10,10 +10,7 @@ package com.powsybl.openloadflow.reduction;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.AcLoadFlowResult;
-import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
@@ -43,14 +40,6 @@ public final class WardEquivalent {
             LOGGER.warn("More than one LfNetwork found, only the first one will be used");
         }
         LfNetwork lfNetwork = lfNetworks.getFirst();
-
-        // Run an AC load flow and make sure the network is balanced
-        AcLoadFlowContext acLfContext = new AcLoadFlowContext(lfNetwork, acLfParameters);
-        AcLoadFlowResult acLfResult = new AcloadFlowEngine(acLfContext).run();
-        if (!acLfResult.isSuccess()) {
-            LOGGER.error("AC load flow failed. The network must be balanced to perform a reduction.");
-            return null;
-        }
 
         // Compute internal, boundary and external zones
         ZoneDecomposition zones = new ZoneDecomposition(lfNetwork, wardParameters.getInternalVoltageLevelIds());
