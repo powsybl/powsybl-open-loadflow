@@ -25,13 +25,16 @@ import java.util.*;
 /**
  * @author Romain Courtier {@literal <romain.courtier at rte-france.com>}
  */
-public class WardEquivalent {
+public final class WardEquivalent {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(WardEquivalent.class);
 
+    private WardEquivalent() {
+    }
+
     //TODO return status?
     //TODO javadoc
-    public void reduce(Network network, WardReductionParameters wardParameters) {
+    public static void reduce(Network network, WardReductionParameters wardParameters) {
         // Create a LfNetwork
         LoadFlowParameters lfParameters = wardParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);

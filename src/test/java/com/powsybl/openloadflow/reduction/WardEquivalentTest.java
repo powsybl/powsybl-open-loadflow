@@ -48,11 +48,11 @@ class WardEquivalentTest {
         List<BusSV> busesSVBeforeReduction = getBusesStateValues(network, internalVlIds, boundaryVLIds);
 
         // Reduce the network
-        WardReductionParameters parameters = new WardReductionParameters()
+        WardReductionParameters wardParameters = new WardReductionParameters()
             .setInternalVoltageLevelIds(internalVlIds)
             .setLoadFlowParameters(loadFlowParameters)
             .setReductionType(WardReductionType.STANDARD);
-        new WardEquivalent().reduce(network, parameters);
+        WardEquivalent.reduce(network, wardParameters);
 
         // Run a load flow after reduction and read the bus state values on internal and boundary buses
         loadFlowRunner.run(network, loadFlowParameters);
