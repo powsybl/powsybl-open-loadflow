@@ -39,7 +39,7 @@ public class WardAdmittance {
     private DenseMatrix ieq;
     private DenseMatrix yeq;
 
-    public WardAdmittance(LfNetwork lfNetwork, ZoneDecomposition zoneDecomposition, WardReductionParameters.ReductionType reductionType, MatrixFactory matrixFactory) {
+    public WardAdmittance(LfNetwork lfNetwork, ZoneDecomposition zoneDecomposition, WardReductionType reductionType, MatrixFactory matrixFactory) {
         this.yEquationSystem = createEquationSystem(lfNetwork, reductionType);
         try (AdmittanceMatrix y = AdmittanceMatrix.create(yEquationSystem, matrixFactory)) {
             yMatrix = y.getMatrix().transpose();
@@ -52,9 +52,9 @@ public class WardAdmittance {
         calculateEquivalent();
     }
 
-    private AdmittanceEquationSystem createEquationSystem(LfNetwork lfNetwork, WardReductionParameters.ReductionType reductionType) {
+    private AdmittanceEquationSystem createEquationSystem(LfNetwork lfNetwork, WardReductionType reductionType) {
         // Create the equation system based on the reduction type
-        if (reductionType == WardReductionParameters.ReductionType.STANDARD_WARD) {
+        if (reductionType == WardReductionType.STANDARD) {
             return AdmittanceEquationSystem.create(lfNetwork, new VariableSet<>());
         } else {
             throw new IllegalStateException("Unknown Reduction type: " + reductionType);

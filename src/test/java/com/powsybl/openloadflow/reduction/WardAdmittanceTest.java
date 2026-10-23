@@ -106,7 +106,7 @@ class WardAdmittanceTest {
 
         ZoneDecomposition zones = new ZoneDecomposition(lfNetwork, internalVlIds);
 
-        return new WardAdmittance(lfNetwork, zones, WardReductionParameters.ReductionType.STANDARD_WARD, new SparseMatrixFactory());
+        return new WardAdmittance(lfNetwork, zones, WardReductionType.STANDARD, new SparseMatrixFactory());
     }
 
 }

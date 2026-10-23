@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.slf4j.Logger;
@@ -34,7 +35,7 @@ public class WardEquivalent {
         // Create a LfNetwork
         LoadFlowParameters lfParameters = wardParameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
-        AcLoadFlowParameters acLfParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, wardParameters.getMatrixFactory(), wardParameters.getConnectivityFactory());
+        AcLoadFlowParameters acLfParameters = OpenLoadFlowParameters.createAcParameters(network, lfParameters, lfParametersExt, wardParameters.getMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), acLfParameters.getNetworkParameters());
         if (lfNetworks.size() > 1) {
             LOGGER.warn("More than one LfNetwork found, only the first one will be used");

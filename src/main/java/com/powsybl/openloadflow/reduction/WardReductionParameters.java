@@ -10,10 +10,6 @@ package com.powsybl.openloadflow.reduction;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
 
 import java.util.Set;
 
@@ -24,18 +20,9 @@ public class WardReductionParameters {
 
     private LoadFlowParameters parameters = new LoadFlowParameters();
     private MatrixFactory matrixFactory = new SparseMatrixFactory();
-    private GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
 
-    private ReductionType reductionType;
+    private WardReductionType reductionType;
     private Set<String> internalVoltageLevelIds;
-
-    public enum ReductionType {
-        STANDARD_WARD;
-        // WARD_ADMITTANCE
-        // WARD_INJECTION
-        // WARD_PV
-        // EXTENDED_WARD
-    }
 
     public LoadFlowParameters getLoadFlowParameters() {
         return parameters;
@@ -55,20 +42,11 @@ public class WardReductionParameters {
         return this;
     }
 
-    public GraphConnectivityFactory<LfBus, LfBranch> getConnectivityFactory() {
-        return connectivityFactory;
-    }
-
-    public WardReductionParameters setConnectivityFactory(GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
-        this.connectivityFactory = connectivityFactory;
-        return this;
-    }
-
-    public ReductionType getReductionType() {
+    public WardReductionType getReductionType() {
         return reductionType;
     }
 
-    public WardReductionParameters setReductionType(ReductionType reductionType) {
+    public WardReductionParameters setReductionType(WardReductionType reductionType) {
         this.reductionType = reductionType;
         return this;
     }

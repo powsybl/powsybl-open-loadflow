@@ -12,10 +12,8 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ReferencePriority;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.ReferenceBusSelectionMode;
-import com.powsybl.openloadflow.reduction.WardReductionParameters.ReductionType;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
@@ -53,8 +51,7 @@ class WardEquivalentTest {
         WardReductionParameters parameters = new WardReductionParameters()
             .setInternalVoltageLevelIds(internalVlIds)
             .setLoadFlowParameters(loadFlowParameters)
-            .setMatrixFactory(new DenseMatrixFactory())
-            .setReductionType(ReductionType.STANDARD_WARD);
+            .setReductionType(WardReductionType.STANDARD);
         new WardEquivalent().reduce(network, parameters);
 
         // Run a load flow after reduction and read the bus state values on internal and boundary buses
