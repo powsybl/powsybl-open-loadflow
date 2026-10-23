@@ -7,20 +7,16 @@
  */
 package com.powsybl.openloadflow.reduction;
 
-
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.adm.AdmittanceEquationSystem;
-import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.reduction.Reducer.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -36,92 +32,81 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class WardAdmittanceTest {
 
     @Test
-    void wardAdmittanceIEEE118Test() {
-        Network network = IeeeCdfNetworkFactory.create118();
-        List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LfNetworkParameters());
-        LfNetwork lfNetwork = lfNetworks.getFirst();
-        Set<String> internalVlIds = getIEEE118InternalVlIds();
+    void testWardAdmittanceWith4BusNetwork() {
+        WardAdmittance wardAdmittance = getWardAdmittance(create4BusNetwork(), Set.of("VL1"));
 
-        ZoneDecomposition zones = new ZoneDecomposition(lfNetwork, internalVlIds);
+        List<EquivalentBranch> equivalentBranches = wardAdmittance.getEquivalentBranches();
+        List<EquivalentShunt> equivalentShunts = wardAdmittance.getEquivalentShunts();
+        List<EquivalentInjection> equivalentInjections = wardAdmittance.getEquivalentInjections();
 
-        AdmittanceEquationSystem yEquationSystem = AdmittanceEquationSystem.create(lfNetwork, new VariableSet<>());
-        WardAdmittance wardAdmittance = new WardAdmittance(yEquationSystem, zones, new SparseMatrixFactory());
+        assertEquals(1, equivalentBranches.size());
+        assertEquals(2, equivalentShunts.size());
+        assertEquals(2, equivalentInjections.size());
 
-        Matrix ieq = wardAdmittance.getIeq();
-        Matrix yeq = wardAdmittance.getYeq();
+        EquivalentBranch eqBranch = equivalentBranches.getFirst();
+        assertEquals("VL2_0", eqBranch.bus1().getId());
+        assertEquals("VL3_0", eqBranch.bus2().getId());
+        assertEquals(0.03706868414355851, eqBranch.g(), 1e-10);
+        assertEquals(-0.3706868414355851, eqBranch.b(), 1e-10);
+        assertEquals(0.0, eqBranch.g1(), 1e-10);
+        assertEquals(0.0, eqBranch.b1(), 1e-10);
+        assertEquals(0.0, eqBranch.g2(), 1e-10);
+        assertEquals(0.0, eqBranch.b2(), 1e-10);
 
-        double[] ieqValues = {0.005166133823640062, 2.0646030696262185, 0.292214846302657, 4.094441362677833,
-            -0.030821820854532785, 0.19488697513300748, 0.2260440777818795, -0.19051673069166608};
-        Matrix ieqExpected = new DenseMatrix(8, 1, ieqValues);
-        assertMatrixEquals(ieqExpected, ieq);
+        EquivalentShunt eqShunt = equivalentShunts.getFirst();
+        assertEquals("VL2_0", eqShunt.bus().getId());
+        assertEquals(9.499904001808446E-7, eqShunt.g(), 1e-15);
+        assertEquals(-9.499904001870618E-6, eqShunt.b(), 1e-15);
 
-        double[] yeqValues = {
-            0.9859769945166228, -4.225305285510922, -0.8302640984657124, 5.206373305025931,
-            -0.016125201985069997, 0.05815617352377401, -0.14515262108035273, 1.029615959211429,
-            4.22530528551091, 0.9859769945166059, -5.20637330502595, -0.8302640984658046,
-            -0.05815617352377414, -0.016125201985070885, -1.029615959211432, -0.14515262108037286,
-            -0.8302640984657137, 5.206373305025937, 2.7643306328763835, -13.304555321529762,
-            -1.3008670350618456, 5.31054473617419, -0.40319060385949823, 7.168674354154866,
-            -5.206373305025946, -0.8302640984658127, 13.304555321529733, 2.7643306328761064,
-            -5.310544736174191, -1.3008670350618463, -7.168674354154865, -0.4031906038595792,
-            -0.016125201985070097, 0.05815617352377394, -1.3008670350618454, 5.31054473617419,
-            1.3192919117853046, -5.322518150853223, -0.0033120136576258365, 0.019003166163478673,
-            -0.058156173523774196, -0.016125201985070885, -5.310544736174191, -1.3008670350618465,
-            5.322518150853223, 1.3192919117853048, -0.019003166163478778, -0.0033120136576263066,
-            -0.14515262108035254, 1.0296159592114296, -0.4031906038594974, 7.168674354154861,
-            -0.0033120136576258044, 0.01900316616347872, 0.6254568965541755, -7.2910973475734195,
-            -1.029615959211431, -0.14515262108037566, -7.1686743541548665, -0.4031906038595804,
-            -0.019003166163478687, -0.0033120136576263504, 7.2910973475734195, 0.6254568965541536
-        };
-        Matrix yeqExpected = new DenseMatrix(8, 8, yeqValues);
-        assertMatrixEquals(yeqExpected, yeq);
-
-
-
+        EquivalentInjection eqInj = equivalentInjections.getFirst();
+        assertEquals("VL2_0", eqInj.bus().getId());
+        assertEquals(-40.84205181085534, eqInj.p(), 1e-10);
+        assertEquals(-4.907325835486706, eqInj.q(), 1e-10);
     }
 
     @Test
-    void wardAdmittance4BusNetworkTest() {
-        Network network = create4BusNetwork();
+    void testWardAdmittanceWithIEEE118() {
+        WardAdmittance wardAdmittance = getWardAdmittance(IeeeCdfNetworkFactory.create118(), getIEEE118InternalVlIds());
+
+        List<EquivalentBranch> equivalentBranches = wardAdmittance.getEquivalentBranches();
+        List<EquivalentShunt> equivalentShunts = wardAdmittance.getEquivalentShunts();
+        List<EquivalentInjection> equivalentInjections = wardAdmittance.getEquivalentInjections();
+
+        assertEquals(6, equivalentBranches.size());
+        assertEquals(4, equivalentShunts.size());
+        assertEquals(4, equivalentInjections.size());
+
+        EquivalentBranch eqBranch = equivalentBranches.getLast();
+        assertEquals("VL43_0", eqBranch.bus1().getId());
+        assertEquals("VL65_0", eqBranch.bus2().getId());
+        assertEquals(6.956550425595119e-6, eqBranch.g(), 1e-10);
+        assertEquals(-3.991423264750824e-5, eqBranch.b(), 1e-10);
+        assertEquals(1.0434825638392678e-5, eqBranch.g1(), 1e-10);
+        assertEquals(-5.987134897126235e-5, eqBranch.b1(), 1e-10);
+        assertEquals(-4.173930255357071e-6, eqBranch.g2(), 1e-10);
+        assertEquals(2.3948539588504942e-5, eqBranch.b2(), 1e-10);
+
+        EquivalentShunt eqShunt = equivalentShunts.getLast();
+        assertEquals("VL65_0", eqShunt.bus().getId());
+        assertEquals(6.200517366662355e-5, eqShunt.g(), 1e-15);
+        assertEquals(7.781525998373082e-4, eqShunt.b(), 1e-15);
+
+        EquivalentInjection eqInj = equivalentInjections.getLast();
+        assertEquals("VL65_0", eqInj.bus().getId());
+        assertEquals(422.40080197642396, eqInj.p(), 1e-10);
+        assertEquals(22.1790145472137, eqInj.q(), 1e-10);
+    }
+
+    private WardAdmittance getWardAdmittance(Network network, Set<String> internalVlIds) {
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new SparseMatrixFactory()));
         LoadFlowParameters parameters = new LoadFlowParameters();
         loadFlowRunner.run(network, parameters);
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LfNetworkParameters());
         LfNetwork lfNetwork = lfNetworks.getFirst();
-        Set<String> internalVlIds = Set.of("VL1");
 
         ZoneDecomposition zones = new ZoneDecomposition(lfNetwork, internalVlIds);
 
-        AdmittanceEquationSystem yEquationSystem = AdmittanceEquationSystem.create(lfNetwork, new VariableSet<>());
-        WardAdmittance wardAdmittance = new WardAdmittance(yEquationSystem, zones, new SparseMatrixFactory());
-
-        Matrix ieq = wardAdmittance.getIeq();
-        Matrix yeq = wardAdmittance.getYeq();
-
-        double[] ieqValues = {-0.002463737074419189, 0.014868835287145723, -0.003460921994714815, 0.020587668985362816};
-        Matrix ieqExpected = new DenseMatrix(4, 1, ieqValues);
-        assertMatrixEquals(ieqExpected, ieq);
-
-        double[] yeqValues = {
-            0.4186729259132811, -4.186729259132809, -0.36929668828951856, 3.6929668828951856,
-            4.186729259132809, 0.41867292591328037, -3.6929668828951856, -0.36929668828951956,
-            -0.36929668828951856, 3.692966882895185, 0.408963024923182, -4.089630249231819,
-            -3.692966882895185, -0.36929668828951956, 4.089630249231819, 0.4089630249231806
-        };
-        Matrix yeqExpected = new DenseMatrix(4, 4, yeqValues);
-        assertMatrixEquals(yeqExpected, yeq);
-    }
-
-    private void assertMatrixEquals(Matrix expected, Matrix actual) {
-        DenseMatrix denseExpected = expected.toDense();
-        DenseMatrix denseActual = actual.toDense();
-        assertEquals(denseExpected.getRowCount(), denseActual.getRowCount());
-        assertEquals(denseExpected.getColumnCount(), denseActual.getColumnCount());
-        for (int i = 0; i < expected.getRowCount(); i++) {
-            for (int j = 0; j < expected.getColumnCount(); j++) {
-                assertEquals(denseExpected.get(i, j), denseActual.get(i, j), 1e-10);
-            }
-        }
+        return new WardAdmittance(lfNetwork, zones, WardReductionParameters.ReductionType.STANDARD_WARD, new SparseMatrixFactory());
     }
 
 }

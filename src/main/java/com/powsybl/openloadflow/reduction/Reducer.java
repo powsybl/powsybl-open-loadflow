@@ -21,25 +21,17 @@ import java.util.Objects;
  */
 public class Reducer {
 
-    record EquivalentBranch(LfBus bus1, LfBus bus2, double g, double b, double g1, double b1, double g2, double b2) { }
-    record EquivalentShunt(LfBus bus, double g, double b) { }
-    record EquivalentInjection(LfBus bus, double p, double q) { }
-
+    public static final String EQUIVALENT = "-equivalent";
     private final Network network;
     private final LfNetwork lfNetwork;
     private final ZoneDecomposition zones;
-    private final List<EquivalentBranch> equivalentBranches;
-    private final List<EquivalentShunt> equivalentShunts;
-    private final List<EquivalentInjection> equivalentInjections;
-    public static final String EQUIVALENT = "-equivalent";
+    private final WardAdmittance wardAdmittance;
 
-    Reducer(Network network, LfNetwork lfNetwork, ZoneDecomposition zones, List<EquivalentBranch> equivalentBranches, List<EquivalentShunt> equivalentShunts, List<EquivalentInjection> equivalentInjections) {
+    Reducer(Network network, LfNetwork lfNetwork, ZoneDecomposition zones, WardAdmittance wardAdmittance) {
         this.network = network;
         this.lfNetwork = lfNetwork;
         this.zones = zones;
-        this.equivalentBranches = equivalentBranches;
-        this.equivalentShunts = equivalentShunts;
-        this.equivalentInjections = equivalentInjections;
+        this.wardAdmittance = wardAdmittance;
     }
 
     public void reduce() {
@@ -101,9 +93,9 @@ public class Reducer {
         externalSubstations.forEach(Substation::remove);
 
         // Add equivalents
-        equivalentBranches.forEach(this::addEquivalentBranch);
-        equivalentShunts.forEach(this::addEquivalentShunt);
-        equivalentInjections.forEach(this::addEquivalentInjection);
+        wardAdmittance.getEquivalentBranches().forEach(this::addEquivalentBranch);
+        wardAdmittance.getEquivalentShunts().forEach(this::addEquivalentShunt);
+        wardAdmittance.getEquivalentInjections().forEach(this::addEquivalentInjection);
     }
 
     private String getBusId(LfBus lfBus) {
@@ -180,6 +172,15 @@ public class Reducer {
             .setLocalTargetQ(equivalentInjection.q)
             .setBus(bus.getId())
             .add();
+    }
+
+    public record EquivalentBranch(LfBus bus1, LfBus bus2, double g, double b, double g1, double b1, double g2, double b2) {
+    }
+
+    public record EquivalentShunt(LfBus bus, double g, double b) {
+    }
+
+    public record EquivalentInjection(LfBus bus, double p, double q) {
     }
 
 }
