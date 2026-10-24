@@ -257,7 +257,7 @@ At least one DC bus must be connected to the ground in each DC network, its pote
 Therefore, symmetrical configuration are currently not supported.<br>
 Each other DC bus introduces an equation of current balance: $\sum_{i} I_i = 0$ where $I_i$ are the currents going out of the DC bus.
 
-### DC Line
+### DC Line and DC switch
 
 Each DC line adds one term to each of its two connected DC buses current balance:
 
@@ -266,6 +266,8 @@ $\sum_{i} I_i + \frac{V_1 - V_2}{R}= 0$ for dcBus1
 $\sum_{i} I_i - \frac{V_1 - V_2}{R}= 0$ for dcBus2
 
 If a DC line is disconnected on any side, no current can pass through it.
+
+DC switches may have non-zero resistances. In this case they contribute to the load flow computation in the same way as a DC line with the same resistance.
 
 ### Line Commutated Converter
 
