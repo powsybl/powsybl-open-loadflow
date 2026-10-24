@@ -87,4 +87,13 @@ public abstract class AbstractLfDcBranch extends AbstractElement implements LfDc
     public void setI2(Evaluable i2) {
         this.i2 = Objects.requireNonNull(i2);
     }
+
+    @Override
+    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
+        if (isDisabled()) {
+            updateFlows(Double.NaN, Double.NaN, Double.NaN, Double.NaN);
+        } else {
+            updateFlows(i1.eval(), i2.eval(), p1.eval(), p2.eval());
+        }
+    }
 }

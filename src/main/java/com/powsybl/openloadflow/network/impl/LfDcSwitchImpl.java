@@ -12,8 +12,6 @@ import com.powsybl.openloadflow.network.LfDcBranch;
 import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.LfNetworkStateUpdateParameters;
-import com.powsybl.openloadflow.network.LfNetworkUpdateReport;
 
 import java.util.Objects;
 
@@ -62,15 +60,6 @@ public class LfDcSwitchImpl extends AbstractLfDcBranch {
     @Override
     public String getId() {
         return getDcSwitch().getId();
-    }
-
-    @Override
-    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
-        if (isDisabled()) {
-            updateFlows(Double.NaN, Double.NaN, Double.NaN, Double.NaN);
-        } else {
-            updateFlows(i1.eval(), i2.eval(), p1.eval(), p2.eval());
-        }
     }
 
     @Override

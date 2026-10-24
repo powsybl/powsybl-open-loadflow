@@ -124,7 +124,7 @@ class AcDcDcSwitchTest {
         assertEquals(1, lfNetwork.getDcBranches().size());
     }
 
-    @Disabled
+    @Disabled("Requires fix in the topology computation.")
     @Test
     void testDcSwitchInSeries() {
         final double resistance = 1.0;

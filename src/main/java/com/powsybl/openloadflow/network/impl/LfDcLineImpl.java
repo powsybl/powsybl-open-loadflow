@@ -56,15 +56,6 @@ public class LfDcLineImpl extends AbstractLfDcBranch {
     }
 
     @Override
-    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
-        if (isDisabled()) {
-            updateFlows(Double.NaN, Double.NaN, Double.NaN, Double.NaN);
-        } else {
-            updateFlows(i1.eval(), i2.eval(), p1.eval(), p2.eval());
-        }
-    }
-
-    @Override
     public void updateFlows(double i1, double i2, double p1, double p2) {
         var dcLine = getDcLine();
 
