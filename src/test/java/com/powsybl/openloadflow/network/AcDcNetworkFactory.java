@@ -16,6 +16,10 @@ import com.powsybl.openloadflow.util.PerUnit;
  */
 public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
+    public static final double VDC = 400.; // imposed DC voltage
+    public static final double NOMINAL_VDC = 400.; // nominal DC voltage
+    public static final double PAC = 50.;
+
     /**
      * A simple network with 3 AC buses and an asymmetrical monopole DC connection.
      * The network does not contain any AC-DC converter.
@@ -66,19 +70,19 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newDcNode().
                 setId("dn3").
-                setNominalV(400.).
+                setNominalV(NOMINAL_VDC).
                 add();
         network.newDcNode().
                 setId("dn4").
-                setNominalV(400.).
+                setNominalV(NOMINAL_VDC).
                 add();
         network.newDcNode().
                 setId("dnDummy3").
-                setNominalV(400.).
+                setNominalV(NOMINAL_VDC).
                 add();
         network.newDcNode().
                 setId("dnDummy4").
-                setNominalV(400.).
+                setNominalV(NOMINAL_VDC).
                 add();
 
         Substation s5 = network.newSubstation()
@@ -186,31 +190,31 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newDcNode()
                 .setId("dn3p")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn3n")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn3r")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4p")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4n")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4r")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnGr")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcGround()
                 .setId("Ground")
@@ -305,7 +309,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(0.001)
                 .setResistiveLoss(1)
                 .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(50.)
+                .setTargetP(PAC)
                 .setId("conv23")
                 .setBus1("b2")
                 .setDcNode1("dn3")
@@ -547,31 +551,31 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newDcNode()
                 .setId("dn3")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn7")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnMiddle")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnDummy3")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnDummy4")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnDummy7")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
 
         Substation s5 = network.newSubstation()
@@ -727,7 +731,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(0)
                 .setResistiveLoss(0)
                 .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(50.)
+                .setTargetP(PAC)
                 .setId("conv23")
                 .setBus1("b2")
                 .setDcNode1("dn3")
@@ -785,7 +789,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(0)
                 .setResistiveLoss(0)
                 .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(-50.)
+                .setTargetP(-PAC)
                 .setId("conv23")
                 .setBus1("b2")
                 .setDcNode1("dn3")
@@ -1381,51 +1385,51 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newDcNode()
                 .setId("dn3p")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn3n")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn3r")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4p")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4n")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4r")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn6p")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn6n")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn6r")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnMp")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnMn")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnMr")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcGround()
                 .setId("Ground")
@@ -2080,23 +2084,23 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newDcNode()
                 .setId("dn2")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn3")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn7")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn8")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnGround")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
 
         network.newLine()
@@ -2296,27 +2300,27 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         // Create the DC network
         network.newDcNode()
                 .setId("dn3p")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn3n")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn3r")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4p")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4n")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4r")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcGround()
                 .setId("Ground3")
@@ -2401,6 +2405,174 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setLocalTargetQ(0.0)
                 .add();
         return network;
+    }
+
+    /**
+     * Network with a DC switch (resistance {@code rSwitch}) replacing the DC line between dn3 and dn4.
+     * When {@code rSwitch == 0}, PowSyBl Core topology merges dn3 and dn4 into the same DC bus,
+     * so the switch contributes no resistance.
+     * <pre>
+     * g1    ld2-┬------------l25------------------------┐
+     * |         |                                       |
+     * b1 --l12-b2-conv23-dn3--sw34(rSwitch)--dn4-conv45-b5--ld5
+     *              |                               |
+     *        (dnDummy3,dg3)                (dnDummy4,dg4)
+     * </pre>
+     */
+    public static Network createAcDcNetworkWithDcSwitchOnly(double rSwitch) {
+        Network network = createBaseNetwork();
+        network.getDcLine("dl34").remove();
+        network.newDcSwitch()
+                .setId("sw34")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn3")
+                .setDcNode2("dn4")
+                .setOpen(false)
+                .setR(rSwitch)
+                .add();
+        addStandardConverters(network);
+        return network;
+    }
+
+    /**
+     * Network with a DC switch (resistance {@code rSwitch}) in series with a DC line (resistance {@code rLine}).
+     * When {@code rSwitch == 0}, PowSyBl Core topology merges dn3 and dn3b, so only {@code rLine} remains.
+     * <pre>
+     * g1    ld2-┬------------l25--------------------------------------------┐
+     * |         |                                                           |
+     * b1 --l12-b2-conv23-dn3--sw34(rSwitch)--dn3b--dl3b4(rLine)--dn4-conv45-b5--ld5
+     *              |                                                   |
+     *        (dnDummy3,dg3)                                    (dnDummy4,dg4)
+     * </pre>
+     */
+    public static Network createAcDcNetworkWithDcSwitchAndDcLine(double rSwitch, double rLine) {
+        Network network = createBaseNetwork();
+        network.getDcLine("dl34").remove();
+        network.newDcNode()
+                .setId("dn3b")
+                .setNominalV(NOMINAL_VDC)
+                .add();
+        network.newDcSwitch()
+                .setId("sw3b")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn3")
+                .setDcNode2("dn3b")
+                .setOpen(false)
+                .setR(rSwitch)
+                .add();
+        network.newDcLine()
+                .setId("dl3b4")
+                .setDcNode1("dn3b")
+                .setDcNode2("dn4")
+                .setR(rLine)
+                .add();
+        addStandardConverters(network);
+        return network;
+    }
+
+    /**
+     * Meshed network: DC line dl34 (from the base network) and an open DC switch sw34 both connect
+     * dn3 to dn4. Because dl34 keeps the component connected, both nodes resolve to distinct but
+     * non-null LfDcBuses — the open switch must still be discarded.
+     */
+    public static Network createAcDcNetworkWithParallelOpenDcSwitch() {
+        Network network = createBaseNetwork();
+        network.newDcSwitch()
+                .setId("sw34")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn3")
+                .setDcNode2("dn4")
+                .setOpen(true)
+                .setR(0.5)
+                .add();
+        addStandardConverters(network);
+        return network;
+    }
+
+    /**
+     * Network with 3 DC switches (resistance {@code rSwitch}) in series replacing the DC line
+     * between dn3 and dn4.
+     *
+     * This checks that DC buses of DcSwitch are handled correctly.
+     * When {@code rSwitch == 0}, PowSyBl Core topology merges dn3 and dn4 into the same DC bus,
+     * so the switch contributes no resistance.
+     * <pre>
+     * g1
+     * |
+     * b1 --l12-b2-conv23-dn3-sw35-dn5-sw56-dn6-sw64-dn4-conv45-b5--ld5
+     *              |                                     |
+     *        (dnDummy3,dg3)                      (dnDummy4,dg4)
+     * </pre>
+     */
+    public static Network createAcDcNetworkWithSeriesDcSwitch(double rSwitch) {
+        Network network = createBaseNetwork();
+        network.getDcLine("dl34").remove();
+        network.newDcNode().setId("dn5").setNominalV(NOMINAL_VDC).add();
+        network.newDcNode().setId("dn6").setNominalV(NOMINAL_VDC).add();
+        network.newDcSwitch()
+                .setId("sw35")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn3")
+                .setDcNode2("dn5")
+                .setOpen(false)
+                .setR(rSwitch)
+                .add();
+        network.newDcSwitch()
+                .setId("sw56")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn5")
+                .setDcNode2("dn6")
+                .setOpen(false)
+                .setR(rSwitch)
+                .add();
+        network.newDcSwitch()
+                .setId("sw64")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn6")
+                .setDcNode2("dn4")
+                .setOpen(false)
+                .setR(rSwitch)
+                .add();
+        addStandardConverters(network);
+        return network;
+    }
+
+    private static void addStandardConverters(Network network) {
+        // Ideal converters (zero losses) to simplify analytical solutions.
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
+        // Rectifier (target P > 0)
+        vl2.newVoltageSourceConverter()
+                .setIdleLoss(0.0)
+                .setSwitchingLoss(0.0)
+                .setResistiveLoss(0.0)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(PAC)
+                .setId("conv23")
+                .setBus1("b2")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+        // Inverter (by power balance law)
+        vl5.newVoltageSourceConverter()
+                .setIdleLoss(0.0)
+                .setSwitchingLoss(0.0)
+                .setResistiveLoss(0.0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(VDC)
+                .setId("conv45")
+                .setBus1("b5")
+                .setDcNode1("dn4")
+                .setDcNode2("dnDummy4")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
     }
 
     /**
