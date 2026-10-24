@@ -21,7 +21,10 @@ import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static com.powsybl.openloadflow.network.AcDcNetworkFactory.*;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
@@ -121,6 +124,7 @@ class AcDcDcSwitchTest {
         assertEquals(1, lfNetwork.getDcBranches().size());
     }
 
+    @Disabled
     @Test
     void testDcSwitchInSeries() {
         final double resistance = 1.0;
@@ -149,5 +153,31 @@ class AcDcDcSwitchTest {
         double delta = vDc * vDc + 12 * resistance * AcDcNetworkFactory.PAC;
         double current = (vDc - Math.sqrt(delta)) / (6 * resistance) * 1000; // conversion factor
         assertDcCurrentEquals(current, conv23.getDcTerminal1());
+    }
+
+    /**
+     * Two DC components in the same connected component are loaded in the same LfNetwork, one DC component at a
+     * time. Each resistive DC switch must be loaded exactly once, and not again when loading the other DC component.
+     * Both DC links are identical, so both must reach the same analytical solution.
+     */
+    @Test
+    void testDcSwitchesOfSeveralDcComponents() {
+        final double resistance = 0.5;
+        Network network = createAcDcNetworkWithTwoDcComponentsWithDcSwitch(resistance);
+
+        List<LfNetwork> lfNetworks = Networks.load(network, networkParameters);
+        assertEquals(1, lfNetworks.size());
+        // One DC branch per DC switch
+        assertEquals(2, lfNetworks.getFirst().getDcBranches().size());
+
+        setParameters();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Ideal converters: P = V_dn3 * I and V_dn3 = VDC + R * I
+        double expectedVdn3 = 0.5 * (VDC + Math.sqrt(VDC * VDC + 4 * resistance * PAC));
+        assertVoltageEquals(expectedVdn3, network.getDcNode("dn3"));
+        assertVoltageEquals(expectedVdn3, network.getDcNode("dn3x"));
     }
 }

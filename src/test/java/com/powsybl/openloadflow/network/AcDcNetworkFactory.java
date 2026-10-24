@@ -2537,6 +2537,71 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+    /**
+     * Two independent DC links between b2 and b5, each one made of a single DC switch (resistance {@code rSwitch}).
+     * The two links are two distinct DC components belonging to the same connected component, hence loaded in the
+     * same LfNetwork. Both links are identical, so they share the same analytical solution.
+     * <pre>
+     * g1    ld2-┬------------l25----------------------------┐
+     * |         |                                           |
+     * b1 --l12-b2-conv23-dn3--sw34(rSwitch)--dn4-conv45-----b5--ld5
+     *           |    |                           |          |
+     *           | (dnDummy3,dg3)          (dnDummy4,dg4)    |
+     *           |                                           |
+     *           └-conv23x-dn3x--sw34x(rSwitch)--dn4x-conv45x┘
+     *                |                               |
+     *         (dnDummy3x,dg3x)              (dnDummy4x,dg4x)
+     * </pre>
+     */
+    public static Network createAcDcNetworkWithTwoDcComponentsWithDcSwitch(double rSwitch) {
+        Network network = createAcDcNetworkWithDcSwitchOnly(rSwitch);
+        network.newDcNode().setId("dn3x").setNominalV(NOMINAL_VDC).add();
+        network.newDcNode().setId("dn4x").setNominalV(NOMINAL_VDC).add();
+        network.newDcNode().setId("dnDummy3x").setNominalV(NOMINAL_VDC).add();
+        network.newDcNode().setId("dnDummy4x").setNominalV(NOMINAL_VDC).add();
+        network.newDcGround().setId("dg3x").setDcNode("dnDummy3x").add();
+        network.newDcGround().setId("dg4x").setDcNode("dnDummy4x").add();
+        network.newDcSwitch()
+                .setId("sw34x")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn3x")
+                .setDcNode2("dn4x")
+                .setOpen(false)
+                .setR(rSwitch)
+                .add();
+        network.getVoltageLevel("vl2").newVoltageSourceConverter()
+                .setIdleLoss(0.0)
+                .setSwitchingLoss(0.0)
+                .setResistiveLoss(0.0)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(PAC)
+                .setId("conv23x")
+                .setBus1("b2")
+                .setDcNode1("dn3x")
+                .setDcNode2("dnDummy3x")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+        network.getVoltageLevel("vl5").newVoltageSourceConverter()
+                .setIdleLoss(0.0)
+                .setSwitchingLoss(0.0)
+                .setResistiveLoss(0.0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(VDC)
+                .setId("conv45x")
+                .setBus1("b5")
+                .setDcNode1("dn4x")
+                .setDcNode2("dnDummy4x")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+        return network;
+    }
+
     private static void addStandardConverters(Network network) {
         // Ideal converters (zero losses) to simplify analytical solutions.
         VoltageLevel vl2 = network.getVoltageLevel("vl2");

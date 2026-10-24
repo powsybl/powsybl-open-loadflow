@@ -1095,6 +1095,15 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     }
 
     /**
+     * Tells whether a DC switch belongs to a given DC component. A closed DC switch links two DC buses of the same DC
+     * component, so checking side 1 is enough.
+     */
+    private static boolean isInDcComponent(DcSwitch dcSwitch, int numDcc) {
+        DcBus dcBus = dcSwitch.getDcNode1().getDcBus();
+        return dcBus != null && dcBus.getDcComponent() != null && dcBus.getDcComponent().getNum() == numDcc;
+    }
+
+    /**
      * Get or create a LfNetwork to represent a connected component and add elements of a synchronous component inside it.
      *
      * @param numCc         The connected component's id.
@@ -1389,7 +1398,9 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         List<LfDcBus> lfDcBuses = new ArrayList<>();
         createDcBuses(dcBuses, parameters, lfNetwork, lfDcBuses, loadingContext);
-        network.getDcSwitches().forEach(loadingContext.dcSwitchSet::add);
+        network.getDcSwitchStream()
+                .filter(dcSwitch -> isInDcComponent(dcSwitch, numDcc))
+                .forEach(loadingContext.dcSwitchSet::add);
         createDcGrounds(lfNetwork, dcGrounds);
         createDcBranches(lfNetwork, loadingContext, parameters);
 
