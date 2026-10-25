@@ -47,7 +47,7 @@ class AcDcDcSwitchTest {
     private LoadFlowParameters parameters;
     private OpenLoadFlowParameters parametersExt;
 
-    void setParameters() {
+    private void setParameters() {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters).setAcDcNetwork(true);
