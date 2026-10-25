@@ -254,7 +254,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             case HVDC -> getHvdc(num);
             case AREA -> getArea(num);
             case DC_BUS -> getDcBus(num);
-            case DC_LINE -> getDcBranch(num);
+            case DC_BRANCH -> getDcBranch(num);
             case CONVERTER -> getVoltageSourceConverter(num);
         };
     }

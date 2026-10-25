@@ -60,7 +60,7 @@ public abstract class AbstractLfDcBranch extends AbstractElement implements LfDc
 
     @Override
     public ElementType getType() {
-        return ElementType.DC_LINE;
+        return ElementType.DC_BRANCH;
     }
 
     @Override
