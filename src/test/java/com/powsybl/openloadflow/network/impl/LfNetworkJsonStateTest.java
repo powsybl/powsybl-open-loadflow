@@ -25,6 +25,7 @@ import com.powsybl.openloadflow.network.AcDcNetworkFactory;
 import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfDcBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfShunt;
 import com.powsybl.openloadflow.network.LfTopoConfig;
@@ -46,6 +47,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -265,6 +267,26 @@ class LfNetworkJsonStateTest {
                 .stream().filter(n -> !n.getDcBuses().isEmpty()).findFirst().orElseThrow();
         restored.readJson(new StringReader(state));
         assertEquals(state, dump(restored), "AC/DC json state round trip should be stable");
+    }
+
+    @Test
+    void testReadJsonDcBranchKeys() {
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithThreeConverters();
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters).setAcDcNetwork(true);
+        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
+                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        LfNetwork lfNetwork = Networks.load(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)
+                .stream().filter(n -> !n.getDcBuses().isEmpty()).findFirst().orElseThrow();
+        assertTrue(dump(lfNetwork).contains("\"dcBranches\""), "dump should emit dcBranches");
+
+        LfDcBranch dcBranch = lfNetwork.getDcBranches().get(0);
+        lfNetwork.readJson(new StringReader("{\"dcBranches\":[{\"id\":\"" + dcBranch.getId() + "\",\"disabled\":true}]}"));
+        assertTrue(dcBranch.isDisabled());
+
+        // legacy key, written before DC switches were modeled as DC branches
+        lfNetwork.readJson(new StringReader("{\"dcLines\":[{\"id\":\"" + dcBranch.getId() + "\",\"disabled\":false}]}"));
+        assertFalse(dcBranch.isDisabled());
     }
 
     @Test
