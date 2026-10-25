@@ -2437,10 +2437,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     static GraphConnectivityFactory<LfBus, LfBranch> getConnectivityFactory(OpenLoadFlowParameters parametersExt,
                                                                             GraphConnectivityFactory<LfBus, LfBranch> defaultConnectivityFactory) {
-        return parametersExt.isNetworkCacheEnabled() && !parametersExt.getActionableSwitchesIds().isEmpty()
-                || parametersExt.isSimulateAutomationSystems()
-                ? new NaiveGraphConnectivityFactory<>(LfBus::getNum)
-                : defaultConnectivityFactory;
+        if ((parametersExt.isNetworkCacheEnabled() && !parametersExt.getActionableSwitchesIds().isEmpty()
+                || parametersExt.isSimulateAutomationSystems())
+                && !defaultConnectivityFactory.supportsIncremental()) {
+            return new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+        } else {
+            return defaultConnectivityFactory;
+        }
     }
 
     public static boolean equals(LoadFlowParameters parameters1, LoadFlowParameters parameters2) {
