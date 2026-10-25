@@ -20,8 +20,8 @@ import java.util.Objects;
  */
 public class ClosedDcBranchSide1CurrentEquationTerm extends AbstractClosedDcBranchFlowEquationTerm {
 
-    public ClosedDcBranchSide1CurrentEquationTerm(LfDcBranch dcLine, LfDcBus dcBus1, LfDcBus dcBus2, VariableSet<AcVariableType> variableSet) {
-        super(dcLine, dcBus1, dcBus2, variableSet);
+    public ClosedDcBranchSide1CurrentEquationTerm(LfDcBranch dcBranch, LfDcBus dcBus1, LfDcBus dcBus2, VariableSet<AcVariableType> variableSet) {
+        super(dcBranch, dcBus1, dcBus2, variableSet);
     }
 
     public static double i1(double v1, double v2, double r) {

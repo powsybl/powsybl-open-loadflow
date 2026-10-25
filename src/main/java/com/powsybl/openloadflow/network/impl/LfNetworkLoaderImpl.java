@@ -530,7 +530,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
     private static void addDcBranch(LfNetwork lfNetwork, LfDcBranch lfDcBranch) {
         boolean connectedToSameDcBus = lfDcBranch.getDcBus1() == lfDcBranch.getDcBus2();
         if (connectedToSameDcBus) {
-            LOGGER.trace("Discard dcLine '{}' because connected to same dcBus at both ends", lfDcBranch.getId());
+            LOGGER.trace("Discard DC branch '{}' because connected to same DC bus at both ends", lfDcBranch.getId());
         } else {
             lfNetwork.addDcBranch(lfDcBranch);
         }

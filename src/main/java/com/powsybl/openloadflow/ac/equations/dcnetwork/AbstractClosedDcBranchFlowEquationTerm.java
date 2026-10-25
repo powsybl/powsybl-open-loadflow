@@ -33,15 +33,15 @@ public abstract class AbstractClosedDcBranchFlowEquationTerm extends AbstractEle
 
     protected final double r;
 
-    protected AbstractClosedDcBranchFlowEquationTerm(LfDcBranch dcLine, LfDcBus dcBus1, LfDcBus dcBus2, VariableSet<AcVariableType> variableSet) {
-        super(dcLine);
+    protected AbstractClosedDcBranchFlowEquationTerm(LfDcBranch dcBranch, LfDcBus dcBus1, LfDcBus dcBus2, VariableSet<AcVariableType> variableSet) {
+        super(dcBranch);
         Objects.requireNonNull(variableSet);
         AcVariableType vType = AcVariableType.DC_BUS_V;
         v1Var = variableSet.getVariable(dcBus1.getNum(), vType);
         v2Var = variableSet.getVariable(dcBus2.getNum(), vType);
         variables.add(v1Var);
         variables.add(v2Var);
-        r = dcLine.getR() / (dcBus1.getNominalV() * dcBus2.getNominalV() / PerUnit.SB);
+        r = dcBranch.getR() / (dcBus1.getNominalV() * dcBus2.getNominalV() / PerUnit.SB);
     }
 
     protected double v1() {
