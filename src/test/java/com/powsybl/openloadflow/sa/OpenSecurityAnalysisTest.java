@@ -1693,10 +1693,16 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         runLoadFlow(network, parameters);
         assertEquals(0.2330, cs4.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-3.6015, cs4.getTerminal().getQ(), LoadFlowAssert.DELTA_POWER);
-        network.getHvdcLine("hvdc34").setMaxP(0.2330); // Switch to saturation mode (with almost same value)
+        // Now testing hitting the limit
+        network.getVscConverterStation("cs4")
+                .newReactiveCapabilityCurve()
+                .beginPoint().setP(-0.2330).setMinQ(-2).setMaxQ(2).endPoint()
+                .beginPoint().setP(0).setMinQ(-1).setMaxQ(1).endPoint()
+                .beginPoint().setP(0.2330).setMinQ(-2).setMaxQ(2).endPoint()
+                .add();
         runLoadFlow(network, parameters);
-        assertEquals(0.2330, cs4.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-3.6015, cs4.getTerminal().getQ(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.2272, cs4.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1.975, cs4.getTerminal().getQ(), LoadFlowAssert.DELTA_POWER);
     }
 
     @Test
