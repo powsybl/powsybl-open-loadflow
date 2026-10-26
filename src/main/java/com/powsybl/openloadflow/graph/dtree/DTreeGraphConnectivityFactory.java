@@ -18,4 +18,9 @@ public class DTreeGraphConnectivityFactory<V, E> implements GraphConnectivityFac
     public GraphConnectivity<V, E> create() {
         return new DTreeGraphConnectivity<>();
     }
+
+    @Override
+    public boolean supportsIncremental() {
+        return true;
+    }
 }
