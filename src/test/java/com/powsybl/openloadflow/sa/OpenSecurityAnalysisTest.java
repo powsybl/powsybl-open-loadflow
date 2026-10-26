@@ -1670,6 +1670,36 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
+    void testAcEmulationVscReactiveLimits() {
+        LoadFlowParameters parameters = new LoadFlowParameters().setHvdcAcEmulation(true);
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getHvdcLine("hvdc34").setActivePowerSetpoint(0)
+                .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+        runLoadFlow(network, parameters);
+        VscConverterStation cs4 = network.getVscConverterStation("cs4");
+        assertEquals(0.2330, cs4.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-3.6015, cs4.getTerminal().getQ(), LoadFlowAssert.DELTA_POWER);
+        // min reactive limit -4 MW is below -3.6 MW, no switch to PQ should be performed
+        network.getVscConverterStation("cs4")
+                .newReactiveCapabilityCurve()
+                .beginPoint().setP(-0.2330).setMinQ(-4).setMaxQ(4).endPoint()
+                .beginPoint().setP(0).setMinQ(-1).setMaxQ(1).endPoint()
+                .beginPoint().setP(0.2330).setMinQ(-4).setMaxQ(4).endPoint()
+                .add();
+        runLoadFlow(network, parameters);
+        assertEquals(0.2330, cs4.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-3.6015, cs4.getTerminal().getQ(), LoadFlowAssert.DELTA_POWER);
+        network.getHvdcLine("hvdc34").setMaxP(0.2330); // Switch to saturation mode (with almost same value)
+        runLoadFlow(network, parameters);
+        assertEquals(0.2330, cs4.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-3.6015, cs4.getTerminal().getQ(), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testHvdcAcEmulationWarmStart() {
         Network n = HvdcNetworkFactory.createHvdcACEmulationWithHighImpedanceLines();
         LoadFlowParameters params = new LoadFlowParameters();

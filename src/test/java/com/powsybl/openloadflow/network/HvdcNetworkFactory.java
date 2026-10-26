@@ -11,6 +11,8 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.regulation.RegulationMode;
 
+import java.util.List;
+
 /**
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
  */
@@ -867,6 +869,17 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         network.getGenerator("g1").setMaxP(5);
         network.getGenerator("g4").setMaxP(5);
         createLoad(b2, "d2", 4);
+        return network;
+    }
+
+    private static Network createWithHvdcInAcEmulationWithReactiveCapabilityCurve() {
+        Network network = createWithHvdcInAcEmulation();
+        network.getVscConverterStation("cs3")
+                .newReactiveCapabilityCurve()
+                .beginPoint().setP(-100).setMinQ(-60).setMaxQ(60).endPoint()
+                .beginPoint().setP(0).setMinQ(-5).setMaxQ(5).endPoint()
+                .beginPoint().setP(100).setMinQ(-60).setMaxQ(60).endPoint()
+                .add();
         return network;
     }
 }

@@ -129,6 +129,28 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         return hvdcLine != null ? hvdcLine.getMaxP() / PerUnit.SB : Double.MAX_VALUE;
     }
 
+    private double getComputedActivePower() {
+        if (hvdc != null && hvdc.isAcEmulation()
+                && hvdc.getAcEmulationControl().getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.LINEAR_MODE
+                && !hvdc.isDisabled() && !hvdc.getBus1().isDisabled() && !hvdc.getBus2().isDisabled()) {
+            double activePower = (hvdc.getConverterStation1() == this ? hvdc.getP1() : hvdc.getP2()).eval();
+            if (!Double.isNaN(activePower)) {
+                return -activePower;
+            }
+        }
+        return super.getTargetP();
+    }
+
+    @Override
+    public double getMinQ() {
+        return computeLimitQ(getComputedActivePower(), true);
+    }
+
+    @Override
+    public double getMaxQ() {
+        return computeLimitQ(getComputedActivePower(), false);
+    }
+
     @Override
     protected Optional<ReactiveLimits> getReactiveLimits() {
         return Optional.of(getStation().getReactiveLimits());
