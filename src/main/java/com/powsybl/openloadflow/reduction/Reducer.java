@@ -153,10 +153,6 @@ public class Reducer {
                 .setEquivalent(true)
                 .setR(equivalentBranch.g / ySquare)
                 .setX(-equivalentBranch.b / ySquare)
-                .setG1(equivalentBranch.g1)
-                .setB1(equivalentBranch.b1)
-                .setG2(equivalentBranch.g2)
-                .setB2(equivalentBranch.b2)
                 .setVoltageLevel1(bus1.getVoltageLevel().getId())
                 .setBus1(bus1.getId())
                 .setVoltageLevel2(bus2.getVoltageLevel().getId())
@@ -222,16 +218,12 @@ public class Reducer {
     /**
      * An equivalent branch in the network.
      *
-     * @param bus1 The first bus of the branch.
-     * @param bus2 The second bus of the branch.
+     * @param bus1 The first {@link LfBus} of the branch.
+     * @param bus2 The second {@link LfBus} of the branch.
      * @param g The series conductance of the branch.
      * @param b The series susceptance of the branch.
-     * @param g1 The shunt conductance of the first bus.
-     * @param b1 The shunt susceptance of the first bus.
-     * @param g2 The shunt conductance of the second bus.
-     * @param b2 The shunt susceptance of the second bus.
      */
-    public record EquivalentBranch(LfBus bus1, LfBus bus2, double g, double b, double g1, double b1, double g2, double b2) {
+    public record EquivalentBranch(LfBus bus1, LfBus bus2, double g, double b) {
     }
 
     /**

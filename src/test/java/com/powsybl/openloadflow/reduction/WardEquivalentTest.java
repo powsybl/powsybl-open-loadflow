@@ -48,10 +48,6 @@ class WardEquivalentTest {
         assertEquals("VL3_0", eqBranch.bus2().getId());
         assertEquals(0.03706868414355851, eqBranch.g(), 1e-10);
         assertEquals(-0.3706868414355851, eqBranch.b(), 1e-10);
-        assertEquals(0.0, eqBranch.g1(), 1e-10);
-        assertEquals(0.0, eqBranch.b1(), 1e-10);
-        assertEquals(0.0, eqBranch.g2(), 1e-10);
-        assertEquals(0.0, eqBranch.b2(), 1e-10);
 
         EquivalentShunt eqShunt = equivalentShunts.getFirst();
         assertEquals("VL2_0", eqShunt.bus().getId());
@@ -81,15 +77,11 @@ class WardEquivalentTest {
         assertEquals("VL65_0", eqBranch.bus2().getId());
         assertEquals(6.956550425595119e-6, eqBranch.g(), 1e-10);
         assertEquals(-3.991423264750824e-5, eqBranch.b(), 1e-10);
-        assertEquals(1.0434825638392678e-5, eqBranch.g1(), 1e-10);
-        assertEquals(-5.987134897126235e-5, eqBranch.b1(), 1e-10);
-        assertEquals(-4.173930255357071e-6, eqBranch.g2(), 1e-10);
-        assertEquals(2.3948539588504942e-5, eqBranch.b2(), 1e-10);
 
         EquivalentShunt eqShunt = equivalentShunts.getLast();
         assertEquals("VL65_0", eqShunt.bus().getId());
-        assertEquals(6.200517366662355e-5, eqShunt.g(), 1e-15);
-        assertEquals(7.781525998373082e-4, eqShunt.b(), 1e-15);
+        assertEquals(-6.332125183276761e-4, eqShunt.g(), 1e-15);
+        assertEquals(0.011133909977946662, eqShunt.b(), 1e-15);
 
         EquivalentInjection eqInj = equivalentInjections.getLast();
         assertEquals("VL65_0", eqInj.bus().getId());

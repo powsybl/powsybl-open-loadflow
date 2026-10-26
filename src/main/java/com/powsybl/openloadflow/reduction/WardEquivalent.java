@@ -23,7 +23,10 @@ import com.powsybl.openloadflow.reduction.Reducer.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * <p>The Ward equivalent computation.</p>
@@ -45,8 +48,9 @@ public class WardEquivalent {
     private final List<LfBus> internalBuses;
     private final List<LfBus> boundaryBuses;
     private final List<LfBus> externalBuses;
-    private DenseMatrix ieq;
-    private DenseMatrix yeq;
+    private final List<EquivalentBranch> equivalentBranches = new ArrayList<>();
+    private final List<EquivalentShunt> equivalentShunts = new ArrayList<>();
+    private final List<EquivalentInjection> equivalentInjections = new ArrayList<>();
 
     /**
      * Create a new WardEquivalent instance for the given network, zone decomposition, equivalent type and matrix factory.
@@ -127,8 +131,13 @@ public class WardEquivalent {
         try (LUDecomposition lu = yee.decomposeLU()) {
             lu.solve(yeeInv);
         }
-        ieq = ib.add(ybe.times(yeeInv).times(ie, -1.0)).toDense();
-        yeq = getYbbWithoutInternal(ybb).add(ybe.times(yeeInv).times(yeb, -1.0)).toDense();
+        DenseMatrix ieq = ib.add(ybe.times(yeeInv).times(ie, -1.0)).toDense();
+        DenseMatrix yeq = getYbbWithoutInternal(ybb).add(ybe.times(yeeInv).times(yeb, -1.0)).toDense();
+
+        // Calculate equivalents line, shunts, injections from the equivalent admittance and current injection matrices
+        calculateEquivalentShunts(yeq);
+        calculateEquivalentBranches(yeq);
+        calculateEquivalentInjections(ieq);
     }
 
     private Matrix getRowSelectorMatrix(List<LfBus> buses) {
@@ -230,43 +239,39 @@ public class WardEquivalent {
         return ybbWithoutInternal;
     }
 
-    /**
-     * Get the list of equivalent branches between boundary buses stemming from the reduction process.
-     *
-     * @return a list of {@link EquivalentBranch} between boundary buses.
-     */
-    public List<EquivalentBranch> getEquivalentBranches() {
+    private void calculateEquivalentBranches(DenseMatrix yeq) {
         // Retrieve the equivalent branches between boundary buses from the mutual admittances of equivalent Y matrix
-        List<Reducer.EquivalentBranch> equivalentBranches = new ArrayList<>();
         double zb;
         for (int i = 0; i < boundaryBuses.size(); i++) {
             for (int j = i + 1; j < boundaryBuses.size(); j++) {
                 LfBus bus1 = boundaryBuses.get(i);
                 LfBus bus2 = boundaryBuses.get(j);
-                // Get the admittance values in engineering units
+                // Calculate the series admittance in engineering units
                 double v1 = bus1.getNominalV();
                 double v2 = bus2.getNominalV();
                 zb = v1 * v2 / PerUnit.SB;
                 double g = -yeq.get(2 * i, 2 * j) / zb;
                 double b = yeq.get(2 * i, 2 * j + 1) / zb;
-                double g1 = (v2 - v1) / v1 * g;
-                double b1 = (v2 - v1) / v1 * b;
-                double g2 = (v1 - v2) / v2 * g;
-                double b2 = (v1 - v2) / v2 * b;
-                equivalentBranches.add(new Reducer.EquivalentBranch(bus1, bus2, g, b, g1, b1, g2, b2));
+                equivalentBranches.add(new EquivalentBranch(bus1, bus2, g, b));
+
+                // Compute line shunt admittances as separate shunt objects.
+                // This is a way to preserve distinct values for both buses when exporting to external formats
+                // (such as CGMES) where line shunt admittances are aggregated into a single g and b.
+                if (Math.abs(v1 - v2) > 1e-3) {
+                    double g1 = (v2 - v1) / v1 * g;
+                    double b1 = (v2 - v1) / v1 * b;
+                    equivalentShunts.add(new EquivalentShunt(bus1, g1, b1));
+
+                    double g2 = (v1 - v2) / v2 * g;
+                    double b2 = (v1 - v2) / v2 * b;
+                    equivalentShunts.add(new EquivalentShunt(bus2, g2, b2));
+                }
             }
         }
-        return equivalentBranches;
     }
 
-    /**
-     * Get the list of equivalent shunts at boundary buses stemming from the reduction process.
-     *
-     * @return a list of {@link EquivalentShunt} at boundary buses.
-     */
-    public List<EquivalentShunt> getEquivalentShunts() {
+    private void calculateEquivalentShunts(DenseMatrix yeq) {
         // Retrieve the equivalent shunts at boundary buses from the self and mutual admittances of equivalent Y matrix
-        List<Reducer.EquivalentShunt> equivalentShunts = new ArrayList<>();
         double zb;
         for (int j = 0; j < boundaryBuses.size(); j++) {
             double g = 0.0;
@@ -276,23 +281,16 @@ public class WardEquivalent {
                 b += yeq.get(2 * i + 1, 2 * j);
             }
             LfBus bus = boundaryBuses.get(j);
-            // Get the admittance values in engineering units
+            // Calculate the shunt admittance in engineering units
             zb = PerUnit.zb(bus.getNominalV());
             g = g / zb;
             b = b / zb;
-            equivalentShunts.add(new Reducer.EquivalentShunt(boundaryBuses.get(j), g, b));
+            equivalentShunts.add(new EquivalentShunt(bus, g, b));
         }
-        return equivalentShunts;
     }
 
-    /**
-     * Get the list of equivalent injections at boundary buses stemming from the reduction process.
-     *
-     * @return a list of {@link EquivalentInjection} at boundary buses.
-     */
-    public List<EquivalentInjection> getEquivalentInjections() {
+    private void calculateEquivalentInjections(DenseMatrix ieq) {
         // Retrieve the equivalent power injections at boundary buses from the equivalent I matrix
-        List<Reducer.EquivalentInjection> equivalentInjections = new ArrayList<>();
         for (int i = 0; i < boundaryBuses.size(); i++) {
             // S = P + j Q
             //   = U I*
@@ -303,11 +301,46 @@ public class WardEquivalent {
             double uy = bus.getV() * Math.sin(bus.getAngle());
             double ix = ieq.get(2 * i, 0);
             double iy = ieq.get(2 * i + 1, 0);
-            // Get the power values in engineering units
+            // Calculate the power injection in engineering units
             double p = (ux * ix + uy * iy) * PerUnit.SB;
             double q = (-ux * iy + uy * ix) * PerUnit.SB;
             equivalentInjections.add(new Reducer.EquivalentInjection(bus, p, q));
         }
+    }
+
+    /**
+     * Get the list of equivalent branches between boundary buses stemming from the reduction process.
+     *
+     * @return a list of {@link EquivalentBranch} between boundary buses.
+     */
+    public List<EquivalentBranch> getEquivalentBranches() {
+        return equivalentBranches;
+    }
+
+    /**
+     * Get the list of equivalent shunts at boundary buses stemming from the reduction process.
+     *
+     * @return a list of {@link EquivalentShunt} at boundary buses.
+     */
+    public List<EquivalentShunt> getEquivalentShunts() {
+        // Merge equivalent shunts on the same bus
+        return equivalentShunts.stream()
+            .collect(Collectors.toMap(
+                EquivalentShunt::bus,
+                Function.identity(),
+                (shunt1, shunt2) -> new EquivalentShunt(
+                    shunt1.bus(), shunt1.g() + shunt2.g(), shunt1.b() + shunt2.b())))
+            .values().stream()
+            .sorted(Comparator.comparing(e -> e.bus().getId()))
+            .toList();
+    }
+
+    /**
+     * Get the list of equivalent injections at boundary buses stemming from the reduction process.
+     *
+     * @return a list of {@link EquivalentInjection} at boundary buses.
+     */
+    public List<EquivalentInjection> getEquivalentInjections() {
         return equivalentInjections;
     }
 
