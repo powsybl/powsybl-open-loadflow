@@ -41,6 +41,7 @@ final class DcComponentValidator {
      */
     static List<AcDcConverter<?>> resolveDcComponent(List<DcBus> dcBuses, Collection<AcDcConverter<?>> acDcConverters,
                                                      Collection<DcSwitch> dcSwitches, int numDcc) {
+        // bus id -> connected buses through resistive DcSwitch
         Map<String, List<DcBus>> dcSwitchNeighbours = indexClosedDcSwitches(dcSwitches);
         List<AcDcConverter<?>> connectedConverters = acDcConverters.stream()
                 .filter(DcComponentValidator::isFullyConnected)
