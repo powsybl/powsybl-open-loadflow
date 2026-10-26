@@ -25,4 +25,9 @@ public class NaiveGraphConnectivityFactory<V, E> implements GraphConnectivityFac
     public GraphConnectivity<V, E> create() {
         return new NaiveGraphConnectivity<>(numGetter);
     }
+
+    @Override
+    public boolean supportsIncremental() {
+        return true;
+    }
 }
