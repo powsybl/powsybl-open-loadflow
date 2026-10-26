@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.reduction;
 
-
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.regulation.RegulationMode;
 
@@ -16,7 +15,10 @@ import java.util.Set;
 /**
  * @author Romain Courtier {@literal <romain.courtier at rte-france.com>}
  */
-public class ReductionUtil {
+final class ReductionUtil {
+
+    private ReductionUtil() {
+    }
 
     public static Set<String> getIEEE118InternalVlIds() {
         return Set.of(

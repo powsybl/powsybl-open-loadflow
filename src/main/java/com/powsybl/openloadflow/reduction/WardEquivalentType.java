@@ -8,11 +8,11 @@
 package com.powsybl.openloadflow.reduction;
 
 /**
- * The ward reduction types used for simplifying power system networks.
+ * The Ward equivalent types used for network reduction.
  *
  * @author Romain Courtier {@literal <romain.courtier at rte-france.com>}
  */
-public enum WardReductionType {
+public enum WardEquivalentType {
 
     /**
      * <p>All network elements are considered without conversion.<br/>
@@ -23,7 +23,7 @@ public enum WardReductionType {
      *   <li>equivalent injections on boundary buses</li>
      * </ul>
      */
-    STANDARD;
+    STANDARD
     // ADMITTANCE
     // INJECTION
     // PV

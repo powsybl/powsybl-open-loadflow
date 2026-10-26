@@ -18,24 +18,41 @@ import java.util.List;
 import java.util.Objects;
 
 /**
+ * The Reduction engine.
+ *
  * @author Romain Courtier {@literal <romain.courtier at rte-france.com>}
  */
 public class Reducer {
 
+    /**
+     * A constant used for labeling equivalent elements within the reduced network.
+     */
     public static final String EQUIVALENT = "-equivalent";
     private final Network network;
     private final LfNetwork lfNetwork;
     private final ZoneDecomposition zones;
-    private final WardAdmittance wardAdmittance;
 
-    Reducer(Network network, LfNetwork lfNetwork, ZoneDecomposition zones, WardAdmittance wardAdmittance) {
+    /**
+     * Create a new Reducer instance for performing network reduction.
+     *
+     * @param network The {@link Network} to be reduced.
+     * @param lfNetwork The {@link LfNetwork} used for the reduction operation.
+     * @param zones The {@link ZoneDecomposition} describing the part to keep (internal) and the part to reduce (external)
+     */
+    Reducer(Network network, LfNetwork lfNetwork, ZoneDecomposition zones) {
         this.network = network;
         this.lfNetwork = lfNetwork;
         this.zones = zones;
-        this.wardAdmittance = wardAdmittance;
     }
 
-    public ReductionChanges reduce() {
+    /**
+     * Reduce the network, removing the external part and replacing it with equivalents
+     * calculated using the Ward reduction method.
+     *
+     * @param wardEquivalent The {@link WardEquivalent} model.
+     * @return a {@link ReductionChanges} record containing the list of removed voltage levels and added equivalents.
+     */
+    public ReductionChanges reduceWithWardEquivalent(WardEquivalent wardEquivalent) {
         // Init list of reduction changes
         // Retrieve now the list of voltage levels and substations as the following operations may invalidate buses
         List<VoltageLevel> externalVoltageLevels = zones.getExternalBuses().stream()
@@ -95,9 +112,9 @@ public class Reducer {
         externalSubstations.forEach(Substation::remove);
 
         // Add equivalents
-        List<Line> addedLines = addEquivalentBranches(wardAdmittance.getEquivalentBranches());
-        List<ShuntCompensator> addedShuntCompensators = addEquivalentShunts(wardAdmittance.getEquivalentShunts());
-        List<Generator> addedGenerators = addEquivalentInjections(wardAdmittance.getEquivalentInjections());
+        List<Line> addedLines = addEquivalentBranches(wardEquivalent.getEquivalentBranches());
+        List<ShuntCompensator> addedShuntCompensators = addEquivalentShunts(wardEquivalent.getEquivalentShunts());
+        List<Generator> addedGenerators = addEquivalentInjections(wardEquivalent.getEquivalentInjections());
 
         return new ReductionChanges(externalVoltageLevels, addedLines, addedShuntCompensators, addedGenerators);
     }
@@ -202,15 +219,49 @@ public class Reducer {
         return addedGenerators;
     }
 
+    /**
+     * An equivalent branch in the network.
+     *
+     * @param bus1 The first bus of the branch.
+     * @param bus2 The second bus of the branch.
+     * @param g The series conductance of the branch.
+     * @param b The series susceptance of the branch.
+     * @param g1 The shunt conductance of the first bus.
+     * @param b1 The shunt susceptance of the first bus.
+     * @param g2 The shunt conductance of the second bus.
+     * @param b2 The shunt susceptance of the second bus.
+     */
     public record EquivalentBranch(LfBus bus1, LfBus bus2, double g, double b, double g1, double b1, double g2, double b2) {
     }
 
+    /**
+     * An equivalent shunt in the network.
+     *
+     * @param bus The bus of the shunt.
+     * @param g The shunt conductance.
+     * @param b The shunt susceptance.
+     */
     public record EquivalentShunt(LfBus bus, double g, double b) {
     }
 
+    /**
+     * An equivalent injection in the network.
+     *
+     * @param bus The bus of the injection.
+     * @param p The active power of the injection.
+     * @param q The reactive power of the injection.
+     */
     public record EquivalentInjection(LfBus bus, double p, double q) {
     }
 
+    /**
+     * The changes made to the network during the reduction.
+     *
+     * @param removedVoltageLevels The list of {@link VoltageLevel} removed from the network.
+     * @param addedLines The list of {@link Line} added to the network.
+     * @param addedShuntCompensators The list of {@link ShuntCompensator} added to the network.
+     * @param addedGenerators The list of {@link Generator} added to the network.
+     */
     public record ReductionChanges(List<VoltageLevel> removedVoltageLevels, List<Line> addedLines, List<ShuntCompensator> addedShuntCompensators, List<Generator> addedGenerators) {
     }
 

@@ -18,6 +18,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
+ * Decompose a {@link LfNetwork} into lists of internal, boundary, and external {@link LfBus}
+ * based on specified internal {@link VoltageLevel} IDs.
+ *
  * @author Romain Courtier {@literal <romain.courtier at rte-france.com>}
  */
 public final class ZoneDecomposition {
@@ -28,6 +31,12 @@ public final class ZoneDecomposition {
     private final List<LfBus> boundaryBuses;
     private final List<LfBus> externalBuses;
 
+    /**
+     * Create a new ZoneDecomposition instance for the given network and set of internal voltage level IDs.
+     *
+     * @param lfNetwork the {@link LfNetwork} to decompose
+     * @param internalVoltageLevelIds the set of internal {@link VoltageLevel} IDs
+     */
     public ZoneDecomposition(LfNetwork lfNetwork, Set<String> internalVoltageLevelIds) {
         this.lfNetwork = Objects.requireNonNull(lfNetwork);
         this.internalVoltageLevelIds = Objects.requireNonNull(internalVoltageLevelIds);
@@ -65,18 +74,41 @@ public final class ZoneDecomposition {
         return bus != null && internalVoltageLevelIds.contains(bus.getVoltageLevelId());
     }
 
+    /**
+     * Get the list of internal buses.
+     *
+     * @return the list of internal buses
+     */
     public List<LfBus> getInternalBuses() {
         return internalBuses;
     }
 
+    /**
+     * Get the list of boundary buses.
+     *
+     * @return the list of boundary buses
+     */
     public List<LfBus> getBoundaryBuses() {
         return boundaryBuses;
     }
 
+    /**
+     * Get the list of external buses.
+     *
+     * @return the list of external buses
+     */
     public List<LfBus> getExternalBuses() {
         return externalBuses;
     }
 
+    /**
+     * Get the set of internal voltage level IDs for a specified country within a given network.
+     *
+     * @param network the {@link Network} from which to retrieve the internal voltage level IDs
+     * @param country the {@link Country} whose internal voltage level IDs are to be retrieved
+     * @return a set of voltage level IDs corresponding to the specified country within the provided network
+     * @throws NullPointerException if the provided country is null
+     */
     public static Set<String> getInternalVoltageLevelIds(Network network, Country country) {
         Objects.requireNonNull(country);
         return network.getSubstationStream()
@@ -86,6 +118,14 @@ public final class ZoneDecomposition {
             .collect(Collectors.toSet());
     }
 
+    /**
+     * Get the set of internal voltage level IDs for a specified TSO within a given network.
+     *
+     * @param network the {@link Network} from which to retrieve the internal voltage level IDs
+     * @param tso the TSO whose internal voltage level IDs are to be retrieved
+     * @return a set of voltage level IDs corresponding to the specified TSO within the provided network
+     * @throws NullPointerException if the provided TSO is null
+     */
     public static Set<String> getInternalVoltageLevelIds(Network network, String tso) {
         Objects.requireNonNull(tso);
         return network.getSubstationStream()
