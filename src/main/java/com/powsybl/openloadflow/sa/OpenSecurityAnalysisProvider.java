@@ -74,10 +74,11 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
         OpenLoadFlowParameters.log(loadFlowParameters, loadFlowParametersExt);
 
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory;
-        if (runParameters.getOperatorStrategies().isEmpty() && !loadFlowParametersExt.isSimulateAutomationSystems()) {
-            selectedConnectivityFactory = connectivityFactory;
-        } else {
+        if ((!runParameters.getOperatorStrategies().isEmpty() || loadFlowParametersExt.isSimulateAutomationSystems())
+                && !connectivityFactory.supportsIncremental()) {
             selectedConnectivityFactory = new DTreeGraphConnectivityFactory<>();
+        } else {
+            selectedConnectivityFactory = connectivityFactory;
         }
 
         AbstractSecurityAnalysis<?, ?, ?, ?, ?> securityAnalysis;

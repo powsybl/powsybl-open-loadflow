@@ -223,10 +223,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }
 
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory;
-        if (operatorStrategies.isEmpty()) {
-            selectedConnectivityFactory = connectivityFactory;
-        } else {
+        if (!operatorStrategies.isEmpty() && !connectivityFactory.supportsIncremental()) {
             selectedConnectivityFactory = new DTreeGraphConnectivityFactory<>();
+        } else {
+            selectedConnectivityFactory = connectivityFactory;
         }
 
         AbstractSensitivityAnalysis<?, ?> analysis;
