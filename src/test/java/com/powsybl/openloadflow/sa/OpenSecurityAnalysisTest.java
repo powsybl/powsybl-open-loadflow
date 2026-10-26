@@ -1694,8 +1694,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(0.2330, cs4.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-3.6015, cs4.getTerminal().getQ(), LoadFlowAssert.DELTA_POWER);
         // Now testing hitting the limit
-        network.getVscConverterStation("cs4")
-                .newReactiveCapabilityCurve()
+        cs4.newReactiveCapabilityCurve()
                 .beginPoint().setP(-0.2330).setMinQ(-2).setMaxQ(2).endPoint()
                 .beginPoint().setP(0).setMinQ(-1).setMaxQ(1).endPoint()
                 .beginPoint().setP(0.2330).setMinQ(-2).setMaxQ(2).endPoint()
