@@ -44,7 +44,7 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected double targetVdc; // in pu
 
-    protected final AcDcConverter.ControlMode initialControlMode;
+    private final AcDcConverter.ControlMode initialControlMode;
 
     protected AcDcConverter.ControlMode controlMode;
 

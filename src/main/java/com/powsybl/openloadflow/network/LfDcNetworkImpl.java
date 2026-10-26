@@ -106,7 +106,7 @@ public class LfDcNetworkImpl implements LfDcNetwork {
      * @return All AC/DC converters in the DC component.
      */
     private List<LfAcDcConverter> getAcDcConverters() {
-        return lfNetwork.getVoltageSourceConverters().stream().filter(vsc -> vsc.getNumDCC() == numDCC).map(vsc -> (LfAcDcConverter) vsc).toList();
+        return lfNetwork.getVoltageSourceConverters().stream().filter(vsc -> vsc.getNumDCC() == numDCC).map(LfAcDcConverter.class::cast).toList();
     }
 
     /**
