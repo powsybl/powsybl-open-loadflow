@@ -143,6 +143,9 @@ public class Reducer {
 
         for (EquivalentBranch equivalentBranch : equivalentBranches) {
             double ySquare = equivalentBranch.g * equivalentBranch.g + equivalentBranch.b * equivalentBranch.b;
+            if (ySquare == 0.0) {
+                continue;
+            }
 
             Bus bus1 = network.getBusBreakerView().getBus(getBusId(equivalentBranch.bus1));
             Bus bus2 = network.getBusBreakerView().getBus(getBusId(equivalentBranch.bus2));
