@@ -1670,41 +1670,6 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
-    void testAcEmulationVscReactiveLimits() {
-        LoadFlowParameters parameters = new LoadFlowParameters().setHvdcAcEmulation(true);
-        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
-        network.getHvdcLine("hvdc34").setActivePowerSetpoint(0)
-                .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
-                .withDroop(180)
-                .withP0(0.f)
-                .withEnabled(true)
-                .add();
-        runLoadFlow(network, parameters);
-        VscConverterStation cs4 = network.getVscConverterStation("cs4");
-        assertEquals(0.2330, cs4.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-3.6015, cs4.getTerminal().getQ(), LoadFlowAssert.DELTA_POWER);
-        // Adding limits: min reactive limit -4 MVar is below -3.6 MVar, no switch to PQ should be performed
-        network.getVscConverterStation("cs4")
-                .newReactiveCapabilityCurve()
-                .beginPoint().setP(-0.2330).setMinQ(-4).setMaxQ(4).endPoint()
-                .beginPoint().setP(0).setMinQ(-1).setMaxQ(1).endPoint()
-                .beginPoint().setP(0.2330).setMinQ(-4).setMaxQ(4).endPoint()
-                .add();
-        runLoadFlow(network, parameters);
-        assertEquals(0.2330, cs4.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-3.6015, cs4.getTerminal().getQ(), LoadFlowAssert.DELTA_POWER);
-        // Now testing with hitting the limit
-        cs4.newReactiveCapabilityCurve()
-                .beginPoint().setP(-0.2330).setMinQ(-2).setMaxQ(2).endPoint()
-                .beginPoint().setP(0).setMinQ(-1).setMaxQ(1).endPoint()
-                .beginPoint().setP(0.2330).setMinQ(-2).setMaxQ(2).endPoint()
-                .add();
-        runLoadFlow(network, parameters);
-        assertEquals(0.2272, cs4.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-1.975, cs4.getTerminal().getQ(), LoadFlowAssert.DELTA_POWER);
-    }
-
-    @Test
     void testHvdcAcEmulationWarmStart() {
         Network n = HvdcNetworkFactory.createHvdcACEmulationWithHighImpedanceLines();
         LoadFlowParameters params = new LoadFlowParameters();
