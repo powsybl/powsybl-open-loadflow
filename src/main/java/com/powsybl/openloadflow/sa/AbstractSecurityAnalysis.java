@@ -788,8 +788,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         if (operatorStrategiesForThisContingency != null) {
             // we have at least one operator strategy for this contingency.
             if (operatorStrategiesForThisContingency.size() == 1) {
-                // only one operator strategy, no need to store a save of network state,
-                // but saving network state sets generators initialTargetP positions to the current (=postContingency) targetP
+                // only one operator strategy, no need to store a complete save of network state,
+                // but calling NetworkState.save sets generators initialTargetP positions to the current (=postContingency) targetP
                 // and also computes set point for LfHvdcAction in case of AC emulation
                 NetworkState.save(lfNetwork);
                 OperatorStrategy operatorStrategy = operatorStrategiesForThisContingency.get(0).value();
