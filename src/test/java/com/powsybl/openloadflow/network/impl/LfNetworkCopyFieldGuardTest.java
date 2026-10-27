@@ -7,30 +7,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.openloadflow.network.AbstractElement;
-import com.powsybl.openloadflow.network.AbstractLfShunt;
-import com.powsybl.openloadflow.network.AbstractPropertyBag;
-import com.powsybl.openloadflow.network.Control;
-import com.powsybl.openloadflow.network.DiscreteVoltageControl;
-import com.powsybl.openloadflow.network.GeneratorReactivePowerControl;
-import com.powsybl.openloadflow.network.GeneratorVoltageControl;
-import com.powsybl.openloadflow.network.LfAsymBus;
-import com.powsybl.openloadflow.network.LfAsymGenerator;
-import com.powsybl.openloadflow.network.LfAsymLine;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfOverloadManagementSystem;
-import com.powsybl.openloadflow.network.LfSecondaryVoltageControl;
-import com.powsybl.openloadflow.network.LfStandbyAutomatonShunt;
-import com.powsybl.openloadflow.network.LfSynchronousNetworkImpl;
-import com.powsybl.openloadflow.network.PiModelArray;
-import com.powsybl.openloadflow.network.ReactivePowerControl;
-import com.powsybl.openloadflow.network.ShuntVoltageControl;
-import com.powsybl.openloadflow.network.SimplePiModel;
-import com.powsybl.openloadflow.network.TransformerPhaseControl;
-import com.powsybl.openloadflow.network.TransformerReactivePowerControl;
-import com.powsybl.openloadflow.network.TransformerVoltageControl;
-import com.powsybl.openloadflow.network.VoltageControl;
-import com.powsybl.openloadflow.network.VoltageSourceConverterVoltageControl;
+import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
@@ -78,6 +55,8 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(LfBoundaryLineGenerator.class, Set.of("boundaryLineRef"));
         expected.put(LfLoadImpl.class, Set.of("bus", "loadModel", "loadsRefs", "lccCsRefs", "targetQ", "ensurePowerFactorConstantByLoad", "loadsAbsVariableTargetP",
                 "absVariableTargetP", "distributedOnConformLoad", "loadsDisablingStatus", "p", "q"));
+        expected.put(LfShunt.Controller.class, Set.of("id", "sectionsB", "sectionsG", "position", "minPosition", "bMagnitude"));
+        expected.put(LfShuntImpl.ControllerImpl.class, Set.of("shuntCompensatorRef"));
         expected.put(LfShuntImpl.class, Set.of("shuntCompensatorsRefs", "bus", "voltageControl", "voltageControlCapability", "voltageControlEnabled", "controllers", "b", "zb", "g"));
         expected.put(AbstractLfShunt.class, Set.of("q", "p"));
         expected.put(LfStandbyAutomatonShunt.class, Set.of("svc", "b"));
@@ -88,11 +67,15 @@ class LfNetworkCopyFieldGuardTest {
                 "p2", "q2", "i2", "openP1", "openQ1", "openI1", "openP2", "openQ2", "openI2", "closedP1", "closedQ1", "closedI1", "closedP2", "closedQ2", "closedI2",
                 "additionalOpenP1", "additionalClosedP1", "additionalOpenQ1", "additionalClosedQ1", "additionalOpenP2", "additionalClosedP2", "additionalOpenQ2", "additionalClosedQ2"));
         expected.put(LfBranchImpl.class, Set.of("branchRef"));
+        expected.put(LfBranch.LfLimitsGroup.class, Set.of("sortedLimits", "operationalLimitsGroupId"));
+        expected.put(LfBranch.LfLimit.class, Set.of("name", "acceptableDuration", "value", "scaling"));
+        expected.put(AbstractLfBranch.ZeroImpedanceContext.class, Set.of("spanningTreeEdge", "zeroImpedance"));
         expected.put(LfLegBranch.class, Set.of("twtRef", "legRef"));
         expected.put(LfTieLineBranch.class, Set.of("boundaryLine1Ref", "boundaryLine2Ref", "id"));
         expected.put(LfBoundaryLineBranch.class, Set.of("boundaryLineRef"));
         expected.put(LfSwitch.class, Set.of("switchRef"));
         expected.put(LfHvdcImpl.class, Set.of("id", "bus1", "bus2", "p1", "p2", "r", "nominalV", "converterStation1", "converterStation2", "acEmulation", "acEmulationControl"));
+        expected.put(LfHvdcImpl.AcEmulationControl.class, Set.of("hvdc", "droop", "p0", "pMaxFromCS1toCS2", "pMaxFromCS2toCS1", "acEmulationStatus"));
         expected.put(AbstractLfDcBus.class, Set.of("v", "nominalV"));
         expected.put(LfDcBusImpl.class, Set.of("dcBusRef", "isGrounded"));
         expected.put(AbstractLfDcLine.class, Set.of("dcBus1", "dcBus2", "p1", "i1", "p2", "i2", "r"));
@@ -120,6 +103,7 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(TransformerReactivePowerControl.class, Set.of("controllerBranch", "targetDeadband"));
         expected.put(TransformerPhaseControl.class, Set.of("controllerBranch", "controlledBranch", "targetDeadband", "controlledSide", "mode", "unit"));
         expected.put(LfSecondaryVoltageControl.class, Set.of("controlUnits", "pilotBus", "targetValue", "zoneName"));
+        expected.put(LfSecondaryVoltageControl.ControlUnit.class, Set.of("id", "participate", "generatorVoltageControl"));
         expected.put(LfOverloadManagementSystem.class, Set.of("monitoredBranch", "monitoredSide", "branchTrippingList"));
         expected.put(LfNetwork.class, Set.of("numCC", "synchronousNetworks", "slackBusSelector", "referenceBusSelector", "maxSlackBusCount", "busesById", "busesByIndex",
                 "branches", "branchesById", "branchesByOriginalId", "shuntCount", "shuntsByIndex", "shuntsById", "generatorsById", "loadsById", "areasById", "areas", "hvdcs",
@@ -127,6 +111,7 @@ class LfNetworkCopyFieldGuardTest {
                 "zeroImpedanceNetworksByModel", "reportNode", "secondaryVoltageControls", "voltageAngleLimits", "overloadManagementSystems", "connectivityRemovedBranches"));
         expected.put(LfSynchronousNetworkImpl.class, Set.of("lfNetwork", "numSC", "slackBusSelector", "referenceBusSelector", "maxSlackBusCount", "referenceBus", "slackBuses",
                 "excludedSlackBuses", "referenceGenerator"));
+        expected.put(LfNetwork.LfVoltageAngleLimit.class, Set.of("id", "from", "to", "highValue", "lowValue"));
 
         for (Map.Entry<Class<?>, Set<String>> entry : expected.entrySet()) {
             Set<String> actual = Arrays.stream(entry.getKey().getDeclaredFields())
