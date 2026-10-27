@@ -13,9 +13,11 @@ import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
@@ -42,6 +44,7 @@ class AcLoadFlowGeneratorTest {
     }
 
     private LoadFlow.Runner loadFlowRunner;
+    LoadFlowRunParameters runParameters;
     private LoadFlowParameters parameters;
     private OpenLoadFlowParameters parametersExt;
 
@@ -50,6 +53,7 @@ class AcLoadFlowGeneratorTest {
         loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         parameters = new LoadFlowParameters();
         parametersExt = OpenLoadFlowParameters.create(parameters);
+        runParameters = new LoadFlowRunParameters().setParameters(parameters);
     }
 
     @Test
@@ -85,6 +89,19 @@ class AcLoadFlowGeneratorTest {
     }
 
     @Test
+    void testGeneratorTanPhi() {
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        Generator g1 = network.getGenerator("g1");
+        Bus b1 = network.getBusBreakerView().getBus("b1");
+        Bus b4 = network.getBusBreakerView().getBus("b4");
+        g1.newVoltageRegulation().withMode(RegulationMode.REACTIVE_POWER_PER_ACTIVE_POWER)
+                .withSlope(0.3)
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, runParameters);
+        TO DO
+    }
+
+    @Test
     void testGeneratorForceTargetQInDiagram() {
         Network network = FourBusNetworkFactory.createBaseNetwork();
         Generator g1 = network.getGenerator("g1");
@@ -100,12 +117,8 @@ class AcLoadFlowGeneratorTest {
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("test")
                 .build();
-        LoadFlowResult result = loadFlowRunner.run(network,
-                network.getVariantManager().getWorkingVariantId(),
-                LocalComputationManager.getDefault(),
-                parameters,
-                report
-        );
+        runParameters.setReportNode(report);
+        LoadFlowResult result = loadFlowRunner.run(network, runParameters);
 
         assertTrue(result.isFullyConverged());
         assertVoltageEquals(1.028108, b1);

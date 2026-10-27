@@ -41,6 +41,10 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         if (station.isRegulatingWithMode(RegulationMode.VOLTAGE)) {
             setVoltageControl(station.getRegulatingTargetV(), station.getTerminal(), station.getRegulatingTerminal(), parameters, report);
         }
+
+        if (station.isRegulatingWithMode(RegulationMode.REACTIVE_POWER_PER_ACTIVE_POWER)) {
+            setReactivePowerPerActivePowerControl(station.getVoltageRegulation().getSlope());
+        }
     }
 
     private LfVscConverterStationImpl(LfVscConverterStationImpl other, LfNetwork network) {
@@ -114,7 +118,13 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     @Override
     public double getTargetQ() {
-        return Networks.zeroIfNan(getStation().isRegulating() ? getStation().getRegulatingTargetQ() : getStation().getLocalTargetQ()) / PerUnit.SB;
+        double targetQ;
+        if (generatorControlType == GeneratorControlType.REACTIVE_POWER_PER_ACTIVE_POWER) {
+            targetQ = getTargetP() * tanPhi;
+        } else {
+            targetQ = Networks.zeroIfNan(getStation().isRegulating() ? getStation().getRegulatingTargetQ() : getStation().getLocalTargetQ()) / PerUnit.SB;
+        }
+        return checkIfForcedInReactiveLimits(targetQ);
     }
 
     @Override
