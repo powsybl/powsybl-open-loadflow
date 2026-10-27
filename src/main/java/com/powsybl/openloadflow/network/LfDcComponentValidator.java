@@ -19,33 +19,22 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Implementation of LfDcNetwork that provides a filtered view of LfNetwork DC equipment for a single DC component.
+ * Helper methods to validate a DcComponent configuration and, when possible, automatically resolve an
+ * otherwise invalid one.
  *
  * @author Baptiste Perreyon {@literal <baptiste.perreyon at supergrid-institute.com>}
  */
-public class LfDcNetworkImpl implements LfDcNetwork {
+public final class LfDcComponentValidator {
 
-    private final LfNetwork lfNetwork;
-
-    private final int numDCC;
-
-    public LfDcNetworkImpl(LfNetwork lfNetwork, int numDCC) {
-        this.lfNetwork = lfNetwork;
-        this.numDCC = numDCC;
+    private LfDcComponentValidator() {
     }
 
-    @Override
-    public int getNumDCC() {
-        return numDCC;
-    }
-
-    @Override
-    public List<LfAcDcConverter> resolve() {
+    public static List<LfAcDcConverter> resolve(LfNetwork lfNetwork, int numDCC) {
         // Compute DC subcomponents graph
-        GraphConnectivity<LfDcBus, LfDcLine> graph = buildDcSubComponentGraph();
+        GraphConnectivity<LfDcBus, LfDcLine> graph = buildDcSubComponentGraph(lfNetwork, numDCC);
 
         // Check all converters are indirectly connected to a DC ground
-        for (LfAcDcConverter converter : getAcDcConverters()) {
+        for (LfAcDcConverter converter : getAcDcConverters(lfNetwork, numDCC)) {
             if (!isSubComponentConnectedToGround(graph.getConnectedComponent(converter.getDcBus1())) &&
                     !isSubComponentConnectedToGround(graph.getConnectedComponent(converter.getDcBus2()))) {
                 throw new PowsyblException(String.format("Converter %s is not indirectly connected to a DC ground", converter.getId()));
@@ -55,14 +44,14 @@ public class LfDcNetworkImpl implements LfDcNetwork {
         // Check each DC subcomponent has an element imposing voltage
         List<LfAcDcConverter> convertersToUpdate = new ArrayList<>();
         Set<String> visitedBusIds = new HashSet<>();
-        for (LfDcBus dcBus : getDcBuses()) {
+        for (LfDcBus dcBus : getDcBuses(lfNetwork, numDCC)) {
             if (visitedBusIds.contains(dcBus.getId())) {
                 continue;
             }
 
             Set<LfDcBus> dcBusesInSubComponent = graph.getConnectedComponent(dcBus);
             visitedBusIds.addAll(dcBusesInSubComponent.stream().map(LfDcBus::getId).collect(Collectors.toSet()));
-            resolveDcSubComponentIfNeeded(dcBusesInSubComponent, convertersToUpdate);
+            resolveDcSubComponentIfNeeded(lfNetwork, numDCC, dcBusesInSubComponent, convertersToUpdate);
         }
 
         return convertersToUpdate;
@@ -74,10 +63,14 @@ public class LfDcNetworkImpl implements LfDcNetwork {
      *
      * @throws PowsyblException If the DC subcomponent has no element imposing voltage and no converter can be promoted.
      */
-    private void resolveDcSubComponentIfNeeded(Set<LfDcBus> dcBusesInSubComponent, List<LfAcDcConverter> convertersToUpdate) {
-        List<LfAcDcConverter> convertersInSubComponent = getAcDcConvertersInSubComponent(dcBusesInSubComponent);
+    private static void resolveDcSubComponentIfNeeded(LfNetwork lfNetwork, int numDCC, Set<LfDcBus> dcBusesInSubComponent, List<LfAcDcConverter> convertersToUpdate) {
+        List<LfAcDcConverter> convertersInSubComponent = getAcDcConvertersInSubComponent(lfNetwork, numDCC, dcBusesInSubComponent);
         if (isSubComponentConnectedToGround(dcBusesInSubComponent) ||
-                convertersInSubComponent.stream().anyMatch(conv -> controlsDcVoltage(conv) || convertersToUpdate.contains(conv))) {
+                convertersInSubComponent.stream().anyMatch(conv ->
+                        // Tells whether a converter settles the DC voltage: V_DC does it directly, DC_DROOP does it through the droop law.
+                        conv.getControlMode() == AcDcConverter.ControlMode.V_DC || conv.getControlMode() == AcDcConverter.ControlMode.DC_DROOP
+                                || convertersToUpdate.contains(conv))
+        ) {
             return; // already has (or was just given, while resolving an adjacent DC subcomponent) an element imposing DC voltage
         } else {
             if (convertersInSubComponent.isEmpty()) {
@@ -89,38 +82,24 @@ public class LfDcNetworkImpl implements LfDcNetwork {
     }
 
     /**
-     * Tells whether a converter settles the DC voltage: V_DC does it directly, DC_DROOP does it through the droop law.
-     */
-    private boolean controlsDcVoltage(LfAcDcConverter converter) {
-        return converter.getControlMode() == AcDcConverter.ControlMode.V_DC || converter.getControlMode() == AcDcConverter.ControlMode.DC_DROOP;
-    }
-
-    /**
      * Tells whether a DC subcomponent has o grounded DC bus.
      */
-    private boolean isSubComponentConnectedToGround(Set<LfDcBus> dcBusesInSubComponent) {
+    private static boolean isSubComponentConnectedToGround(Set<LfDcBus> dcBusesInSubComponent) {
         return dcBusesInSubComponent.stream().anyMatch(LfDcBus::isGrounded);
     }
 
     /**
      * @return All AC/DC converters in the DC component.
      */
-    private List<LfAcDcConverter> getAcDcConverters() {
+    private static List<LfAcDcConverter> getAcDcConverters(LfNetwork lfNetwork, int numDCC) {
         return lfNetwork.getVoltageSourceConverters().stream().filter(vsc -> vsc.getNumDCC() == numDCC).map(LfAcDcConverter.class::cast).toList();
     }
 
     /**
      * @return All DC buses in the DC component.
      */
-    private List<LfDcBus> getDcBuses() {
+    private static List<LfDcBus> getDcBuses(LfNetwork lfNetwork, int numDCC) {
         return lfNetwork.getDcBuses().stream().filter(b -> b.getNumDCC() == numDCC).toList();
-    }
-
-    /**
-     * @return All DC lines in the DC component.
-     */
-    private List<LfDcLine> getDcLines() {
-        return lfNetwork.getDcLines().stream().filter(l -> l.getNumDCC() == numDCC).toList();
     }
 
     /**
@@ -129,9 +108,9 @@ public class LfDcNetworkImpl implements LfDcNetwork {
      * @param dcBusesInSubComponent DC buses in the DC subcomponent.
      * @return The list of AC/DC converter in which one of the buses is part of the DC subcomponent.
      */
-    private List<LfAcDcConverter> getAcDcConvertersInSubComponent(Set<LfDcBus> dcBusesInSubComponent) {
+    private static List<LfAcDcConverter> getAcDcConvertersInSubComponent(LfNetwork lfNetwork, int numDCC, Set<LfDcBus> dcBusesInSubComponent) {
         List<LfAcDcConverter> convertersInSubComponent = new ArrayList<>();
-        for (LfAcDcConverter converter : getAcDcConverters()) {
+        for (LfAcDcConverter converter : getAcDcConverters(lfNetwork, numDCC)) {
             if (dcBusesInSubComponent.contains(converter.getDcBus1()) || dcBusesInSubComponent.contains(converter.getDcBus2())) {
                 convertersInSubComponent.add(converter);
             }
@@ -145,19 +124,23 @@ public class LfDcNetworkImpl implements LfDcNetwork {
      *
      * @return A graph with LfDcBuses as vertices and LfDcLines as edges.
      */
-    private GraphConnectivity<LfDcBus, LfDcLine> buildDcSubComponentGraph() {
+    private static GraphConnectivity<LfDcBus, LfDcLine> buildDcSubComponentGraph(LfNetwork lfNetwork, int numDCC) {
         // The function to get the vertex number from the LfDcBus cannot be LfDcBus::getNum because that number refers
         // to its numbering in the LfNetwork. However,the LfDcNetwork does not necessarily contain all DC buses of a
         // LfNetwork (i.e. there might be several DC components).
         // Therefore, we use List.indexOf as a ToIntFunction for the connectivity graph.
-        List<LfDcBus> dcBusesInSubComponent = getDcBuses();
+        List<LfDcBus> dcBusesInSubComponent = getDcBuses(lfNetwork, numDCC);
         GraphConnectivity<LfDcBus, LfDcLine> graph = new NaiveGraphConnectivityFactory<LfDcBus, LfDcLine>(dcBusesInSubComponent::indexOf).create();
         dcBusesInSubComponent.forEach(graph::addVertex);
-        getDcLines().stream()
+
+        // All DC lines in the DC component.
+        List<LfDcLine> dcLinesInSubComponent = lfNetwork.getDcLines().stream().filter(l -> l.getNumDCC() == numDCC).toList();
+        dcLinesInSubComponent.stream()
                 .filter(l -> l.getDcBus1() != null && l.getDcBus2() != null)  // DC line must be fully connected
                 .forEach(l -> graph.addEdge(l.getDcBus1(), l.getDcBus2(), l));
 
         graph.startTemporaryChanges(false); // We need to call this to start using connectivity graph
         return graph;
     }
+
 }

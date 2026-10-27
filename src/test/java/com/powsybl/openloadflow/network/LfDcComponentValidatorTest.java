@@ -22,24 +22,12 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Baptiste Perreyon {@literal <baptiste.perreyon at supergrid-institute.com>}
  */
-public class LfDcNetworkTest {
-
+class LfDcComponentValidatorTest {
     private final LfNetworkParameters networkParameters = new LfNetworkParameters().setAcDcNetwork(true);
 
-    // --- getNumDC ---
-
-    @Test
-    void testGetNumScReturnsTheExpectedValue() {
-        Network network = AcDcNetworkFactory.createAcDcNetworkTwoDcSubNetworks();
-        LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
-
-        assertEquals(0, lfNetwork.getDcNetworks().get(0).getNumDCC());
-        assertEquals(1, lfNetwork.getDcNetworks().get(1).getNumDCC());
-    }
-
     // --- resolve ---
-    // LfDcNetwork.resolve() is called during network loading, so we test it the same way as this is how end-user
-    // witness its effect.
+    // LfDcComponentValidator.resolve() is called during network loading, so we test it the same way as this is how
+    // end-user witness its effect.
 
     Set<String> getConvertersSwitchedToVdcMode(LfNetwork lfNetwork) {
         return lfNetwork.getVoltageSourceConverters().stream()
@@ -112,5 +100,4 @@ public class LfDcNetworkTest {
                 () -> Networks.load(network, networkParameters));
         assertTrue(exception.getMessage().contains("not indirectly connected to a DC ground"));
     }
-
 }
