@@ -31,11 +31,11 @@ import com.powsybl.openloadflow.network.LfShunt;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Builds the measurement function h(x) of a meter out of the analytic AC equation terms
@@ -167,11 +167,18 @@ public final class MeasurementEquations {
     private static final class SumEquation implements MeasurementEquation {
 
         private final List<SingleEquationTerm<AcVariableType, AcEquationType>> terms;
-        private final Set<Variable<AcVariableType>> variables = new LinkedHashSet<>();
+
+        /** The terms depending on each variable, so a derivative visits only the contributing ones. */
+        private final Map<Variable<AcVariableType>, List<SingleEquationTerm<AcVariableType, AcEquationType>>> termsByVariable =
+                new LinkedHashMap<>();
 
         private SumEquation(List<SingleEquationTerm<AcVariableType, AcEquationType>> terms) {
             this.terms = terms;
-            terms.forEach(t -> variables.addAll(t.getVariables()));
+            for (SingleEquationTerm<AcVariableType, AcEquationType> term : terms) {
+                for (Variable<AcVariableType> variable : term.getVariables()) {
+                    termsByVariable.computeIfAbsent(variable, k -> new ArrayList<>()).add(term);
+                }
+            }
         }
 
         @Override
@@ -185,16 +192,14 @@ public final class MeasurementEquations {
 
         @Override
         public Collection<Variable<AcVariableType>> variables() {
-            return variables;
+            return termsByVariable.keySet();
         }
 
         @Override
         public double der(Variable<AcVariableType> variable) {
             double sum = 0;
-            for (SingleEquationTerm<AcVariableType, AcEquationType> term : terms) {
-                if (term.getVariables().contains(variable)) {
-                    sum += term.der(variable);
-                }
+            for (SingleEquationTerm<AcVariableType, AcEquationType> term : termsByVariable.getOrDefault(variable, List.of())) {
+                sum += term.der(variable);
             }
             return sum;
         }
