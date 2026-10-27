@@ -51,7 +51,6 @@ public class LfHvdcAction extends AbstractLfAction<HvdcAction> {
             }
             // the operation mode changes from AC emulation to fixed active power set point.
             lfHvdc.setAcEmulation(false);
-            // lfHvdc.setDisabled(true); // for equations only, but should be hidden
             // active power set point is set at the last computed ac emulation active power flow (at post-contingency state)
             lfHvdc.getConverterStation1().setTargetP(-lfHvdc.getAcEmulationControl().getComputedAcEmulationP1());
             lfHvdc.getConverterStation2().setTargetP(-lfHvdc.getAcEmulationControl().getComputedAcEmulationP2());
