@@ -8,7 +8,9 @@
 package com.powsybl.openloadflow.reduction;
 
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
+import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
@@ -36,13 +38,13 @@ class ZoneDecompositionTest {
 
         ZoneDecomposition zones = new ZoneDecomposition(lfNetwork, internalVlIds);
 
-        Set<String> boundaryVl = getVoltageLevels(zones.getBoundaryBuses());
-        Set<String> expectedBoundaryVL = Set.of("VL2", "VL3");
-        assertEquals(expectedBoundaryVL, boundaryVl);
+        Set<String> boundaryVlIds = getVoltageLevelsIds(zones.getBoundaryBuses());
+        Set<String> expectedBoundaryVLIds = Set.of("VL2", "VL3");
+        assertEquals(expectedBoundaryVLIds, boundaryVlIds);
 
-        Set<String> externalVL = getVoltageLevels(zones.getExternalBuses());
-        Set<String> expectedExternalVL = Set.of("VL4");
-        assertEquals(expectedExternalVL, externalVL);
+        Set<String> externalVLIds = getVoltageLevelsIds(zones.getExternalBuses());
+        Set<String> expectedExternalVLIds = Set.of("VL4");
+        assertEquals(expectedExternalVLIds, externalVLIds);
     }
 
     @Test
@@ -54,20 +56,51 @@ class ZoneDecompositionTest {
 
         ZoneDecomposition zones = new ZoneDecomposition(lfNetwork, internalVlIds);
 
-        Set<String> boundaryVl = getVoltageLevels(zones.getBoundaryBuses());
-        Set<String> expectedBoundaryVL = getIEEE118BoundaryVlIds();
-        assertEquals(expectedBoundaryVL, boundaryVl);
+        Set<String> boundaryVlIds = getVoltageLevelsIds(zones.getBoundaryBuses());
+        Set<String> expectedBoundaryVLIds = getIEEE118BoundaryVlIds();
+        assertEquals(expectedBoundaryVLIds, boundaryVlIds);
 
-        Set<String> externalVL = getVoltageLevels(zones.getExternalBuses());
-        Set<String> expectedExternalVL = Set.of(
+        Set<String> externalVLIds = getVoltageLevelsIds(zones.getExternalBuses());
+        Set<String> expectedExternalVLIds = Set.of(
             "VL1", "VL2", "VL3", "VL4", "VL5", "VL6", "VL7", "VL8", "VL9", "VL10", "VL11", "VL12", "VL13", "VL14",
             "VL15", "VL16", "VL17", "VL18", "VL19", "VL20", "VL21", "VL22", "VL23", "VL25", "VL26", "VL27", "VL28",
             "VL29", "VL30", "VL31", "VL32", "VL33", "VL34", "VL35", "VL36", "VL38", "VL113", "VL114", "VL115", "VL117"
         );
-        assertEquals(expectedExternalVL, externalVL);
+        assertEquals(expectedExternalVLIds, externalVLIds);
     }
 
-    private Set<String> getVoltageLevels(List<LfBus> lfBuses) {
+    @Test
+    void testGetInternalVoltageLevelIdsByCountry() {
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        Set<String> internalVlIds = ZoneDecomposition.getInternalVoltageLevelIds(network, Country.FR);
+        Set<String> expectedInternalVlIds = Set.of("b1_vl", "b2_vl", "b3_vl", "b4_vl");
+        assertEquals(expectedInternalVlIds, internalVlIds);
+
+        network.getSubstation("b1_s").setCountry(Country.BE);
+        network.getSubstation("b2_s").setCountry(Country.BE);
+        internalVlIds = ZoneDecomposition.getInternalVoltageLevelIds(network, Country.FR);
+        expectedInternalVlIds = Set.of("b3_vl", "b4_vl");
+        assertEquals(expectedInternalVlIds, internalVlIds);
+    }
+
+    @Test
+    void testGetInternalVoltageLevelIdsByTso() {
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        network.getSubstation("b1_s").setTso("ELIA");
+        network.getSubstation("b2_s").setTso("ELIA");
+        network.getSubstation("b3_s").setTso("RTE");
+        network.getSubstation("b4_s").setTso("RTE");
+
+        Set<String> internalVlIds = ZoneDecomposition.getInternalVoltageLevelIds(network, "ELIA");
+        Set<String> expectedInternalVlIds = Set.of("b1_vl", "b2_vl");
+        assertEquals(expectedInternalVlIds, internalVlIds);
+
+        internalVlIds = ZoneDecomposition.getInternalVoltageLevelIds(network, "RTE");
+        expectedInternalVlIds = Set.of("b3_vl", "b4_vl");
+        assertEquals(expectedInternalVlIds, internalVlIds);
+    }
+
+    private Set<String> getVoltageLevelsIds(List<LfBus> lfBuses) {
         return lfBuses.stream()
             .map(LfBus::getVoltageLevelId)
             .collect(Collectors.toSet());
