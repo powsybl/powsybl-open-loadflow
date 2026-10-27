@@ -17,6 +17,7 @@ import com.powsybl.openloadflow.network.ReferenceBusSelectionMode;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.reduction.Reducer.EQUIVALENT;
 import static com.powsybl.openloadflow.reduction.ReductionUtil.*;
@@ -29,15 +30,15 @@ class WardReductionTest {
 
     @Test
     void testWardReductionWith4BusNetwork() {
-        testWardReduction(create4BusNetwork(), "GEN1", Set.of("VL1"), Set.of("VL2", "VL3"));
+        testWardReduction(create4BusNetwork(), "GEN1", Set.of("VL1"), Set.of("VL2", "VL3"), Set.of("VL4"));
     }
 
     @Test
     void testWardReductionWithIEEE118() {
-        testWardReduction(IeeeCdfNetworkFactory.create118(), "B69-G", getIEEE118InternalVlIds(), getIEEE118BoundaryVlIds());
+        testWardReduction(IeeeCdfNetworkFactory.create118(), "B69-G", getIEEE118InternalVlIds(), getIEEE118BoundaryVlIds(), getIEEE118ExternalVlIds());
     }
 
-    private void testWardReduction(Network network, String refGenId, Set<String> internalVlIds, Set<String> boundaryVLIds) {
+    private void testWardReduction(Network network, String refGenId, Set<String> internalVlIds, Set<String> boundaryVlIds, Set<String> externalVlIds) {
         // Run a load flow before reduction and read the bus state values on internal and boundary buses
         LoadFlow.Runner loadFlowRunner = LoadFlow.find();
         LoadFlowParameters loadFlowParameters = new LoadFlowParameters();
@@ -45,18 +46,19 @@ class WardReductionTest {
         parametersExt.setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
         ReferencePriority.set(network.getGenerator(refGenId), 1);
         loadFlowRunner.run(network, loadFlowParameters);
-        List<BusSV> busesSVBeforeReduction = getBusesStateValues(network, internalVlIds, boundaryVLIds);
+        List<BusSV> busesSVBeforeReduction = getBusesStateValues(network, internalVlIds, boundaryVlIds);
 
         // Reduce the network
         WardReductionParameters wardParameters = new WardReductionParameters()
             .setInternalVoltageLevelIds(internalVlIds)
             .setLoadFlowParameters(loadFlowParameters)
             .setEquivalentType(WardEquivalentType.STANDARD);
-        WardReduction.reduce(network, wardParameters);
+        Reducer.ReductionChanges changes = WardReduction.reduce(network, wardParameters);
+        assertEquals(externalVlIds, changes.removedVoltageLevels().stream().map(VoltageLevel::getId).collect(Collectors.toSet()));
 
         // Run a load flow after reduction and read the bus state values on internal and boundary buses
         loadFlowRunner.run(network, loadFlowParameters);
-        List<BusSV> busesSVAfterReduction = getBusesStateValues(network, internalVlIds, boundaryVLIds);
+        List<BusSV> busesSVAfterReduction = getBusesStateValues(network, internalVlIds, boundaryVlIds);
 
         // Compare the bus state values before and after reduction
         assertEquals(busesSVBeforeReduction.size(), busesSVAfterReduction.size());
@@ -72,7 +74,7 @@ class WardReductionTest {
     private List<BusSV> getBusesStateValues(Network network, Set<String> internalVlIds, Set<String> boundaryVLIds) {
         // Return a list of bus state values for internal and boundary buses
         return network.getVoltageLevelStream()
-            .filter(vl -> internalVlIds.contains(vl.getId().replace(EQUIVALENT, ""))
+            .filter(vl -> internalVlIds.contains(vl.getId())
                 || boundaryVLIds.contains(vl.getId().replace(EQUIVALENT, "")))
             .flatMap(vl -> vl.getBusView().getBusStream())
             .sorted(Comparator.comparing(Bus::getId))

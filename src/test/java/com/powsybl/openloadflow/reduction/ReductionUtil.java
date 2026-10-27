@@ -36,6 +36,14 @@ final class ReductionUtil {
         return Set.of("VL24", "VL37", "VL43", "VL65");
     }
 
+    public static Set<String> getIEEE118ExternalVlIds() {
+        return Set.of(
+            "VL1", "VL2", "VL3", "VL4", "VL5", "VL6", "VL7", "VL8", "VL9", "VL10", "VL11", "VL12", "VL13", "VL14",
+            "VL15", "VL16", "VL17", "VL18", "VL19", "VL20", "VL21", "VL22", "VL23", "VL25", "VL26", "VL27", "VL28",
+            "VL29", "VL30", "VL31", "VL32", "VL33", "VL34", "VL35", "VL36", "VL38", "VL113", "VL114", "VL115", "VL117"
+        );
+    }
+
     public static Network create4BusNetwork() {
         Network network = NetworkFactory.findDefault().createNetwork("network", "test");
 
