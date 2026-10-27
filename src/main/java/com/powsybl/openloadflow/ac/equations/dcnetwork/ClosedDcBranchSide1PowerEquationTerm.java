@@ -10,44 +10,44 @@ package com.powsybl.openloadflow.ac.equations.dcnetwork;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfDcBranch;
 import com.powsybl.openloadflow.network.LfDcBus;
-import com.powsybl.openloadflow.network.LfDcLine;
 
 import java.util.Objects;
 
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public class ClosedDcLineSide1CurrentEquationTerm extends AbstractClosedDcLineFlowEquationTerm {
+public class ClosedDcBranchSide1PowerEquationTerm extends AbstractClosedDcBranchFlowEquationTerm {
 
-    public ClosedDcLineSide1CurrentEquationTerm(LfDcLine dcLine, LfDcBus dcBus1, LfDcBus dcBus2, VariableSet<AcVariableType> variableSet) {
-        super(dcLine, dcBus1, dcBus2, variableSet);
+    public ClosedDcBranchSide1PowerEquationTerm(LfDcBranch dcBranch, LfDcBus dcBus1, LfDcBus dcBus2, VariableSet<AcVariableType> variableSet) {
+        super(dcBranch, dcBus1, dcBus2, variableSet);
     }
 
-    public static double i1(double v1, double v2, double r) {
-        return (v1 - v2) / r;
+    public static double p1(double v1, double v2, double r) {
+        return v1 * (v1 - v2) / r;
     }
 
-    public static double di1dv1(double r) {
-        return 1 / r;
+    public static double dp1dv1(double v1, double v2, double r) {
+        return (2 * v1 - v2) / r;
     }
 
-    public static double di1dv2(double r) {
-        return -1 / r;
+    public static double dp1dv2(double v1, double r) {
+        return -v1 / r;
     }
 
     @Override
     public double eval() {
-        return i1(v1(), v2(), r);
+        return p1(v1(), v2(), r);
     }
 
     @Override
     public double der(Variable<AcVariableType> variable) {
         Objects.requireNonNull(variable);
         if (variable.equals(v1Var)) {
-            return di1dv1(r);
+            return dp1dv1(v1(), v2(), r);
         } else if (variable.equals(v2Var)) {
-            return di1dv2(r);
+            return dp1dv2(v1(), r);
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
@@ -55,6 +55,6 @@ public class ClosedDcLineSide1CurrentEquationTerm extends AbstractClosedDcLineFl
 
     @Override
     public String getName() {
-        return "dc_i_closed_1";
+        return "dc_p_closed_1";
     }
 }

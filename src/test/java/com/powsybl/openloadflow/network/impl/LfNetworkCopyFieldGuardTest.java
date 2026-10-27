@@ -95,8 +95,9 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(LfHvdcImpl.class, Set.of("id", "bus1", "bus2", "p1", "p2", "r", "nominalV", "converterStation1", "converterStation2", "acEmulation", "acEmulationControl"));
         expected.put(AbstractLfDcBus.class, Set.of("v", "nominalV"));
         expected.put(LfDcBusImpl.class, Set.of("dcBusRef", "isGrounded"));
-        expected.put(AbstractLfDcLine.class, Set.of("dcBus1", "dcBus2", "p1", "i1", "p2", "i2", "r"));
+        expected.put(AbstractLfDcBranch.class, Set.of("dcBus1", "dcBus2", "p1", "i1", "p2", "i2", "r"));
         expected.put(LfDcLineImpl.class, Set.of("dcLineRef"));
+        expected.put(LfDcSwitchImpl.class, Set.of("dcSwitchRef"));
         expected.put(AbstractLfAcDcConverter.class, Set.of("calculatedPac", "calculatedQac", "calculatedIconv1", "calculatedIconv2", "targetP", "pAc", "qAc", "lossFactors",
                 "targetVdc", "controlMode", "dcBus1", "dcBus2", "bus1"));
         expected.put(LfVoltageSourceConverterImpl.class, Set.of("converterRef", "isVoltageRegulatorOn", "targetQ", "targetVac", "droopBands"));
@@ -123,7 +124,7 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(LfOverloadManagementSystem.class, Set.of("monitoredBranch", "monitoredSide", "branchTrippingList"));
         expected.put(LfNetwork.class, Set.of("numCC", "synchronousNetworks", "slackBusSelector", "referenceBusSelector", "maxSlackBusCount", "busesById", "busesByIndex",
                 "branches", "branchesById", "branchesByOriginalId", "shuntCount", "shuntsByIndex", "shuntsById", "generatorsById", "loadsById", "areasById", "areas", "hvdcs",
-                "hvdcsById", "dcBusByIndex", "dcBusById", "dcLinesByIndex", "voltageSourceConvertersByIndex", "listeners", "validity", "connectivityFactory", "connectivity",
+                "hvdcsById", "dcBusByIndex", "dcBusById", "dcBranchesByIndex", "voltageSourceConvertersByIndex", "listeners", "validity", "connectivityFactory", "connectivity",
                 "zeroImpedanceNetworksByModel", "reportNode", "secondaryVoltageControls", "voltageAngleLimits", "overloadManagementSystems", "connectivityRemovedBranches"));
         expected.put(LfSynchronousNetworkImpl.class, Set.of("lfNetwork", "numSC", "slackBusSelector", "referenceBusSelector", "maxSlackBusCount", "referenceBus", "slackBuses",
                 "excludedSlackBuses", "referenceGenerator"));

@@ -16,7 +16,7 @@ import java.util.Objects;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public class LfDcLineImpl extends AbstractLfDcLine {
+public class LfDcLineImpl extends AbstractLfDcBranch {
 
     private final Ref<DcLine> dcLineRef;
 
@@ -31,7 +31,7 @@ public class LfDcLineImpl extends AbstractLfDcLine {
     }
 
     @Override
-    public LfDcLine copy(LfNetwork copyNetwork) {
+    public LfDcBranch copy(LfNetwork copyNetwork) {
         return new LfDcLineImpl(this,
                 copyNetwork,
                 copyNetwork.getDcBusById(dcBus1.getId()),
@@ -53,15 +53,6 @@ public class LfDcLineImpl extends AbstractLfDcLine {
     @Override
     public String getId() {
         return getDcLine().getId();
-    }
-
-    @Override
-    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
-        if (isDisabled()) {
-            updateFlows(Double.NaN, Double.NaN, Double.NaN, Double.NaN);
-        } else {
-            updateFlows(i1.eval(), i2.eval(), p1.eval(), p2.eval());
-        }
     }
 
     @Override

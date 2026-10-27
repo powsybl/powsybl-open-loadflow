@@ -109,7 +109,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
 
     private final Map<String, LfDcBus> dcBusById = new LinkedHashMap<>();
 
-    private final List<LfDcLine> dcLinesByIndex = new ArrayList<>();
+    private final List<LfDcBranch> dcBranchesByIndex = new ArrayList<>();
 
     private final List<LfVoltageSourceConverter> voltageSourceConvertersByIndex = new ArrayList<>();
 
@@ -254,7 +254,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             case HVDC -> getHvdc(num);
             case AREA -> getArea(num);
             case DC_BUS -> getDcBus(num);
-            case DC_LINE -> getDcLine(num);
+            case DC_BRANCH -> getDcBranch(num);
             case CONVERTER -> getVoltageSourceConverter(num);
         };
     }
@@ -488,7 +488,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         }
 
         branches.forEach(branch -> branch.updateState(parameters, updateReport));
-        dcLinesByIndex.forEach(dcLine -> dcLine.updateState(parameters, updateReport));
+        dcBranchesByIndex.forEach(dcBranch -> dcBranch.updateState(parameters, updateReport));
         voltageSourceConvertersByIndex.forEach(converter -> converter.updateState(parameters, updateReport));
         hvdcs.forEach(LfHvdc::updateState);
 
@@ -709,7 +709,7 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
             writeArrayJson(jsonGenerator, "buses", sortedById(busesById.values(), LfBus::getId), this::writeBusJson);
             writeArrayJson(jsonGenerator, "branches", sortedById(branches, LfBranch::getId), this::writeJson);
             writeArrayJson(jsonGenerator, "dcBuses", sortedById(dcBusByIndex, LfDcBus::getId), this::writeDcBusJson);
-            writeArrayJson(jsonGenerator, "dcLines", sortedById(dcLinesByIndex, LfDcLine::getId), this::writeDcLineJson);
+            writeArrayJson(jsonGenerator, "dcBranches", sortedById(dcBranchesByIndex, LfDcBranch::getId), this::writeDcBranchJson);
             writeArrayJson(jsonGenerator, "voltageSourceConverters",
                     sortedById(voltageSourceConvertersByIndex, LfVoltageSourceConverter::getId), this::writeConverterJson);
             writeArrayJson(jsonGenerator, "hvdcs", sortedById(hvdcs, LfHvdc::getId), this::writeHvdcJson);
@@ -759,9 +759,9 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         jsonGenerator.writeBooleanField(JSON_DISABLED, dcBus.isDisabled());
     }
 
-    private void writeDcLineJson(LfDcLine dcLine, JsonGenerator jsonGenerator) throws IOException {
-        jsonGenerator.writeStringField("id", dcLine.getId());
-        jsonGenerator.writeBooleanField(JSON_DISABLED, dcLine.isDisabled());
+    private void writeDcBranchJson(LfDcBranch dcBranch, JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeStringField("id", dcBranch.getId());
+        jsonGenerator.writeBooleanField(JSON_DISABLED, dcBranch.isDisabled());
     }
 
     private void writeConverterJson(LfVoltageSourceConverter converter, JsonGenerator jsonGenerator) throws IOException {
@@ -945,7 +945,8 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         root.path("buses").forEach(this::readBusJson);
         root.path("branches").forEach(this::readBranchJson);
         root.path("dcBuses").forEach(this::readDcBusJson);
-        root.path("dcLines").forEach(this::readDcLineJson);
+        root.path("dcBranches").forEach(this::readDcBranchJson);
+        root.path("dcLines").forEach(this::readDcBranchJson); // legacy key, before DC switches were modeled as DC branches
         root.path("voltageSourceConverters").forEach(this::readConverterJson);
         root.path("hvdcs").forEach(this::readHvdcJson);
         root.path("areas").forEach(this::readAreaJson);
@@ -961,11 +962,11 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         }
     }
 
-    private void readDcLineJson(JsonNode dcLineNode) {
-        LfDcLine dcLine = getElementFromJson(dcLineNode,
-                id -> dcLinesByIndex.stream().filter(l -> l.getId().equals(id)).findFirst().orElse(null), "DC line");
-        if (dcLineNode.hasNonNull(JSON_DISABLED)) {
-            dcLine.setDisabled(dcLineNode.get(JSON_DISABLED).asBoolean());
+    private void readDcBranchJson(JsonNode dcBranchNode) {
+        LfDcBranch dcBranch = getElementFromJson(dcBranchNode,
+                id -> dcBranchesByIndex.stream().filter(b -> b.getId().equals(id)).findFirst().orElse(null), "DC branch");
+        if (dcBranchNode.hasNonNull(JSON_DISABLED)) {
+            dcBranch.setDisabled(dcBranchNode.get(JSON_DISABLED).asBoolean());
         }
     }
 
@@ -1384,17 +1385,17 @@ public class LfNetwork extends AbstractPropertyBag implements PropertyBag, LfEle
         return dcBusByIndex;
     }
 
-    public void addDcLine(LfDcLine dcLine) {
-        dcLine.setNum(dcLinesByIndex.size());
-        dcLinesByIndex.add(dcLine);
+    public void addDcBranch(LfDcBranch dcBranch) {
+        dcBranch.setNum(dcBranchesByIndex.size());
+        dcBranchesByIndex.add(dcBranch);
     }
 
-    public List<LfDcLine> getDcLines() {
-        return dcLinesByIndex;
+    public List<LfDcBranch> getDcBranches() {
+        return dcBranchesByIndex;
     }
 
-    public LfDcLine getDcLine(int num) {
-        return dcLinesByIndex.get(num);
+    public LfDcBranch getDcBranch(int num) {
+        return dcBranchesByIndex.get(num);
     }
 
     public void addVoltageSourceConverter(LfVoltageSourceConverter voltageSourceConverter) {

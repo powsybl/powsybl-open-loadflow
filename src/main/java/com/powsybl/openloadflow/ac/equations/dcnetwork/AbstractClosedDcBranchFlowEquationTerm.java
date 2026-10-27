@@ -12,8 +12,8 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
+import com.powsybl.openloadflow.network.LfDcBranch;
 import com.powsybl.openloadflow.network.LfDcBus;
-import com.powsybl.openloadflow.network.LfDcLine;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.ArrayList;
@@ -23,7 +23,7 @@ import java.util.Objects;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public abstract class AbstractClosedDcLineFlowEquationTerm extends AbstractElementEquationTerm<LfDcLine, AcVariableType, AcEquationType> {
+public abstract class AbstractClosedDcBranchFlowEquationTerm extends AbstractElementEquationTerm<LfDcBranch, AcVariableType, AcEquationType> {
 
     protected final Variable<AcVariableType> v1Var;
 
@@ -33,15 +33,15 @@ public abstract class AbstractClosedDcLineFlowEquationTerm extends AbstractEleme
 
     protected final double r;
 
-    protected AbstractClosedDcLineFlowEquationTerm(LfDcLine dcLine, LfDcBus dcBus1, LfDcBus dcBus2, VariableSet<AcVariableType> variableSet) {
-        super(dcLine);
+    protected AbstractClosedDcBranchFlowEquationTerm(LfDcBranch dcBranch, LfDcBus dcBus1, LfDcBus dcBus2, VariableSet<AcVariableType> variableSet) {
+        super(dcBranch);
         Objects.requireNonNull(variableSet);
         AcVariableType vType = AcVariableType.DC_BUS_V;
         v1Var = variableSet.getVariable(dcBus1.getNum(), vType);
         v2Var = variableSet.getVariable(dcBus2.getNum(), vType);
         variables.add(v1Var);
         variables.add(v2Var);
-        r = dcLine.getR() / (dcBus1.getNominalV() * dcBus2.getNominalV() / PerUnit.SB);
+        r = dcBranch.getR() / (dcBus1.getNominalV() * dcBus2.getNominalV() / PerUnit.SB);
     }
 
     protected double v1() {
