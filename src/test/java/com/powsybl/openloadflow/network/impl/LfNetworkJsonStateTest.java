@@ -10,8 +10,12 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
+import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
+import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -79,8 +83,45 @@ class LfNetworkJsonStateTest {
                 new Case("areas", MultiAreaNetworkFactory::createTwoAreasWithTieLine,
                         p -> OpenLoadFlowParameters.create(p).setAreaInterchangeControl(true)),
                 new Case("acDcThreeConverters", AcDcNetworkFactory::createAcDcNetworkWithThreeConverters,
-                        p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true))
+                        p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true)),
+                new Case("staticVarCompensatorsAtReactiveLimit", LfNetworkJsonStateTest::createNetworkWithStaticVarCompensatorsAtReactiveLimit,
+                        p -> { })
         ).map(Arguments::of);
+    }
+
+    private static Network createNetworkWithStaticVarCompensatorsAtReactiveLimit() {
+        Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
+        network.getLine("l1").setX(100);
+        StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");
+        svc1.setBmax(0.0015);
+        svc1.setLocalTargetV(450);
+        svc1.newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .build();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        vl2.newStaticVarCompensator()
+                .setId("svc2")
+                .setConnectableBus("b2")
+                .setBus("b2")
+                .setLocalTargetV(450)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
+                .setBmin(-0.002)
+                .setBmax(0.0005)
+                .add();
+        Generator g2 = vl2.newGenerator().setId("g2").setBus("b2").setConnectableBus("b2").setTargetP(1)
+                .setMinP(0).setMaxP(10)
+                .setLocalTargetV(450)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
+                .add();
+        g2.newMinMaxReactiveLimits().setMinQ(-10).setMaxQ(10).add();
+        return network;
     }
 
     private static Network createNetworkWithRegulatingT2wt() {

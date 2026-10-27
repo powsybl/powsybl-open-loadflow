@@ -2367,4 +2367,69 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
                 .join().getResult();
         assertSame(PostContingencyComputationStatus.CONVERGED, result.getOperatorStrategyResults().getFirst().getStatus());
     }
+
+    private static StaticVarCompensator addStaticVarCompensatorWithBreaker(VoltageLevel vl, String id, int node, double bmax) {
+        vl.getNodeBreakerView().newBreaker()
+                .setId(id + "_BREAKER")
+                .setNode1(0)
+                .setNode2(node)
+                .add();
+        return vl.newStaticVarCompensator()
+                .setId(id)
+                .setNode(node)
+                .setLocalTargetV(410)
+                .newVoltageRegulation()
+                    .withMode(com.powsybl.iidm.network.regulation.RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
+                .setBmin(-0.002)
+                .setBmax(bmax)
+                .add();
+    }
+
+    @Test
+    void testSwitchActionOnStaticVarCompensatorAtReactiveLimit() {
+        // SVC1 and SVC2 at max reactive limit, modeled as a fixed susceptance: opening SVC1 breaker in an operator
+        // strategy must give the same result as a simple load flow
+        Network network = NodeBreakerNetworkFactory.create();
+        VoltageLevel vl2 = network.getVoltageLevel("VL2");
+        StaticVarCompensator svc1 = addStaticVarCompensatorWithBreaker(vl2, "SVC1", 4, 0.0005);
+        StaticVarCompensator svc2 = addStaticVarCompensatorWithBreaker(vl2, "SVC2", 5, 0.0003);
+
+        // contingency L1 relocates the slack bus: G, the only generator, has to fully absorb the active power mismatch
+        // so that post contingency and simple load flow results can be compared
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters).setSlackBusPMaxMismatch(1e-4);
+        loadFlowRunner.run(network, parameters);
+        double v = svc1.getTerminal().getBusView().getBus().getV();
+        assertEquals(-svc1.getBmax() * v * v, svc1.getTerminal().getQ(), DELTA_POWER);
+        assertEquals(-svc2.getBmax() * v * v, svc2.getTerminal().getQ(), DELTA_POWER);
+
+        List<Contingency> contingencies = List.of(new Contingency("L1", new BranchContingency("L1")));
+        List<Action> actions = List.of(new SwitchAction("openSvc1", "SVC1_BREAKER", true));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyL1", ContingencyContext.specificContingency("L1"),
+                new TrueCondition(), List.of("openSvc1")));
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, createAllBranchesMonitors(network), securityAnalysisParameters,
+                operatorStrategies, actions, ReportNode.NO_OP);
+
+        // simple load flows do not start from the pre-contingency state, so same results up to the solver tolerance
+        network.getLine("L1").remove(); // cannot be disconnected at VL1 side (no breaker)
+        loadFlowRunner.run(network, parameters);
+        v = svc1.getTerminal().getBusView().getBus().getV();
+        assertEquals(-svc1.getBmax() * v * v, svc1.getTerminal().getQ(), DELTA_POWER);
+        BranchResult postL2 = getPostContingencyResult(result, "L1").getNetworkResult().getBranchResult("L2");
+        assertEquals(network.getLine("L2").getTerminal1().getQ(), postL2.getQ1(), 1e-2);
+        assertEquals(network.getLine("L2").getTerminal2().getQ(), postL2.getQ2(), 1e-2);
+
+        network.getSwitch("SVC1_BREAKER").setOpen(true);
+        loadFlowRunner.run(network, parameters);
+        v = svc2.getTerminal().getBusView().getBus().getV();
+        assertEquals(-svc2.getBmax() * v * v, svc2.getTerminal().getQ(), DELTA_POWER);
+        BranchResult strategyL2 = getOperatorStrategyResult(result, "strategyL1").getNetworkResult().getBranchResult("L2");
+        assertEquals(network.getLine("L2").getTerminal1().getP(), strategyL2.getP1(), 1e-2);
+        assertEquals(network.getLine("L2").getTerminal1().getQ(), strategyL2.getQ1(), 1e-2);
+        assertEquals(network.getLine("L2").getTerminal2().getQ(), strategyL2.getQ2(), 1e-2);
+    }
 }

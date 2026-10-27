@@ -141,6 +141,18 @@ public interface LfBus extends LfElement, LfCopyable<LfBus, LfNetwork> {
 
     void freezeGenerationTargetQAndDisableGeneratorVoltageControl(double generationTargetQ);
 
+    /**
+     * Switches the bus PQ at a reactive limit. At MIN_Q or MAX_Q limit, the static var compensators controlling voltage
+     * are modeled as a fixed susceptance so that their reactive power follows the voltage: their part of the limit is
+     * not frozen in the generation target.
+     */
+    void freezeGenerationTargetQAtQLimit(double qLimit, QLimitType qLimitType);
+
+    /**
+     * The reactive power of the static var compensators at limit, modeled as a fixed susceptance, at current voltage.
+     */
+    double getStaticVarCompensatorsQAtLimit();
+
     boolean isGenerationTargetQFrozen();
 
     double getMinQ();
@@ -186,6 +198,8 @@ public interface LfBus extends LfElement, LfCopyable<LfBus, LfNetwork> {
     Optional<LfShunt> getControllerShunt();
 
     Optional<LfShunt> getSvcShunt();
+
+    void updateSvcShunt();
 
     List<LfLoad> getLoads();
 
