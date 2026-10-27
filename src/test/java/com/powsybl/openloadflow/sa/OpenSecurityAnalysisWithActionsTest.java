@@ -1906,6 +1906,84 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
+    void testHvdcActionDoesNotDependOnThePreviousOperatorStrategy(boolean dc) {
+        // the converter stations set point of an HvdcAction should be the flow evaluated at the post-contingency state
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        List<Contingency> contingencies = List.of(Contingency.generator("g5"));
+        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        Action hvdcAction = new HvdcActionBuilder()
+                .withId("hvdcAction")
+                .withHvdcId("hvdc34")
+                .withAcEmulationEnabled(false)
+                .build();
+        Action generatorAction = new GeneratorActionBuilder()
+                .withId("generatorAction")
+                .withGeneratorId("g1")
+                .withActivePowerRelativeValue(true)
+                .withActivePowerValue(1)
+                .build();
+        List<Action> actions = List.of(hvdcAction, generatorAction);
+        OperatorStrategy hvdcOpStrat = new OperatorStrategy("hvdcOpStrat", ContingencyContext.specificContingency("g5"), new TrueCondition(), List.of("hvdcAction"));
+        OperatorStrategy generatorOpStrat = new OperatorStrategy("generatorOpStrat", ContingencyContext.specificContingency("g5"), new TrueCondition(), List.of("generatorAction"));
+        LoadFlowParameters parameters = new LoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD).setDc(dc);
+        parameters.addExtension(OpenLoadFlowParameters.class, new OpenLoadFlowParameters().setSlackBusPMaxMismatch(0.01));
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters().setLoadFlowParameters(parameters);
+        securityAnalysisParameters.setLoadFlowParameters(parameters);
+
+        // First security analysis with only one operator strategy (hvdcOpStrat)
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                List.of(hvdcOpStrat), actions, ReportNode.NO_OP);
+        OperatorStrategyResult resultAlone = getOperatorStrategyResult(result, "hvdcOpStrat");
+
+        // Another security analysis with two operator strategies (the second one is hvdcOpStrat)
+        result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
+                List.of(generatorOpStrat, hvdcOpStrat), actions, ReportNode.NO_OP);
+        OperatorStrategyResult resultAfterGenOpStrat = getOperatorStrategyResult(result, "hvdcOpStrat");
+
+        assertEquals(PostContingencyComputationStatus.CONVERGED, resultAlone.getStatus());
+        assertEquals(PostContingencyComputationStatus.CONVERGED, resultAfterGenOpStrat.getStatus());
+
+        // Results should be the same
+        for (BranchResult branchResult : resultAlone.getNetworkResult().getBranchResults()) {
+            double p1Alone = branchResult.getP1();
+            double p1AfterGenOpStrat = resultAfterGenOpStrat.getNetworkResult().getBranchResult(branchResult.getBranchId()).getP1();
+            assertEquals(p1Alone, p1AfterGenOpStrat, 1e-9);
+        }
+    }
+
+    @Test
+    void testHvdcActionOnADisabledHvdc() {
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+        Contingency contingency = new Contingency("ctg", List.of(new BranchContingency("l45"), new BranchContingency("l46")));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Action> actions = List.of(new HvdcActionBuilder().withId("acEmulationOff").withHvdcId("hvdc34").withAcEmulationEnabled(false).build());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("ctg"),
+                new TrueCondition(), List.of("acEmulationOff")));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, List.of(contingency), monitors, new SecurityAnalysisParameters(),
+                operatorStrategies, actions, ReportNode.NO_OP);
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy");
+        // No action is performed, check post-contingency and post-operator-strategy are the same
+        assertEquals(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertEquals(PostContingencyComputationStatus.CONVERGED, operatorStrategyResult.getStatus());
+        for (BranchResult branchResult : postContingencyResult.getNetworkResult().getBranchResults()) {
+            assertEquals(branchResult.getP1(), operatorStrategyResult.getNetworkResult().getBranchResult(branchResult.getBranchId()).getP1(),
+                    LoadFlowAssert.DELTA_POWER, branchResult.getBranchId());
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
     void testVSCLossSetpoint(boolean withFictiveLoad) {
         // contingency leads to the lost of one converter station.
         // contingency leads to zero active power transmission in the hvdc line.
