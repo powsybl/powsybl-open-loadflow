@@ -70,7 +70,9 @@ public class WardEquivalent {
         this.boundaryBuses = zoneDecomposition.getBoundaryBuses();
         this.externalBuses = zoneDecomposition.getExternalBuses();
 
-        calculateEquivalent();
+        if (!internalBuses.isEmpty() && !boundaryBuses.isEmpty() && !externalBuses.isEmpty()) {
+            calculateEquivalent();
+        }
     }
 
     private AdmittanceEquationSystem createEquationSystem(LfNetwork lfNetwork, WardEquivalentType wardEquivalentType) {
@@ -126,7 +128,7 @@ public class WardEquivalent {
         //   Ybb = Ybb(i) + Ybb(b+e)
         //   Ybb(i) contains the branch admittances between boundary buses and internal buses (tie lines)
         //   Ybb(b+e) contains the branch admittances between boundary buses and other boundary or external buses
-        // the distinction is important since the former will be kept while the later will be reduced
+        // the distinction is important since the former is kept while the latter is reduced
         DenseMatrix yeeInv = getIdentityMatrix(2 * externalBuses.size()).toDense();
         try (LUDecomposition lu = yee.decomposeLU()) {
             lu.solve(yeeInv);

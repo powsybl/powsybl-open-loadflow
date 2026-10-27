@@ -22,8 +22,8 @@ public class WardReductionParameters {
 
     private LoadFlowParameters parameters = new LoadFlowParameters();
     private MatrixFactory matrixFactory = new SparseMatrixFactory();
-    private WardEquivalentType equivalentType;
-    private Set<String> internalVoltageLevelIds;
+    private WardEquivalentType equivalentType = WardEquivalentType.STANDARD;
+    private Set<String> internalVoltageLevelIds = Set.of();
 
     /**
      * Get the load flow parameters used for the {@code LfNetwork} creation.

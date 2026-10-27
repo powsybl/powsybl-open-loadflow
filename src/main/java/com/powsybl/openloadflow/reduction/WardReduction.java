@@ -39,6 +39,9 @@ public final class WardReduction {
      * @return The {@link Reducer.ReductionChanges} applied to the network
      */
     public static Reducer.ReductionChanges reduce(Network network, WardReductionParameters parameters) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(parameters);
+
         // Create a LfNetwork
         LoadFlowParameters lfParameters = parameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);

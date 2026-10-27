@@ -51,8 +51,7 @@ class WardReductionTest {
         // Reduce the network
         WardReductionParameters wardParameters = new WardReductionParameters()
             .setInternalVoltageLevelIds(internalVlIds)
-            .setLoadFlowParameters(loadFlowParameters)
-            .setEquivalentType(WardEquivalentType.STANDARD);
+            .setLoadFlowParameters(loadFlowParameters);
         Reducer.ReductionChanges changes = WardReduction.reduce(network, wardParameters);
         assertEquals(externalVlIds, changes.removedVoltageLevels().stream().map(VoltageLevel::getId).collect(Collectors.toSet()));
 
