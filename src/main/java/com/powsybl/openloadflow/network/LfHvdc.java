@@ -51,6 +51,8 @@ public interface LfHvdc extends LfElement, LfCopyable<LfHvdc, LfNetwork> {
             this.pMaxFromCS1toCS2 = other.pMaxFromCS1toCS2;
             this.pMaxFromCS2toCS1 = other.pMaxFromCS2toCS1;
             this.acEmulationStatus = other.acEmulationStatus;
+            this.computedAcEmulationP1 = other.computedAcEmulationP1;
+            this.computedAcEmulationP2 = other.computedAcEmulationP2;
         }
 
         public double getDroop() {
