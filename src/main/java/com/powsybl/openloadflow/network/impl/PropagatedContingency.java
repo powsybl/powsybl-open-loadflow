@@ -219,7 +219,7 @@ public class PropagatedContingency {
 
                 case SHUNT_COMPENSATOR:
                     ShuntCompensator shunt = (ShuntCompensator) connectable;
-                    if (creationParameters.isShuntCompensatorVoltageControlOn() && shunt.isVoltageRegulatorOn()) {
+                    if (creationParameters.isShuntCompensatorVoltageControlOn() && shunt.isRegulating()) {
                         throw new UnsupportedOperationException("Shunt compensator '" + shunt.getId() + "' with voltage control on: not supported yet");
                     }
                     double zb = PerUnit.zb(shunt.getTerminal().getVoltageLevel().getNominalV());

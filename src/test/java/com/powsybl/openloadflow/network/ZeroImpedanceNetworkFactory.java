@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
@@ -40,7 +41,7 @@ public class ZeroImpedanceNetworkFactory extends AbstractLoadFlowNetworkFactory 
         createLine(network, b2, b3, "l23", 0.0);
         createLine(network, b1, b5, "l15", 0.1);
         createLine(network, b5, b3, "l53", 0.1);
-        g0.setRegulatingTerminal(l01.getTerminal2()); // remote
+        g0.getVoltageRegulation().setTerminal(l01.getTerminal2(), g0.getRegulatingTargetV()); // remote
         TwoWindingsTransformer t34 = createTransformer(network, "s", b3, b4, "tr34", 0.15, 1);
         t34.newRatioTapChanger()
                 .beginStep()
@@ -57,10 +58,12 @@ public class ZeroImpedanceNetworkFactory extends AbstractLoadFlowNetworkFactory 
                 .endStep()
                 .setTapPosition(1)
                 .setLoadTapChangingCapabilities(true)
-                .setRegulating(true)
-                .setTargetV(1.1)
-                .setRegulationTerminal(t34.getTerminal1())
-                .setTargetDeadband(0.01)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(t34.getTerminal1())
+                    .withTargetValue(1.1)
+                    .withTargetDeadband(0.01)
+                    .add()
                 .add();
         return network;
     }

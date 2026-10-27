@@ -175,7 +175,7 @@ class FastDecoupledTest {
         double targetQ = 1.0;
 
         // disable voltage control on g4
-        g4.setTargetQ(0).setVoltageRegulatorOn(false);
+        g4.setLocalTargetQ(0).newVoltageRegulation().withRegulating(false);
         parametersFastDecoupled.getExtension(OpenLoadFlowParameters.class).setGeneratorReactivePowerRemoteControl(true)
                 .setNewtonRaphsonConvEpsPerEq(1e-5);
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setGeneratorReactivePowerRemoteControl(true)
@@ -221,7 +221,7 @@ class FastDecoupledTest {
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
 
         shunt.setSectionCount(0);
-        shunt.setVoltageRegulatorOn(true);
+        shunt.getVoltageRegulation().setRegulating(true);
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
 
         // Incremental mode
@@ -229,7 +229,7 @@ class FastDecoupledTest {
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
 
         shunt.setSectionCount(0);
-        shunt.setVoltageRegulatorOn(true);
+        shunt.getVoltageRegulation().setRegulating(true);
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }
 
@@ -254,11 +254,14 @@ class FastDecoupledTest {
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
 
         t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal2())
-                .setTargetV(34.0);
+                .newVoltageRegulation()
+                    .withTargetDeadband(0)
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(t2wt.getTerminal2())
+                    .withTargetValue(34.0)
+                    .build();
 
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
 
@@ -267,11 +270,14 @@ class FastDecoupledTest {
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
 
         t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal2())
-                .setTargetV(34.0);
+                .newVoltageRegulation()
+                    .withTargetDeadband(0)
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(t2wt.getTerminal2())
+                    .withTargetValue(34.0)
+                    .build();
 
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }
@@ -340,12 +346,14 @@ class FastDecoupledTest {
         parametersNewtonRaphson.getExtension(OpenLoadFlowParameters.class).setTransformerReactivePowerControl(true);
 
         t2wt.getRatioTapChanger()
-                .setTargetDeadband(3.0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal2())
-                .setRegulationMode(RegulationMode.REACTIVE_POWER)
-                .setRegulationValue(-10.0);
+                .newVoltageRegulation()
+                    .withTargetDeadband(3.0)
+                    .withRegulating(true)
+                    .withMode(RegulationMode.REACTIVE_POWER)
+                    .withTerminal(t2wt.getTerminal2())
+                    .withTargetValue(-10.0)
+                    .build();
 
         compareLoadFlowResultsBetweenSolvers(network, parametersFastDecoupled, parametersNewtonRaphson);
     }

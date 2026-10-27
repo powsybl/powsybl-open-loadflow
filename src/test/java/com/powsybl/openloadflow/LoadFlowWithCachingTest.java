@@ -10,6 +10,7 @@ package com.powsybl.openloadflow;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.loadflow.LoadFlow;
@@ -81,7 +82,7 @@ class LoadFlowWithCachingTest {
         assertVoltageEquals(24.5, ngen);
         assertVoltageEquals(147.578, nload);
 
-        gen.setTargetV(24.1);
+        gen.setLocalTargetV(24.1);
 
         result = loadFlowRunner.run(network, parameters);
         assertEquals(1, NetworkCache.AC_LF_INSTANCE.getEntryCount());
@@ -94,6 +95,71 @@ class LoadFlowWithCachingTest {
         assertEquals(1, NetworkCache.AC_LF_INSTANCE.getEntryCount());
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         assertEquals(0, result.getComponentResults().get(0).getIterationCount());
+    }
+
+    @Test
+    void testRemoteTargetV() {
+        var network = VoltageControlNetworkFactory.createWithGeneratorRemoteControlAndSmallSeparatingImpedance();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        Generator g1 = network.getGenerator("g1");
+        Generator g2 = network.getGenerator("g2");
+        Generator g3 = network.getGenerator("g3");
+        Bus b5 = network.getBusBreakerView().getBus("b5");
+        assertEquals(1, NetworkCache.AC_LF_INSTANCE.getEntryCount());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(413.4, b5);
+
+        g1.getVoltageRegulation().setTargetValue(413.7);
+        g2.getVoltageRegulation().setTargetValue(413.7);
+        g3.getVoltageRegulation().setTargetValue(413.7);
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(1, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(413.7, b5);
+
+        // Voltage control is remote: change of localTargetV does not impact the remote target voltage, modifying only the "equivalent" local target V is not supported by network cache
+        g1.setLocalTargetV(21);
+        g2.setLocalTargetV(22);
+        g3.setLocalTargetV(20);
+        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has been invalidated
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(413.7, b5);
+
+        // Changes of terminal affect all variants, network cache should be invalidated
+        g1.getVoltageRegulation().setTerminal(g1.getTerminal(), 21);
+        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has been invalidated
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+    }
+
+    @Test
+    void testSharedRemoteTargetV() {
+        var network = VoltageControlNetworkFactory.createWithGeneratorRemoteControl();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        Generator g1 = network.getGenerator("g1");
+        Generator g2 = network.getGenerator("g2");
+        Generator g3 = network.getGenerator("g3");
+        Bus b4 = network.getBusBreakerView().getBus("b4");
+        assertEquals(1, NetworkCache.AC_LF_INSTANCE.getEntryCount());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertReactivePowerEquals(-69.925, g1.getTerminal());
+        assertReactivePowerEquals(-69.925, g2.getTerminal());
+        assertReactivePowerEquals(-69.925, g3.getTerminal());
+        assertVoltageEquals(413.4, b4);
+
+        // Changes of remote target voltage in case of shared voltage control is not supported by network cache
+        g1.getVoltageRegulation().setTargetValue(413.7);
+        g2.getVoltageRegulation().setTargetValue(413.7);
+        g3.getVoltageRegulation().setTargetValue(413.7);
+        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has been invalidated (because shared remote control)
+        result = loadFlowRunner.run(network, parameters);
+        assertEquals(3, result.getComponentResults().get(0).getIterationCount());
+        assertVoltageEquals(413.7, b4);
     }
 
     @ParameterizedTest
@@ -163,10 +229,10 @@ class LoadFlowWithCachingTest {
         assertReactivePowerEquals(-130.0, g3.getTerminal());
         assertReactivePowerEquals(-130.0, g4.getTerminal());
 
-        g1.setTargetQ(170);
-        g2.setTargetQ(310);
-        g3.setTargetQ(140);
-        g4.setTargetQ(140);
+        g1.setLocalTargetQ(170);
+        g2.setLocalTargetQ(310);
+        g3.setLocalTargetQ(140);
+        g4.setLocalTargetQ(140);
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has not been invalidated
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
@@ -215,7 +281,7 @@ class LoadFlowWithCachingTest {
         assertReactivePowerEquals(0.0, b1.getTerminal());
         assertReactivePowerEquals(0, b2.getTerminal());
 
-        b1.setTargetQ(1.0);
+        b1.setLocalTargetQ(1.0);
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has not been invalidated
 
         result = loadFlowRunner.run(network, parameters);
@@ -632,7 +698,7 @@ class LoadFlowWithCachingTest {
         network.getVariantManager().setWorkingVariant("v");
 
         // make an unsupported change in "v" - fires onUpdate with variantId="v"
-        gen.setTargetQ(10);
+        gen.setLocalTargetQ(10);
 
         // switch back to INITIAL_VARIANT_ID: cache should not have been invalidated
         network.getVariantManager().setWorkingVariant(VariantManagerConstants.INITIAL_VARIANT_ID);
@@ -689,7 +755,7 @@ class LoadFlowWithCachingTest {
 
         // Unsupported change
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // cache has not been invalidated but updated
-        shunt.setTargetV(392);
+        shunt.setLocalTargetV(392);
         assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // cache has been invalidated but updated
     }
 
@@ -834,7 +900,7 @@ class LoadFlowWithCachingTest {
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
 
         var gen = network.getGenerator("GEN");
-        gen.setTargetV(1000);
+        gen.setLocalTargetV(1000);
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().get(0).getStatus());
     }
@@ -844,13 +910,13 @@ class LoadFlowWithCachingTest {
     void testInitiallyInvalidNetwork() {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         var gen = network.getGenerator("GEN");
-        gen.setTargetV(1000);
+        gen.setLocalTargetV(1000);
         var result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
 
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
 
-        gen.setTargetV(24);
+        gen.setLocalTargetV(24);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
     }
@@ -920,7 +986,7 @@ class LoadFlowWithCachingTest {
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         checkVoltageIsDefinedForAllBuses(network);
         var g1 = network.getGenerator("g1");
-        g1.setTargetV(g1.getTargetV() + 0.1);
+        g1.setLocalTargetV(g1.getLocalTargetV() + 0.1);
         result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
         checkVoltageIsDefinedForAllBuses(network);
@@ -931,11 +997,11 @@ class LoadFlowWithCachingTest {
         Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         var t2wt = network.getTwoWindingsTransformer("T2wT");
         t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal2())
-                .setTargetV(34.0);
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
 
         parameters.setTransformerVoltageControlOn(true);
 
@@ -1025,18 +1091,18 @@ class LoadFlowWithCachingTest {
 
         parameters.setTransformerVoltageControlOn(true);
         twt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(twt.getTerminal2())
-                .setTargetV(30.0);
+                .getVoltageRegulation()
+                    .setTargetDeadband(0)
+                    .setRegulating(true)
+                    .setTerminal(twt.getTerminal2(), 30);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertEquals(1, twt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt.getRatioTapChanger().getTapPosition());
 
-        twt.getRatioTapChanger().setTargetV(32);
+        twt.getRatioTapChanger().getVoltageRegulation().setTargetValue(32);
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has not been invalidated
 
         result = loadFlowRunner.run(network, parameters);
@@ -1044,19 +1110,32 @@ class LoadFlowWithCachingTest {
         assertEquals(2, twt.getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt.getRatioTapChanger().getTapPosition());
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has not been invalidated
+
+        twt.getRatioTapChanger().newVoltageRegulation() // change regulation mode
+                .withRegulating(true)
+                .withMode(RegulationMode.REACTIVE_POWER)
+                .withTerminal(twt.getTerminal2())
+                .withTargetDeadband(0)
+                .withTargetValue(100)
+                .build();
+        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has been invalidated
+        loadFlowRunner.run(network, parameters);
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check new cache has been created
+        twt.getRatioTapChanger().getVoltageRegulation().setTargetValue(120); // targetValue change is supported by cache only with mode VOLTAGE
+        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has been invalidated
     }
 
     @Test
-    void testTransfo3VoltageTargetChange() {
+    void testTransfo3VoltageRegulationTargetChange() {
         var network = VoltageControlNetworkFactory.createNetworkWithT3wt();
         var twt = network.getThreeWindingsTransformer("T3wT");
 
         twt.getLeg2().getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(twt.getLeg2().getTerminal())
-                .setTargetV(30);
+                .getVoltageRegulation()
+                    .setTargetDeadband(0)
+                    .setRegulating(true)
+                    .setTerminal(twt.getLeg2().getTerminal(), 30);
 
         parameters.setTransformerVoltageControlOn(true);
 
@@ -1065,7 +1144,7 @@ class LoadFlowWithCachingTest {
         assertEquals(1, twt.getLeg2().getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt.getLeg2().getRatioTapChanger().getTapPosition());
 
-        twt.getLeg2().getRatioTapChanger().setTargetV(26);
+        twt.getLeg2().getRatioTapChanger().getVoltageRegulation().setTargetValue(26);
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has not been invalidated
 
         result = loadFlowRunner.run(network, parameters);
@@ -1073,6 +1152,19 @@ class LoadFlowWithCachingTest {
         assertEquals(2, twt.getLeg2().getRatioTapChanger().getSolvedTapPosition());
         assertEquals(0, twt.getLeg2().getRatioTapChanger().getTapPosition());
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has not been invalidated
+
+        twt.getLeg2().getRatioTapChanger().newVoltageRegulation() // change regulation mode
+                .withRegulating(true)
+                .withMode(RegulationMode.REACTIVE_POWER)
+                .withTerminal(twt.getLeg2().getTerminal())
+                .withTargetDeadband(0)
+                .withTargetValue(100)
+                .build();
+        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has been invalidated
+        loadFlowRunner.run(network, parameters);
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check new cache has been created
+        twt.getLeg2().getRatioTapChanger().getVoltageRegulation().setTargetValue(120); // targetValue change is supported by cache only with mode VOLTAGE
+        assertNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has been invalidated
     }
 
     @Test
@@ -1129,8 +1221,8 @@ class LoadFlowWithCachingTest {
                 .setId("NEW_GEN")
                 .setBus("NEW_BUS")
                 .setTargetP(10)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(24)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(24)
                 .setMinP(0)
                 .setMaxP(1000)
                 .add();
@@ -1138,9 +1230,9 @@ class LoadFlowWithCachingTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
-        gen.setTargetV(gen.getTargetV() + 0.1);
+        gen.setLocalTargetV(gen.getLocalTargetV() + 0.1);
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has not been invalidated
-        newGen.setTargetV(newGen.getTargetV() + 0.1);
+        newGen.setLocalTargetV(newGen.getLocalTargetV() + 0.1);
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has not been invalidated
     }
 }

@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.TransformerPhaseControl;
+import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
@@ -86,6 +87,9 @@ public class DcIncrementalPhaseControlOuterLoop
                     activePowerControlPhaseControls, activePowerControlPstsThatChangedTap);
             if (!activePowerControlPstsThatChangedTap.isEmpty()) {
                 status = OuterLoopStatus.UNSTABLE;
+                ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
+                ReportNode summary = Reports.reportActivePowerControlPstsChangedTaps(iterationReportNode, activePowerControlPstsThatChangedTap.size());
+                activePowerControlPstsThatChangedTap.forEach(change -> Reports.reportTransformerControlChangedTapsDetail(summary, change));
             }
         }
 

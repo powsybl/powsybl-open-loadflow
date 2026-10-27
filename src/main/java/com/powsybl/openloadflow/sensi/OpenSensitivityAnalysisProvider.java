@@ -48,7 +48,6 @@ import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.json.SensitivityJsonModule;
-import com.powsybl.tools.PowsyblCoreVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,7 +103,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
 
     @Override
     public String getVersion() {
-        return new PowsyblCoreVersion().getMavenProjectVersion();
+        return new PowsyblOpenLoadFlowVersion().getMavenProjectVersion();
     }
 
     @Override
@@ -225,11 +224,10 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }
 
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory;
-        if (operatorStrategies.isEmpty()) {
-            selectedConnectivityFactory = connectivityFactory;
-        } else {
-            LOGGER.warn("Naive (and slow!!!) connectivity algorithm has been selected because at least one operator strategy is configured");
+        if (!operatorStrategies.isEmpty() && !connectivityFactory.supportsIncremental()) {
             selectedConnectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+        } else {
+            selectedConnectivityFactory = connectivityFactory;
         }
 
         AbstractSensitivityAnalysis<?, ?> analysis;

@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -54,8 +55,8 @@ class VoltageTargetPrioritiesTest {
 
         network.getTwoWindingsTransformer("NHV2_NLOAD")
                 .getRatioTapChanger()
-                .setRegulationTerminal(network.getTwoWindingsTransformer("NGEN_NHV1").getTerminal1())
-                .setTargetV(25.115);
+                .getVoltageRegulation()
+                    .setTerminal(network.getTwoWindingsTransformer("NGEN_NHV1").getTerminal1(), 25.115);
 
         loadBus.getVoltageLevel().newShuntCompensator()
                 .setId("SC")
@@ -66,10 +67,12 @@ class VoltageTargetPrioritiesTest {
                 .setBPerSection(3.25 * Math.pow(10, -3))
                 .setMaximumSectionCount(1)
                 .add()
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(network.getTwoWindingsTransformer("NGEN_NHV1").getTerminal1())
-                .setTargetV(23.75)
-                .setTargetDeadband(0)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(network.getTwoWindingsTransformer("NGEN_NHV1").getTerminal1())
+                    .withTargetValue(23.75)
+                    .withTargetDeadband(0)
+                    .add()
                 .add();
 
         parameters.setTransformerVoltageControlOn(true)

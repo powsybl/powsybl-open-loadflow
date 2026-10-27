@@ -76,11 +76,11 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
 
         // FIXME implement a fast incremental connectivity algorithm
         GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory;
-        if (runParameters.getOperatorStrategies().isEmpty() && !loadFlowParametersExt.isSimulateAutomationSystems()) {
-            selectedConnectivityFactory = connectivityFactory;
-        } else {
-            LOGGER.warn("Naive (and slow!!!) connectivity algorithm has been selected because at least one operator strategy is configured");
+        if ((!runParameters.getOperatorStrategies().isEmpty() || loadFlowParametersExt.isSimulateAutomationSystems())
+                && !connectivityFactory.supportsIncremental()) {
             selectedConnectivityFactory = new NaiveGraphConnectivityFactory<>(LfBus::getNum);
+        } else {
+            selectedConnectivityFactory = connectivityFactory;
         }
 
         AbstractSecurityAnalysis<?, ?, ?, ?, ?> securityAnalysis;
@@ -105,7 +105,7 @@ public class OpenSecurityAnalysisProvider implements SecurityAnalysisProvider {
 
     @Override
     public String getVersion() {
-        return new PowsyblOpenLoadFlowVersion().toString();
+        return new PowsyblOpenLoadFlowVersion().getMavenProjectVersion();
     }
 
     @Override
