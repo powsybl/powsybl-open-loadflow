@@ -107,9 +107,7 @@ public abstract class AbstractEquationSystemUpdater<V extends Enum<V> & Quantity
     }
 
     public static void updateHvdcAcEmulationEquations(LfHvdc hvdc) {
-        if (hvdc.getBus1() != null && !hvdc.getBus1().isDisabled()
-                && hvdc.getBus2() != null && !hvdc.getBus2().isDisabled()
-                && !hvdc.isDisabled() && hvdc.isAcEmulation()) {
+        if (!hvdc.isDisabled() && hvdc.isAcEmulation()) {
             switch (hvdc.getAcEmulationControl().getAcEmulationStatus()) {
                 case LINEAR_MODE -> {
                     setActive(hvdc.getP1(), true);

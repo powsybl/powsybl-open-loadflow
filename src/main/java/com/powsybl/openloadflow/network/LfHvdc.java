@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.ac.equations.AbstractHvdcAcEmulationFlowEquationTerm;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -30,6 +31,8 @@ public interface LfHvdc extends LfElement, LfCopyable<LfHvdc, LfNetwork> {
         private final double pMaxFromCS1toCS2;
         private final double pMaxFromCS2toCS1;
         private AcEmulationStatus acEmulationStatus = AcEmulationStatus.LINEAR_MODE;
+        private double computedAcEmulationP1;
+        private double computedAcEmulationP2;
 
         public AcEmulationControl(LfHvdc hvdc, double droop, double p0, double pMaxFromCS1toCS2, double pMaxFromCS2toCS1) {
             this.hvdc = hvdc;
@@ -37,6 +40,8 @@ public interface LfHvdc extends LfElement, LfCopyable<LfHvdc, LfNetwork> {
             this.p0 = p0 / PerUnit.SB;
             this.pMaxFromCS1toCS2 = pMaxFromCS1toCS2 / PerUnit.SB;
             this.pMaxFromCS2toCS1 = pMaxFromCS2toCS1 / PerUnit.SB;
+            this.computedAcEmulationP1 = Double.NaN;
+            this.computedAcEmulationP2 = Double.NaN;
         }
 
         public AcEmulationControl(LfHvdc hvdc, AcEmulationControl other) {
@@ -100,18 +105,42 @@ public interface LfHvdc extends LfElement, LfCopyable<LfHvdc, LfNetwork> {
             hvdc.updateAcEmulationStatus(AcEmulationStatus.LINEAR_MODE);
         }
 
+        public void computeAcEmulationActivePowerFlow() {
+            if (!hvdc.isDisabled()) {
+                computedAcEmulationP1 = hvdc.getP1().eval();
+                computedAcEmulationP2 = hvdc.getP2().eval();
+            } else {
+                throw new PowsyblException("AC Emulation active power flow cannot be computed on a disabled HVDC");
+            }
+        }
+
+        public double getComputedAcEmulationP1() {
+            return computedAcEmulationP1;
+        }
+
+        public double getComputedAcEmulationP2() {
+            return computedAcEmulationP2;
+        }
+
+        public void setComputedAcEmulationP1(double computedAcEmulationP1) {
+            this.computedAcEmulationP1 = computedAcEmulationP1;
+        }
+
+        public void setComputedAcEmulationP2(double computedAcEmulationP2) {
+            this.computedAcEmulationP2 = computedAcEmulationP2;
+        }
+
         public void switchToFrozenState(boolean computeLoss) {
-            double p1 = hvdc.getP1().eval();
-            double p2 = hvdc.getP2().eval();
+            computeAcEmulationActivePowerFlow();
             // Checking if linear mode overpasses operating limits
-            if (p1 > getPMaxFromCS1toCS2()) {
+            if (computedAcEmulationP1 > getPMaxFromCS1toCS2()) {
                 setVscTargetP(getPMaxFromCS1toCS2(), hvdc.getConverterStation1(), hvdc.getConverterStation2(), hvdc.getR(), computeLoss);
-            } else if (p2 > getPMaxFromCS2toCS1()) {
+            } else if (computedAcEmulationP2 > getPMaxFromCS2toCS1()) {
                 setVscTargetP(getPMaxFromCS2toCS1(), hvdc.getConverterStation2(), hvdc.getConverterStation1(), hvdc.getR(), computeLoss);
             } else {
                 // If not, freezing at current linear position
-                hvdc.getConverterStation1().setTargetP(-p1);
-                hvdc.getConverterStation2().setTargetP(-p2);
+                hvdc.getConverterStation1().setTargetP(-computedAcEmulationP1);
+                hvdc.getConverterStation2().setTargetP(-computedAcEmulationP2);
             }
             hvdc.updateAcEmulationStatus(AcEmulationStatus.FROZEN);
         }
