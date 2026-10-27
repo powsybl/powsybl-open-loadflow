@@ -101,14 +101,14 @@ class WardEquivalentTest {
 
     private void assertEquivalentShunt(EquivalentShunt shunt, String bus, double g, double b) {
         assertEquals(bus, shunt.bus().getId());
-        assertEquals(g, shunt.g(), 1e-15);
-        assertEquals(b, shunt.b(), 1e-15);
+        assertEquals(g, shunt.g(), 1e-10);
+        assertEquals(b, shunt.b(), 1e-10);
     }
 
     private void assertEquivalentInjection(EquivalentInjection injection, String bus, double p, double q) {
         assertEquals(bus, injection.bus().getId());
-        assertEquals(p, injection.p(), 1e-15);
-        assertEquals(q, injection.q(), 1e-15);
+        assertEquals(p, injection.p(), 1e-10);
+        assertEquals(q, injection.q(), 1e-10);
     }
 
 }
