@@ -15,7 +15,6 @@ import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
-import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControlAdder;
 import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.regulation.RegulationMode;
@@ -99,7 +98,7 @@ class LfNetworkCopierTest {
                 new Case("battery", DistributedSlackNetworkFactory.createWithBattery(), p -> { }, new LfTopoConfig()),
                 new Case("staticVarCompensator", createNetworkWithRegulatingSvc(), p -> { }, new LfTopoConfig()),
                 new Case("danglingLine", BoundaryFactory.create(), p -> { }, new LfTopoConfig()),
-                new Case("hvdcAcEmulation", createNetworkWithHvdcAcEmulation(), p -> p.setHvdcAcEmulation(true), new LfTopoConfig()),
+                new Case("hvdcAcEmulation", HvdcNetworkFactory.createWithHvdcInAcEmulation(), p -> p.setHvdcAcEmulation(true), new LfTopoConfig()),
                 new Case("hvdcAcEmulationDroop", HvdcNetworkFactory.createHvdcInAcEmulationInSymetricNetwork(),
                         p -> p.setHvdcAcEmulation(true), new LfTopoConfig()),
                 new Case("svcStandbyAutomaton", createSvcWithStandbyAutomaton(),
