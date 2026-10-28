@@ -5395,4 +5395,40 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(1, changedPhaseTapChanger.initialTap());
         assertEquals(0, changedPhaseTapChanger.finalTap());
     }
+
+    @Test
+    void testCouplerContingenciesWithParallelNonImpedantBranches() {
+        // opening the coupler which is in the spanning tree of the zero impedance network does not split it
+        // (the other coupler is parallel) but changes its spanning tree: the reactive power distribution equations
+        // of the merged generator voltage control have to be updated, otherwise the equation system is inconsistent.
+        // Only the switches of the contingencies (CPL12_BR and CPL13_BR) are retained, so BBS2 and BBS3 are merged
+        // into the same bus and CPL12_BR and CPL13_BR are 2 parallel non impedant branches, only one of them being
+        // in the spanning tree of the zero impedance network
+        Network network = NodeBreakerNetworkFactory.create3BarsWithCouplerLoop();
+        List<Contingency> contingencies = List.of(new Contingency("CPL12", new SwitchContingency("CPL12_BR")),
+                                                  new Contingency("CPL13", new SwitchContingency("CPL13_BR")));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters);
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+
+        for (Contingency contingency : contingencies) {
+            PostContingencyResult postContingencyResult = getPostContingencyResult(result, contingency.getId());
+            assertSame(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+
+            // the 2 couplers are parallel, so opening one of them does not change the electrical state: the flows
+            // of lines L1 and L2 (switch flows cannot be monitored) must be the pre-contingency ones; the regression
+            // itself is the exception thrown by the security analysis
+            // up to Newton-Raphson convergence tolerance
+            double delta = 1e-2;
+            for (String lineId : List.of("L1", "L2")) {
+                BranchResult preContingencyBranchResult = result.getPreContingencyResult().getNetworkResult().getBranchResult(lineId);
+                BranchResult branchResult = postContingencyResult.getNetworkResult().getBranchResult(lineId);
+                assertEquals(preContingencyBranchResult.getP1(), branchResult.getP1(), delta);
+                assertEquals(preContingencyBranchResult.getQ1(), branchResult.getQ1(), delta);
+                assertEquals(preContingencyBranchResult.getP2(), branchResult.getP2(), delta);
+                assertEquals(preContingencyBranchResult.getQ2(), branchResult.getQ2(), delta);
+            }
+        }
+    }
 }

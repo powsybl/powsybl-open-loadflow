@@ -467,4 +467,67 @@ public final class NodeBreakerNetworkFactory {
 
         return network;
     }
+
+    /**
+     * <pre>
+     *            G1                G2           G3
+     *            |                 |            |
+     * BBS1 ------+------  BBS2 ----+----  BBS3 -+-----   VL1
+     *   |   |  |            |   |           |  |  |
+     *   |   |  +--CPL12_BR--+   +-CPL23_BR--+  |  |
+     *   |   +-------------CPL13_BR-------------+  |
+     *   L1                                        L2
+     *   |                                         |
+     * BBS4 --------------------------------------------  VL2
+     *                       |
+     *                       LD
+     * </pre>
+     * The 3 couplers form a loop.
+     */
+    public static Network create3BarsWithCouplerLoop() {
+        Network network = Network.create("test", "test");
+        Substation s = network.newSubstation()
+                .setId("S")
+                .add();
+        VoltageLevel vl1 = s.newVoltageLevel()
+                .setId("VL1")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.NODE_BREAKER)
+                .add();
+        createBar(vl1, "BBS1", 0);
+        createBar(vl1, "BBS2", 1);
+        createBar(vl1, "BBS3", 2);
+        createBreaker(vl1, "CPL12_BR", 0, 1);
+        createBreaker(vl1, "CPL13_BR", 0, 2);
+        createBreaker(vl1, "CPL23_BR", 1, 2);
+        createBreaker(vl1, "G1_BR", 0, 3);
+        createGenerator(vl1, "G1", 3, 400, 100, 0);
+        createBreaker(vl1, "G2_BR", 1, 4);
+        createGenerator(vl1, "G2", 4, 400, 100, 0);
+        createBreaker(vl1, "G3_BR", 2, 5);
+        createGenerator(vl1, "G3", 5, 400, 100, 0);
+        createBreaker(vl1, "L1_BR", 0, 6);
+        createBreaker(vl1, "L2_BR", 2, 7);
+
+        VoltageLevel vl2 = s.newVoltageLevel()
+                .setId("VL2")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.NODE_BREAKER)
+                .add();
+        createBar(vl2, "BBS4", 0);
+        createBreaker(vl2, "LD_BR", 0, 1);
+        vl2.newLoad()
+                .setId("LD")
+                .setNode(1)
+                .setP0(300.0)
+                .setQ0(100.0)
+                .add();
+        createBreaker(vl2, "L1_BR2", 0, 2);
+        createBreaker(vl2, "L2_BR2", 0, 3);
+
+        createLine(network, "L1", "VL1", 6, "VL2", 2);
+        createLine(network, "L2", "VL1", 7, "VL2", 3);
+
+        return network;
+    }
 }

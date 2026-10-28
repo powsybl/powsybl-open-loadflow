@@ -197,6 +197,10 @@ public class LfZeroImpedanceNetwork {
 
                 // just update the spanning
                 updateSpanningTree();
+
+                for (LfNetworkListener listener : network.getListeners()) {
+                    listener.onZeroImpedanceNetworkSpanningTreeRecomputed(this, loadFlowModel);
+                }
             }
         }
     }

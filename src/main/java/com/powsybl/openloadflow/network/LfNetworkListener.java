@@ -44,7 +44,19 @@ public interface LfNetworkListener {
 
     void onShuntSusceptanceChange(LfShunt shunt, double b);
 
+    /**
+     * Called for each non impedant branch entering or leaving the spanning tree of its zero impedance network (at
+     * network creation, split, merge, or when the spanning tree is recomputed, see
+     * {@link #onZeroImpedanceNetworkSpanningTreeRecomputed}).
+     */
     void onZeroImpedanceNetworkSpanningTreeChange(LfBranch branch, LoadFlowModel loadFlowModel, boolean spanningTree);
+
+    /**
+     * Called when the spanning tree of a zero impedance network has been recomputed without any split or merge of
+     * the zero impedance network (for instance when a non impedant branch of the spanning tree is disabled but its
+     * buses stay connected through another non impedant path).
+     */
+    void onZeroImpedanceNetworkSpanningTreeRecomputed(LfZeroImpedanceNetwork network, LoadFlowModel loadFlowModel);
 
     void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, LoadFlowModel loadFlowModel);
 

@@ -14,8 +14,10 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.EvaluableConstants;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -134,17 +136,42 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
         }
     }
 
-    private void recreateDistributionEquations(LfZeroImpedanceNetwork network) {
+    private void recreateReactivePowerDistributionEquations(LfZeroImpedanceNetwork network) {
+        // a bus of the zero impedance network may be a controller bus of a voltage control whose controlled bus is
+        // outside of the network and which may be merged as dependent there, so collect main voltage controls
+        // instead of filtering on MAIN
+        Set<GeneratorVoltageControl> voltageControls = new LinkedHashSet<>();
         for (LfBus bus : network.getGraph().vertexSet()) {
             bus.getGeneratorVoltageControl()
-                    .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
-                    .ifPresent(voltageControl -> AcEquationSystemCreator.recreateReactivePowerDistributionEquations(bus.getNetwork(), voltageControl, equationSystem, parameters));
+                    .ifPresent(voltageControl -> voltageControls.add(voltageControl.getMainVoltageControl()));
+        }
+        for (GeneratorVoltageControl voltageControl : voltageControls) {
+            AcEquationSystemCreator.recreateReactivePowerDistributionEquations(network.getNetwork(), voltageControl, equationSystem, parameters);
+        }
+    }
+
+    private void recreateDistributionEquations(LfZeroImpedanceNetwork network) {
+        recreateReactivePowerDistributionEquations(network);
+        for (LfBus bus : network.getGraph().vertexSet()) {
             bus.getTransformerVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                     .ifPresent(voltageControl -> AcEquationSystemCreator.recreateR1DistributionEquations(bus.getNetwork(), voltageControl, equationSystem));
             bus.getShuntVoltageControl()
                     .filter(voltageControl -> voltageControl.getMergeStatus() == VoltageControl.MergeStatus.MAIN)
                     .ifPresent(voltageControl -> AcEquationSystemCreator.recreateShuntSusceptanceDistributionEquations(bus.getNetwork(), voltageControl, equationSystem));
+        }
+    }
+
+    @Override
+    public void onZeroImpedanceNetworkSpanningTreeRecomputed(LfZeroImpedanceNetwork network, LoadFlowModel loadFlowModel) {
+        if (loadFlowModel == LoadFlowModel.AC) {
+            // reactive power distribution equations of generator voltage controls are built with the dummy reactive
+            // power variables of the non impedant branches that are part of the spanning tree, so they have to be
+            // recreated when the spanning tree changes
+            // the other equations depending on the spanning tree (generator reactive power control DISTR_Q,
+            // BUS_TARGET_V with slope, BUS_DISTR_SLACK_P) are not recreated here, see the follow-up change
+            // "Recreate spanning tree dependent equations on zero impedance changes"
+            recreateReactivePowerDistributionEquations(network);
         }
     }
 

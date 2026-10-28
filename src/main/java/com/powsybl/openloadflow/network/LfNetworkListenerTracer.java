@@ -139,6 +139,12 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     }
 
     @Override
+    public void onZeroImpedanceNetworkSpanningTreeRecomputed(LfZeroImpedanceNetwork network, LoadFlowModel loadFlowModel) {
+        LOGGER.trace("onZeroImpedanceNetworkSpanningTreeRecomputed(network={}, loadFlowModel={})", network, loadFlowModel);
+        delegate.onZeroImpedanceNetworkSpanningTreeRecomputed(network, loadFlowModel);
+    }
+
+    @Override
     public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, LoadFlowModel loadFlowModel) {
         LOGGER.trace("onZeroImpedanceNetworkSplit(initialNetwork={}, splitNetworks={}, loadFlowModel={})", initialNetwork, splitNetworks, loadFlowModel);
         delegate.onZeroImpedanceNetworkSplit(initialNetwork, splitNetworks, loadFlowModel);

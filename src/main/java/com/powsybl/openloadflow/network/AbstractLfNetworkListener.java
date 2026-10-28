@@ -92,6 +92,11 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
+    public void onZeroImpedanceNetworkSpanningTreeRecomputed(LfZeroImpedanceNetwork network, LoadFlowModel loadFlowModel) {
+        // empty
+    }
+
+    @Override
     public void onZeroImpedanceNetworkSplit(LfZeroImpedanceNetwork initialNetwork, List<LfZeroImpedanceNetwork> splitNetworks, LoadFlowModel loadFlowModel) {
         // empty
     }
