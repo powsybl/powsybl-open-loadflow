@@ -175,16 +175,6 @@ class LfNetworkCopierTest {
         return network;
     }
 
-    private static Network createNetworkWithHvdcAcEmulation() {
-        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
-        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
-                .withDroop(180)
-                .withP0(0.f)
-                .withEnabled(true)
-                .add();
-        return network;
-    }
-
     private static Network createSvcWithStandbyAutomaton() {
         Network network = VoltageControlNetworkFactory.createWithStaticVarCompensator();
         StaticVarCompensator svc1 = network.getStaticVarCompensator("svc1");
