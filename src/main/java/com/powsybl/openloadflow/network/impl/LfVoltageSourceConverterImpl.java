@@ -38,7 +38,7 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
 
     public LfVoltageSourceConverterImpl(VoltageSourceConverter converter, LfNetwork network, int numDCC, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1,
                                         LfNetworkParameters parameters) {
-        super(converter, network, numDCC, dcBus1, dcBus2, bus1);
+        super(converter, network, numDCC, dcBus1, dcBus2, bus1, parameters.isUseActiveLimits());
         bus1.addConverter(this);
         this.converterRef = Ref.create(converter, parameters.isCacheEnabled());
         this.isVoltageRegulatorOn = converter.isRegulatingWithMode(RegulationMode.VOLTAGE);

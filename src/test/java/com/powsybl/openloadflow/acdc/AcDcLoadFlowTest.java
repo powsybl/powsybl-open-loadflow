@@ -18,12 +18,7 @@ import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
-import com.powsybl.openloadflow.network.AcDcNetworkFactory;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1293,6 +1288,60 @@ class AcDcLoadFlowTest {
                 .setSlackBusSelector(new FirstSlackBusSelector())
                 .setAcDcNetwork(true);
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters).get(0);
+    }
+
+
+    // -- AC-DC converter AC power limits
+
+    @Test
+    void testActiveLimitsAreEnforced() {
+        // 3T DC network -> one converter limit is reached, and it switches to P_PCC mode
+    }
+
+    @Test
+    void testActiveLimitsAreDisregarded() {
+        // Same case but parameter useActiveLimit set to false
+    }
+
+    @Test
+    void testActiveLimitsFailsIfDcVoltageCannotBeControlled() {
+        // A converter must be switched to P_PCC but then nothing controls the voltage: load flow fails
+    }
+
+    @Test
+    void testActiveLimitsRejectsInvalidPccConverter() {
+        // Converter targetP is not within bounds : -> rejected at loading
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+        VoltageSourceConverter vsc = network.getVoltageSourceConverter("conv23");
+        vsc.setTargetP(60.);
+        LfNetworkParameters lfParameters = new LfNetworkParameters().setAcDcNetwork(true);
+
+        // Set minP above targetP
+        vsc.setMaxP(Double.MAX_VALUE);
+        vsc.setMinP(vsc.getTargetP() + 1);
+
+        PowsyblException e1 = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
+        assertTrue(e1.getMessage().contains("is below its minP"));
+
+        // Set maxP under targetP
+        vsc.setMinP(Double.MIN_VALUE);
+        vsc.setMaxP(vsc.getTargetP() - 1);
+
+        PowsyblException e2 = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
+        assertTrue(e2.getMessage().contains("is above its maxP"));
+
+        // If OpenLoadFlow useActiveLimits parameter is set to false, no exception is raised
+        lfParameters.setUseActiveLimits(false);
+
+        // Set minP above targetP
+        vsc.setMaxP(Double.MAX_VALUE);
+        vsc.setMinP(vsc.getTargetP() + 1);
+        assertDoesNotThrow(() -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
+
+        // Set maxP under targetP
+        vsc.setMinP(Double.MIN_VALUE);
+        vsc.setMaxP(vsc.getTargetP() - 1);
+        assertDoesNotThrow(() -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
     }
 
 }

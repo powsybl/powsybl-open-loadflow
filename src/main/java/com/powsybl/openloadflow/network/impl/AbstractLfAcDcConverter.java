@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
@@ -36,6 +37,10 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected double targetP; // in pu
 
+    protected final double minP; // in pu
+
+    protected final double maxP; // in pu
+
     protected double pAc; // in MW
 
     protected double qAc; // in MVAr
@@ -56,8 +61,11 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     private final int numDCC;
 
-    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, int numDCC, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
+    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, int numDCC, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1, boolean checkActiveLimits) {
         super(network);
+        if (checkActiveLimits && converter.getControlMode() == AcDcConverter.ControlMode.P_PCC) {
+            validateActivePowerLimits(converter);
+        }
 
         this.numDCC = numDCC;
         this.dcBus1 = dcBus1;
@@ -67,6 +75,8 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         this.initialControlMode = converter.getControlMode();
         this.controlMode = converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
+        this.minP = converter.getMinP() / PerUnit.SB;
+        this.maxP = converter.getMaxP() / PerUnit.SB;
         this.targetVdc = converter.getTargetVdc() / getDcVoltageBase();
         this.pAc = converter.getTerminal1().getP();
         this.qAc = converter.getTerminal1().getQ();
@@ -82,10 +92,27 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
         this.initialControlMode = other.initialControlMode;
         this.controlMode = other.controlMode;
         this.targetP = other.targetP;
+        this.minP = other.minP;
+        this.maxP = other.maxP;
         this.targetVdc = other.targetVdc;
         this.pAc = other.pAc;
         this.qAc = other.qAc;
         this.disabled = other.disabled;
+    }
+
+    /**
+     * Check that the target AC power of a converter is within the allowed bounds.
+     *
+     * @param converter The converter being checked
+     * @throws PowsyblException if the converter's target AC power is not within its power bounds.
+     */
+    private static void validateActivePowerLimits(AcDcConverter<?> converter) {
+        if (converter.getTargetP() < converter.getMinP()) {
+            throw new PowsyblException(String.format("Converter %s targetP (%f) is below its minP (%f)", converter.getId(), converter.getTargetP(), converter.getMinP()));
+        }
+        if (converter.getTargetP() > converter.getMaxP()) {
+            throw new PowsyblException(String.format("Converter %s targetP (%f) is above its maxP (%f)", converter.getId(), converter.getTargetP(), converter.getMaxP()));
+        }
     }
 
     @Override
