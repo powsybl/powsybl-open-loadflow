@@ -22,24 +22,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Guards {@link LfNetworkCopier} against field drift: when a field is added to (or removed from) one
- * of the classes of the LfNetwork copy graph, this test fails so that the author classifies the new
- * field (copied / shared / reset / wired at network level) and updates the copy constructors and the
- * inventory below accordingly.
+ * of the classes of the LfNetwork copy graph, this test fails so that the author updates the copy
+ * constructors and the inventory below accordingly.
  *
  * @author Gautier Bureau {@literal <gautier.bureau at rte-france.com>}
  */
 class LfNetworkCopyFieldGuardTest {
 
-    @Test
-    void testCopyGraphFieldInventory() {
+    public static Map<Class<?>, Set<String>> getLfNetworkExpectedFields() {
         Map<Class<?>, Set<String>> expected = new HashMap<>();
         expected.put(AbstractElement.class, Set.of("network", "num", "disabled"));
-        expected.put(AbstractPropertyBag.class, Set.of("properties"));
         expected.put(AbstractLfBus.class, Set.of("slack", "reference", "v", "calculatedV", "angle", "hasGeneratorsWithSlope", "generatorVoltageControlEnabled",
                 "generatorReactivePowerControlEnabled", "generationTargetP", "generationTargetQ", "invalidatedGenerationTargetQ", "qLimitType", "generators",
                 "converters", "shunt", "controllerShunt", "svcShunt", "distributedOnConformLoad", "loads", "loadTargetP", "loadTargetQ", "branches", "hvdcs",
                 "generatorVoltageControl", "generatorReactivePowerControl", "transformerVoltageControl", "voltageSourceConverterVoltageControl", "shuntVoltageControl",
                 "p", "q", "remoteControlReactivePercent", "zeroImpedanceNetwork", "asym", "area", "isGenerationTargetQFrozen", "forceTargetQInReactiveLimits", "numSC"));
+        expected.put(AbstractPropertyBag.class, Set.of("properties"));
         expected.put(LfBusImpl.class, Set.of("busRef", "nominalV", "lowVoltageLimit", "highVoltageLimit", "participating", "breakers", "country", "bbsIds", "fictitiousInjectionTargetP",
                 "fictitiousInjectionTargetQ", "violationLocation"));
         expected.put(LfStarBus.class, Set.of("t3wtRef", "nominalV"));
@@ -112,14 +110,18 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(LfSynchronousNetworkImpl.class, Set.of("lfNetwork", "numSC", "slackBusSelector", "referenceBusSelector", "maxSlackBusCount", "referenceBus", "slackBuses",
                 "excludedSlackBuses", "referenceGenerator"));
         expected.put(LfNetwork.LfVoltageAngleLimit.class, Set.of("id", "from", "to", "highValue", "lowValue"));
+        return expected;
+    }
 
-        for (Map.Entry<Class<?>, Set<String>> entry : expected.entrySet()) {
+    @Test
+    void testCopyGraphFieldInventory() {
+        for (Map.Entry<Class<?>, Set<String>> entry : getLfNetworkExpectedFields().entrySet()) {
             Set<String> actual = Arrays.stream(entry.getKey().getDeclaredFields())
                     .filter(f -> !Modifier.isStatic(f.getModifiers()) && !f.isSynthetic())
                     .map(Field::getName)
                     .collect(Collectors.toSet());
             assertEquals(entry.getValue(), actual,
-                    "Field inventory of " + entry.getKey().getName() + " changed: classify the new/removed fields"
+                    "Field inventory of " + entry.getKey().getName() + " changed: handle the new/removed fields"
                             + " in the copy constructors used by LfNetworkCopier, then update this inventory");
         }
     }
