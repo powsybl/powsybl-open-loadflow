@@ -685,7 +685,7 @@ In versions 1.16.0 and before, the default value was `LEAVE_ON_SLACK_BUS`.
 
 (param-lf-use-active-limits)=
 #### useActiveLimits
-Allows to ignore active power limits during calculations. Active power limits are mainly involved in slack distribution on generators.<br>
+Allows to ignore active power limits during calculations. Active power limits are mainly involved in slack distribution on generators and to enforce AC-DC converters limits.<br>
 The default value is `true`.
 
 ### Solver

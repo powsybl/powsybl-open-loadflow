@@ -34,7 +34,7 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected Evaluable calculatedIconv2; // in pu
 
-    protected final double targetP; // in pu
+    protected double targetP; // in pu
 
     protected double pAc; // in MW
 
@@ -114,6 +114,16 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     }
 
     @Override
+    public void setTargetP(double newTargetP) {
+        if (newTargetP != targetP) {
+            targetP = newTargetP;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onAcDcConverterTargetPChange(this, newTargetP);
+            }
+        }
+    }
+
+    @Override
     public LossFactors getLossFactors() {
         return lossFactors;
     }
@@ -147,9 +157,9 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     public void setControlMode(AcDcConverter.ControlMode newControlMode) {
         if (newControlMode != controlMode) {
             controlMode = newControlMode;
-            // At the moment, this is only called when initialising the LfNetwork. At this stage, there is no LfNetworkListeners
-            // This will need to be updated if the AcDcConverter control mode can change at a different step than DC
-            // network validation (e.g. when reaching a power limit)
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onAcDcConverterControlModeChange(this, newControlMode);
+            }
         }
     }
 

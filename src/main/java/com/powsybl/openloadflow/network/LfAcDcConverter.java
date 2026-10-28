@@ -62,6 +62,12 @@ public interface LfAcDcConverter extends LfElement {
     double getTargetP();
 
     /**
+     * @param targetP The new AC active power requested by the converter from the AC network. In per unit
+     *                Positive value means the power flows from AC network to DC network.
+     */
+    void setTargetP(double targetP);
+
+    /**
      * @return The target DC voltage difference, that is the target voltage difference between the first and the second
      * DC bus. In per unit.
      */
