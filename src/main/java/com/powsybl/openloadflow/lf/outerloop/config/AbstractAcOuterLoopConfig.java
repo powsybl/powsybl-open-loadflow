@@ -68,7 +68,11 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
      */
     protected static Optional<AcOuterLoop> createAcDcConverterPowerLimitsOuterLoop(OpenLoadFlowParameters parametersExt) {
         if (parametersExt.isUseActiveLimits()) {
-            return Optional.of(new AcDcConverterPowerLimitsOuterLoop());
+            double effectiveMaxActivePowerMismatch = switch (parametersExt.getNewtonRaphsonStoppingCriteriaType()) {
+                case UNIFORM_CRITERIA -> parametersExt.getNewtonRaphsonConvEpsPerEq();
+                case PER_EQUATION_TYPE_CRITERIA -> parametersExt.getMaxActivePowerMismatch() / PerUnit.SB;
+            };
+            return Optional.of(new AcDcConverterPowerLimitsOuterLoop(effectiveMaxActivePowerMismatch));
         }
         return Optional.empty();
     }

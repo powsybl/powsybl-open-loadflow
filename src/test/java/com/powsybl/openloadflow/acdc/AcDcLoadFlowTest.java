@@ -1295,22 +1295,66 @@ class AcDcLoadFlowTest {
 
     @Test
     void testActiveLimitsAreEnforced() {
-        // 3T DC network -> one converter limit is reached, and it switches to P_PCC mode
+        // In a 3 terminal DC network, the active limit of the converter in V_DC mode is reached. Its AC active power is capped to the limit.
+        Network network = AcDcNetworkFactory.createMtDcNetworkWithThreeConvertersControlMode();
+
+        // conv14 is in P_PCC mode and absorbs 70 MW from the AC network
+        // conv36 is in DC_DROOP mode and targets to inject 20 MW in the AC network
+        // conv25 is in V_DC mode and is therefore expected to inject 50 MW in the AC network. We set its limit to 30 MW
+        VoltageSourceConverter conv25 = network.getVoltageSourceConverter("conv25");
+        conv25.setMinP(-30);
+
+        // Run load flow
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check that conv25 injects 30 MW (caped to its limit)
+        assertEquals(-30d, conv25.getTerminal1().getP());
+        // Check its IIDM control mode is still V_DC
+        assertEquals(ControlMode.V_DC, conv25.getControlMode());
+        // Check that conv36 has absorbed the difference, and now injects about 40 MW instead of 20 MW
+        int tolerance = 1; // Large tolerance: ignores DC losses but captures setpoint change
+        assertEquals(-40d, network.getVoltageSourceConverter("conv36").getTerminal1().getP(), tolerance);
     }
 
     @Test
     void testActiveLimitsAreDisregarded() {
-        // Same case but parameter useActiveLimit set to false
+        // In a 3 terminal DC network, the active limit of the converter in V_DC mode is reached.
+        // This limit is ignored because the parameter useActiveLimit is set to false
+        Network network = AcDcNetworkFactory.createMtDcNetworkWithThreeConvertersControlMode();
+
+        // Run load flow
+        parametersExt.setUseActiveLimits(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check that conv25 injects about 50 MW
+        int tolerance = 1; // Large tolerance: ignores DC losses but captures setpoint change
+        assertEquals(-50d, network.getVoltageSourceConverter("conv25").getTerminal1().getP(), tolerance);
+        // Check that conv36 injects about 20 MW
+        assertEquals(-20d, network.getVoltageSourceConverter("conv36").getTerminal1().getP(), tolerance);
     }
 
     @Test
     void testActiveLimitsFailsIfDcVoltageCannotBeControlled() {
         // A converter must be switched to P_PCC but then nothing controls the voltage: load flow fails
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+
+        // Converter conv23 is in P_PCC mode and absorbs 50 MW
+        // We set the minimum active power of conv45 to -10 MW: its power limits are exceeded
+        // However, changing its control mode to P_PCC would let the DC network without voltage control : the load flow fails
+        VoltageSourceConverter vsc = network.getVoltageSourceConverter("conv45");
+        vsc.setMinP(-10);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFailed());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().getFirst().getStatus());
+        assertEquals("Outer loop 'AcDcConverterPowerLimits' failed: Could not enforce AC-DC converter active power limit and ensure DC voltage control in DC component 0", result.getComponentResults().getFirst().getStatusText());
     }
 
     @Test
     void testActiveLimitsRejectsInvalidPccConverter() {
-        // Converter targetP is not within bounds : -> rejected at loading
+        // The targetP of a converter in P_PCC mode is not within [minP ; maxP]. An exception is thrown when loading the lfNetwork.
         Network network = AcDcNetworkFactory.createAcDcNetwork1();
         VoltageSourceConverter vsc = network.getVoltageSourceConverter("conv23");
         vsc.setTargetP(60.);

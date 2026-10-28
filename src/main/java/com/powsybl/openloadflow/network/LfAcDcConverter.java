@@ -68,6 +68,18 @@ public interface LfAcDcConverter extends LfElement {
     void setTargetP(double targetP);
 
     /**
+     * @return The minimum AC active power that the converter can absorb from the AC network. In per unit
+     * Positive value means the power flows from AC network to DC network.
+     */
+    double getMinP();
+
+    /**
+     * @return The maximum AC active power that the converter can absorb from the AC network. In per unit
+     * Positive value means the power flows from AC network to DC network.
+     */
+    double getMaxP();
+
+    /**
      * @return The target DC voltage difference, that is the target voltage difference between the first and the second
      * DC bus. In per unit.
      */

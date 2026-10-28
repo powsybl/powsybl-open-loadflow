@@ -37,9 +37,9 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected double targetP; // in pu
 
-    protected final double minP; // in pu
+    private final double minP; // in pu
 
-    protected final double maxP; // in pu
+    private final double maxP; // in pu
 
     protected double pAc; // in MW
 
@@ -148,6 +148,16 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
                 listener.onAcDcConverterTargetPChange(this, newTargetP);
             }
         }
+    }
+
+    @Override
+    public double getMinP() {
+        return minP;
+    }
+
+    @Override
+    public double getMaxP() {
+        return maxP;
     }
 
     @Override

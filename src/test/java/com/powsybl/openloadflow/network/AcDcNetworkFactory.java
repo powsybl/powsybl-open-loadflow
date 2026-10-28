@@ -930,6 +930,39 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     }
 
     /**
+     * ACDC test case with 3 converters in different mode.
+     * - conv14 is in P_PCC mode
+     * - conv25 is in V_DC mode
+     * - conv36 is in DC_DROOP mode
+     *
+     * <pre>
+     * g1                                               g2
+     * |              dl47           dl57               |
+     * b1-conv14-dn4-----------dn7----------dn5-conv25-b2
+     * |                        |                       |
+     * ld1                      | dl67                 ld2
+     *                         dn6
+     *                       conv36
+     *                    g3---b3---ld3
+     * </pre>
+     */
+    public static Network createMtDcNetworkWithThreeConvertersControlMode() {
+        Network network = createMtDcNetworkWithThreeAcZones();
+        VoltageSourceConverter vsc36 = network.getVoltageSourceConverter("conv36");
+        vsc36.newDroopCurve()
+                .beginSegment()
+                .setMinV(-525)
+                .setMaxV(525)
+                .setK(1)
+                .endSegment()
+                .add();
+        vsc36.setTargetVdc(525);
+        vsc36.setControlMode(AcDcConverter.ControlMode.DC_DROOP);
+
+        return network;
+    }
+
+    /**
      * Bipolar test case
      * <pre>
      *                  dn3p ------------ dl34p ---------- dn4p

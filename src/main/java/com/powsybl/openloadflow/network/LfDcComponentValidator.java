@@ -58,6 +58,30 @@ public final class LfDcComponentValidator {
     }
 
     /**
+     * Check if switching a converter to P_PCC mode leaves the DC subcomponents of its DC buses without an element imposing voltage.
+     * @param lfNetwork The network containing the DC component to validate.
+     * @param numDCC The number of the DC component to validate.
+     * @param converterToSwitchInPpccMode The converter candidate to be switched to P_PCC mode. It is not considered as an imposing voltage element.
+     * @return True if the converter can be switched to P_PCC mode without losing the DC voltage control of DC buses. False otherwise.
+     */
+    public static boolean isValidAfterConverterChangesToPpccMode(LfNetwork lfNetwork, int numDCC, LfAcDcConverter converterToSwitchInPpccMode) {
+        // Compute DC subcomponents graph
+        GraphConnectivity<LfDcBus, LfDcLine> graph = buildDcSubComponentGraph(lfNetwork, numDCC);
+
+        // Check if the DC subcomponent of the converter's DC buses has still an element imposing voltage
+        for (LfDcBus converterDcBus : List.of(converterToSwitchInPpccMode.getDcBus1(), converterToSwitchInPpccMode.getDcBus2())) {
+            Set<LfDcBus> dcBusesInSubComponent = graph.getConnectedComponent(converterDcBus);
+            List<LfAcDcConverter> otherConverters = getAcDcConvertersInSubComponent(lfNetwork, numDCC, dcBusesInSubComponent);
+            otherConverters.remove(converterToSwitchInPpccMode);
+
+            if (!isSubComponentConnectedToGround(dcBusesInSubComponent) && otherConverters.stream().noneMatch(LfDcComponentValidator::controlsDcVoltage)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Add all converters of the DC subcomponent to V_DC control if the subcomponent has no element already imposing DC
      * voltage; do nothing otherwise.
      *
@@ -66,10 +90,7 @@ public final class LfDcComponentValidator {
     private static void resolveDcSubComponentIfNeeded(LfNetwork lfNetwork, int numDCC, Set<LfDcBus> dcBusesInSubComponent, List<LfAcDcConverter> convertersToUpdate) {
         List<LfAcDcConverter> convertersInSubComponent = getAcDcConvertersInSubComponent(lfNetwork, numDCC, dcBusesInSubComponent);
         if (isSubComponentConnectedToGround(dcBusesInSubComponent) ||
-                convertersInSubComponent.stream().anyMatch(conv ->
-                        // Tells whether a converter settles the DC voltage: V_DC does it directly, DC_DROOP does it through the droop law.
-                        conv.getControlMode() == AcDcConverter.ControlMode.V_DC || conv.getControlMode() == AcDcConverter.ControlMode.DC_DROOP
-                                || convertersToUpdate.contains(conv))
+                convertersInSubComponent.stream().anyMatch(conv -> LfDcComponentValidator.controlsDcVoltage(conv) || convertersToUpdate.contains(conv))
         ) {
             return; // already has (or was just given, while resolving an adjacent DC subcomponent) an element imposing DC voltage
         } else {
@@ -82,6 +103,13 @@ public final class LfDcComponentValidator {
     }
 
     /**
+     * Tells whether a converter settles the DC voltage: V_DC does it directly, DC_DROOP does it through the droop law.
+     */
+    private static boolean controlsDcVoltage(LfAcDcConverter converter) {
+        return converter.getControlMode() == AcDcConverter.ControlMode.V_DC || converter.getControlMode() == AcDcConverter.ControlMode.DC_DROOP;
+    }
+
+    /**
      * Tells whether a DC subcomponent has o grounded DC bus.
      */
     private static boolean isSubComponentConnectedToGround(Set<LfDcBus> dcBusesInSubComponent) {
@@ -91,7 +119,7 @@ public final class LfDcComponentValidator {
     /**
      * @return All AC/DC converters in the DC component.
      */
-    private static List<LfAcDcConverter> getAcDcConverters(LfNetwork lfNetwork, int numDCC) {
+    public static List<LfAcDcConverter> getAcDcConverters(LfNetwork lfNetwork, int numDCC) {
         return lfNetwork.getVoltageSourceConverters().stream().filter(vsc -> vsc.getNumDCC() == numDCC).map(LfAcDcConverter.class::cast).toList();
     }
 
