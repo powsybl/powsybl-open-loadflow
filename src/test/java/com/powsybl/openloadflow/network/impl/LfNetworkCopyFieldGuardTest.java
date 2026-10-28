@@ -74,6 +74,7 @@ class LfNetworkCopyFieldGuardTest {
                 "fictitiousInjectionTargetQ", "violationLocation"));
         expected.put(LfDcBusImpl.class, Set.of("dcBusRef", "isGrounded"));
         expected.put(LfDcLineImpl.class, Set.of("dcLineRef"));
+        expected.put(LfVoltageSourceConverter.LfDroopReference.class, Set.of("k", "refVdc", "refP"));
         expected.put(LfGeneratorImpl.class, Set.of("generatorRef", "initialParticipating", "participating", "droop", "participationFactor", "qPercent",
                 "isTargetQForcedInReactiveLimits", "forceVoltageControl", "maxTargetP", "minTargetP", "forceTargetQInReactiveLimits"));
         expected.put(LfHvdcImpl.AcEmulationControl.class, Set.of("hvdc", "droop", "p0", "pMaxFromCS1toCS2", "pMaxFromCS2toCS1", "acEmulationStatus"));

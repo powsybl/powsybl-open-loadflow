@@ -60,7 +60,9 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         this.isVoltageRegulatorOn = other.isVoltageRegulatorOn;
         this.targetQ = other.targetQ;
         this.targetVac = other.targetVac;
-        this.droopBands = other.droopBands;
+        this.droopBands = getControlMode() == AcDcConverter.ControlMode.DC_DROOP
+                ? buildDroopBands(converterRef.get(), getDcVoltageBase())
+                : List.of();;
     }
 
     /**
