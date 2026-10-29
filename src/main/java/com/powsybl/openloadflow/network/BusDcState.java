@@ -39,7 +39,7 @@ public class BusDcState extends ElementState<LfBus> {
         protected void restore(LfLoad load) {
             load.setTargetP(loadTargetP);
             load.setAbsVariableTargetP(absVariableLoadTargetP);
-            load.setOriginalLoadsDisablingStatus(loadsDisablingStatus);
+            load.setOriginalLoadsDisablingStatus(new HashMap<>(loadsDisablingStatus));
         }
     }
 
