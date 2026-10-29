@@ -77,7 +77,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
             return hvdcDanglingInIidm ? 0 : super.getTargetP();
         } else {
             if (hvdc.isAcEmulation()) {
-                if (hvdc.isDisabled() || hvdc.getBus1().isDisabled() || hvdc.getBus2().isDisabled()) {
+                if (hvdc.isDisabled()) {
                     return 0;
                 }
                 return switch (hvdc.getAcEmulationControl().getAcEmulationStatus()) {
@@ -130,13 +130,10 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     }
 
     private double getComputedActivePower() {
-        if (hvdc != null && hvdc.isAcEmulation()
-                && hvdc.getAcEmulationControl().getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.LINEAR_MODE
-                && !hvdc.isDisabled()) {
-            double activePower = (hvdc.getConverterStation1() == this ? hvdc.getP1() : hvdc.getP2()).eval();
-            if (!Double.isNaN(activePower)) {
-                return -activePower;
-            }
+        if (hvdc != null && hvdc.isAcEmulation() && !hvdc.isDisabled()) {
+            LfHvdc.AcEmulationControl emulationControl = hvdc.getAcEmulationControl();
+            emulationControl.computeAcEmulationActivePowerFlow();
+            return hvdc.getConverterStation1() == this ? -emulationControl.getComputedAcEmulationP1() : -emulationControl.getComputedAcEmulationP2();
         }
         return super.getTargetP();
     }

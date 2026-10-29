@@ -167,7 +167,12 @@ public class LfHvdcImpl extends AbstractElement implements LfHvdc {
         if (acEmulation && acEmulationControl == null) {
             throw new PowsyblException("Cannot switch to AC Emulation mode without defined AC Emulation Control");
         }
-        this.acEmulation = acEmulation;
+        if (this.acEmulation != acEmulation) {
+            this.acEmulation = acEmulation;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onHvdcAcEmulationStatusChange(this, acEmulation ? acEmulationControl.getAcEmulationStatus() : null);
+            }
+        }
     }
 
     @Override
