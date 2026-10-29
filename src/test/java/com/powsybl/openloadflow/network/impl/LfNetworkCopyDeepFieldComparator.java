@@ -104,6 +104,17 @@ final class LfNetworkCopyDeepFieldComparator {
 
         private final Set<Class<?>> alreadyCheckedClasses;
 
+        private void addClassToAlreadyCheckedClasses(Class<?> clazz) {
+            if (!alreadyCheckedClasses.contains(clazz)) {
+                alreadyCheckedClasses.add(clazz);
+                Class<?> parentClass = clazz.getSuperclass();
+                while (parentClass != null) {
+                    alreadyCheckedClasses.add(parentClass);
+                    parentClass = parentClass.getSuperclass();
+                }
+            }
+        }
+
         /**
          * Recursive method that checks every fields inside each element of the compared LfNetwork
          */
@@ -115,14 +126,7 @@ final class LfNetworkCopyDeepFieldComparator {
                 return;
             }
             // Adding the checked class (and all its parents) to the global alreadyCheckedClasses set (to check coverage at the end)
-            if (!alreadyCheckedClasses.contains(original.getClass())) {
-                alreadyCheckedClasses.add(original.getClass());
-                Class<?> parentClass = original.getClass().getSuperclass();
-                while (parentClass != null) {
-                    alreadyCheckedClasses.add(parentClass);
-                    parentClass = parentClass.getSuperclass();
-                }
-            }
+            addClassToAlreadyCheckedClasses(original.getClass());
             if (original instanceof Ref<?>) {
                 assertSame(original, copy, path + ": IIDM Ref must be shared");
                 return;
@@ -169,6 +173,7 @@ final class LfNetworkCopyDeepFieldComparator {
                     }
                     String key = type.getSimpleName() + "#" + field.getName();
                     if (SKIPPED_FIELDS.contains(key)) {
+                        addClassToAlreadyCheckedClasses(field.getClass());
                         continue;
                     }
                     if (Evaluable.class.isAssignableFrom(field.getType())) {

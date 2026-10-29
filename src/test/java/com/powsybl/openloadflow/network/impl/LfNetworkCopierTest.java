@@ -9,15 +9,8 @@ package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
-import com.powsybl.iidm.network.Line;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.PhaseTapChanger;
-import com.powsybl.iidm.network.StaticVarCompensator;
-import com.powsybl.iidm.network.Terminal;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
-import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
-import com.powsybl.iidm.network.extensions.SecondaryVoltageControlAdder;
-import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
+import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
@@ -47,12 +40,10 @@ import com.powsybl.openloadflow.network.ShuntNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.T3wtFactory;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
-import com.powsybl.openloadflow.sa.LimitViolationManager;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
 import java.io.StringWriter;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -128,11 +119,10 @@ public class LfNetworkCopierTest {
                 new Case("acDcThreeConverters", AcDcNetworkFactory.createAcDcNetworkWithThreeConverters(),
                         p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true)),
                 new Case("fixedCurrentLimits", EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedCurrentLimits())),
-                new Case("asymmetrical", AsymmetricalLoadFlowTest.fourNodescreate(),
+                new Case("asymmetrical", createAsymNetwork(),
                         p -> {
                             p.setUseReactiveLimits(false).setDistributedSlack(false);
-                            OpenLoadFlowParameters.create(p).setAsymmetrical(true)
-                                    .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+                            OpenLoadFlowParameters.create(p).setAsymmetrical(true).setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
                         })
         );
     }
@@ -181,7 +171,6 @@ public class LfNetworkCopierTest {
             assertEquals(dump(original), dump(copy), "different post load flow json dump for " + c.name());
 
             // Fourth test: copying the newly computed LfNetwork and checking if the copy is equal (to check a post computation copy)
-            new LimitViolationManager(Collections.emptyList()).detectViolations(original); // Adding LfLimits before copy
             copy = LfNetworkCopier.copy(original, LoadFlowModel.AC, ReportNode.NO_OP);
             deepFieldComparator.compareLfNetworks(original, copy, c.name());
         }
@@ -305,6 +294,21 @@ public class LfNetworkCopierTest {
         // retain the switch operated by the overload management system, otherwise the system is dropped
         topoConfig.getSwitchesToOpen().add(network.getSwitch("br1"));
         return Pair.of(network, topoConfig);
+    }
+
+    private static Network createAsymNetwork() {
+        Network network = AsymmetricalLoadFlowTest.fourNodescreate();
+        Line line23fault = network.getLine("B2_B3_fault");
+        line23fault.getExtension(LineFortescue.class).setOpenPhaseA(false);
+        network.getLoad("LOAD_4").newExtension(LoadAsymmetricalAdder.class)
+                .withDeltaPa(20.)
+                .withDeltaQa(0.)
+                .withDeltaPb(40.)
+                .withDeltaQb(0.)
+                .withDeltaPc(21)
+                .withDeltaQc(0.)
+                .add();
+        return network;
     }
 
     private static AcLoadFlowResult run(LfNetwork network, AcLoadFlowParameters acParameters) {

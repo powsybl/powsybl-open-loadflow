@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class LfNetworkCopyFieldGuardTest {
 
+    // All LfElement classes that can be copied
     public static Map<Class<?>, Set<String>> getLfNetworkExpectedFields() {
         Map<Class<?>, Set<String>> expected = new HashMap<>();
         expected.put(AbstractElement.class, Set.of("network", "num", "disabled"));
@@ -61,15 +62,11 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(LfAreaImpl.BoundaryImpl.class, Set.of("side", "branch"));
         expected.put(LfAsymBus.class, Set.of("bus", "totalDeltaPa", "totalDeltaQa", "totalDeltaPb", "totalDeltaQb", "totalDeltaPc", "totalDeltaQc", "vz", "angleZ", "vn",
                 "angleN", "bzEquiv", "gzEquiv", "bnEquiv", "gnEquiv", "ixZ", "iyZ", "ixN", "iyN"));
-        expected.put(LfAsymGenerator.class, Set.of("bz", "gz", "gn", "bn"));
-        expected.put(LfAsymLine.class, Set.of("piZeroComponent", "piPositiveComponent", "piNegativeComponent", "phaseOpenA", "phaseOpenB", "phaseOpenC", "admittanceMatrix"));
         expected.put(LfBatteryImpl.class, Set.of("batteryRef", "initialParticipating", "participating", "droop", "participationFactor", "maxTargetP", "minTargetP"));
         expected.put(LfBoundaryLineBranch.class, Set.of("boundaryLineRef"));
         expected.put(LfBoundaryLineBus.class, Set.of("boundaryLineRef", "nominalV"));
         expected.put(LfBoundaryLineGenerator.class, Set.of("boundaryLineRef"));
         expected.put(LfBranchImpl.class, Set.of("branchRef"));
-        expected.put(LfBranch.LfLimit.class, Set.of("name", "acceptableDuration", "value", "scaling"));
-        expected.put(LfBranch.LfLimitsGroup.class, Set.of("sortedLimits", "operationalLimitsGroupId"));
         expected.put(LfBusImpl.class, Set.of("busRef", "nominalV", "lowVoltageLimit", "highVoltageLimit", "participating", "breakers", "country", "bbsIds", "fictitiousInjectionTargetP",
                 "fictitiousInjectionTargetQ", "violationLocation"));
         expected.put(LfDcBusImpl.class, Set.of("dcBusRef", "isGrounded"));
@@ -117,9 +114,22 @@ class LfNetworkCopyFieldGuardTest {
         return expected;
     }
 
+    // All LfElement classes that are skipped in the copy (but we check them here)
+    public static Map<Class<?>, Set<String>> getLfNetworkSkippedOrSharedFields() {
+        Map<Class<?>, Set<String>> skipped = new HashMap<>();
+        skipped.put(LfAsymGenerator.class, Set.of("bz", "gz", "gn", "bn"));
+        skipped.put(LfAsymLine.class, Set.of("piZeroComponent", "piPositiveComponent", "piNegativeComponent", "phaseOpenA", "phaseOpenB", "phaseOpenC", "admittanceMatrix"));
+        skipped.put(LfBranch.LfLimit.class, Set.of("name", "acceptableDuration", "value", "scaling"));
+        skipped.put(LfBranch.LfLimitsGroup.class, Set.of("sortedLimits", "operationalLimitsGroupId"));
+        return skipped;
+    }
+
     @Test
     void testCopyGraphFieldInventory() {
-        for (Map.Entry<Class<?>, Set<String>> entry : getLfNetworkExpectedFields().entrySet()) {
+        Map<Class<?>, Set<String>> allFields = new HashMap<>();
+        allFields.putAll(getLfNetworkExpectedFields());
+        allFields.putAll(getLfNetworkSkippedOrSharedFields());
+        for (Map.Entry<Class<?>, Set<String>> entry : allFields.entrySet()) {
             Set<String> actual = Arrays.stream(entry.getKey().getDeclaredFields())
                     .filter(f -> !Modifier.isStatic(f.getModifiers()) && !f.isSynthetic())
                     .map(Field::getName)
