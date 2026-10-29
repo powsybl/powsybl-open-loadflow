@@ -48,9 +48,9 @@ import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.T3wtFactory;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import com.powsybl.openloadflow.sa.LimitViolationManager;
+
 import org.apache.commons.lang3.tuple.Pair;
-import org.junit.Test;
-import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.api.Test;
 
 import java.io.StringWriter;
 import java.util.Collections;
@@ -84,10 +84,6 @@ public class LfNetworkCopierTest {
         public String toString() {
             return name;
         }
-    }
-
-    private static Stream<Arguments> casesArguments() {
-        return cases().map(Arguments::of);
     }
 
     private static Stream<Case> cases() {
