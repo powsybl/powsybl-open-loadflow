@@ -157,11 +157,6 @@ public class LfNetworkCopierTest {
         }
     }
 
-    @Test
-    public void testLfN() {
-        testCopyEquivalence(cases().filter(c -> Objects.equals(c.name, "svcStandbyAutomaton")).findFirst().orElseThrow(), new LfNetworkCopyDeepFieldComparator());
-    }
-
     void testCopyEquivalence(Case c, LfNetworkCopyDeepFieldComparator deepFieldComparator) {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters);
