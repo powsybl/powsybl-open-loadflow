@@ -48,7 +48,6 @@ import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.T3wtFactory;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
 import com.powsybl.openloadflow.sa.LimitViolationManager;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
