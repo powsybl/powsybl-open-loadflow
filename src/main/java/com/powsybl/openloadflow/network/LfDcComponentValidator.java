@@ -29,6 +29,19 @@ public final class LfDcComponentValidator {
     private LfDcComponentValidator() {
     }
 
+    /**
+     * Check that a DC component is a configuration Open Load Flow can solve, and resolve any DC subcomponent (i.e. set
+     * of DC buses connected through DC lines only) that has no element imposing the DC voltage (no connected DC
+     * ground and no fully connected V_DC/DC_DROOP converter), by selecting all fully connected P_PCC
+     * converters of that subcomponent to be promoted to V_DC control internally. Disconnected converters are
+     * ignored: only fully connected ones take part in the checks/resolution.
+     *
+     * @param lfNetwork The network containing the DC component
+     * @param numDCC    The number of the DC component
+     * @return A list of AC-DC converter promoted to V_DC control, to use instead of the converter's own IIDM value;
+     * empty if no promotion was necessary.
+     * @throws PowsyblException If the DC component configuration is invalid and cannot be resolved automatically.
+     */
     public static List<LfAcDcConverter> resolve(LfNetwork lfNetwork, int numDCC) {
         // Compute DC subcomponents graph
         GraphConnectivity<LfDcBus, LfDcLine> graph = buildDcSubComponentGraph(lfNetwork, numDCC);
@@ -61,6 +74,10 @@ public final class LfDcComponentValidator {
      * Add all converters of the DC subcomponent to V_DC control if the subcomponent has no element already imposing DC
      * voltage; do nothing otherwise.
      *
+     * @param lfNetwork The network containing the DC component
+     * @param numDCC The number of the DC component
+     * @param dcBusesInSubComponent The DC buses in the DC subcomponent
+     * @param convertersToUpdate The converters that must be switched to V_DC mode to ensure the voltage is imposed
      * @throws PowsyblException If the DC subcomponent has no element imposing voltage and no converter can be promoted.
      */
     private static void resolveDcSubComponentIfNeeded(LfNetwork lfNetwork, int numDCC, Set<LfDcBus> dcBusesInSubComponent, List<LfAcDcConverter> convertersToUpdate) {
@@ -105,6 +122,8 @@ public final class LfDcComponentValidator {
     /**
      * Find all AC/DC converters connected to the DC subcomponent.
      *
+     * @param lfNetwork The network containing the DC component
+     * @param numDCC The number of the DC component
      * @param dcBusesInSubComponent DC buses in the DC subcomponent.
      * @return The list of AC/DC converter in which one of the buses is part of the DC subcomponent.
      */
@@ -122,6 +141,8 @@ public final class LfDcComponentValidator {
      * Build DC subcomponent connectivity graph. Only LfDcLines are considered as edges, so each DC pole is in a
      * distinct connected component
      *
+     * @param lfNetwork The network containing the DC component
+     * @param numDCC The number of the DC component
      * @return A graph with LfDcBuses as vertices and LfDcLines as edges.
      */
     private static GraphConnectivity<LfDcBus, LfDcLine> buildDcSubComponentGraph(LfNetwork lfNetwork, int numDCC) {
