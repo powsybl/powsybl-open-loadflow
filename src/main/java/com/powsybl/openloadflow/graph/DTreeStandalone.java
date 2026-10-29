@@ -611,7 +611,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
 
     @Override
     public boolean connected(V vertex1, V vertex2) {
-        return rootOf(vertex1) == rootOf(vertex2);
+        return getNodeOrThrow(vertex1).connectedReroot(getNodeOrThrow(vertex2));
     }
 
     @Override
@@ -814,6 +814,37 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
             this.dtree = dtree;
             this.vertex = vertex;
             this.size = 1;
+        }
+
+        public boolean connectedReroot(DTNode<V, E> other) {
+            /*DTNode<V, E> thisRoot = this;
+            DTNode<V, E> thisCentroid = null;
+
+            while (thisRoot.parent != null) {
+                thisCentroid = thisRoot;
+                thisRoot = thisRoot.parent;
+            }
+
+            if (thisCentroid != null && thisCentroid.size > thisRoot.size / 2) {
+                thisCentroid.makeRoot(true);
+                thisRoot = thisCentroid;
+            }
+
+            DTNode<V, E> otherRoot = other;
+            DTNode<V, E> otherCentroid = null;
+
+            while (otherRoot.parent != null) {
+                otherCentroid = otherRoot;
+                otherRoot = otherRoot.parent;
+            }
+
+            boolean connected = thisRoot == otherRoot;
+
+            if (otherCentroid != null && otherCentroid.size > otherRoot.size / 2) {
+                otherCentroid.makeRoot(true);
+            }*/
+
+            return findRoot() == other.findRoot();
         }
 
         /**
@@ -1077,7 +1108,7 @@ public class DTreeStandalone<V, E> implements SpanningForestGraphConnectivity<V,
         public boolean contains(Object o) {
             if (o != null) {
                 // node might not be the root anymore, so need to use findRoot on node.
-                return node.dtree.rootOf((V) o) == node.findRoot();
+                return node.connectedReroot(node.dtree.getNodeOrThrow((V) o));
             }
 
             return false;

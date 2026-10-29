@@ -49,6 +49,10 @@ public enum BenchmarkMethod {
         return shortName;
     }
 
+    public String shortNameCamelCase() {
+        return CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, shortName());
+    }
+
     public int argCount() {
         return argCount;
     }

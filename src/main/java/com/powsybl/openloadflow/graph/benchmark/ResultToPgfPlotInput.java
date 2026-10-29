@@ -19,6 +19,8 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
@@ -137,10 +139,13 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
     @CommandLine.ArgGroup
     private Input input;
 
-    @CommandLine.Option(names = {"--average"})
-    private boolean averageTime;
+    @CommandLine.Option(names = {"--average-per-workload"})
+    private boolean averagePerWorkload;
 
-    @CommandLine.Option(names = {"--prefix"})
+    @CommandLine.Option(names = {"--average-per-op"})
+    private boolean averagePerOperation;
+
+    @CommandLine.Option(names = {"--prefix"}, required = true)
     private String prefix;
 
     @CommandLine.Option(names = {"--filter"})
@@ -157,41 +162,64 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
     @Override
     public Integer call() throws IOException {
         // sa then alg then plot
-        Map<String, Map<String, Plot>> plots = input.getPlots();
+        Map<String, Map<String, Plot>> saToAlgToPlots = input.getPlots();
 
-        String filePrefix;
-        if (prefix == null) {
-            filePrefix = "";
-        } else {
-            filePrefix = prefix + "_";
-        }
+        if (averagePerOperation) {
+            var transpose = transpose(saToAlgToPlots);
 
-        if (!filter.isEmpty()) {
-            filePrefix += "filter_";
-        }
+            BenchmarkMethod[] methods = filter == null ? BenchmarkMethod.values() : filter.toArray(new BenchmarkMethod[0]);
+            for (BenchmarkMethod method : methods) {
+                var saToAlgToResult = transpose.get(method);
+                if (saToAlgToResult == null) {
+                    continue;
+                }
 
-        if (averageTime) {
-            for (Map.Entry<String, Map<String, Plot>> entry : plots.entrySet()) {
-                Path out = output.resolve(filePrefix + "mean_" + entry.getKey() + ".txt");
+                Path out = getOutputPath("total_" + method.shortName() + ".txt");
                 System.out.println("Writing to " + out);
 
                 try (BufferedWriter bw = Files.newBufferedWriter(out)) {
-                    writeAverageTimePerMethod(bw, entry.getValue().values(), filter);
+                    writeSAToAlgToData(bw, transpose.get(method), ap -> String.valueOf(ap.aggregator.getSum() / 1e6 / ap.plot().iterations() / ap.plot().threads()));
+                }
+            }
+        } else if (averagePerWorkload) {
+            for (Map.Entry<String, Map<String, Plot>> entry : saToAlgToPlots.entrySet()) {
+                Path out = getOutputPath("mean_" + entry.getKey() + ".txt");
+                System.out.println("Writing to " + out);
+
+                try (BufferedWriter bw = Files.newBufferedWriter(out)) {
+                    Collection<Plot> plots = entry.getValue().values();
+                    writeDataPerMethodPerAlgForSomePlots(bw, plots, filter, (p, agg) -> String.valueOf(agg.getMean(TimeUnit.MICROSECONDS)));
                 }
             }
         } else {
-            Path out = output.resolve(filePrefix + "total_time.txt");
+            Path out = getOutputPath("total_time.txt");
             System.out.println("Writing to " + out);
 
             try (BufferedWriter bw = Files.newBufferedWriter(out)) {
-                writeTotalTime(bw, plots);
+                writeSAToAlgToData(bw, saToAlgToPlots, p -> String.valueOf(p.total(TimeUnit.SECONDS)));
             }
         }
 
         return 0;
     }
 
-    private static void writeAverageTimePerMethod(BufferedWriter bw, Collection<Plot> plots, List<BenchmarkMethod> filter) throws IOException {
+    private Path getOutputPath(String file) {
+        Path output = this.output.resolve(prefix + Objects.requireNonNullElse(filter, ""))
+                .resolve(file);
+
+        try {
+            Files.createDirectories(output.getParent());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return output;
+    }
+
+    private static void writeDataPerMethodPerAlgForSomePlots(BufferedWriter bw,
+                                                             Collection<Plot> plots,
+                                                             List<BenchmarkMethod> filter,
+                                                             BiFunction<Plot, Aggregator, String> aggToString) throws IOException {
         // write header
         bw.write("method");
         for (Plot plot : plots) {
@@ -203,8 +231,8 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
         // write rows
         List<BenchmarkMethod> allMethods = getAllMethods(plots);
         for (BenchmarkMethod method : allMethods) {
-            if (filter.isEmpty() || filter.contains(method)) {
-                bw.write(method.camelCase());
+            if (filter == null || filter.contains(method)) {
+                bw.write(method.shortNameCamelCase());
                 for (Plot plot : plots) {
                     bw.write("   ");
                     Aggregator agg = plot.measures.get(method);
@@ -212,7 +240,7 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
                     if (agg == null) {
                         bw.write("nan");
                     } else {
-                        bw.write(String.valueOf(agg.getMean(TimeUnit.MICROSECONDS)));
+                        bw.write(aggToString.apply(plot, agg));
                     }
                 }
                 bw.newLine();
@@ -220,10 +248,12 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
         }
     }
 
-    private static void writeTotalTime(BufferedWriter bw, Map<String, Map<String, Plot>> plots) throws IOException {
+    private static <T> void writeSAToAlgToData(BufferedWriter bw,
+                                               Map<String, Map<String, T>> saToAlgToData,
+                                               Function<T, String> toString) throws IOException {
         // write header
         bw.write("dataset");
-        List<String> algorithms = getAllAlgorithms(plots);
+        List<String> algorithms = getAllAlgorithms(saToAlgToData);
         for (String alg : algorithms) {
             bw.write("   ");
             bw.write(alg);
@@ -231,17 +261,17 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
         bw.newLine();
 
         // write rows
-        for (Map.Entry<String, Map<String, Plot>> entry : plots.entrySet()) {
+        for (Map.Entry<String, Map<String, T>> entry : saToAlgToData.entrySet()) {
             bw.write(entry.getKey());
 
             for (String alg : algorithms) {
-                Plot plot = entry.getValue().get(alg);
+                T data = entry.getValue().get(alg);
 
                 bw.write("   ");
-                if (plot == null) {
+                if (data == null) {
                     bw.write("nan");
                 } else {
-                    bw.write(String.valueOf(plot.total(TimeUnit.SECONDS)));
+                    bw.write(toString.apply(data));
                 }
             }
             bw.newLine();
@@ -258,27 +288,58 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
         return new ArrayList<>(methods);
     }
 
-    private static List<String> getAllAlgorithms(Map<String, Map<String, Plot>> plots) {
+    private static <T> List<String> getAllAlgorithms(Map<String, Map<String, T>> plots) {
         return plots.values().stream()
                 .flatMap(m -> m.keySet().stream())
                 .distinct()
                 .toList();
     }
 
-    private record Plot(String algorithm, String sa, double total, Map<BenchmarkMethod, Aggregator> measures) {
+    private static Map<BenchmarkMethod, Map<String, Map<String, AggregatorWithPlot>>> transpose(Map<String, Map<String, Plot>> plots) {
+        Map<BenchmarkMethod, Map<String, Map<String, AggregatorWithPlot>>> transpose = new HashMap<>();
+
+        for (Map.Entry<String, Map<String, Plot>> saToAlg : plots.entrySet()) {
+            String sa = saToAlg.getKey();
+
+            for (Map.Entry<String, Plot> algToPlot : saToAlg.getValue().entrySet()) {
+                String alg = algToPlot.getKey();
+
+                for (Map.Entry<BenchmarkMethod, Aggregator> methodToResult : algToPlot.getValue().measures().entrySet()) {
+                    BenchmarkMethod method = methodToResult.getKey();
+                    Map<String, Map<String, AggregatorWithPlot>> methodResult = transpose.computeIfAbsent(method, k -> new HashMap<>());
+                    Map<String, AggregatorWithPlot> saResult = methodResult.computeIfAbsent(sa, k -> new HashMap<>());
+                    AggregatorWithPlot oldValue = saResult.put(alg, new AggregatorWithPlot(methodToResult.getValue(), algToPlot.getValue()));
+
+                    if (oldValue != null) {
+                        throw new IllegalStateException();
+                    }
+                }
+            }
+        }
+
+        return transpose;
+    }
+
+    private record Plot(String algorithm, String sa, double initialGraphBuild, double total, Map<BenchmarkMethod, Aggregator> measures, int iterations, int threads) {
 
         public static Plot read(String algorithm, String sa, Path input) throws IOException {
             ObjectMapper mapper = new ObjectMapper();
 
             try (BufferedReader br = Files.newBufferedReader(input)) {
                 JsonNode root = mapper.readTree(br);
+                int threads = root.get("operations").size();
                 JsonNode merged = root.get("merged");
                 JsonNode initialGraphBuild = merged.get("initialGraphBuild");
                 JsonNode temporaryChanges = merged.get("temporaryChanges");
 
+                int iterations = root.get("timePerIteration").get("count").asInt();
+
                 return new Plot(algorithm, sa,
+                        getInitialGraphBuild(root),
                         getTotal(root),
-                        merge(getMeasures(initialGraphBuild), getMeasures(temporaryChanges)));
+                        merge(getMeasures(initialGraphBuild), getMeasures(temporaryChanges)),
+                        iterations,
+                        threads);
             }
         }
 
@@ -286,11 +347,32 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
             return total / unit.toNanos(1);
         }
 
+        public double initialGraphBuild(TimeUnit unit) {
+            return initialGraphBuild / unit.toNanos(1);
+        }
+
         private static double getTotal(JsonNode root) {
             JsonNode operations = root.get("operations");
             long max = 0;
             for (JsonNode sub : operations) {
                 max = Math.max(sub.get("totalRuntime").longValue(), max);
+            }
+
+            int iterations = root.get("timePerIteration").get("count").asInt();
+            return (double) max / iterations;
+        }
+
+        public static double getInitialGraphBuild(JsonNode root) {
+            JsonNode operations = root.get("operations");
+            long max = 0;
+
+            for (JsonNode op : operations) {
+                long sum = 0;
+                for (JsonNode sub : op.get("initialGraphBuild")) {
+                    sum += sub.get("sum").longValue();
+                }
+
+                max = Math.max(max, sum);
             }
 
             int iterations = root.get("timePerIteration").get("count").asInt();
@@ -328,4 +410,6 @@ public final class ResultToPgfPlotInput implements Callable<Integer> {
             return merged;
         }
     }
+
+    private record AggregatorWithPlot(Aggregator aggregator, Plot plot) { }
 }

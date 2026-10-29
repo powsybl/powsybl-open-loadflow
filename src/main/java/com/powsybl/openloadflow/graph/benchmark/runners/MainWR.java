@@ -9,9 +9,8 @@ package com.powsybl.openloadflow.graph.benchmark.runners;
 
 import com.powsybl.openloadflow.graph.DTreeStandaloneFactory;
 import com.powsybl.openloadflow.graph.benchmark.workload.Workload;
-import com.powsybl.openloadflow.graph.derivative.Delta2DTreeStandalone;
-import com.powsybl.openloadflow.graph.derivative.Delta2ReplaceWithBestDTreeStandalone;
-import com.powsybl.openloadflow.graph.derivative.ReplaceWithBestDTreeStandalone;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtreedyn.DTreeDynGraphConnectivityFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,10 +27,10 @@ public final class MainWR {
 
     private static RunParameters.Performance performance() {
         RunParameters.Performance perf = new RunParameters.Performance()
-                .setWarmup(10)
-                .setMeasurement(10);
+                .setWarmup(100)
+                .setMeasurement(100);
         perf.output()
-                .setOutputFormat("results/workload_bound/${workload}/${class}.${ext}")
+                .setOutputFormat("results/workload_final_roots/${workload}/${class}.${ext}")
                 .setOverwrite(true); //.setReplacement("results/workload/${workload}/${class}_list_of_root.${ext}");
         return perf;
     }
@@ -64,6 +63,7 @@ public final class MainWR {
                 wr.addInput(Workload.inMemory(Path.of(args[i])));
             }
         } else {
+            addAllWorkloadInFolder(wr, Path.of("workload/"));
             addAllWorkloadInFolder(wr, Path.of("workload/final"));
             // wr.addInput(Workload.inMemory(Path.of("workload/spy_5541_1_1_2026-07-03T12:31:54.685462530Z.txt")));
             // wr.addInput(Workload.inMemory(Path.of("workload/spy_5541_1_1_5541_1_1_2026-07-03T11:50:06.510031405Z.txt")));
@@ -81,12 +81,12 @@ public final class MainWR {
         // wr.addConnectivityFactory(new HolmEtAlWithoutLevelGraphConnectivityFactory<>());
         // wr.addConnectivityFactory(new NewHolmGraphConnectivityFactory<>());
         // wr.addConnectivityFactory(new ETTreeGraphConnectivityFactory<>());
-        // wr.addConnectivityFactory(new DTreeGraphConnectivityFactory<>());
-        // wr.addConnectivityFactory(new DTreeDynGraphConnectivityFactory<>());
-        wr.addConnectivityFactory(new DTreeStandaloneFactory<>());
-        wr.addConnectivityFactory(new Delta2DTreeStandalone.Factory<>());
-        wr.addConnectivityFactory(new Delta2ReplaceWithBestDTreeStandalone.Factory<>());
-        wr.addConnectivityFactory(new ReplaceWithBestDTreeStandalone.Factory<>());
+        wr.addConnectivityFactory(new DTreeGraphConnectivityFactory<>());
+        wr.addConnectivityFactory(new DTreeDynGraphConnectivityFactory<>());
+        // wr.addConnectivityFactory(new DTreeStandaloneFactory<>());
+        // wr.addConnectivityFactory(new Delta2DTreeStandalone.Factory<>());
+        // wr.addConnectivityFactory(new Delta2ReplaceWithBestDTreeStandalone.Factory<>());
+        // wr.addConnectivityFactory(new ReplaceWithBestDTreeStandalone.Factory<>());
         // wr.addConnectivityFactory(IDTreeStandalone::new);
         // wr.addConnectivityFactory(new IndexedDTreeStandalone2ndVerFactory<>((Integer i) -> i, (Integer i) -> i));
         // wr.addConnectivityFactory(new DnDTreeStandaloneFactory<>());
