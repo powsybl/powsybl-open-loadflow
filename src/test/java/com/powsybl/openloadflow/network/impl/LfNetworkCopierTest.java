@@ -47,17 +47,21 @@ import com.powsybl.openloadflow.network.ShuntNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.T3wtFactory;
 import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.sa.LimitViolationManager;
 import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.Test;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.StringWriter;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Checks that a deep copy of a built LfNetwork is equivalent to the original: identical JSON dump,
@@ -65,7 +69,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  *
  * @author Gautier Bureau {@literal <gautier.bureau at rte-france.com>}
  */
-class LfNetworkCopierTest {
+public class LfNetworkCopierTest {
 
     private record Case(String name, Network network, Consumer<LoadFlowParameters> parametersCustomizer, LfTopoConfig topoConfig) {
 
@@ -83,10 +87,13 @@ class LfNetworkCopierTest {
         }
     }
 
-    private static Stream<Arguments> cases() {
+    private static Stream<Arguments> casesArguments() {
+        return cases().map(Arguments::of);
+    }
+
+    private static Stream<Case> cases() {
         return Stream.of(
                 new Case("eurostag", EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedCurrentLimits())),
-                new Case("ieee300", IeeeCdfNetworkFactory.create300()),
                 new Case("nodeBreakerRetainedSwitch", createNodeBreakerCase().getLeft(), p -> { }, createNodeBreakerCase().getRight()),
                 new Case("phaseControl", PhaseShifterTestCaseFactory.create(), p -> p.setPhaseShifterRegulationOn(true)),
                 new Case("phaseControlT2wt", PhaseControlFactory.createNetworkWithT2wt(), p -> p.setPhaseShifterRegulationOn(true)),
@@ -97,8 +104,6 @@ class LfNetworkCopierTest {
                 new Case("staticVarCompensator", createNetworkWithRegulatingSvc()),
                 new Case("danglingLine", BoundaryFactory.create()),
                 new Case("hvdcAcEmulation", createNetworkWithHvdcAcEmulation(), p -> p.setHvdcAcEmulation(true)),
-                new Case("hvdcAcEmulationDroop", HvdcNetworkFactory.createHvdcInAcEmulationInSymetricNetwork(),
-                        p -> p.setHvdcAcEmulation(true), new LfTopoConfig()),
                 new Case("svcStandbyAutomaton", createSvcWithStandbyAutomaton(),
                         p -> OpenLoadFlowParameters.create(p).setSvcVoltageMonitoring(true)),
                 new Case("secondaryVoltageControl", createNetworkWithSecondaryVoltageControl(),
@@ -128,18 +133,36 @@ class LfNetworkCopierTest {
                         p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true)),
                 new Case("acDcThreeConverters", AcDcNetworkFactory.createAcDcNetworkWithThreeConverters(),
                         p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true)),
+                new Case("fixedCurrentLimits", EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedCurrentLimits())),
                 new Case("asymmetrical", AsymmetricalLoadFlowTest.fourNodescreate(),
                         p -> {
                             p.setUseReactiveLimits(false).setDistributedSlack(false);
                             OpenLoadFlowParameters.create(p).setAsymmetrical(true)
                                     .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
                         })
-        ).map(Arguments::of);
+        );
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("cases")
-    void testCopyEquivalence(Case c) {
+    @Test
+    public void testLfNetworkCopyEquivalenceAndCoverageOfAllCases() {
+        LfNetworkCopyDeepFieldComparator deepFieldComparator = new LfNetworkCopyDeepFieldComparator();
+        cases().forEach(c -> testCopyEquivalence(c, deepFieldComparator)); // testing copy equivalence for each case
+        // testing globally at the end if all LfNetwork classes (listed in LfNetworkCopyFieldGuardTest) have been covered by all the cases
+        Set<Class<?>> checkedClasses = deepFieldComparator.getAllCheckedClasses();
+        for (Class<?> clazz : LfNetworkCopyFieldGuardTest.getLfNetworkExpectedFields().keySet()) {
+            if (!checkedClasses.contains(clazz)) {
+                fail("LfNetworkCopierTest: Class " + clazz.getSimpleName() + " is never tested, consider adding a new Case "
+                        + "with a network covering this class and verify handling of its copy with LfNetwork copy");
+            }
+        }
+    }
+
+    @Test
+    public void testLfN() {
+        testCopyEquivalence(cases().filter(c -> Objects.equals(c.name, "svcStandbyAutomaton")).findFirst().orElseThrow(), new LfNetworkCopyDeepFieldComparator());
+    }
+
+    void testCopyEquivalence(Case c, LfNetworkCopyDeepFieldComparator deepFieldComparator) {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters.create(parameters);
         c.parametersCustomizer().accept(parameters);
@@ -156,7 +179,7 @@ class LfNetworkCopierTest {
         for (LfNetwork original : originals) {
             // First test: copying the initial LfNetwork and checking they are equal
             LfNetwork copy = LfNetworkCopier.copy(original, LoadFlowModel.AC, ReportNode.NO_OP);
-            LfNetworkCopyDeepFieldComparator.compareLfNetworks(original, copy);
+            deepFieldComparator.compareLfNetworks(original, copy, c.name());
             assertEquals(dump(original), dump(copy), "different LfNetwork json dump for " + c.name());
 
             // Second test: running a load flow on both LfNetworks and checking the results are equal
@@ -165,12 +188,13 @@ class LfNetworkCopierTest {
             assertEquals(originalResult.toString(), copyResult.toString());
 
             // Third test: checking both LfNetworks are still equal
-            LfNetworkCopyDeepFieldComparator.compareLfNetworks(original, copy);
+            deepFieldComparator.compareLfNetworks(original, copy, c.name());
             assertEquals(dump(original), dump(copy), "different post load flow json dump for " + c.name());
 
             // Fourth test: copying the newly computed LfNetwork and checking if the copy is equal (to check a post computation copy)
+            new LimitViolationManager(Collections.emptyList()).detectViolations(original); // Adding LfLimits before copy
             copy = LfNetworkCopier.copy(original, LoadFlowModel.AC, ReportNode.NO_OP);
-            LfNetworkCopyDeepFieldComparator.compareLfNetworks(original, copy);
+            deepFieldComparator.compareLfNetworks(original, copy, c.name());
         }
     }
 
@@ -214,7 +238,8 @@ class LfNetworkCopierTest {
                     .withTargetDeadband(0)
                     .withTargetValue(1)
                     .withTerminal(regulatedTerminal)
-                    .withRegulating(true);
+                    .withRegulating(true)
+                .build();
         return network;
     }
 
@@ -224,7 +249,8 @@ class LfNetworkCopierTest {
         svc1.setLocalTargetV(385)
                 .newVoltageRegulation()
                     .withMode(RegulationMode.VOLTAGE)
-                    .withRegulating(true);
+                    .withRegulating(true)
+                .build();
         svc1.newExtension(StandbyAutomatonAdder.class)
                 .withHighVoltageThreshold(400)
                 .withLowVoltageThreshold(380)

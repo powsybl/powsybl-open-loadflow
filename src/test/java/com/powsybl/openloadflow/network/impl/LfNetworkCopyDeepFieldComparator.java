@@ -27,8 +27,10 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 final class LfNetworkCopyDeepFieldComparator {
 
-    private LfNetworkCopyDeepFieldComparator() {
+    private final Set<Class<?>> alreadyCheckedClasses;
 
+    LfNetworkCopyDeepFieldComparator() {
+        alreadyCheckedClasses = new HashSet<>();
     }
 
     private static final String OUR_PACKAGE = "com.powsybl.openloadflow";
@@ -84,13 +86,23 @@ final class LfNetworkCopyDeepFieldComparator {
             "LfSynchronousNetworkImpl#slackBusSelector",
             "LfSynchronousNetworkImpl#referenceBusSelector");
 
-    public static void compareLfNetworks(LfNetwork original, LfNetwork copy) {
-        new Walker().compare(original, copy, "network");
+    public void compareLfNetworks(LfNetwork original, LfNetwork copy, String caseName) {
+        new Walker(alreadyCheckedClasses).compare(original, copy, caseName);
+    }
+
+    public Set<Class<?>> getAllCheckedClasses() {
+        return alreadyCheckedClasses;
     }
 
     private static final class Walker {
 
+        Walker(Set<Class<?>> alreadyCheckedClasses) {
+            this.alreadyCheckedClasses = alreadyCheckedClasses;
+        }
+
         private final IdentityHashMap<Object, Object> alreadyComparedElements = new IdentityHashMap<>();
+
+        private final Set<Class<?>> alreadyCheckedClasses;
 
         /**
          * Recursive method that checks every fields inside each element of the compared LfNetwork
@@ -101,6 +113,15 @@ final class LfNetworkCopyDeepFieldComparator {
                     fail(path + ": one side is null (original=" + original + ", copy=" + copy + ")");
                 }
                 return;
+            }
+            // Adding the checked class (and all its parents) to the global alreadyCheckedClasses set (to check coverage at the end)
+            if (!alreadyCheckedClasses.contains(original.getClass())) {
+                alreadyCheckedClasses.add(original.getClass());
+                Class<?> parentClass = original.getClass().getSuperclass();
+                while (parentClass != null) {
+                    alreadyCheckedClasses.add(parentClass);
+                    parentClass = parentClass.getSuperclass();
+                }
             }
             if (original instanceof Ref<?>) {
                 assertSame(original, copy, path + ": IIDM Ref must be shared");
