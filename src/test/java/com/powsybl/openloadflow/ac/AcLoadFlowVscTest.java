@@ -220,8 +220,7 @@ class AcLoadFlowVscTest {
         assertEquals(0.2330, cs4.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
         assertEquals(-3.6015, cs4.getTerminal().getQ(), LoadFlowAssert.DELTA_POWER);
         // Adding limits: min reactive limit -4 MVar is below -3.6 MVar, no switch to PQ should be performed
-        network.getVscConverterStation("cs4")
-                .newReactiveCapabilityCurve()
+        cs4.newReactiveCapabilityCurve()
                 .beginPoint().setP(-0.2330).setMinQ(-4).setMaxQ(4).endPoint()
                 .beginPoint().setP(0).setMinQ(-1).setMaxQ(1).endPoint()
                 .beginPoint().setP(0.2330).setMinQ(-4).setMaxQ(4).endPoint()
