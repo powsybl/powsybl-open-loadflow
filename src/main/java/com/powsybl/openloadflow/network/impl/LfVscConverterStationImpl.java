@@ -132,7 +132,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     private double getComputedActivePower() {
         if (hvdc != null && hvdc.isAcEmulation()
                 && hvdc.getAcEmulationControl().getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.LINEAR_MODE
-                && !hvdc.isDisabled() && !hvdc.getBus1().isDisabled() && !hvdc.getBus2().isDisabled()) {
+                && !hvdc.isDisabled()) {
             double activePower = (hvdc.getConverterStation1() == this ? hvdc.getP1() : hvdc.getP2()).eval();
             if (!Double.isNaN(activePower)) {
                 return -activePower;
