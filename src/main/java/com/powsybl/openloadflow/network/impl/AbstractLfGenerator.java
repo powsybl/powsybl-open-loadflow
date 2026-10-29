@@ -189,7 +189,7 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     protected double computeLimitQ(double activePower, boolean isMin) {
         if (getReactiveLimits().isEmpty()) {
-            return -Double.MAX_VALUE;
+            return isMin ? -Double.MAX_VALUE : Double.MAX_VALUE;
         }
         ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow();
         if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
