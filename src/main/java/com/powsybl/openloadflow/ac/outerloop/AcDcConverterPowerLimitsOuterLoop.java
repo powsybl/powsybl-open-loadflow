@@ -25,7 +25,7 @@ import java.util.Map;
 
 /**
  * Outer loop that ensures AC-DC converters operate within their power limits, changing their control mode if needed.
- * No switch-back is implemented.
+ * No switch-back is implemented, which might become a blocking point for contingency analysis.
  *
  * @author Baptiste Perreyon {@literal <baptiste.perreyon at supergrid-institute.com>}
  */
