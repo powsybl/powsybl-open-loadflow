@@ -493,7 +493,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
         CompletionException thrown = assertThrows(CompletionException.class,
                 () -> runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters, operatorStrategies, actions, ReportNode.NO_OP));
         assertTrue(thrown.getCause().getMessage().contains("For now, only PhaseTapChangerTapPositionAction, TerminalsConnectionAction, " +
-            "SwitchAction, GeneratorAction and LoadAction are allowed in fast DC Security Analysis"));
+            "SwitchAction, GeneratorAction, LoadAction and BoundaryLineAction are allowed in fast DC Security Analysis"));
     }
 
     @ParameterizedTest
