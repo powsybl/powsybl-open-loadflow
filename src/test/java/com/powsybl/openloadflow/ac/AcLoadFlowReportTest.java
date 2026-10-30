@@ -512,6 +512,7 @@ class AcLoadFlowReportTest {
                               Bus Id: b1_vl_0 (nominalVoltage=400kV)
                               Bus V: 1 pu, 0 rad
                               Bus injection: 70 MW, 0 MVar
+                     Outer loop AcDcConverterPowerLimits
                      Outer loop ReactiveLimits
                      AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
             """, reportNode);
