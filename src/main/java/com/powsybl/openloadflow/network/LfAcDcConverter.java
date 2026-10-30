@@ -16,6 +16,11 @@ import com.powsybl.openloadflow.util.Evaluable;
 public interface LfAcDcConverter extends LfElement {
 
     /**
+     * @return The number of the DC component this converter belongs to.
+     */
+    int getNumDCC();
+
+    /**
      * @param iconv evaluable computing the current going from the first DC bus to the second one in per unit.
      */
     void setCalculatedIconv1(Evaluable iconv);
@@ -63,6 +68,12 @@ public interface LfAcDcConverter extends LfElement {
     double getTargetVdc();
 
     /**
+     * @param targetVdc The new target DC voltage difference, that is the target voltage difference between the first
+     *                  and the second DC bus. In per unit.
+     */
+    void setTargetVdc(double targetVdc);
+
+    /**
      * @return the per-unit base used for the DC voltage of this converter.
      */
     double getDcVoltageBase();
@@ -83,9 +94,19 @@ public interface LfAcDcConverter extends LfElement {
     LossFactors getLossFactors();
 
     /**
-     * @return The converter control mode.
+     * @return The converter initial control mode, as defined in the IIDM.
+     */
+    AcDcConverter.ControlMode getInitialControlMode();
+
+    /**
+     * @return The converter control mode. It may be different from the one defined in the IIDM.
      */
     AcDcConverter.ControlMode getControlMode();
+
+    /**
+     * @param controlMode The new control mode of the converter
+     */
+    void setControlMode(AcDcConverter.ControlMode controlMode);
 
     /**
      * @return the active power on the AC side of the converter in per unit.
