@@ -251,11 +251,13 @@ public class AcNetworkVector extends AbstractLfNetworkListener
     }
 
     @Override
-    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
+    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition, boolean modifiedTapPosition) {
         PiModel piModel = branch.getPiModel();
 
-        double y = piModel.getY();
-        branchVector.y[branch.getNum()] = y;
+        if (modifiedTapPosition) {
+            double y = piModel.getY();
+            branchVector.y[branch.getNum()] = y;
+        }
         double ksi = piModel.getKsi();
         var w = new DoubleWrapper();
         branchVector.ksi[branch.getNum()] = ksi;
@@ -311,6 +313,11 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
     @Override
     public void onEquationIndexOrderChanged() {
+        // nothing to do
+    }
+
+    @Override
+    public void onEquationTermConstantsChanged() {
         // nothing to do
     }
 
