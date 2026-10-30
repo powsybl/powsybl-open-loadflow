@@ -1904,6 +1904,32 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
         assertEquals(104.40, operatorStrategyResult2.getNetworkResult().getBranchResult("l14").getP1(), DELTA_POWER);
     }
 
+    @Test
+    void testHvdcActionOnADisabledHvdc() {
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+        Contingency contingency = new Contingency("ctg", List.of(new BranchContingency("l45"), new BranchContingency("l46")));
+        List<StateMonitor> monitors = createAllBranchesMonitors(network);
+        List<Action> actions = List.of(new HvdcActionBuilder().withId("acEmulationOff").withHvdcId("hvdc34").withAcEmulationEnabled(false).build());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("ctg"),
+                new TrueCondition(), List.of("acEmulationOff")));
+        SecurityAnalysisResult result = runSecurityAnalysis(network, List.of(contingency), monitors, new SecurityAnalysisParameters(),
+                operatorStrategies, actions, ReportNode.NO_OP);
+        PostContingencyResult postContingencyResult = result.getPostContingencyResults().get(0);
+        OperatorStrategyResult operatorStrategyResult = getOperatorStrategyResult(result, "strategy");
+        // No action is performed, check post-contingency and post-operator-strategy are the same
+        assertEquals(PostContingencyComputationStatus.CONVERGED, postContingencyResult.getStatus());
+        assertEquals(PostContingencyComputationStatus.CONVERGED, operatorStrategyResult.getStatus());
+        for (BranchResult branchResult : postContingencyResult.getNetworkResult().getBranchResults()) {
+            assertEquals(branchResult.getP1(), operatorStrategyResult.getNetworkResult().getBranchResult(branchResult.getBranchId()).getP1(),
+                    LoadFlowAssert.DELTA_POWER, branchResult.getBranchId());
+        }
+    }
+
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void testVSCLossSetpoint(boolean withFictiveLoad) {

@@ -49,6 +49,10 @@ public class LfHvdcAction extends AbstractLfAction<HvdcAction> {
                 LOGGER.warn("Hvdc action {}: only explicitly disabling ac emulation is supported.", action.getId());
                 return false;
             }
+            if (lfHvdc.isDisabled()) {
+                LOGGER.warn("Hvdc action {}: HVDC is disconnected, no HVDC action can be computed", action.getId());
+                return false;
+            }
             // the operation mode changes from AC emulation to fixed active power set point.
             lfHvdc.setAcEmulation(false);
             lfHvdc.setDisabled(true); // for equations only, but should be hidden
