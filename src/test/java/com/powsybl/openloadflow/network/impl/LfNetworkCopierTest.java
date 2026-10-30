@@ -58,7 +58,7 @@ import static org.junit.jupiter.api.Assertions.fail;
  *
  * @author Gautier Bureau {@literal <gautier.bureau at rte-france.com>}
  */
-public class LfNetworkCopierTest {
+class LfNetworkCopierTest {
 
     private record Case(String name, Network network, Consumer<LoadFlowParameters> parametersCustomizer, LfTopoConfig topoConfig) {
 
