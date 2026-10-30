@@ -7,60 +7,33 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
-import com.powsybl.commons.report.ReportNode;
-import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.ac.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.AcloadFlowEngine;
-import com.powsybl.openloadflow.ac.AsymmetricalLoadFlowTest;
-import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.Evaluable;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.*;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Reflective guard of {@link LfNetworkCopier}: walks the original and copied object graphs in
- * lockstep and checks every instance field against copy semantics derived from its type:
- * <ul>
- *   <li>IIDM {@link Ref} handles must be <b>shared</b> (same reference);</li>
- *   <li>values (primitives, strings, enums) must be <b>equal</b>;</li>
- *   <li>objects of this library must be <b>distinct but corresponding</b> instances — an identity
- *       map also checks the sharing topology (an object referenced twice in the original must map
- *       to a single copied object referenced the same way);</li>
- *   <li>collections and maps must be <b>distinct containers</b> (no aliasing of mutable state
- *       between the copy and the original, which two threads would then mutate concurrently)
- *       with corresponding content;</li>
- *   <li>solver-injected ({@link Evaluable}) and lazily recomputed state is skipped (covered by the
- *       behavioral equivalence tests of {@link LfNetworkCopierTest}).</li>
- * </ul>
- * A field added later is checked by the default rules automatically, so unlike the static
- * inventory of {@link LfNetworkCopyFieldGuardTest} (which forces the author to classify new
- * fields), this test verifies that the classification actually holds, including on an already
- * solved network whose mutable state differs from the freshly built defaults.
+ * Reflective guard of {@link LfNetworkCopier}: walks the original and copied LfNetwork to check recursively
+ * if their fields are the same
  *
  * @author Gautier Bureau {@literal <gautier.bureau at rte-france.com>}
  */
-class LfNetworkCopyReflectionGuardTest {
+final class LfNetworkCopyDeepFieldComparator {
+
+    private final Set<Class<?>> alreadyCheckedClasses;
+
+    LfNetworkCopyDeepFieldComparator() {
+        alreadyCheckedClasses = new HashSet<>();
+    }
 
     private static final String OUR_PACKAGE = "com.powsybl.openloadflow";
 
     /**
-     * Fields excluded from the walk: either reset by design (lazily recomputed by the copy) or
-     * managed at network level (slack selection). Keyed by declaring class simple name + field name.
+     * Fields intentionally excluded from the comparison.
      */
     private static final Set<String> SKIPPED_FIELDS = Set.of(
             // selection flags and results, lazily re-run on the copy
@@ -95,103 +68,53 @@ class LfNetworkCopyReflectionGuardTest {
      */
     private static final Set<String> SHARED_FIELDS = Set.of(
             "LfBusImpl#bbsIds",
-            "Controller#sectionsB", "Controller#sectionsG",
+            "Controller#sectionsB",
+            "Controller#sectionsG",
             "LfLoadImpl#loadModel",
             "LfStaticVarCompensatorImpl#standByAutomaton",
             "AbstractLfAcDcConverter#lossFactors",
             // immutable after the load by design
-            "AbstractLfGenerator#asym", "AbstractLfBranch#asymLine",
-            "LfNetwork#slackBusSelector", "LfNetwork#referenceBusSelector", "LfNetwork#connectivityFactory",
+            "AbstractLfGenerator#asym",
+            "AbstractLfBranch#asymLine",
+            "LfNetwork#slackBusSelector",
+            "LfNetwork#referenceBusSelector",
+            "LfNetwork#connectivityFactory",
             // each synchronous network reuses the selectors of its parent network (shared after the load)
-            "LfSynchronousNetworkImpl#slackBusSelector", "LfSynchronousNetworkImpl#referenceBusSelector");
+            "LfSynchronousNetworkImpl#slackBusSelector",
+            "LfSynchronousNetworkImpl#referenceBusSelector");
 
-    record Case(String name, Network network, Consumer<LoadFlowParameters> parametersCustomizer, LfTopoConfig topoConfig, boolean solve) {
-        @Override
-        public String toString() {
-            return name;
-        }
+    public void compareLfNetworks(LfNetwork original, LfNetwork copy, String caseName) {
+        new Walker(alreadyCheckedClasses).compare(original, copy, caseName);
     }
 
-    static Stream<Arguments> cases() {
-        Network nodeBreakerNetwork = NodeBreakerNetworkFactory.create();
-        LfTopoConfig nodeBreakerTopoConfig = new LfTopoConfig();
-        nodeBreakerTopoConfig.getSwitchesToOpen().add(nodeBreakerNetwork.getSwitch("C"));
-
-        return Stream.of(
-                // solved network: mutable state differs from the freshly built defaults, so the equality
-                // checks actually discriminate
-                new Case("ieee300Solved", IeeeCdfNetworkFactory.create300(), p -> { }, new LfTopoConfig(), true),
-                new Case("nodeBreakerRetainedSwitch", nodeBreakerNetwork, p -> { }, nodeBreakerTopoConfig, false),
-                new Case("phaseControlT2wt", PhaseControlFactory.createNetworkWithT2wt(), p -> p.setPhaseShifterRegulationOn(true), new LfTopoConfig(), false),
-                new Case("hvdcAcEmulationSolved", HvdcNetworkFactory.createNetworkWithGenerators(), p -> p.setHvdcAcEmulation(true), new LfTopoConfig(), true),
-                new Case("areas", MultiAreaNetworkFactory.createTwoAreasWithTieLine(), p -> { }, new LfTopoConfig(), false),
-                new Case("acDcThreeConvertersSolved", AcDcNetworkFactory.createAcDcNetworkWithThreeConverters(),
-                        p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true), new LfTopoConfig(), true),
-                new Case("asymmetricalSolved", AsymmetricalLoadFlowTest.fourNodescreate(),
-                        p -> {
-                            p.setUseReactiveLimits(false).setDistributedSlack(false);
-                            OpenLoadFlowParameters.create(p).setAsymmetrical(true)
-                                    .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
-                        }, new LfTopoConfig(), true)
-        ).map(Arguments::of);
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("cases")
-    void testReflectiveCopyEquivalence(Case c) {
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(parameters);
-        c.parametersCustomizer().accept(parameters);
-        OpenLoadFlowParameters parametersExt = parameters.getExtension(OpenLoadFlowParameters.class);
-
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(c.network(), parameters, parametersExt,
-                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
-        if (!c.topoConfig().getSwitchesToOpen().isEmpty()) {
-            acParameters.getNetworkParameters().setBreakers(true);
-        }
-        List<LfNetwork> originals = Networks.load(c.network(), c.topoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP);
-
-        for (LfNetwork original : originals) {
-            if (original.getValidity() != LfNetwork.Validity.VALID) {
-                continue;
-            }
-            if (c.solve()) {
-                try (var context = new AcLoadFlowContext(original, new AcLoadFlowParameters(acParameters))) {
-                    new AcloadFlowEngine(context).run();
-                }
-            }
-            LfNetwork copy = LfNetworkCopier.copy(original, LoadFlowModel.AC, ReportNode.NO_OP);
-            new Walker().compare(original, copy, "network");
-        }
-    }
-
-    @org.junit.jupiter.api.Test
-    void testReflectiveCopyEquivalenceOnRestoredTopologyNetwork() {
-        Network network = NodeBreakerNetworkFactory.create3Bars();
-        network.getSwitch("C1").setOpen(true);
-        network.getSwitch("C2").setOpen(true);
-        LfTopoConfig topoConfig = new LfTopoConfig();
-        topoConfig.getSwitchesToClose().add(network.getSwitch("C1"));
-        topoConfig.getSwitchesToClose().add(network.getSwitch("C2"));
-
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
-        AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
-                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
-        acParameters.getNetworkParameters().setBreakers(true);
-
-        try (var lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig,
-                acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
-            LfNetwork original = lfNetworks.getLargest().orElseThrow();
-            LfNetwork copy = LfNetworkCopier.copy(original, LoadFlowModel.AC, ReportNode.NO_OP);
-            new Walker().compare(original, copy, "network");
-        }
+    public Set<Class<?>> getAllCheckedClasses() {
+        return alreadyCheckedClasses;
     }
 
     private static final class Walker {
 
-        private final IdentityHashMap<Object, Object> correspondence = new IdentityHashMap<>();
+        Walker(Set<Class<?>> alreadyCheckedClasses) {
+            this.alreadyCheckedClasses = alreadyCheckedClasses;
+        }
 
+        private final IdentityHashMap<Object, Object> alreadyComparedElements = new IdentityHashMap<>();
+
+        private final Set<Class<?>> alreadyCheckedClasses;
+
+        private void addClassToAlreadyCheckedClasses(Class<?> clazz) {
+            if (!alreadyCheckedClasses.contains(clazz)) {
+                alreadyCheckedClasses.add(clazz);
+                Class<?> parentClass = clazz.getSuperclass();
+                while (parentClass != null) {
+                    alreadyCheckedClasses.add(parentClass);
+                    parentClass = parentClass.getSuperclass();
+                }
+            }
+        }
+
+        /**
+         * Recursive method that checks every fields inside each element of the compared LfNetwork
+         */
         void compare(Object original, Object copy, String path) {
             if (original == null || copy == null) {
                 if (original != copy) {
@@ -199,6 +122,8 @@ class LfNetworkCopyReflectionGuardTest {
                 }
                 return;
             }
+            // Adding the checked class (and all its parents) to the global alreadyCheckedClasses set (to check coverage at the end)
+            addClassToAlreadyCheckedClasses(original.getClass());
             if (original instanceof Ref<?>) {
                 assertSame(original, copy, path + ": IIDM Ref must be shared");
                 return;
@@ -226,22 +151,26 @@ class LfNetworkCopyReflectionGuardTest {
 
             // an object of this library must be a distinct corresponding instance, and an object
             // referenced twice in the original must map to a single copy referenced the same way
-            Object knownCopy = correspondence.get(original);
+            Object knownCopy = alreadyComparedElements.get(original);
             if (knownCopy != null) {
                 assertSame(knownCopy, copy, path + ": sharing topology broken, two different copies for one original object");
                 return;
             }
             assertEquals(original.getClass(), copy.getClass(), path + ": type mismatch");
             assertNotSame(original, copy, path + ": object of the copy graph must not be shared with the original");
-            correspondence.put(original, copy);
-
+            alreadyComparedElements.put(original, copy);
+            Map<Class<?>, Set<String>> allExpectedFields = LfNetworkCopyFieldGuardTest.getLfNetworkExpectedFields();
             for (Class<?> type = original.getClass(); type != null && type.getName().startsWith(OUR_PACKAGE); type = type.getSuperclass()) {
+                if (!allExpectedFields.containsKey(original.getClass())) {
+                    fail(path + ": " + original.getClass().getSimpleName() + " is not referenced in LfNetworkCopyFieldGuardTest");
+                }
                 for (Field field : type.getDeclaredFields()) {
                     if (Modifier.isStatic(field.getModifiers()) || field.isSynthetic()) {
                         continue;
                     }
                     String key = type.getSimpleName() + "#" + field.getName();
                     if (SKIPPED_FIELDS.contains(key)) {
+                        addClassToAlreadyCheckedClasses(field.getClass());
                         continue;
                     }
                     if (Evaluable.class.isAssignableFrom(field.getType())) {

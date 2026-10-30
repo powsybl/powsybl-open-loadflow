@@ -49,7 +49,7 @@ public final class LfStaticVarCompensatorImpl extends AbstractLfGenerator implem
      * Reactive limits depending on the current voltage of the SVC bus
      * (uses the generator bus field so that it stays correct on a deep copy).
      */
-    private final class SvcReactiveLimits implements MinMaxReactiveLimits {
+    final class SvcReactiveLimits implements MinMaxReactiveLimits {
 
         @Override
         public double getMinQ() {
