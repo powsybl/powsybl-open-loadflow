@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.LfAsymGenerator;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -62,10 +63,17 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     private final boolean extrapolateReactiveLimits;
 
+    protected boolean isTargetQForcedInReactiveLimits = false;
+
+    protected final boolean forceTargetQInReactiveLimits;
+
+    protected double tanPhi = Double.NaN;
+
     protected AbstractLfGenerator(LfNetwork network, double targetP, LfNetworkParameters parameters) {
         super(targetP, targetP);
         this.network = Objects.requireNonNull(network);
         this.extrapolateReactiveLimits = parameters.isExtrapolateReactiveLimits();
+        this.forceTargetQInReactiveLimits = parameters.isForceTargetQInReactiveLimits() && parameters.isReactiveLimits();
     }
 
     protected AbstractLfGenerator(AbstractLfGenerator other, LfNetwork network) {
@@ -84,6 +92,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         this.referencePriority = other.referencePriority;
         this.reference = other.reference;
         this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
+        this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
+        this.tanPhi = other.tanPhi;
     }
 
     protected record ActivePowerControlHelper(boolean participating, double participationFactor, double droop, double minTargetP, double maxTargetP) {
@@ -181,8 +191,33 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
     }
 
     @Override
+    public boolean hasReactivePowerPerActivePowerControl() {
+        return generatorControlType == GeneratorControlType.REACTIVE_POWER_PER_ACTIVE_POWER;
+    }
+
+    @Override
     public OptionalDouble getRemoteControlReactiveKey() {
         return OptionalDouble.empty();
+    }
+
+    protected double checkIfForcedInReactiveLimits(double targetQ) {
+        if (forceTargetQInReactiveLimits) {
+            double computedTargetQ = targetQ;
+            double minQ = getMinQ();
+            double maxQ = getMaxQ();
+            if (computedTargetQ < minQ) {
+                computedTargetQ = minQ;
+            } else if (computedTargetQ > maxQ) {
+                computedTargetQ = maxQ;
+            }
+            if (!isTargetQForcedInReactiveLimits && targetQ != computedTargetQ) { // Logging and reporting only on first update to avoid too much messages
+                String message = Reports.reportGeneratorWithUpdatedTargetQ(network.getReportNode(), this, targetQ * PerUnit.SB, maxQ * PerUnit.SB);
+                LOGGER.info(message);
+                isTargetQForcedInReactiveLimits = true;
+            }
+            targetQ = computedTargetQ;
+        }
+        return targetQ;
     }
 
     protected abstract Optional<ReactiveLimits> getReactiveLimits();
@@ -401,6 +436,14 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         }
         this.generatorControlType = GeneratorControlType.REMOTE_REACTIVE_POWER;
         this.remoteTargetQ = remoteTargetQ / PerUnit.SB;
+    }
+
+    protected void setReactivePowerPerActivePowerControl(double tanPhi) {
+        if (Double.isNaN(tanPhi)) {
+            throw new PowsyblException("Cannot set REACTIVE_POWER_PER_ACTIVE_POWER with NaN slope");
+        }
+        this.tanPhi = tanPhi;
+        this.generatorControlType = GeneratorControlType.REACTIVE_POWER_PER_ACTIVE_POWER;
     }
 
     @Override
