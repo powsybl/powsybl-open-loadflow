@@ -18,19 +18,21 @@ import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfDcComponentValidator;
 import com.powsybl.openloadflow.network.LfNetwork;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * Outer loop that ensures AC-DC converters operates within their power limits, changing their control mode if needed.
+ * Outer loop that ensures AC-DC converters operate within their power limits, changing their control mode if needed.
+ * No switch-back is implemented.
  *
  * @author Baptiste Perreyon {@literal <baptiste.perreyon at supergrid-institute.com>}
  */
 public class AcDcConverterPowerLimitsOuterLoop implements AcOuterLoop {
 
     public static final String NAME = "AcDcConverterPowerLimits";
-    private final Set<Integer> numDccs = new LinkedHashSet<>();  // FIXME: Set or list
-    private final double maxActivePowerMismatch;  // Maximum active power mismatch at output of Newton-Raphson
+    private final double maxActivePowerMismatch;  // Maximum active power mismatch after Newton-Raphson
 
     public AcDcConverterPowerLimitsOuterLoop(double maxActivePowerMismatch) {
         this.maxActivePowerMismatch = maxActivePowerMismatch;
@@ -42,21 +44,16 @@ public class AcDcConverterPowerLimitsOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public String getType() {
-        return AcOuterLoop.super.getType();
-    }
-
-    @Override
     public void initialize(AcOuterLoopContext context) {
-        LfNetwork network = context.getNetwork();
-        numDccs.addAll(network.getDcBuses().stream().map(LfDcBus::getNumDCC).sorted().collect(Collectors.toCollection(LinkedHashSet::new)));
+        context.setData(new ContextData(context.getNetwork()));
     }
 
     @Override
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
         // In each DC network, up to one converter control mode can be modified
         OuterLoopStatus globalStatus = OuterLoopStatus.STABLE;
-        for (int numDcc : numDccs) {
+        ContextData contextData = (ContextData) context.getData();
+        for (int numDcc : contextData.numDccs) {
 
             List<LfAcDcConverter> converters = LfDcComponentValidator.getAcDcConverters(context.getNetwork(), numDcc);
 
@@ -80,7 +77,7 @@ public class AcDcConverterPowerLimitsOuterLoop implements AcOuterLoop {
 
             // Set the converter's targetP to the exceeded limit.
             double newTargetP;
-            if (selectedConverter.getPac() < selectedConverter.getMinP() - maxActivePowerMismatch) {
+            if (selectedConverter.getPac() < selectedConverter.getMinP()) {
                 newTargetP = selectedConverter.getMinP();
             } else {
                 newTargetP = selectedConverter.getMaxP();
@@ -103,7 +100,7 @@ public class AcDcConverterPowerLimitsOuterLoop implements AcOuterLoop {
         for (LfAcDcConverter converter : converters) {
             if (controlModesToCheck.contains(converter.getControlMode())) {
                 if (converter.getPac() < converter.getMinP() - maxActivePowerMismatch) {
-                    // Converter is below is lower limit
+                    // Converter is below its lower limit
                     convertersDistanceToLimit.put(converter, converter.getMinP() - converter.getPac());
                 }
                 if (converter.getPac() > converter.getMaxP() + maxActivePowerMismatch) {
@@ -119,5 +116,13 @@ public class AcDcConverterPowerLimitsOuterLoop implements AcOuterLoop {
     public boolean isNeeded(AcLoadFlowContext context) {
         // Needed if the network contains an AC-DC converter.
         return !context.getNetwork().getVoltageSourceConverters().isEmpty();
+    }
+
+    private static final class ContextData {
+        private final List<Integer> numDccs;
+
+        private ContextData(LfNetwork network) {
+            numDccs = network.getDcBuses().stream().map(LfDcBus::getNumDCC).distinct().sorted().toList();
+        }
     }
 }

@@ -1290,7 +1290,6 @@ class AcDcLoadFlowTest {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters).get(0);
     }
 
-
     // -- AC-DC converter AC power limits
 
     @Test
@@ -1308,19 +1307,24 @@ class AcDcLoadFlowTest {
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 
-        // Check that conv25 injects 30 MW (caped to its limit)
-        assertEquals(-30d, conv25.getTerminal1().getP());
+        // Check that conv25 injects 30 MW (capped to its limit)
+        assertActivePowerEquals(-30d, conv25.getTerminal1());
         // Check its IIDM control mode is still V_DC
         assertEquals(ControlMode.V_DC, conv25.getControlMode());
         // Check that conv36 has absorbed the difference, and now injects about 40 MW instead of 20 MW
-        int tolerance = 1; // Large tolerance: ignores DC losses but captures setpoint change
-        assertEquals(-40d, network.getVoltageSourceConverter("conv36").getTerminal1().getP(), tolerance);
+        double tolerance = 1d; // Large tolerance: ignores DC losses but captures setpoint change
+        VoltageSourceConverter conv36 = network.getVoltageSourceConverter("conv36");
+        assertEquals(-40d, conv36.getTerminal1().getP(), tolerance);
+
+        // Check this setpoint change is reflected in AC
+        assertActivePowerEquals(-70, network.getGenerator("g2").getTerminal());
+        assertEquals(-10, network.getGenerator("g3").getTerminal().getP(), tolerance);
     }
 
     @Test
     void testActiveLimitsAreDisregarded() {
         // In a 3 terminal DC network, the active limit of the converter in V_DC mode is reached.
-        // This limit is ignored because the parameter useActiveLimit is set to false
+        // This limit is ignored because the parameter useActiveLimits is set to false
         Network network = AcDcNetworkFactory.createMtDcNetworkWithThreeConvertersControlMode();
 
         // Run load flow
@@ -1329,7 +1333,7 @@ class AcDcLoadFlowTest {
         assertTrue(result.isFullyConverged());
 
         // Check that conv25 injects about 50 MW
-        int tolerance = 1; // Large tolerance: ignores DC losses but captures setpoint change
+        double tolerance = 1d; // Large tolerance: ignores DC losses but captures setpoint change
         assertEquals(-50d, network.getVoltageSourceConverter("conv25").getTerminal1().getP(), tolerance);
         // Check that conv36 injects about 20 MW
         assertEquals(-20d, network.getVoltageSourceConverter("conv36").getTerminal1().getP(), tolerance);
@@ -1368,7 +1372,7 @@ class AcDcLoadFlowTest {
         assertTrue(e1.getMessage().contains("is below its minP"));
 
         // Set maxP under targetP
-        vsc.setMinP(Double.MIN_VALUE);
+        vsc.setMinP(-Double.MAX_VALUE);
         vsc.setMaxP(vsc.getTargetP() - 1);
 
         PowsyblException e2 = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
@@ -1383,7 +1387,7 @@ class AcDcLoadFlowTest {
         assertDoesNotThrow(() -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
 
         // Set maxP under targetP
-        vsc.setMinP(Double.MIN_VALUE);
+        vsc.setMinP(-Double.MAX_VALUE);
         vsc.setMaxP(vsc.getTargetP() - 1);
         assertDoesNotThrow(() -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
     }

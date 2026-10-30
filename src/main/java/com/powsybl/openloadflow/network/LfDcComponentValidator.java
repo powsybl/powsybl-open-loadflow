@@ -90,7 +90,7 @@ public final class LfDcComponentValidator {
     private static void resolveDcSubComponentIfNeeded(LfNetwork lfNetwork, int numDCC, Set<LfDcBus> dcBusesInSubComponent, List<LfAcDcConverter> convertersToUpdate) {
         List<LfAcDcConverter> convertersInSubComponent = getAcDcConvertersInSubComponent(lfNetwork, numDCC, dcBusesInSubComponent);
         if (isSubComponentConnectedToGround(dcBusesInSubComponent) ||
-                convertersInSubComponent.stream().anyMatch(conv -> LfDcComponentValidator.controlsDcVoltage(conv) || convertersToUpdate.contains(conv))
+                convertersInSubComponent.stream().anyMatch(conv -> controlsDcVoltage(conv) || convertersToUpdate.contains(conv))
         ) {
             return; // already has (or was just given, while resolving an adjacent DC subcomponent) an element imposing DC voltage
         } else {

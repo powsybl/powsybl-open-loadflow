@@ -101,17 +101,17 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     }
 
     /**
-     * Check that the target AC power of a converter is within the allowed bounds.
+     * Check that the target AC power of a converter is within the allowed bounds and throws an exception otherwise.
      *
      * @param converter The converter being checked
      * @throws PowsyblException if the converter's target AC power is not within its power bounds.
      */
     private static void validateActivePowerLimits(AcDcConverter<?> converter) {
         if (converter.getTargetP() < converter.getMinP()) {
-            throw new PowsyblException(String.format("Converter %s targetP (%f) is below its minP (%f)", converter.getId(), converter.getTargetP(), converter.getMinP()));
+            throw new PowsyblException("Converter " + converter.getId() + " targetP (" + converter.getTargetP() + ") is below its minP (" + converter.getMinP() + ")");
         }
         if (converter.getTargetP() > converter.getMaxP()) {
-            throw new PowsyblException(String.format("Converter %s targetP (%f) is above its maxP (%f)", converter.getId(), converter.getTargetP(), converter.getMaxP()));
+            throw new PowsyblException("Converter " + converter.getId() + " targetP (" + converter.getTargetP() + ") is above its maxP (" + converter.getMaxP() + ")");
         }
     }
 

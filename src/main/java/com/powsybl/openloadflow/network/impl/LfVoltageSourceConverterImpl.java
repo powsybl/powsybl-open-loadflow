@@ -213,4 +213,13 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
     public List<LfDroopReference> getDroopCurve() {
         return droopBands;
     }
+
+    @Override
+    public void setControlMode(AcDcConverter.ControlMode newControlMode) {
+        if (newControlMode == AcDcConverter.ControlMode.DC_DROOP && droopBands.isEmpty()) {
+            // No real case today of switching to DC_DROOP mode, but this is a safeguard.
+            throw new PowsyblException("AC/DC converter '" + getId() + "' cannot be set to DC_DROOP control mode because it does not have a droop curve");
+        }
+        super.setControlMode(newControlMode);
+    }
 }

@@ -38,7 +38,7 @@ public class ConverterDroopEquationTerm extends AbstractConverterDcFlowEquation 
         // pass the DC voltage base as nominalV so that v1() - v2() is U_dc in per unit of that base
         super(converter, dcBus1, dcBus2, converter.getDcVoltageBase(), variableSet);
         // The droop curve is guaranteed non-empty because there is a guard
-        // when loading the converter
+        // when loading the converter and when changing its control mode
         droopReferences = new ArrayList<>(converter.getDroopCurve());
     }
 

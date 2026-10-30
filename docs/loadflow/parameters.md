@@ -458,14 +458,15 @@ and then the `DistributedSlack` outerloop.
 For AC load flow the supported outer loop names, their default execution order, and their corresponding high-level parameter, are:
 1. `DistributedSlack` / `AreaInterchangeControl` (parameters: [`distributedSlack`](inv:powsyblcore:*:*:#param-lf-distributed-slack) / [`areaInterchangeControl`](#areainterchangecontrol))
 2. `HvdcAcEmulationLimits` (parameter: [`hvdcAcEmulation`](inv:powsyblcore:*:*:#param-lf-hvdc-ac-emulation))
-3. `SecondaryVoltageControl` (parameter: [`secondaryVoltageControl`](#secondaryvoltagecontrol))
-4. `VoltageMonitoring` (parameter: [`svcVoltageMonitoring`](#svcvoltagemonitoring))
-5. `ReactiveLimits` (parameter: [`useReactiveLimits`](inv:powsyblcore:*:*:#param-lf-use-reactive-limits))
-6. `PhaseControl` / `IncrementalPhaseControl` (parameters: [`phaseShifterRegulationOn`](inv:powsyblcore:*:*:#param-lf-phase-shifter-regulation-on) and [`phaseShifterControlMode`](#phaseshiftercontrolmode))
-7. `SimpleTransformerVoltageControl` / `TransformerVoltageControl` / `IncrementalTransformerVoltageControl` (parameters: [`transformerVoltageControlOn`](inv:powsyblcore:*:*:#param-lf-transformer-voltage-control-on) and [`transformerVoltageControlMode`](#transformervoltagecontrolmode))
-8. `IncrementalTransformerReactivePowerControl` (parameter: [`transformerReactivePowerControl`](#transformerreactivepowercontrol))
-9. `ShuntVoltageControl` / `IncrementalShuntVoltageControl` (parameters: [`shuntCompensatorVoltageControlOn`](inv:powsyblcore:*:*:#param-lf-shunt-compensator-voltage-control-on) and [`shuntVoltageControlMode`](#shuntvoltagecontrolmode))
-10. `AutomationSystem` (parameter: [`simulateAutomationSystems`](#simulateautomationsystems))
+3. `AcDcConverterPowerLimits` (parameter: [`useActiveLimits`](#useactivelimits))
+4. `SecondaryVoltageControl` (parameter: [`secondaryVoltageControl`](#secondaryvoltagecontrol))
+5. `VoltageMonitoring` (parameter: [`svcVoltageMonitoring`](#svcvoltagemonitoring))
+6. `ReactiveLimits` (parameter: [`useReactiveLimits`](inv:powsyblcore:*:*:#param-lf-use-reactive-limits))
+7. `PhaseControl` / `IncrementalPhaseControl` (parameters: [`phaseShifterRegulationOn`](inv:powsyblcore:*:*:#param-lf-phase-shifter-regulation-on) and [`phaseShifterControlMode`](#phaseshiftercontrolmode))
+8. `SimpleTransformerVoltageControl` / `TransformerVoltageControl` / `IncrementalTransformerVoltageControl` (parameters: [`transformerVoltageControlOn`](inv:powsyblcore:*:*:#param-lf-transformer-voltage-control-on) and [`transformerVoltageControlMode`](#transformervoltagecontrolmode))
+9. `IncrementalTransformerReactivePowerControl` (parameter: [`transformerReactivePowerControl`](#transformerreactivepowercontrol))
+10. `ShuntVoltageControl` / `IncrementalShuntVoltageControl` (parameters: [`shuntCompensatorVoltageControlOn`](inv:powsyblcore:*:*:#param-lf-shunt-compensator-voltage-control-on) and [`shuntVoltageControlMode`](#shuntvoltagecontrolmode))
+11. `AutomationSystem` (parameter: [`simulateAutomationSystems`](#simulateautomationsystems))
 
 And for DC load flow:
 1. `HvdcAcEmulationLimits` (parameter: [`hvdcAcEmulation`](inv:powsyblcore:*:*:#param-lf-hvdc-ac-emulation))
