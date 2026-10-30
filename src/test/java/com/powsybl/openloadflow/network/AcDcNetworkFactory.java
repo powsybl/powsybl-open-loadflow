@@ -963,6 +963,65 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     }
 
     /**
+     * ACDC test case with 2 DC components linking the same 3 AC networks. Each DC component has 3 converters in different mode.
+     * - conv14 and conv18 are in P_PCC mode
+     * - conv25 and conv29 are in V_DC mode
+     * - conv36 and conv310 are in DC_DROOP mode
+     *
+     * <pre>
+     *                   dl47           dl57
+     *        |-conv14-dn4-----------dn7----------dn5-conv25-|
+     *        |                       |                      |
+     *        |                       | dl67                 |
+     *        |                      dn6                     |
+     *        |                    conv36                    |
+     *        |                       |                      |
+     * g1-ld1-b1                g3---b3---ld3                b2-g2-ld2
+     *        |                       |                      |
+     *        |                    conv310                   |
+     *        |                     dn10                     |
+     *        |                       | dl1011               |
+     *        |         dl811         |         dl911        |
+     *        |-conv18-dn8-----------dn11---------dn9-conv29-|
+     * </pre>
+     */
+    public static Network createMtDcNetworkWithTwoDcComponents() {
+        Network network = createMtDcNetworkWithThreeConvertersControlMode();
+        Bus b1 = network.getBusBreakerView().getBus("b1");
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        Bus b3 = network.getBusBreakerView().getBus("b3");
+
+        DcNode dn8p = createDcNode(network, "dn8p", 400);
+        DcNode dn8n = createDcNode(network, "dn8n", 400, true);
+        DcNode dn9p = createDcNode(network, "dn9p", 400);
+        DcNode dn9n = createDcNode(network, "dn9n", 400, true);
+        DcNode dn10p = createDcNode(network, "dn10p", 400);
+        DcNode dn10n = createDcNode(network, "dn10n", 400, true);
+        DcNode dn11 = createDcNode(network, "dn11", 400);
+
+        createVoltageSourceConverterPccQac(b1, dn8p, dn8n, "conv18", 40, 0);
+        createVoltageSourceConverterVdcQac(b2, dn9p, dn9n, "conv29", 525, 0);
+        VoltageSourceConverter vsc310 = createVoltageSourceConverterPccQac(b3, dn10p, dn10n, "conv310", -20, 0);
+        vsc310.newDroopCurve()
+                .beginSegment()
+                .setMinV(-525)
+                .setMaxV(525)
+                .setK(1)
+                .endSegment()
+                .add();
+        vsc310.setTargetVdc(525);
+        vsc310.setControlMode(AcDcConverter.ControlMode.DC_DROOP);
+        createDcLine(network, dn8p, dn11, "dl811", 0.1);
+        createDcLine(network, dn9p, dn11, "dl911", 0.1);
+        createDcLine(network, dn10p, dn11, "dl1011", 0.1);
+
+        // Adapt AC generation and load to the power exchanged through the second DC component
+        network.getGenerator("g1").setMaxP(200);
+        network.getLoad("ld3").setP0(100);
+        return network;
+    }
+
+    /**
      * Bipolar test case
      * <pre>
      *                  dn3p ------------ dl34p ---------- dn4p

@@ -65,6 +65,7 @@ public class AcDcConverterPowerLimitsOuterLoop implements AcOuterLoop {
             }
 
             // Get the converter with the largest distance to its power limit : this is the one we want to change in P_PCC mode
+            // This is a very simple heuristic, that may be challenged in the future.
             LfAcDcConverter selectedConverter = convertersDistanceToLimit.entrySet().stream()
                     .max(Comparator.comparingDouble(Map.Entry::getValue))
                     .map(Map.Entry::getKey).orElseThrow();

@@ -253,7 +253,6 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
         return AcVariableType.BUS_PHI;
     }
 
-
     /**
      * Activate the equation corresponding to the converter current control mode and deactivate the others.
      * @param converter The converter which control mode has been changed.
