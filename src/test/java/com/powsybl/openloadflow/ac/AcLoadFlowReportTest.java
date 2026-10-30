@@ -21,7 +21,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.solver.MaxVoltageChangeStateVectorScaling;
 import com.powsybl.openloadflow.ac.solver.StateVectorScalingMode;
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
@@ -65,7 +65,7 @@ class AcLoadFlowReportTest {
                      .setMaxVoltageChangeStateVectorScalingMaxDv(MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV / 10)
                      .setMaxVoltageChangeStateVectorScalingMaxDphi(MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI / 10);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -89,7 +89,7 @@ class AcLoadFlowReportTest {
                 .setStateVectorScalingMode(StateVectorScalingMode.LINE_SEARCH)
                 .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -121,7 +121,7 @@ class AcLoadFlowReportTest {
         olfParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW))
                 .setTransformerReactivePowerControl(true);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -147,7 +147,7 @@ class AcLoadFlowReportTest {
 
         var lfParameters = new LoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED).setHvdcAcEmulation(false);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
 
         // test in AC
@@ -208,7 +208,7 @@ class AcLoadFlowReportTest {
                 .withMessageTemplate("testReport")
                 .build();
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -279,7 +279,7 @@ class AcLoadFlowReportTest {
         lfParameters.setTransformerVoltageControlOn(true);
         OpenLoadFlowParameters.create(lfParameters).setMinNominalVoltageTargetVoltageCheck(0.5);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -309,7 +309,7 @@ class AcLoadFlowReportTest {
         var lfParameters = new LoadFlowParameters();
         lfParameters.setTransformerVoltageControlOn(true);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -331,7 +331,7 @@ class AcLoadFlowReportTest {
         var lfParameters = new LoadFlowParameters()
                 .setShuntCompensatorVoltageControlOn(true);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -357,7 +357,7 @@ class AcLoadFlowReportTest {
         var olfParameters = OpenLoadFlowParameters.create(lfParameters);
         olfParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -378,7 +378,7 @@ class AcLoadFlowReportTest {
         OpenLoadFlowParameters.create(lfParameters)
                 .setAreaInterchangeControl(true);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -400,7 +400,7 @@ class AcLoadFlowReportTest {
                 .setMinRealisticVoltage(0.99)
                 .setMaxRealisticVoltage(1.01);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -451,7 +451,7 @@ class AcLoadFlowReportTest {
             .setAcDcNetwork(true)
             .setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
             .setReportNode(reportNode);

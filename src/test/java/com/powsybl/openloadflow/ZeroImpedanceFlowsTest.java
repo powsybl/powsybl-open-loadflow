@@ -15,7 +15,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -534,7 +534,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         network.getGenerator("g4").getVoltageRegulation().setTerminal(network.getLine("l34").getTerminal1(),
                 network.getGenerator("g4").getRegulatingTargetV()); // remote control g4 -> b3
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
-                new LoadFlowParameters(), new OpenLoadFlowParameters(), commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>(), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             assertTrue(lfNetwork.getBranchById("l23").isSpanningTreeEdge(LoadFlowModel.AC));
@@ -577,7 +577,7 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         network.getGenerator("g3").getVoltageRegulation().setTerminal(network.getLine("l34").getTerminal2(),
                 network.getGenerator("g3").getRegulatingTargetV()); // remote control g4 -> b3
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
-                new LoadFlowParameters(), new OpenLoadFlowParameters(), commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>(), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             assertTrue(lfNetwork.getBranchById("l23").isSpanningTreeEdge(LoadFlowModel.AC));

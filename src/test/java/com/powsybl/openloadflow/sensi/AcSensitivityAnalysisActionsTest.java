@@ -24,11 +24,15 @@ import com.powsybl.iidm.serde.NetworkSerDe;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.CommonTestConfig;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -432,5 +436,37 @@ class AcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 LoadFlowAssert.DELTA_POWER);
         assertEquals(actionRefValues.get("FFR2AA1  DDE3AA1  1"), result.getFunctionReferenceValue(reconnectState, "FFR2AA1  DDE3AA1  1", SensitivityFunctionType.BRANCH_CURRENT_2),
                 LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testEvenShiloachIsNotUsedWhenDoingAAcSensitivityAnalysisWithActions() {
+        EvenShiloachGraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = Mockito.spy(EvenShiloachGraphDecrementalConnectivityFactory.class);
+        OpenSensitivityAnalysisProvider provider = new OpenSensitivityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
+        SensitivityAnalysis.Runner runner = new SensitivityAnalysis.Runner(provider);
+
+        Network network = FourBusNetworkFactory.create();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        List<Contingency> contingencies = List.of(new Contingency("l23", new BranchContingency("l23")));
+
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g2")),
+                network.getBranchStream().toList());
+
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("open l14",
+                ContingencyContext.all(),
+                new TrueCondition(), List.of("open l14")));
+        List<Action> actions = List.of(new TerminalsConnectionAction("open l14", "l14", true));
+        runner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions));
+
+        Mockito.verify(connectivityFactory, Mockito.never()).create();
+        Mockito.verify(connectivityFactory, Mockito.atLeastOnce()).supportsIncremental();
     }
 }
