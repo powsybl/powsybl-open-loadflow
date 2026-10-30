@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -29,6 +29,19 @@ public final class LfDcComponentValidator {
     private LfDcComponentValidator() {
     }
 
+    /**
+     * Check that a DC component is a configuration Open Load Flow can solve, and resolve any DC subcomponent (i.e. set
+     * of DC buses connected through DC lines only) that has no element imposing the DC voltage (no connected DC
+     * ground and no fully connected V_DC/DC_DROOP converter), by selecting all fully connected P_PCC
+     * converters of that subcomponent to be promoted to V_DC control internally. Disconnected converters are
+     * ignored: only fully connected ones take part in the checks/resolution.
+     *
+     * @param lfNetwork The network containing the DC component
+     * @param numDCC    The number of the DC component
+     * @return A list of LfAcDcConverter promoted to V_DC control, to use instead of the converter's own control;
+     * empty if no promotion was necessary.
+     * @throws PowsyblException If the DC component configuration is invalid and cannot be resolved automatically.
+     */
     public static List<LfAcDcConverter> resolve(LfNetwork lfNetwork, int numDCC) {
         // Compute DC subcomponents graph
         GraphConnectivity<LfDcBus, LfDcLine> graph = buildDcSubComponentGraph(lfNetwork, numDCC);
@@ -85,15 +98,18 @@ public final class LfDcComponentValidator {
      * Add all converters of the DC subcomponent to V_DC control if the subcomponent has no element already imposing DC
      * voltage; do nothing otherwise.
      *
+     * @param lfNetwork The network containing the DC component
+     * @param numDCC The number of the DC component
+     * @param dcBusesInSubComponent The DC buses in the DC subcomponent
+     * @param convertersToUpdate The converters that must be switched to V_DC mode to ensure the voltage is imposed
      * @throws PowsyblException If the DC subcomponent has no element imposing voltage and no converter can be promoted.
      */
     private static void resolveDcSubComponentIfNeeded(LfNetwork lfNetwork, int numDCC, Set<LfDcBus> dcBusesInSubComponent, List<LfAcDcConverter> convertersToUpdate) {
         List<LfAcDcConverter> convertersInSubComponent = getAcDcConvertersInSubComponent(lfNetwork, numDCC, dcBusesInSubComponent);
-        if (isSubComponentConnectedToGround(dcBusesInSubComponent) ||
-                convertersInSubComponent.stream().anyMatch(conv -> controlsDcVoltage(conv) || convertersToUpdate.contains(conv))
-        ) {
-            return; // already has (or was just given, while resolving an adjacent DC subcomponent) an element imposing DC voltage
-        } else {
+        boolean hasConverterControllingVoltage = convertersInSubComponent.stream().anyMatch(conv ->
+                controlsDcVoltage(conv) || convertersToUpdate.contains(conv) // The converter is already planned to be switched in V_DC mode
+        );
+        if (!hasConverterControllingVoltage && !isSubComponentConnectedToGround(dcBusesInSubComponent)) {
             if (convertersInSubComponent.isEmpty()) {
                 throw new PowsyblException("DC component " + numDCC + " has a DC subcomponent with no DC ground "
                         + "and no AC-DC converter able to settle the DC voltage");
@@ -133,6 +149,8 @@ public final class LfDcComponentValidator {
     /**
      * Find all AC/DC converters connected to the DC subcomponent.
      *
+     * @param lfNetwork The network containing the DC component
+     * @param numDCC The number of the DC component
      * @param dcBusesInSubComponent DC buses in the DC subcomponent.
      * @return The list of AC/DC converter in which one of the buses is part of the DC subcomponent.
      */
@@ -150,15 +168,13 @@ public final class LfDcComponentValidator {
      * Build DC subcomponent connectivity graph. Only LfDcLines are considered as edges, so each DC pole is in a
      * distinct connected component
      *
+     * @param lfNetwork The network containing the DC component
+     * @param numDCC The number of the DC component
      * @return A graph with LfDcBuses as vertices and LfDcLines as edges.
      */
     private static GraphConnectivity<LfDcBus, LfDcLine> buildDcSubComponentGraph(LfNetwork lfNetwork, int numDCC) {
-        // The function to get the vertex number from the LfDcBus cannot be LfDcBus::getNum because that number refers
-        // to its numbering in the LfNetwork. However,the LfDcNetwork does not necessarily contain all DC buses of a
-        // LfNetwork (i.e. there might be several DC components).
-        // Therefore, we use List.indexOf as a ToIntFunction for the connectivity graph.
+        GraphConnectivity<LfDcBus, LfDcLine> graph = new DTreeGraphConnectivityFactory<LfDcBus, LfDcLine>().create();
         List<LfDcBus> dcBusesInSubComponent = getDcBuses(lfNetwork, numDCC);
-        GraphConnectivity<LfDcBus, LfDcLine> graph = new NaiveGraphConnectivityFactory<LfDcBus, LfDcLine>(dcBusesInSubComponent::indexOf).create();
         dcBusesInSubComponent.forEach(graph::addVertex);
 
         // All DC lines in the DC component.
