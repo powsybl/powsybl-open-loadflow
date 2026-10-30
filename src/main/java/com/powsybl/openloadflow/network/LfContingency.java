@@ -204,7 +204,8 @@ public class LfContingency {
             // Only AC quantities
             if (generator.getGeneratorControlType() != LfGenerator.GeneratorControlType.OFF) {
                 generator.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
-                bus.getGeneratorVoltageControl().ifPresent(GeneratorVoltageControl::updateReactiveKeys);
+                // the keys are shared by every controller of the merged control: renormalize them on the main one
+                bus.getGeneratorVoltageControl().ifPresent(vc -> vc.<GeneratorVoltageControl>getMainVoltageControl().updateReactiveKeys());
                 bus.getGeneratorReactivePowerControl().ifPresent(GeneratorReactivePowerControl::updateReactiveKeys);
             }
             if (generator instanceof LfStaticVarCompensator svc) {
