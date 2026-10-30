@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -38,7 +38,7 @@ public final class LfDcComponentValidator {
      *
      * @param lfNetwork The network containing the DC component
      * @param numDCC    The number of the DC component
-     * @return A list of AC-DC converter promoted to V_DC control, to use instead of the converter's own IIDM value;
+     * @return A list of LfAcDcConverter promoted to V_DC control, to use instead of the converter's own control;
      * empty if no promotion was necessary.
      * @throws PowsyblException If the DC component configuration is invalid and cannot be resolved automatically.
      */
@@ -82,14 +82,12 @@ public final class LfDcComponentValidator {
      */
     private static void resolveDcSubComponentIfNeeded(LfNetwork lfNetwork, int numDCC, Set<LfDcBus> dcBusesInSubComponent, List<LfAcDcConverter> convertersToUpdate) {
         List<LfAcDcConverter> convertersInSubComponent = getAcDcConvertersInSubComponent(lfNetwork, numDCC, dcBusesInSubComponent);
-        if (isSubComponentConnectedToGround(dcBusesInSubComponent) ||
-                convertersInSubComponent.stream().anyMatch(conv ->
-                        // Tells whether a converter settles the DC voltage: V_DC does it directly, DC_DROOP does it through the droop law.
-                        conv.getControlMode() == AcDcConverter.ControlMode.V_DC || conv.getControlMode() == AcDcConverter.ControlMode.DC_DROOP
-                                || convertersToUpdate.contains(conv))
-        ) {
-            return; // already has (or was just given, while resolving an adjacent DC subcomponent) an element imposing DC voltage
-        } else {
+        boolean hasConverterControllingVoltage = convertersInSubComponent.stream().anyMatch(conv ->
+                // Tells whether a converter settles the DC voltage: V_DC does it directly, DC_DROOP does it through the droop law.
+                conv.getControlMode() == AcDcConverter.ControlMode.V_DC || conv.getControlMode() == AcDcConverter.ControlMode.DC_DROOP
+                        || convertersToUpdate.contains(conv) // The converter is already planned to be switched in V_DC mode
+        );
+        if (!hasConverterControllingVoltage && !isSubComponentConnectedToGround(dcBusesInSubComponent)) {
             if (convertersInSubComponent.isEmpty()) {
                 throw new PowsyblException("DC component " + numDCC + " has a DC subcomponent with no DC ground "
                         + "and no AC-DC converter able to settle the DC voltage");
@@ -146,12 +144,8 @@ public final class LfDcComponentValidator {
      * @return A graph with LfDcBuses as vertices and LfDcLines as edges.
      */
     private static GraphConnectivity<LfDcBus, LfDcLine> buildDcSubComponentGraph(LfNetwork lfNetwork, int numDCC) {
-        // The function to get the vertex number from the LfDcBus cannot be LfDcBus::getNum because that number refers
-        // to its numbering in the LfNetwork. However,the LfDcNetwork does not necessarily contain all DC buses of a
-        // LfNetwork (i.e. there might be several DC components).
-        // Therefore, we use List.indexOf as a ToIntFunction for the connectivity graph.
+        GraphConnectivity<LfDcBus, LfDcLine> graph = new DTreeGraphConnectivityFactory<LfDcBus, LfDcLine>().create();
         List<LfDcBus> dcBusesInSubComponent = getDcBuses(lfNetwork, numDCC);
-        GraphConnectivity<LfDcBus, LfDcLine> graph = new NaiveGraphConnectivityFactory<LfDcBus, LfDcLine>(dcBusesInSubComponent::indexOf).create();
         dcBusesInSubComponent.forEach(graph::addVertex);
 
         // All DC lines in the DC component.
