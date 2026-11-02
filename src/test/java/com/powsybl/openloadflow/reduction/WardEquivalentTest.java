@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
-import com.powsybl.openloadflow.reduction.Reducer.*;
+import com.powsybl.openloadflow.reduction.ReductionEngine.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

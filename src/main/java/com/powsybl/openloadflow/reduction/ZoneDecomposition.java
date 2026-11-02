@@ -64,10 +64,9 @@ public final class ZoneDecomposition {
     private boolean isBoundaryBus(LfBus lfBus) {
         // A boundary bus is an external bus having a branch linking it to an internal bus
         return lfBus != null
-            && !internalVoltageLevelIds.contains(lfBus.getVoltageLevelId())
+            && !isInternalBus(lfBus)
             && lfBus.getBranches().stream()
-            .anyMatch(br -> br.getBus1() == lfBus && isInternalBus(br.getBus2())
-                || br.getBus2() == lfBus && isInternalBus(br.getBus1()));
+            .anyMatch(br -> isInternalBus(br.getBus1()) || isInternalBus(br.getBus2()));
     }
 
     private boolean isInternalBus(LfBus bus) {

@@ -19,7 +19,7 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.reduction.Reducer.*;
+import com.powsybl.openloadflow.reduction.ReductionEngine.*;
 import com.powsybl.openloadflow.util.PerUnit;
 
 import java.util.ArrayList;
@@ -177,8 +177,10 @@ public class WardEquivalent {
         // Return a vector containing bus voltages real part and imaginary part
         Matrix voltageVector = matrixFactory.create(2 * buses.size(), 1, 2 * buses.size());
         for (int i = 0; i < buses.size(); i++) {
-            voltageVector.set(2 * i, 0, buses.get(i).getV() * Math.cos(buses.get(i).getAngle()));
-            voltageVector.set(2 * i + 1, 0, buses.get(i).getV() * Math.sin(buses.get(i).getAngle()));
+            double v = buses.get(i).getV();
+            double angle = buses.get(i).getAngle();
+            voltageVector.set(2 * i, 0, v * Math.cos(angle));
+            voltageVector.set(2 * i + 1, 0, v * Math.sin(angle));
         }
         return voltageVector;
     }
@@ -306,7 +308,7 @@ public class WardEquivalent {
             // Calculate the power injection in engineering units
             double p = (ux * ix + uy * iy) * PerUnit.SB;
             double q = (-ux * iy + uy * ix) * PerUnit.SB;
-            equivalentInjections.add(new Reducer.EquivalentInjection(bus, p, q));
+            equivalentInjections.add(new EquivalentInjection(bus, p, q));
         }
     }
 

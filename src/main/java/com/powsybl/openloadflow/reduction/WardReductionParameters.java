@@ -21,7 +21,6 @@ import java.util.Set;
 public class WardReductionParameters {
 
     private LoadFlowParameters parameters = new LoadFlowParameters();
-    private MatrixFactory matrixFactory = new SparseMatrixFactory();
     private WardEquivalentType equivalentType = WardEquivalentType.STANDARD;
     private Set<String> internalVoltageLevelIds = Set.of();
 
@@ -42,26 +41,6 @@ public class WardReductionParameters {
      */
     public WardReductionParameters setLoadFlowParameters(LoadFlowParameters parameters) {
         this.parameters = parameters;
-        return this;
-    }
-
-    /**
-     * Get the matrix factory used for matrix operations.
-     *
-     * @return the {@link MatrixFactory} used for matrix operations.
-     */
-    public MatrixFactory getMatrixFactory() {
-        return matrixFactory;
-    }
-
-    /**
-     * Set the matrix factory to be used for matrix operations.
-     *
-     * @param matrixFactory the {@link MatrixFactory} instance to be used for matrix operations.
-     * @return this instance for method chaining.
-     */
-    public WardReductionParameters setMatrixFactory(MatrixFactory matrixFactory) {
-        this.matrixFactory = matrixFactory;
         return this;
     }
 

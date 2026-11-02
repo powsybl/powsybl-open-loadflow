@@ -6,13 +6,16 @@ This guide explains how to run a Ward network reduction using PowSyBl Open Load 
 
 To perform a network reduction, you need:
 1. An IIDM `Network` instance.
-2. A `WardReductionParameters` object configured with at least the set of internal voltage level IDs defining the study area to retain.
+2. A `WardReductionParameters` instance configured with at least the set of internal voltage level IDs defining the study area to retain.
+3. A `MatrixFactory` instance to use for matrix allocations and calculations.
 
 ```java
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.reduction.Reducer;
+import com.powsybl.math.matrix.MatrixFactory;
+import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.openloadflow.reduction.ReductionEngine;
 import com.powsybl.openloadflow.reduction.WardReduction;
 import com.powsybl.openloadflow.reduction.WardReductionParameters;
 
@@ -34,9 +37,10 @@ public class ReductionExample {
         // 4. Configure reduction parameters
         WardReductionParameters parameters = new WardReductionParameters()
             .setInternalVoltageLevelIds(internalVlIds);
+        MatrixFactory matrixFactory = new SparseMatrixFactory();
 
         // 5. Execute network reduction
-        Reducer.ReductionChanges changes = WardReduction.reduce(network, parameters);
+        ReductionEngine.ReductionChanges changes = WardReduction.reduce(network, parameters, matrixFactory);
 
         // 6. Inspect changes
         System.out.println("Removed voltage levels: " + changes.removedVoltageLevels());

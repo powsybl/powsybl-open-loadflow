@@ -22,7 +22,7 @@ import java.util.Objects;
  *
  * @author Romain Courtier {@literal <romain.courtier at rte-france.com>}
  */
-public class Reducer {
+public class ReductionEngine {
 
     /**
      * A constant used for labeling equivalent elements within the reduced network.
@@ -33,13 +33,13 @@ public class Reducer {
     private final ZoneDecomposition zones;
 
     /**
-     * Create a new Reducer instance for performing network reduction.
+     * Create a new ReductionEngine instance for performing network reduction.
      *
      * @param network The {@link Network} to be reduced.
      * @param lfNetwork The {@link LfNetwork} used for the reduction operation.
      * @param zones The {@link ZoneDecomposition} describing the part to keep (internal) and the part to reduce (external)
      */
-    Reducer(Network network, LfNetwork lfNetwork, ZoneDecomposition zones) {
+    ReductionEngine(Network network, LfNetwork lfNetwork, ZoneDecomposition zones) {
         this.network = network;
         this.lfNetwork = lfNetwork;
         this.zones = zones;

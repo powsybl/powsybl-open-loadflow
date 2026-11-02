@@ -1,5 +1,9 @@
 # Ward Equivalent Reduction
 
+## Prerequisite
+
+The reduction with equivalent substitution should be performed on a balanced network where a load flow has run.
+
 ## Network decomposition
 
 To perform a network reduction, the buses of the power grid are partitioned into three distinct sets based on the user-specified internal voltage levels:
@@ -76,24 +80,28 @@ V_{b}
 $$
 
 where:
-- $Y_{eq} = Y_{bb}^{b+e} - Y_{be} Y_{ee}^{-1} Y_{eb}$
-- $I_{eq} = I_b - Y_{be} Y_{ee}^{-1} I_e$
+$$
+Y_{eq} = Y_{bb}^{b+e} - Y_{be} Y_{ee}^{-1} Y_{eb}
+$$
+$$
+I_{eq} = I_b - Y_{be} Y_{ee}^{-1} I_e
+$$
 
 ## Equivalents computation
 
-The equivalent $Y_{eq}$ matrix and $I_{eq}$ are converted to equivalent elements in the network:
+The equivalent $Y_{eq}$ matrix and $I_{eq}$ vector are converted to equivalent elements in the network:
 
 ### Equivalent branches
 
 The off-diagonal elements of $Y_{eq}$ represent equivalent branches between boundary buses $j$ and $k$:
 
 $$
-Y_{\text{branch, jk}} = - Y_{eq}(j, k)
+Y_{\text{branch, j, k}} = - Y_{eq}(j, k)
 $$
 
 ### Equivalent shunts
 
-The diagonal elements yield equivalent shunt admittances on boundary bus $j$:
+The elements of row $j$ of $Y_{eq}$ yield equivalent shunt admittances on boundary bus $j$:
 
 $$
 Y_{\text{shunt, j}} = \sum_{k} Y_{eq}(j, k)
@@ -110,10 +118,10 @@ $$
 ## Reduction of the IIDM network
 
 The Ward reduction process applied to an IIDM network comprises:
-1. **Creation of equivalent voltage levels**: For each boundary voltage level and bus, a new voltage level (with the suffix `_EQUIV`) and bus is created in the network to isolate the boundary interface.
-2. **Reconnection of tie-lines**: The tie-lines connecting internal buses to boundary buses are moved to connect to the new equivalent voltage levels/buses.
+1. **Creation of equivalent voltage levels**: For each boundary voltage level and bus, a new voltage level and bus (with the suffix `-equivalent`) is created in the network to isolate the boundary interface.
+2. **Reconnection of tie-lines**: The tie-lines connecting internal buses to boundary buses are moved on the boundary side to connect to the new equivalent voltage levels/buses.
 3. **Removal of external elements**: All external lines, transformers, voltage levels, and substations are removed.
 4. **Addition of equivalent elements**:
-   - **Equivalent lines** (`Line`) added between boundary buses
-   - **Equivalent shunts** (`ShuntCompensator`) added at boundary buses
-   - **Equivalent generators** (`Generator`) added at boundary buses
+   - **Equivalent lines** (`Line`) are added between boundary buses
+   - **Equivalent shunts** (`ShuntCompensator`) are added at boundary buses
+   - **Equivalent generators** (`Generator`) are added at boundary buses

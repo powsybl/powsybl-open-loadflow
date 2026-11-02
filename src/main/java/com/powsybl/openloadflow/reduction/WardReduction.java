@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.reduction;
 
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
@@ -36,9 +37,9 @@ public final class WardReduction {
      *
      * @param network the {@link Network} to be reduced
      * @param parameters the {@link WardReductionParameters} specifying the reduction process
-     * @return The {@link Reducer.ReductionChanges} applied to the network
+     * @return The {@link ReductionEngine.ReductionChanges} applied to the network
      */
-    public static Reducer.ReductionChanges reduce(Network network, WardReductionParameters parameters) {
+    public static ReductionEngine.ReductionChanges reduce(Network network, WardReductionParameters parameters, MatrixFactory matrixFactory) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
 
@@ -46,7 +47,7 @@ public final class WardReduction {
         LoadFlowParameters lfParameters = parameters.getLoadFlowParameters();
         OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
         AcLoadFlowParameters acLfParameters = OpenLoadFlowParameters.createAcParameters(
-            network, lfParameters, lfParametersExt, parameters.getMatrixFactory(), new DTreeGraphConnectivityFactory<>()
+            network, lfParameters, lfParametersExt, matrixFactory, new DTreeGraphConnectivityFactory<>()
         );
         List<LfNetwork> lfNetworks = LfNetwork.load(network, new LfNetworkLoaderImpl(), acLfParameters.getNetworkParameters());
         if (lfNetworks.size() > 1) {
@@ -58,12 +59,12 @@ public final class WardReduction {
         ZoneDecomposition zones = new ZoneDecomposition(lfNetwork, parameters.getInternalVoltageLevelIds());
 
         // Calculate the Ward equivalent
-        WardEquivalent wardEquivalent = new WardEquivalent(lfNetwork, zones, parameters.getEquivalentType(), parameters.getMatrixFactory());
+        WardEquivalent wardEquivalent = new WardEquivalent(lfNetwork, zones, parameters.getEquivalentType(), matrixFactory);
 
         // Reduce the network with equivalents
-        Reducer reducer = new Reducer(network, lfNetwork, zones);
+        ReductionEngine reductionEngine = new ReductionEngine(network, lfNetwork, zones);
 
-        return reducer.reduceWithWardEquivalent(wardEquivalent);
+        return reductionEngine.reduceWithWardEquivalent(wardEquivalent);
     }
 
 }

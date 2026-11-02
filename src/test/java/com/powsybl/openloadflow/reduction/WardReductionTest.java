@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ReferencePriority;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.ReferenceBusSelectionMode;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.powsybl.openloadflow.reduction.Reducer.EQUIVALENT;
+import static com.powsybl.openloadflow.reduction.ReductionEngine.EQUIVALENT;
 import static com.powsybl.openloadflow.reduction.ReductionUtil.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -52,7 +53,7 @@ class WardReductionTest {
         WardReductionParameters wardParameters = new WardReductionParameters()
             .setInternalVoltageLevelIds(internalVlIds)
             .setLoadFlowParameters(loadFlowParameters);
-        Reducer.ReductionChanges changes = WardReduction.reduce(network, wardParameters);
+        ReductionEngine.ReductionChanges changes = WardReduction.reduce(network, wardParameters, new SparseMatrixFactory());
         assertEquals(externalVlIds, changes.removedVoltageLevels().stream().map(VoltageLevel::getId).collect(Collectors.toSet()));
 
         // Run a load flow after reduction and read the bus state values on internal and boundary buses
