@@ -123,8 +123,7 @@ public class LfZeroImpedanceNetwork {
     }
 
     private static double computeZeroImpedanceWeight(LfBranch branch) {
-        double limit = getMinLoadingLimit(branch);
-        return limit;
+        return getMinLoadingLimit(branch);
     }
 
     private static double getMinLoadingLimit(LfBranch branch) {
