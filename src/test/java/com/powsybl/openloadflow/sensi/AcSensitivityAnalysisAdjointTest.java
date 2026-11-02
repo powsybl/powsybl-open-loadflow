@@ -17,32 +17,15 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.sensitivity.SensitivityAnalysis;
-import com.powsybl.sensitivity.SensitivityAnalysisParameters;
-import com.powsybl.sensitivity.SensitivityAnalysisResult;
-import com.powsybl.sensitivity.SensitivityAnalysisRunParameters;
-import com.powsybl.sensitivity.SensitivityFactor;
-import com.powsybl.sensitivity.SensitivityFunctionType;
-import com.powsybl.sensitivity.SensitivityVariableSet;
-import com.powsybl.sensitivity.SensitivityVariableType;
-import com.powsybl.sensitivity.WeightedSensitivityVariable;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
+import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Finite-difference / forward cross-check of the reverse-mode entry point
@@ -126,7 +109,7 @@ class AcSensitivityAnalysisAdjointTest {
 
         // reverse mode: ȳ = e_branch -> θ̄_g = dP_branch1/dP_g
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams);
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
         Map<AcSensitivityAnalysis.VariableRef, Double> thetaBar = analysis.runAdjoint(network,
                 network.getVariantManager().getWorkingVariantId(), List.of(),
                 Map.of(new AcSensitivityAnalysis.FunctionRef(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, branch), 1.0),
@@ -179,7 +162,7 @@ class AcSensitivityAnalysisAdjointTest {
         sensiParams.setLoadFlowParameters(lfp);
 
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams);
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
         Map<AcSensitivityAnalysis.VariableRef, Double> thetaBar = analysis.runAdjoint(network,
                 network.getVariantManager().getWorkingVariantId(), List.of(),
                 Map.of(new AcSensitivityAnalysis.FunctionRef(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, branch), 1.0),
@@ -250,7 +233,7 @@ class AcSensitivityAnalysisAdjointTest {
                     SensitivityVariableType.SVC_PILOT_POINT_TARGET_VOLTAGE, zone, false, ContingencyContext.all()));
         }
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams);
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
 
         // forward closed-loop sensitivity S (kV/kV) and a per-bus re-solve central FD (kV/kV)
         SensitivityAnalysisResult fwd = SensitivityAnalysis.find().run(network, factors,
@@ -315,7 +298,7 @@ class AcSensitivityAnalysisAdjointTest {
         sensiParams.setLoadFlowParameters(lfp);
 
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams);
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
         Map<AcSensitivityAnalysis.VariableRef, Double> thetaBar = analysis.runAdjoint(network,
                 network.getVariantManager().getWorkingVariantId(), List.of(),
                 Map.of(powerKey(branchA), wA, powerKey(branchB), wB),
@@ -374,7 +357,7 @@ class AcSensitivityAnalysisAdjointTest {
         SensitivityAnalysisParameters sensiParams = new SensitivityAnalysisParameters();
         sensiParams.setLoadFlowParameters(lfp);
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams);
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
 
         String variantId = network.getVariantManager().getWorkingVariantId();
         List<AcSensitivityAnalysis.AdjointVariable> lineLever =
@@ -435,7 +418,7 @@ class AcSensitivityAnalysisAdjointTest {
         SensitivityAnalysisParameters sensiParams = new SensitivityAnalysisParameters();
         sensiParams.setLoadFlowParameters(lfp);
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams);
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
 
         double w1 = 0.7;
         double w2 = -1.3;
@@ -481,7 +464,7 @@ class AcSensitivityAnalysisAdjointTest {
         SensitivityAnalysisParameters sensiParams = new SensitivityAnalysisParameters();
         sensiParams.setLoadFlowParameters(lfp);
         return new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams);
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
     }
 
     /**
@@ -655,11 +638,11 @@ class AcSensitivityAnalysisAdjointTest {
                 levers(SensitivityVariableType.INJECTION_ACTIVE_POWER, GENS);
 
         Map<AcSensitivityAnalysis.VariableRef, Double> direct = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams)
+                new DTreeGraphConnectivityFactory<>(), sensiParams)
                 .runAdjoint(network, variantId, List.of(), cot, variables);
         Map<AcSensitivityAnalysis.VariableRef, Double> viaProvider =
                 new OpenSensitivityAnalysisProvider(new SparseMatrixFactory(),
-                        new EvenShiloachGraphDecrementalConnectivityFactory<>())
+                        new DTreeGraphConnectivityFactory<>())
                         .runAdjoint(network, variantId, cot, variables, List.of(), sensiParams);
 
         assertEquals(direct.keySet(), viaProvider.keySet(), "the provider returned a different lever set");
@@ -674,7 +657,7 @@ class AcSensitivityAnalysisAdjointTest {
         SensitivityAnalysisParameters dcParams = new SensitivityAnalysisParameters();
         dcParams.setLoadFlowParameters(new LoadFlowParameters().setDc(true));
         OpenSensitivityAnalysisProvider provider = new OpenSensitivityAnalysisProvider(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DTreeGraphConnectivityFactory<>());
         PowsyblException dc = assertThrows(PowsyblException.class,
             () -> provider.runAdjoint(network, variantId, cot, variables, List.of(), dcParams));
         assertTrue(dc.getMessage().contains("only supported in AC"), dc.getMessage());
@@ -718,7 +701,7 @@ class AcSensitivityAnalysisAdjointTest {
         SensitivityAnalysisParameters sensiParams = new SensitivityAnalysisParameters();
         sensiParams.setLoadFlowParameters(lfp);
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams);
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
         Map<AcSensitivityAnalysis.VariableRef, Double> theta = analysis.runAdjoint(network,
                 network.getVariantManager().getWorkingVariantId(), variableSets, cot,
                 List.of(AcSensitivityAnalysis.AdjointVariable.ofVariableSet(
@@ -762,7 +745,7 @@ class AcSensitivityAnalysisAdjointTest {
         SensitivityAnalysisParameters sensiParams = new SensitivityAnalysisParameters();
         sensiParams.setLoadFlowParameters(lfp);
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams);
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
         String variantId = network.getVariantManager().getWorkingVariantId();
         List<AcSensitivityAnalysis.AdjointVariable> variables =
                 levers(SensitivityVariableType.INJECTION_ACTIVE_POWER, GENS);
@@ -846,7 +829,7 @@ class AcSensitivityAnalysisAdjointTest {
         SensitivityAnalysisParameters sensiParams = new SensitivityAnalysisParameters();
         sensiParams.setLoadFlowParameters(lfp);
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams);
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
         String variantId = network.getVariantManager().getWorkingVariantId();
 
         Map<AcSensitivityAnalysis.VariableRef, Double> theta = analysis.runAdjoint(network, variantId, List.of(), cot, vars);
@@ -903,7 +886,7 @@ class AcSensitivityAnalysisAdjointTest {
         SensitivityAnalysisParameters sensiParams = new SensitivityAnalysisParameters();
         sensiParams.setLoadFlowParameters(lfp);
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams);
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
         String variantId = network.getVariantManager().getWorkingVariantId();
         Map<AcSensitivityAnalysis.VariableRef, Double> theta = analysis.runAdjoint(network, variantId, List.of(), cot, vars);
 
@@ -947,7 +930,7 @@ class AcSensitivityAnalysisAdjointTest {
         SensitivityAnalysisParameters sensiParams = new SensitivityAnalysisParameters();
         sensiParams.setLoadFlowParameters(lfp);
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams);
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
         String variantId = network.getVariantManager().getWorkingVariantId();
 
         List<AcSensitivityAnalysis.AdjointVariable> lineLevers = levers(SensitivityVariableType.BRANCH_ADMITTANCE, lines);
@@ -1022,7 +1005,7 @@ class AcSensitivityAnalysisAdjointTest {
         SensitivityAnalysisParameters sensiParams = new SensitivityAnalysisParameters();
         sensiParams.setLoadFlowParameters(lfp);
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams);
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
         Map<AcSensitivityAnalysis.VariableRef, Double> theta = analysis.runAdjoint(network,
                 network.getVariantManager().getWorkingVariantId(), List.of(), cot, vars);
 
@@ -1073,7 +1056,7 @@ class AcSensitivityAnalysisAdjointTest {
         SensitivityAnalysisParameters sensiParams = new SensitivityAnalysisParameters();
         sensiParams.setLoadFlowParameters(lfp);
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams);
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
         String variantId = network.getVariantManager().getWorkingVariantId();
 
         List<AcSensitivityAnalysis.AdjointVariable> admittanceLever =
@@ -1154,7 +1137,7 @@ class AcSensitivityAnalysisAdjointTest {
         SensitivityAnalysisParameters sensiParams = new SensitivityAnalysisParameters();
         sensiParams.setLoadFlowParameters(lfp);
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams);
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
         Map<AcSensitivityAnalysis.VariableRef, Double> theta = analysis.runAdjoint(network, network.getVariantManager().getWorkingVariantId(),
                 List.of(), cot, vars);
 
@@ -1202,7 +1185,7 @@ class AcSensitivityAnalysisAdjointTest {
         SensitivityAnalysisParameters sensiParams = new SensitivityAnalysisParameters();
         sensiParams.setLoadFlowParameters(lfp);
         AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>(), sensiParams);
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
         String variantId = network.getVariantManager().getWorkingVariantId();
         Map<AcSensitivityAnalysis.FunctionRef, Double> cot = Map.of(powerKey("L1-2-1"), 1.0);
         List<AcSensitivityAnalysis.AdjointVariable> vars =
