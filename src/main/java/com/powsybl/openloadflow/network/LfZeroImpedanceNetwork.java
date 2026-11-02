@@ -134,10 +134,7 @@ public class LfZeroImpedanceNetwork {
     private static double getMinLoadingLimitSide(BiFunction<LimitType, LimitScalingManager, List<LfBranch.LfLimitsGroup>> limits, LfBus bus) {
         double min = getMinLoadingLimitGroup(limits.apply(LimitType.APPARENT_POWER, null));
         min = Math.min(min, activePowerToApparentPower(getMinLoadingLimitGroup(limits.apply(LimitType.ACTIVE_POWER, null))));
-        if (bus != null) {
-            min = Math.min(min, currentToApparentPower(getMinLoadingLimitGroup(limits.apply(LimitType.CURRENT, null)), bus.getNominalV()));
-        }
-        return min;
+        return Math.min(min, currentToApparentPower(getMinLoadingLimitGroup(limits.apply(LimitType.CURRENT, null)), bus.getNominalV()));
     }
 
     private static double getMinLoadingLimitGroup(List<LfBranch.LfLimitsGroup> limitsGroup) {
