@@ -27,8 +27,8 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowResult;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 import com.powsybl.openloadflow.network.*;
@@ -65,7 +65,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
     }
 
     public OpenLoadFlowProvider(MatrixFactory matrixFactory) {
-        this(matrixFactory, new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        this(matrixFactory, new DTreeGraphConnectivityFactory<>());
     }
 
     public OpenLoadFlowProvider(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory) {
