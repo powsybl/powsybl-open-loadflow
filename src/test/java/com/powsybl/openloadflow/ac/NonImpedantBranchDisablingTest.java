@@ -17,8 +17,7 @@ import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
@@ -62,7 +61,7 @@ class NonImpedantBranchDisablingTest {
         AcLoadFlowParameters parameters = OpenLoadFlowParameters.createAcParameters(new LoadFlowParameters(),
                                                                                     new OpenLoadFlowParameters(),
                                                                                     commonTestConfig.matrixFactory(),
-                                                                                    new EvenShiloachGraphDecrementalConnectivityFactory<>(),
+                                                                                    new DTreeGraphConnectivityFactory<>(),
                                                                                     true,
                                                                                     false);
         parameters.getNetworkParameters().setSlackBusSelector(new NameSlackBusSelector("VL1_1"));
@@ -125,7 +124,7 @@ class NonImpedantBranchDisablingTest {
                 = OpenLoadFlowParameters.createAcParameters(network,
                                                             parameters, olfParameters,
                                                             commonTestConfig.matrixFactory(),
-                                                            new NaiveGraphConnectivityFactory<>(LfElement::getNum),
+                                                            new DTreeGraphConnectivityFactory<>(),
                                                             true,
                                                             false);
         LfTopoConfig topoConfig = new LfTopoConfig();
