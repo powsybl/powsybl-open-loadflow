@@ -23,6 +23,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import java.util.List;
+import java.util.Set;
+
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
 import static org.junit.Assert.assertNotNull;
@@ -222,6 +225,19 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         assertZeroImpedanceLoop(network, l34, l35, l45, LimitType.APPARENT_POWER, 2000.0);
         assertZeroImpedanceLoop(network, l34, l35, l45, LimitType.ACTIVE_POWER, 1000.0);
         assertZeroImpedanceLoop(network, l34, l35, l45, LimitType.CURRENT, 500.0);
+    }
+
+    @Test
+    void fiveBusesZeroImpedanceLineToStringTest() {
+        Network network = createFiveBusesWithZeroImpedanceLineNetwork();
+
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
+        LfNetwork mainNetwork = lfNetworks.get(0);
+
+        Set<LfZeroImpedanceNetwork> zeroImpedanceNetworkSet = mainNetwork.getZeroImpedanceNetworks(LoadFlowModel.AC);
+        assertEquals(1, zeroImpedanceNetworkSet.size());
+        assertEquals("LfZeroImpedanceNetwork(loadFlowModel=AC, buses=[b3_vl_0, b4_vl_0, b5_vl_0], branches=[l34, l35, l45])",
+                zeroImpedanceNetworkSet.iterator().next().toString());
     }
 
     private void assertZeroImpedanceLoop(Network network, Line l34, Line l35, Line l45, LimitType limitType, double value) {
