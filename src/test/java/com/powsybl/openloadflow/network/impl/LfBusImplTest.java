@@ -12,7 +12,7 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -143,7 +143,7 @@ class LfBusImplTest {
     }
 
     private static List<LfGenerator> createLfGeneratorsWithInitQ(Network network, List<Double> initQs) {
-        LfNetwork lfNetwork = new LfNetwork(0, new FirstSlackBusSelector(), 1, new NaiveGraphConnectivityFactory<>(LfBus::getNum), new ReferenceBusFirstSlackSelector());
+        LfNetwork lfNetwork = new LfNetwork(0, new FirstSlackBusSelector(), 1, new DTreeGraphConnectivityFactory<>(), new ReferenceBusFirstSlackSelector());
         LfNetworkParameters parameters1 = new LfNetworkParameters()
                 .setPlausibleActivePowerLimit(100)
                 .setMinPlausibleTargetVoltage(0.9)
