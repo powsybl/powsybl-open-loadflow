@@ -102,7 +102,7 @@ class OpenLoadFlowProviderTest {
                 "stoppingCriteria=DefaultNewtonRaphsonStoppingCriteria, stateVectorScalingMode=NONE, alwaysUpdateNetwork=false, " +
                 "lineSearchStateVectorScalingMaxIteration=10, lineSearchStateVectorScalingStepFold=1.3333333333333333, " +
                 "maxVoltageChangeStateVectorScalingMaxDv=0.1, maxVoltageChangeStateVectorScalingMaxDphi=0.17453292519943295), " +
-                "outerLoops=[DistributedSlackOuterLoop, AcHvdcAcEmulationLimitsOuterLoop, MonitoringVoltageOuterLoop, ReactiveLimitsOuterLoop], " +
+                "outerLoops=[DistributedSlackOuterLoop, AcHvdcAcEmulationLimitsOuterLoop, AcDcConverterPowerLimitsOuterLoop, MonitoringVoltageOuterLoop, ReactiveLimitsOuterLoop], " +
                 "maxOuterLoopIterations=20, matrixFactory=DenseMatrixFactory, voltageInitializer=UniformValueVoltageInitializer, " +
                 "asymmetrical=false, slackDistributionFailureBehavior=FAIL, solverFactory=NewtonRaphsonFactory, detailedReport=false, " +
                 "voltageRemoteControlRobustMode=true, minRealisticVoltage=0.5, maxRealisticVoltage=2.0, minNominalVoltageRealisticVoltageCheck=0.0, " +

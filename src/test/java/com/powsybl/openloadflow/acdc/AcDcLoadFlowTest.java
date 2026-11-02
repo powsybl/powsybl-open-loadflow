@@ -18,12 +18,7 @@ import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
-import com.powsybl.openloadflow.network.AcDcNetworkFactory;
-import com.powsybl.openloadflow.network.FirstSlackBusSelector;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.LfVoltageSourceConverter;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1295,4 +1290,195 @@ class AcDcLoadFlowTest {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters).get(0);
     }
 
+    // -- AC-DC converter AC power limits
+
+    @Test
+    void testActiveLimitsMinPIsEnforced() {
+        // In a 3 terminal DC network, the active limit of the converter in V_DC mode is reached. Its AC active power is capped to the limit.
+        Network network = AcDcNetworkFactory.createMtDcNetworkWithThreeConvertersControlMode();
+
+        // conv14 is in P_PCC mode and absorbs 70 MW from the AC network
+        // conv36 is in DC_DROOP mode and targets to inject 20 MW in the AC network
+        // conv25 is in V_DC mode and is therefore expected to inject 50 MW in the AC network. We set its limit to 30 MW
+        VoltageSourceConverter conv25 = network.getVoltageSourceConverter("conv25");
+        conv25.setMinP(-30);
+
+        // Run load flow
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check that conv25 injects 30 MW (capped to its limit)
+        assertActivePowerEquals(-30d, conv25.getTerminal1());
+        // Check its IIDM control mode is still V_DC
+        assertEquals(ControlMode.V_DC, conv25.getControlMode());
+        // Check that conv36 has absorbed the difference, and now injects about 40 MW instead of 20 MW
+        double tolerance = 1d; // Large tolerance: ignores DC losses but captures setpoint change
+        VoltageSourceConverter conv36 = network.getVoltageSourceConverter("conv36");
+        assertEquals(-40d, conv36.getTerminal1().getP(), tolerance);
+
+        // Check this setpoint change is reflected in AC
+        assertActivePowerEquals(-70, network.getGenerator("g2").getTerminal());
+        assertEquals(-10, network.getGenerator("g3").getTerminal().getP(), tolerance);
+    }
+
+    @Test
+    void testActiveLimitsMaxPIsEnforced() {
+        // Same case as testActiveLimitsMinPIsEnforced, but the converter in V_DC mode exceeds its upper limit instead of its lower one.
+        Network network = AcDcNetworkFactory.createMtDcNetworkWithThreeConvertersControlMode();
+
+        // conv25 is in V_DC mode and is expected to inject about 50 MW in the AC network. We force it to inject at least 60 MW
+        VoltageSourceConverter conv25 = network.getVoltageSourceConverter("conv25");
+        conv25.setMaxP(-60);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check that conv25 injects 60 MW (capped to its limit) and that its IIDM control mode is unchanged
+        assertActivePowerEquals(-60d, conv25.getTerminal1());
+        assertEquals(ControlMode.V_DC, conv25.getControlMode());
+        // Check that conv36 (DC_DROOP) has absorbed the difference, and now injects about 10 MW instead of 20 MW
+        double tolerance = 1d; // Large tolerance: ignores DC losses but captures setpoint change
+        assertEquals(-10d, network.getVoltageSourceConverter("conv36").getTerminal1().getP(), tolerance);
+    }
+
+    @Test
+    void testActiveLimitsAreEnforcedOnDroopConverter() {
+        // In a 3 terminal DC network, the active limit of the converter in DC_DROOP mode is reached. Its AC active power is capped to the limit.
+        Network network = AcDcNetworkFactory.createMtDcNetworkWithThreeConvertersControlMode();
+
+        // conv36 is in DC_DROOP mode and targets to inject 20 MW in the AC network. We set its limit to 10 MW
+        VoltageSourceConverter conv36 = network.getVoltageSourceConverter("conv36");
+        conv36.setMinP(-10);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check that conv36 injects 10 MW (capped to its limit) and that its IIDM control mode is unchanged
+        assertActivePowerEquals(-10d, conv36.getTerminal1());
+        assertEquals(ControlMode.DC_DROOP, conv36.getControlMode());
+        // Check that conv25 (V_DC) has absorbed the difference, and now injects about 60 MW instead of 50 MW
+        double tolerance = 1d; // Large tolerance: ignores DC losses but captures setpoint change
+        assertEquals(-60d, network.getVoltageSourceConverter("conv25").getTerminal1().getP(), tolerance);
+    }
+
+    @Test
+    void testActiveLimitsAreDisregarded() {
+        // In a 3 terminal DC network, the active limit of the converter in V_DC mode is reached.
+        // This limit is ignored because the parameter useActiveLimits is set to false
+        Network network = AcDcNetworkFactory.createMtDcNetworkWithThreeConvertersControlMode();
+
+        // Run load flow
+        parametersExt.setUseActiveLimits(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check that conv25 injects about 50 MW
+        double tolerance = 1d; // Large tolerance: ignores DC losses but captures setpoint change
+        assertEquals(-50d, network.getVoltageSourceConverter("conv25").getTerminal1().getP(), tolerance);
+        // Check that conv36 injects about 20 MW
+        assertEquals(-20d, network.getVoltageSourceConverter("conv36").getTerminal1().getP(), tolerance);
+    }
+
+    @Test
+    void testActiveLimitsFailsIfDcVoltageCannotBeControlled() {
+        // A converter must be switched to P_PCC but then nothing controls the voltage: load flow fails
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+
+        // Converter conv23 is in P_PCC mode and absorbs 50 MW
+        // We set the minimum active power of conv45 to -10 MW: its power limits are exceeded
+        // However, changing its control mode to P_PCC would let the DC network without voltage control : the load flow fails
+        VoltageSourceConverter vsc = network.getVoltageSourceConverter("conv45");
+        vsc.setMinP(-10);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFailed());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().getFirst().getStatus());
+        assertEquals("Outer loop 'AcDcConverterPowerLimits' failed: Could not enforce AC-DC converter active power limit and ensure DC voltage control in DC component 0",
+                result.getComponentResults().getFirst().getStatusText());
+    }
+
+    @Test
+    void testActiveLimitsRejectsInvalidPccConverter() {
+        // The targetP of a converter in P_PCC mode is not within [minP ; maxP]. An exception is thrown when loading the lfNetwork.
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+        VoltageSourceConverter vsc = network.getVoltageSourceConverter("conv23");
+        vsc.setTargetP(60.);
+        LfNetworkParameters lfParameters = new LfNetworkParameters().setAcDcNetwork(true);
+
+        // Set minP above targetP
+        vsc.setMaxP(Double.MAX_VALUE);
+        vsc.setMinP(vsc.getTargetP() + 1);
+
+        PowsyblException e1 = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
+        assertTrue(e1.getMessage().contains("is below its minP"));
+
+        // Set maxP under targetP
+        vsc.setMinP(-Double.MAX_VALUE);
+        vsc.setMaxP(vsc.getTargetP() - 1);
+
+        PowsyblException e2 = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
+        assertTrue(e2.getMessage().contains("is above its maxP"));
+
+        // If OpenLoadFlow useActiveLimits parameter is set to false, no exception is raised
+        lfParameters.setUseActiveLimits(false);
+
+        // Set minP above targetP
+        vsc.setMaxP(Double.MAX_VALUE);
+        vsc.setMinP(vsc.getTargetP() + 1);
+        assertDoesNotThrow(() -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
+
+        // Set maxP under targetP
+        vsc.setMinP(-Double.MAX_VALUE);
+        vsc.setMaxP(vsc.getTargetP() - 1);
+        assertDoesNotThrow(() -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
+    }
+
+    @Test
+    void testActiveLimitsSeveralViolationsInSameDcComponent() {
+        // In a 3 terminal DC network, both the V_DC and the DC_DROOP converters exceed their limit.
+        // Only the converter furthest from its limit must be switched to P_PCC: this is enough to bring the other one within its limits.
+        Network network = AcDcNetworkFactory.createMtDcNetworkWithThreeConvertersControlMode();
+
+        // conv25 (V_DC) is expected to inject about 50 MW: we set its limit to 30 MW (20 MW away from the limit)
+        VoltageSourceConverter conv25 = network.getVoltageSourceConverter("conv25");
+        conv25.setMinP(-30);
+        // conv36 (DC_DROOP) is expected to inject about 20 MW: we force it to inject at least 25 MW (5 MW away from the limit)
+        VoltageSourceConverter conv36 = network.getVoltageSourceConverter("conv36");
+        conv36.setMaxP(-25);
+
+        // If conv36 was switched first (or both together), the only converter left controlling the DC voltage would be
+        // conv25, which would still exceed its limit: the outer loop would fail.
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // conv25 is capped to its limit
+        assertActivePowerEquals(-30d, conv25.getTerminal1());
+        // conv36 absorbs the difference and injects about 40 MW, which is now within its limits
+        double tolerance = 1d; // Large tolerance: ignores DC losses but captures setpoint change
+        assertEquals(-40d, conv36.getTerminal1().getP(), tolerance);
+    }
+
+    @Test
+    void testActiveLimitsViolationsInSeveralDcComponents() {
+        // Two DC components, each with a V_DC converter exceeding its limit. Each DC component is handled independently.
+        Network network = AcDcNetworkFactory.createMtDcNetworkWithTwoDcComponents();
+
+        // First DC component: conv25 (V_DC) is expected to inject about 50 MW, we set its limit to 30 MW
+        VoltageSourceConverter conv25 = network.getVoltageSourceConverter("conv25");
+        conv25.setMinP(-30);
+        // Second DC component: conv29 (V_DC) is expected to inject about 20 MW, we set its limit to 10 MW
+        VoltageSourceConverter conv29 = network.getVoltageSourceConverter("conv29");
+        conv29.setMinP(-10);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        double tolerance = 1d; // Large tolerance: ignores DC losses but captures setpoint change
+        // First DC component: conv25 is capped and conv36 (DC_DROOP) injects about 40 MW instead of 20 MW
+        assertActivePowerEquals(-30d, conv25.getTerminal1());
+        assertEquals(-40d, network.getVoltageSourceConverter("conv36").getTerminal1().getP(), tolerance);
+        // Second DC component: conv29 is capped and conv310 (DC_DROOP) injects about 30 MW instead of 20 MW
+        assertActivePowerEquals(-10d, conv29.getTerminal1());
+        assertEquals(-30d, network.getVoltageSourceConverter("conv310").getTerminal1().getP(), tolerance);
+    }
 }

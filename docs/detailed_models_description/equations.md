@@ -396,3 +396,9 @@ band's coefficient is used (clamping), so $k$ is always defined.
 
 The reported solution is self-consistent: for each converter, the applied $k$ is the one its
 curve assigns to that converter's own solved $U_{dc}$, provided that the load flow computation converges.
+
+#### Active power limits
+If the converter has active power limits defined in the IIDM model and the parameter [useActiveLimits](../loadflow/parameters.md#useactivelimits) is set to true, OpenLoadFlow ensures the converter active power stays within the defined bounds (`minP`, `maxP`).
+- If the converter is in `P_PCC` mode, OpenLoadFlow checks that its `targetP` is between `minP` and `maxP` and throws an exception otherwise.
+- If the converter is in `V_DC` or `DC_DROOP` mode, and it exceeds one of its active power limit, its active power is saturated to this limit by switching the converter to `P_PCC` mode with the exceeded limit as new `targetP`. 
+If this control mode switch leads to an invalid DC configuration (i.e. missing DC voltage regulation), the load flow fails. No de-saturation mechanism is implemented.
