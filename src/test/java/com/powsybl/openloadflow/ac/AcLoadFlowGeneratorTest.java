@@ -92,13 +92,18 @@ class AcLoadFlowGeneratorTest {
     void testGeneratorTanPhi() {
         Network network = FourBusNetworkFactory.createBaseNetwork();
         Generator g1 = network.getGenerator("g1");
-        Bus b1 = network.getBusBreakerView().getBus("b1");
-        Bus b4 = network.getBusBreakerView().getBus("b4");
         g1.newVoltageRegulation().withMode(RegulationMode.REACTIVE_POWER_PER_ACTIVE_POWER)
                 .withSlope(0.3)
                 .build();
         LoadFlowResult result = loadFlowRunner.run(network, runParameters);
-        TO DO
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(-3.333, g1.getTerminal());
+        assertReactivePowerEquals(-1, g1.getTerminal());
+        g1.getVoltageRegulation().setSlope(-0.3);
+        result = loadFlowRunner.run(network, runParameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(-3.333, g1.getTerminal());
+        assertReactivePowerEquals(1, g1.getTerminal());
     }
 
     @Test
