@@ -652,6 +652,71 @@ class AcLoadFlowPhaseShifterTest {
     }
 
     @Test
+    void incrementalPhaseShifterActivePowerControlInSeriesTest() throws IOException {
+        // PS1 and PS2 are in series and control the same flow: initially 50 MW, target 76 MW (+/- 2 MW)
+        Network network = PhaseControlFactory.createWithTwoT2wtInSeriesActivePowerControl(76);
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+        TwoWindingsTransformer ps2 = network.getTwoWindingsTransformer("PS2");
+
+        parameters.setPhaseShifterRegulationOn(true);
+        parametersExt.setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL)
+                .setIncrementalControlInteractionScope(OpenLoadFlowParameters.IncrementalControlInteractionScope.ALL_CONTROLLED_ELEMENTS);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+
+        // Each phase shifter alone would shift 2 taps to reach the target. Not accounting for the influence of the other
+        // phase shifter, both would move and overshoot to about 105 MW, then oscillate between taps 10 and 12 until
+        // the maximum number of direction changes is reached, ending far from target.
+        // Accounting for it, only one phase shifter moves and target is reached in one outer loop iteration.
+        assertEquals(10, ps1.getPhaseTapChanger().getSolvedTapPosition());
+        assertEquals(12, ps2.getPhaseTapChanger().getSolvedTapPosition());
+        assertActivePowerEquals(77.771, ps1.getTerminal1());
+        assertActivePowerEquals(77.686, ps2.getTerminal1());
+
+        assertTxtReportEquals("""
+                + Test Report
+                   + Load flow on network 'two-phase-tap-changers-test'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 3 buses and 4 branches
+                            Network balance: active generation=100 MW, active load=100 MW, reactive generation=0 MVar, reactive load=50 MVar
+                            Angle reference bus: VL1_0
+                            Slack bus: VL1_0
+                         Voltage initialization with method Uniform Values
+                         + Outer loop IncrementalPhaseControl
+                            + Outer loop iteration 1
+                               + 1 active power control PST(s) changed taps
+                                  Transformer PS2 changed tap position from 10 to 12
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """, reportNode);
+    }
+
+    @Test
+    void incrementalPhaseShifterActivePowerControlInSeriesSameControlledElementInteractionScopeTest() {
+        // PS1 and PS2 are in series and control the same flow: initially 50 MW, target 76 MW (+/- 2 MW)
+        Network network = PhaseControlFactory.createWithTwoT2wtInSeriesActivePowerControl(76);
+        TwoWindingsTransformer ps1 = network.getTwoWindingsTransformer("PS1");
+        TwoWindingsTransformer ps2 = network.getTwoWindingsTransformer("PS2");
+
+        parameters.setPhaseShifterRegulationOn(true);
+        parametersExt.setPhaseShifterControlMode(OpenLoadFlowParameters.PhaseShifterControlMode.INCREMENTAL)
+                .setIncrementalControlInteractionScope(OpenLoadFlowParameters.IncrementalControlInteractionScope.SAME_CONTROLLED_ELEMENT);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // each phase shifter does not account for the influence of the other one: both move and overshoot, then oscillate
+        // until the maximum number of direction changes is reached
+        assertEquals(12, ps1.getPhaseTapChanger().getSolvedTapPosition());
+        assertEquals(12, ps2.getPhaseTapChanger().getSolvedTapPosition());
+        assertActivePowerEquals(105.220, ps1.getTerminal1());
+        assertActivePowerEquals(105.072, ps2.getTerminal1());
+    }
+
+    @Test
     void incrementalPhaseShifterSensiTest() {
         selectNetwork(PhaseControlFactory.createNetworkWithT2wt());
         t2wt.getPhaseTapChanger()
