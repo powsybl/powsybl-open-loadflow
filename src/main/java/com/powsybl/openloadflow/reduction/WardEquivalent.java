@@ -261,7 +261,7 @@ public class WardEquivalent {
                 // Compute line shunt admittances as separate shunt objects.
                 // This is a way to preserve distinct values for both buses when exporting to external formats
                 // (such as CGMES) where line shunt admittances are aggregated into a single g and b.
-                if (Math.abs(v1 - v2) > 1e-3) {
+                if (v1 != v2) {
                     double g1 = (v2 - v1) / v1 * g;
                     double b1 = (v2 - v1) / v1 * b;
                     equivalentShunts.add(new EquivalentShunt(bus1, g1, b1));
