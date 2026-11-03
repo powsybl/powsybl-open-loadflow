@@ -140,12 +140,12 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     @Override
     public double getMinQ() {
-        return computeLimitQ(getComputedActivePower(), true);
+        return getMinQ(getComputedActivePower());
     }
 
     @Override
     public double getMaxQ() {
-        return computeLimitQ(getComputedActivePower(), false);
+        return getMaxQ(getComputedActivePower());
     }
 
     @Override

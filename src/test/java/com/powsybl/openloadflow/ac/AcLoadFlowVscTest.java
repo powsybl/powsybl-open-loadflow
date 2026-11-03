@@ -215,28 +215,32 @@ class AcLoadFlowVscTest {
                 .withP0(0.f)
                 .withEnabled(true)
                 .add();
-        loadFlowRunner.run(network, parameters);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
         VscConverterStation cs4 = network.getVscConverterStation("cs4");
-        assertEquals(0.2330, cs4.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-3.6015, cs4.getTerminal().getQ(), LoadFlowAssert.DELTA_POWER);
-        // Adding limits: min reactive limit -4 MVar is below -3.6 MVar, no switch to PQ should be performed
+        assertActivePowerEquals(0.2330, cs4.getTerminal());
+        assertReactivePowerEquals(-3.6015, cs4.getTerminal());
+
+        // cs4 is the sending side, consuming active power, on the negative side of the reactive limits curve
+        // Adding limits: max reactive limit 4 MVar is above 3.6 MVar, no switch to PQ should be performed
         cs4.newReactiveCapabilityCurve()
-                .beginPoint().setP(-0.2330).setMinQ(-4).setMaxQ(4).endPoint()
+                .beginPoint().setP(-0.2330).setMinQ(-6).setMaxQ(4).endPoint()
                 .beginPoint().setP(0).setMinQ(-1).setMaxQ(1).endPoint()
-                .beginPoint().setP(0.2330).setMinQ(-4).setMaxQ(4).endPoint()
                 .add();
-        loadFlowRunner.run(network, parameters);
-        assertEquals(0.2330, cs4.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-3.6015, cs4.getTerminal().getQ(), LoadFlowAssert.DELTA_POWER);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(0.2330, cs4.getTerminal());
+        assertReactivePowerEquals(-3.6015, cs4.getTerminal());
+
         // Now testing with hitting the limit
         cs4.newReactiveCapabilityCurve()
-                .beginPoint().setP(-0.2330).setMinQ(-2).setMaxQ(2).endPoint()
+                .beginPoint().setP(-0.2330).setMinQ(-6).setMaxQ(2).endPoint()
                 .beginPoint().setP(0).setMinQ(-1).setMaxQ(1).endPoint()
-                .beginPoint().setP(0.2330).setMinQ(-2).setMaxQ(2).endPoint()
                 .add();
-        loadFlowRunner.run(network, parameters);
-        assertEquals(0.2272, cs4.getTerminal().getP(), LoadFlowAssert.DELTA_POWER);
-        assertEquals(-1.975, cs4.getTerminal().getQ(), LoadFlowAssert.DELTA_POWER);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(0.2272, cs4.getTerminal());
+        assertReactivePowerEquals(-1.975, cs4.getTerminal());
     }
 
     @Test
