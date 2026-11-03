@@ -142,7 +142,8 @@ class AcDcDcSwitchTest {
         assertTrue(result.isFullyConverged());
 
         VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
-        double vDc = AcDcNetworkFactory.VDC;
+        VoltageSourceConverter conv45 = network.getVoltageSourceConverter("conv45");
+        double vDc = conv45.getTargetVdc();
 
         double i = conv23.getDcTerminal1().getI();
         double v3 = conv23.getDcTerminal1().getDcNode().getV();
@@ -171,7 +172,6 @@ class AcDcDcSwitchTest {
         assertEquals(2, lfNetworks.getFirst().getDcBranches().size());
 
         setParameters();
-        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertTrue(result.isFullyConverged());
 

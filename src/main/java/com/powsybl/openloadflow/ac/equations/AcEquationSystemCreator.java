@@ -792,7 +792,7 @@ public class AcEquationSystemCreator {
     }
 
     protected void createDcBranchEquations(LfDcBranch dcBranch, LfDcBus dcBus1, LfDcBus dcBus2, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        // effective equations, could be closed one or open one
+        // effective equations, could be closed one or open one (EvaluableConstants.ZERO)
         Evaluable p1 = null;
         Evaluable p2 = null;
         Evaluable i1 = null;
