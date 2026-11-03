@@ -29,6 +29,16 @@ public class MeasurementAggregation {
         SUM_METERED
     }
 
+    /** How a bus known to inject nothing is handled. */
+    public enum ZeroInjectionMode {
+        /** A bus with no device is treated like any other unmeasured bus. */
+        IGNORED,
+        /** A zero-valued measurement with a very small standard deviation. */
+        HIGH_CONFIDENCE_MEASUREMENT,
+        /** Enforced exactly, so no weight is involved. */
+        EQUALITY_CONSTRAINT
+    }
+
     /** What to do with two meters reading the same quantity at the same place. */
     public enum DuplicateMeasurementPolicy {
         /** Combine into one reading weighted by the inverse of each variance. */
@@ -42,6 +52,10 @@ public class MeasurementAggregation {
     private BusInjectionPolicy busInjectionPolicy = BusInjectionPolicy.REQUIRE_ALL_METERED;
 
     private DuplicateMeasurementPolicy duplicateMeasurementPolicy = DuplicateMeasurementPolicy.MERGE_INVERSE_VARIANCE;
+
+    private ZeroInjectionMode zeroInjectionMode = ZeroInjectionMode.HIGH_CONFIDENCE_MEASUREMENT;
+
+    private double zeroInjectionStandardDeviationPu = 0.001;
 
     private double relativeStandardDeviationFloor = 0.0;
 
@@ -62,6 +76,34 @@ public class MeasurementAggregation {
 
     public MeasurementAggregation setDuplicateMeasurementPolicy(DuplicateMeasurementPolicy duplicateMeasurementPolicy) {
         this.duplicateMeasurementPolicy = Objects.requireNonNull(duplicateMeasurementPolicy);
+        return this;
+    }
+
+    public ZeroInjectionMode getZeroInjectionMode() {
+        return zeroInjectionMode;
+    }
+
+    public MeasurementAggregation setZeroInjectionMode(ZeroInjectionMode zeroInjectionMode) {
+        this.zeroInjectionMode = Objects.requireNonNull(zeroInjectionMode);
+        return this;
+    }
+
+    /**
+     * The standard deviation given to a zero injection pseudo-measurement, per unit. It is the
+     * only thing bounding how far such a bus can pull the estimate, since the relative floor
+     * below is a fraction of the reading and the reading is zero. The default matches
+     * pandapower's {@code ZERO_INJECTION_STD_DEV}.
+     */
+    public double getZeroInjectionStandardDeviationPu() {
+        return zeroInjectionStandardDeviationPu;
+    }
+
+    public MeasurementAggregation setZeroInjectionStandardDeviationPu(double zeroInjectionStandardDeviationPu) {
+        if (zeroInjectionStandardDeviationPu <= 0) {
+            throw new IllegalArgumentException("Zero injection standard deviation must be positive, was "
+                    + zeroInjectionStandardDeviationPu);
+        }
+        this.zeroInjectionStandardDeviationPu = zeroInjectionStandardDeviationPu;
         return this;
     }
 

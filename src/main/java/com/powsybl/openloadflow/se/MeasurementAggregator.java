@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.se;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.BusbarSection;
 import com.powsybl.iidm.network.Connectable;
 import com.powsybl.iidm.network.Injection;
 import com.powsybl.iidm.network.Network;
@@ -74,6 +75,8 @@ public class MeasurementAggregator {
 
     private int summedIntoInjections;
 
+    private int zeroInjectionsAdded;
+
     private final MeasurementAggregation settings;
 
     public MeasurementAggregator(LfNetwork lfNetwork, MeasurementAggregation settings) {
@@ -97,6 +100,7 @@ public class MeasurementAggregator {
 
         skipped.clear();
         summedIntoInjections = 0;
+        zeroInjectionsAdded = 0;
         int readCount = 0;
         for (Connectable<?> connectable : network.getConnectables()) {
             for (Measurement reading : measurementsOf(connectable)) {
@@ -106,6 +110,7 @@ public class MeasurementAggregator {
         }
 
         injections.forEach((key, bucket) -> emitBusInjection(key, bucket, aggregated));
+        addZeroInjections(network, aggregated, injections);
         List<LfMeasurement> resolved = resolveDuplicates(aggregated);
         logSummary(readCount, resolved.size(), aggregated.size() - resolved.size());
         return resolved;
@@ -270,6 +275,45 @@ public class MeasurementAggregator {
      * the bus injection equation already models.
      */
     /**
+     * A bus carrying no device injects nothing, which is exact information rather than a
+     * reading. It enters as a zero-valued pseudo-measurement whose standard deviation says how
+     * exactly, since treating it as a hard constraint would need an equality constrained solver.
+     */
+    private void addZeroInjections(Network network,
+                                   List<LfMeasurement> aggregated,
+                                   Map<InjectionKey, InjectionBucket> injections) {
+        MeasurementAggregation.ZeroInjectionMode mode = settings.getZeroInjectionMode();
+        if (mode == MeasurementAggregation.ZeroInjectionMode.IGNORED) {
+            return;
+        }
+        if (mode == MeasurementAggregation.ZeroInjectionMode.EQUALITY_CONSTRAINT) {
+            throw new PowsyblException("Zero injection mode " + mode
+                    + " needs an equality constrained solver, which this estimator does not implement");
+        }
+        for (LfBus lfBus : lfNetwork.getBuses()) {
+            Bus bus = settings.isBreakers()
+                    ? network.getBusBreakerView().getBus(lfBus.getId())
+                    : network.getBusView().getBus(lfBus.getId());
+            if (bus == null || devicesAt(bus) > 0) {
+                continue;
+            }
+            addZeroInjection(lfBus, true, aggregated, injections);
+            addZeroInjection(lfBus, false, aggregated, injections);
+        }
+    }
+
+    private void addZeroInjection(LfBus lfBus, boolean active,
+                                  List<LfMeasurement> aggregated,
+                                  Map<InjectionKey, InjectionBucket> injections) {
+        if (injections.containsKey(new InjectionKey(lfBus.getId(), active))) {
+            return;
+        }
+        aggregated.add(LfMeasurement.busInjection(lfBus, active, 0,
+                settings.getZeroInjectionStandardDeviationPu()));
+        zeroInjectionsAdded++;
+    }
+
+    /**
      * Applies the duplicate policy to readings that describe the same quantity at the same
      * place. Bus injections cannot collide here, since one is formed per bus and quantity.
      */
@@ -304,6 +348,16 @@ public class MeasurementAggregator {
         LfMeasurement first = group.get(0);
         return new LfMeasurement(first.quantity(), first.bus(), first.branch(), first.side(),
                 combined.value(), Math.sqrt(combined.variance()));
+    }
+
+    /** The devices at a bus that a bus injection is expected to account for. */
+    private static long devicesAt(Bus bus) {
+        return bus.getConnectedTerminalStream()
+                .map(Terminal::getConnectable)
+                .filter(Injection.class::isInstance)
+                .filter(connectable -> !isModelledAsShunt(connectable))
+                .filter(connectable -> !(connectable instanceof BusbarSection))
+                .count();
     }
 
     private static boolean isModelledAsShunt(Connectable<?> connectable) {
@@ -410,7 +464,7 @@ public class MeasurementAggregator {
      */
     private void logSummary(int readCount, int produced, int merged) {
         int skippedCount = skipped.values().stream().mapToInt(Integer::intValue).sum();
-        if (skippedCount == 0 && merged == 0 && summedIntoInjections == 0) {
+        if (skippedCount == 0 && merged == 0 && summedIntoInjections == 0 && zeroInjectionsAdded == 0) {
             LOG.info("Network {}: aggregated {} measurements from {} readings", lfNetwork, produced, readCount);
             return;
         }
@@ -427,6 +481,9 @@ public class MeasurementAggregator {
         }
         if (summedIntoInjections > 0) {
             detail.append(", ").append(summedIntoInjections).append(" summed into bus injections");
+        }
+        if (zeroInjectionsAdded > 0) {
+            detail.append(", ").append(zeroInjectionsAdded).append(" added at zero injection buses");
         }
         LOG.info("Network {}: aggregated {} measurements from {} readings{}",
                 lfNetwork, produced, readCount, detail);
@@ -518,17 +575,8 @@ public class MeasurementAggregator {
             return readingsByDevice.size();
         }
 
-        /** Every device on the bus that the injection equation expects to see metered. */
-        private int deviceCount() {
-            if (bus == null) {
-                return meteredDeviceCount();
-            }
-            return (int) bus.getConnectedTerminalStream()
-                    .map(Terminal::getConnectable)
-                    .filter(Injection.class::isInstance)
-                    .filter(connectable -> !isModelledAsShunt(connectable))
-                    .filter(connectable -> !(connectable instanceof com.powsybl.iidm.network.BusbarSection))
-                    .count();
+        private long deviceCount() {
+            return bus == null ? meteredDeviceCount() : devicesAt(bus);
         }
 
         private boolean coversEveryDevice() {

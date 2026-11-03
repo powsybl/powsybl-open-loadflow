@@ -76,7 +76,8 @@ class MeasurementAggregatorTest {
 
     @Test
     void readsNothingFromANetworkWithNoMeters() {
-        assertTrue(aggregate(new MeasurementAggregation()).isEmpty());
+        assertTrue(aggregate(new MeasurementAggregation()
+                .setZeroInjectionMode(MeasurementAggregation.ZeroInjectionMode.IGNORED)).isEmpty());
     }
 
     @Test
@@ -126,10 +127,12 @@ class MeasurementAggregatorTest {
         // only the load is metered; the generator on the same bus is not
         meter(network.getLoad("B2-L"), "p1", Measurement.Type.ACTIVE_POWER, null, 21.7, 0.3);
 
-        assertTrue(of(aggregate(new MeasurementAggregation()), MeasuredQuantity.BUS_P).isEmpty());
+        assertTrue(of(aggregate(new MeasurementAggregation()
+                .setZeroInjectionMode(MeasurementAggregation.ZeroInjectionMode.IGNORED)), MeasuredQuantity.BUS_P).isEmpty());
 
-        assertTrue(of(aggregate(new MeasurementAggregation().setBusInjectionPolicy(
-                        MeasurementAggregation.BusInjectionPolicy.SUM_METERED)), MeasuredQuantity.BUS_P).isPresent(),
+        assertTrue(of(aggregate(new MeasurementAggregation()
+                        .setBusInjectionPolicy(MeasurementAggregation.BusInjectionPolicy.SUM_METERED)
+                        .setZeroInjectionMode(MeasurementAggregation.ZeroInjectionMode.IGNORED)), MeasuredQuantity.BUS_P).isPresent(),
                 "summing the metered devices is the other policy, and it does form one");
     }
 
@@ -138,8 +141,9 @@ class MeasurementAggregatorTest {
         // bus VL9 carries a load and a shunt compensator
         meter(network.getShuntCompensator("B9-SH"), "q", Measurement.Type.REACTIVE_POWER, null, -19.0, 0.5);
 
-        assertTrue(of(aggregate(new MeasurementAggregation().setBusInjectionPolicy(
-                        MeasurementAggregation.BusInjectionPolicy.SUM_METERED)), MeasuredQuantity.BUS_Q).isEmpty(),
+        assertTrue(of(aggregate(new MeasurementAggregation()
+                        .setBusInjectionPolicy(MeasurementAggregation.BusInjectionPolicy.SUM_METERED)
+                        .setZeroInjectionMode(MeasurementAggregation.ZeroInjectionMode.IGNORED)), MeasuredQuantity.BUS_Q).isEmpty(),
                 "a shunt sits in the network admittance, so its reading would count it twice");
     }
 
@@ -188,8 +192,9 @@ class MeasurementAggregatorTest {
         meter(load, "frequency", Measurement.Type.FREQUENCY, null, 50.0, 0.01);
         meter(load, "angle", Measurement.Type.ANGLE, null, -5.0, 0.1);
 
-        assertTrue(aggregate(new MeasurementAggregation().setBusInjectionPolicy(
-                MeasurementAggregation.BusInjectionPolicy.SUM_METERED)).isEmpty());
+        assertTrue(aggregate(new MeasurementAggregation()
+                .setBusInjectionPolicy(MeasurementAggregation.BusInjectionPolicy.SUM_METERED)
+                .setZeroInjectionMode(MeasurementAggregation.ZeroInjectionMode.IGNORED)).isEmpty());
     }
 
     @Test
@@ -221,6 +226,50 @@ class MeasurementAggregatorTest {
         assertEquals("3WT_leg_1", reading.branch().getId());
         assertEquals(1, reading.side());
         assertEquals(10.0 / PerUnit.SB, reading.valuePu(), 1e-12);
+    }
+
+    @Test
+    void aBusWithNoDeviceEntersAsAZeroInjectionPseudoMeasurement() {
+        // IEEE 14 bus 7 carries no load and no generator, the textbook zero injection bus
+        List<LfMeasurement> readings = aggregate(new MeasurementAggregation());
+
+        assertEquals(2, readings.size(), "one active and one reactive pseudo-measurement");
+        for (LfMeasurement reading : readings) {
+            assertEquals("VL7_0", reading.bus().getId());
+            assertEquals(0.0, reading.valuePu(), 1e-12);
+            assertEquals(0.001, reading.sigmaPu(), 1e-12);
+        }
+        assertTrue(of(readings, MeasuredQuantity.BUS_P).isPresent());
+        assertTrue(of(readings, MeasuredQuantity.BUS_Q).isPresent());
+    }
+
+    @Test
+    void aMeteredBusIsNeverTreatedAsAZeroInjection() {
+        meter(network.getLoad("B2-L"), "p", Measurement.Type.ACTIVE_POWER, null, 21.7, 0.5);
+
+        List<LfMeasurement> readings = aggregate(new MeasurementAggregation()
+                .setBusInjectionPolicy(MeasurementAggregation.BusInjectionPolicy.SUM_METERED));
+
+        assertTrue(readings.stream()
+                .filter(m -> m.quantity() == MeasuredQuantity.BUS_P)
+                .noneMatch(m -> m.bus().getId().equals("VL2_0") && m.sigmaPu() == 0.001));
+    }
+
+    @Test
+    void theZeroInjectionStandardDeviationIsConfigurable() {
+        List<LfMeasurement> readings = aggregate(new MeasurementAggregation()
+                .setZeroInjectionStandardDeviationPu(1e-5));
+
+        assertEquals(1e-5, of(readings, MeasuredQuantity.BUS_P).orElseThrow().sigmaPu(), 1e-15);
+    }
+
+    @Test
+    void equalityConstraintsAreNotImplemented() {
+        MeasurementAggregation settings = new MeasurementAggregation()
+                .setZeroInjectionMode(MeasurementAggregation.ZeroInjectionMode.EQUALITY_CONSTRAINT);
+
+        PowsyblException thrown = assertThrows(PowsyblException.class, () -> aggregate(settings));
+        assertTrue(thrown.getMessage().contains("equality constrained solver"), thrown.getMessage());
     }
 
     @Test
