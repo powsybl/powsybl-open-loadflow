@@ -73,6 +73,7 @@ final class LfNetworkCopyDeepFieldComparator {
             "LfLoadImpl#loadModel",
             "LfStaticVarCompensatorImpl#standByAutomaton",
             "AbstractLfAcDcConverter#lossFactors",
+            "LfVoltageSourceConverterImpl#droopBands",
             // immutable after the load by design
             "AbstractLfGenerator#asym",
             "AbstractLfBranch#asymLine",
@@ -188,10 +189,20 @@ final class LfNetworkCopyDeepFieldComparator {
                     String fieldPath = path + "." + field.getName();
                     if (SHARED_FIELDS.contains(key)) {
                         assertSame(originalValue, copyValue, fieldPath + ": field must be shared");
+                        addSharedValueClasses(originalValue);
                     } else {
                         compare(originalValue, copyValue, fieldPath);
                     }
                 }
+            }
+        }
+
+        // shared values are not walked, but their classes still count as covered by the copy test
+        private void addSharedValueClasses(Object value) {
+            if (value instanceof Collection<?> collection) {
+                collection.forEach(this::addSharedValueClasses);
+            } else if (value != null) {
+                addClassToAlreadyCheckedClasses(value.getClass());
             }
         }
 
