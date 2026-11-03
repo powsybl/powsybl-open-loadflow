@@ -60,9 +60,7 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         this.isVoltageRegulatorOn = other.isVoltageRegulatorOn;
         this.targetQ = other.targetQ;
         this.targetVac = other.targetVac;
-        this.droopBands = getControlMode() == AcDcConverter.ControlMode.DC_DROOP
-                ? buildDroopBands(converterRef.get(), getDcVoltageBase())
-                : List.of();
+        this.droopBands = other.droopBands;
     }
 
     /**
@@ -122,7 +120,7 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
         for (int i = 0; i < n; i++) {
             bands.add(new LfDroopReference(kPu[i], minVpu[i], refPpu[i]));
         }
-        return bands;
+        return List.copyOf(bands);
     }
 
     /**

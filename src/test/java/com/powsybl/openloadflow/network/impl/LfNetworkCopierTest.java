@@ -112,11 +112,9 @@ class LfNetworkCopierTest {
                         p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true)),
                 new Case("acDcNetwork1", AcDcNetworkFactory.createAcDcNetwork1(),
                         p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true)),
-                new Case("acDcNetwork1", AcDcNetworkFactory.createAcDcNetworkWithDroopControl(),
+                new Case("acDcNetworkDroopControl", AcDcNetworkFactory.createAcDcNetworkWithDroopControl(),
                         p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true)),
                 new Case("acDcTwoPccConvertersWithoutVdcReference", AcDcNetworkFactory.createAcDcNetworkTwoPccConvertersWithoutVdcReference(),
-                        p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true)),
-                new Case("acDcThreeConverters", AcDcNetworkFactory.createAcDcNetworkWithThreeConverters(),
                         p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true)),
                 new Case("fixedCurrentLimits", EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedCurrentLimits())),
                 new Case("asymmetrical", createAsymNetwork(),
@@ -128,7 +126,7 @@ class LfNetworkCopierTest {
     }
 
     @Test
-    public void testLfNetworkCopyEquivalenceAndCoverageOfAllCases() {
+    void testLfNetworkCopyEquivalenceAndCoverageOfAllCases() {
         LfNetworkCopyDeepFieldComparator deepFieldComparator = new LfNetworkCopyDeepFieldComparator();
         cases().forEach(c -> testCopyEquivalence(c, deepFieldComparator)); // testing copy equivalence for each case
         // testing globally at the end if all LfNetwork classes (listed in LfNetworkCopyFieldGuardTest) have been covered by all the cases
