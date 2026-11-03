@@ -171,7 +171,7 @@ final class LfNetworkCopyDeepFieldComparator {
                     }
                     String key = type.getSimpleName() + "#" + field.getName();
                     if (SKIPPED_FIELDS.contains(key)) {
-                        addClassToAlreadyCheckedClasses(field.getClass());
+                        addClassToAlreadyCheckedClasses(field.getType());
                         continue;
                     }
                     if (Evaluable.class.isAssignableFrom(field.getType())) {
