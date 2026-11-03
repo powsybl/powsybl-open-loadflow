@@ -16,7 +16,7 @@ import java.util.Objects;
 /**
  * @author Jean-Baptiste Heyberger {@literal <jbheyberger at gmail.com>}
  */
-public class LfAsymBus {
+public class LfAsymBus implements LfCopyable<LfAsymBus, LfNetwork> {
 
     private LfBus bus;
 
@@ -51,6 +51,25 @@ public class LfAsymBus {
         this.totalDeltaQb = totalDeltaQb;
         this.totalDeltaPc = totalDeltaPc;
         this.totalDeltaQc = totalDeltaQc;
+    }
+
+    // equivalent shunts are not copied: they are accumulated again at equation system creation
+    private LfAsymBus(LfAsymBus other) {
+        this.totalDeltaPa = other.totalDeltaPa;
+        this.totalDeltaQa = other.totalDeltaQa;
+        this.totalDeltaPb = other.totalDeltaPb;
+        this.totalDeltaQb = other.totalDeltaQb;
+        this.totalDeltaPc = other.totalDeltaPc;
+        this.totalDeltaQc = other.totalDeltaQc;
+        this.vz = other.vz;
+        this.angleZ = other.angleZ;
+        this.vn = other.vn;
+        this.angleN = other.angleN;
+    }
+
+    @Override
+    public LfAsymBus copy(LfNetwork copyNetwork) {
+        return new LfAsymBus(this);
     }
 
     public void setBus(LfBus bus) {

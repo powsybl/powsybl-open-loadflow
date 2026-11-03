@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 /**
  * @author Anne Tilloy {@literal <anne.tilloy@rte-france.com>}
@@ -168,8 +169,11 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(413.4) // 22 413.4
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(22)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
         Generator g2 = b2.getVoltageLevel()
                 .newGenerator()
@@ -180,8 +184,11 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(413.4)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(20)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
         Generator g3 = b3.getVoltageLevel()
                 .newGenerator()
@@ -192,8 +199,11 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(413.4)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(20)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
         Bus endBus = smallSeparatingImpedance ?
                 vl4.getBusBreakerView().newBus()
@@ -213,7 +223,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setR(1)
                 .setX(30)
                 .add();
-        g1.setRegulatingTerminal(tr1.getTerminal2());
+        g1.getVoltageRegulation().setTerminal(tr1.getTerminal2(), 413.4);
 
         endBus = smallSeparatingImpedance ?
                 vl4.getBusBreakerView().newBus()
@@ -233,7 +243,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setR(1)
                 .setX(36)
                 .add();
-        g2.setRegulatingTerminal(tr2.getTerminal2());
+        g2.getVoltageRegulation().setTerminal(tr2.getTerminal2(), 413.4);
 
         endBus = smallSeparatingImpedance ?
                 vl4.getBusBreakerView().newBus()
@@ -253,7 +263,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setR(2)
                 .setX(50)
                 .add();
-        g3.setRegulatingTerminal(tr3.getTerminal2());
+        g3.getVoltageRegulation().setTerminal(tr3.getTerminal2(), 413.4);
 
         return network;
     }
@@ -313,9 +323,12 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(413.4) // 22 413.4
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(l4.getTerminal())
+                .newVoltageRegulation()
+                    .withTargetValue(413.4) // 22 413.4
+                    .withRegulating(true)
+                    .withTerminal(l4.getTerminal())
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
         b2.getVoltageLevel()
                 .newGenerator()
@@ -326,9 +339,12 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(413.4)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(l4.getTerminal())
+                .newVoltageRegulation()
+                    .withTargetValue(413.4)
+                    .withRegulating(true)
+                    .withTerminal(l4.getTerminal())
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
         b3.getVoltageLevel()
                 .newGenerator()
@@ -339,9 +355,12 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setMinP(0)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(413.4)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(l4.getTerminal())
+                .newVoltageRegulation()
+                    .withTargetValue(413.4)
+                    .withRegulating(true)
+                    .withTerminal(l4.getTerminal())
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
         s.newTwoWindingsTransformer()
                 .setId("tr1")
@@ -404,8 +423,11 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setMinP(0.0)
                 .setMaxP(140)
                 .setTargetP(25)
-                .setTargetV(135)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(135)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
 
         Substation substation = network.newSubstation()
@@ -516,9 +538,12 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .endStep()
                 .setTapPosition(0)
                 .setLoadTapChangingCapabilities(true)
-                .setRegulating(false)
-                .setTargetV(33.0)
-                .setRegulationTerminal(network.getLoad("LOAD_3").getTerminal())
+                .newVoltageRegulation()
+                    .withTargetValue(33.0)
+                    .withRegulating(false)
+                    .withTerminal(network.getLoad("LOAD_3").getTerminal())
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
 
         return network;
@@ -578,10 +603,13 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setMinP(0.0)
                 .setMaxP(150.0)
                 .setTargetP(23.0)
-                .setTargetQ(0.0)
-                .setTargetV(33.0)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(network.getLoad("LOAD_4").getTerminal())
+                .setLocalTargetQ(0.0)
+                .newVoltageRegulation()
+                    .withTargetValue(33.0)
+                    .withRegulating(true)
+                    .withTerminal(network.getLoad("LOAD_4").getTerminal())
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
 
         vl4.newLoad()
@@ -634,9 +662,12 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .endStep()
                 .setTapPosition(0)
                 .setLoadTapChangingCapabilities(true)
-                .setRegulating(false)
-                .setTargetV(33.0)
-                .setRegulationTerminal(network.getLoad("LOAD_4").getTerminal())
+                .newVoltageRegulation()
+                    .withTargetValue(33.0)
+                    .withRegulating(false)
+                    .withTerminal(network.getLoad("LOAD_4").getTerminal())
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
 
         network.newLine()
@@ -726,9 +757,12 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .endStep()
                 .setTapPosition(0)
                 .setLoadTapChangingCapabilities(true)
-                .setRegulating(false)
-                .setTargetV(33.0)
-                .setRegulationTerminal(network.getLoad("LOAD_3").getTerminal())
+                .newVoltageRegulation()
+                    .withTargetValue(33.0)
+                    .withRegulating(false)
+                    .withTerminal(network.getLoad("LOAD_3").getTerminal())
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
 
         return network;
@@ -792,9 +826,12 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .endStep()
                 .setTapPosition(0)
                 .setLoadTapChangingCapabilities(true)
-                .setRegulating(false)
-                .setTargetV(33.0)
-                .setRegulationTerminal(network.getLoad("LOAD_3").getTerminal())
+                .newVoltageRegulation()
+                    .withTargetValue(33.0)
+                    .withRegulating(false)
+                    .withTerminal(network.getLoad("LOAD_3").getTerminal())
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
 
         TwoWindingsTransformer t2wt2 = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
@@ -840,9 +877,12 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .endStep()
                 .setTapPosition(0)
                 .setLoadTapChangingCapabilities(true)
-                .setRegulating(false)
-                .setTargetV(33.0)
-                .setRegulationTerminal(network.getLoad("LOAD_3").getTerminal())
+                .newVoltageRegulation()
+                    .withTargetValue(33.0)
+                    .withRegulating(false)
+                    .withTerminal(network.getLoad("LOAD_3").getTerminal())
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
 
         return network;
@@ -939,9 +979,12 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .endStep()
                 .setTapPosition(0)
                 .setLoadTapChangingCapabilities(true)
-                .setRegulating(false)
-                .setTargetV(33.0)
-                .setRegulationTerminal(network.getLoad("LOAD_3").getTerminal())
+                .newVoltageRegulation()
+                    .withTargetValue(33.0)
+                    .withRegulating(false)
+                    .withTerminal(network.getLoad("LOAD_3").getTerminal())
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
 
         return network;
@@ -1083,19 +1126,25 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .endStep()
                 .setTapPosition(0)
                 .setLoadTapChangingCapabilities(true)
-                .setRegulating(true)
-                .setTargetV(34.0)
-                .setTargetDeadband(0)
-                .setRegulationTerminal(t2wt2.getTerminal2())
+                .newVoltageRegulation()
+                    .withTargetValue(34.0)
+                    .withRegulating(true)
+                    .withTerminal(t2wt2.getTerminal2())
+                    .withTargetDeadband(0)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
 
         TwoWindingsTransformer t2wt = network.getTwoWindingsTransformer("T2wT");
         t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal2())
-                .setTargetV(34.0);
+                .newVoltageRegulation()
+                    .withTargetValue(34.0)
+                    .withRegulating(true)
+                    .withTerminal(t2wt2.getTerminal2())
+                    .withTargetDeadband(0)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .build();
 
         return network;
     }
@@ -1166,18 +1215,24 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setMinP(0)
                 .setMaxP(350)
                 .setTargetP(100)
-                .setTargetV(21)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(21)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
                 .add();
         b2.getVoltageLevel().newShuntCompensator()
                 .setId("SHUNT2")
                 .setBus("b2")
                 .setConnectableBus("b2")
                 .setSectionCount(0)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(l4.getTerminal())
-                .setTargetV(400)
-                .setTargetDeadband(5.0)
+                .newVoltageRegulation()
+                    .withTargetValue(400.0)
+                    .withRegulating(true)
+                    .withTerminal(l4.getTerminal())
+                    .withTargetDeadband(5.0)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .newLinearModel()
                 .setMaximumSectionCount(50)
                 .setBPerSection(-1E-2)
@@ -1189,10 +1244,13 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setBus("b3")
                 .setConnectableBus("b3")
                 .setSectionCount(0)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(l4.getTerminal())
-                .setTargetV(400)
-                .setTargetDeadband(5.0)
+                .newVoltageRegulation()
+                    .withTargetValue(400.0)
+                    .withRegulating(true)
+                    .withTerminal(l4.getTerminal())
+                    .withTargetDeadband(5.0)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .newLinearModel()
                 .setMaximumSectionCount(50)
                 .setBPerSection(-1E-2)
@@ -1267,10 +1325,13 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(101.3664)
-                .setTargetV(390)
+                .setLocalTargetV(390)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .add();
         VoltageLevel vl2 = s2.newVoltageLevel()
                 .setId("vl2")
@@ -1291,8 +1352,10 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setId("svc1")
                 .setConnectableBus("b2")
                 .setBus("b2")
-                .setRegulating(false)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .newVoltageRegulation()
+                    .withRegulating(false)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
                 .setBmin(-0.008)
                 .setBmax(0.008)
                 .add();
@@ -1328,7 +1391,7 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         createLine(network, b2, b4, "l24", 0.01);
         createLine(network, b4, b3, "l43", 0.01);
         createLine(network, b3, b1, "l31", 0.0);
-        network.getGenerator("g4").setRegulatingTerminal(network.getLoad("l1").getTerminal()); // remote control.
+        network.getGenerator("g4").getVoltageRegulation().setTerminal(network.getLoad("l1").getTerminal(), 1); // remote control.
         return network;
     }
 
@@ -1355,8 +1418,8 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         createLine(network, b1, b3, "l13", 0.01);
         createLine(network, b1, b4, "l14", 0.01);
         createLine(network, b4, b5, "l45", 0.01);
-        network.getGenerator("g2").setRegulatingTerminal(network.getLine("l12").getTerminal1()); // remote control (g2 -> b1).
-        network.getGenerator("g3").setRegulatingTerminal(network.getLine("l13").getTerminal1()); // remote control (g3 -> b1).
+        network.getGenerator("g2").getVoltageRegulation().setTerminal(network.getLine("l12").getTerminal1(), 1); // remote control (g2 -> b1).
+        network.getGenerator("g3").getVoltageRegulation().setTerminal(network.getLine("l13").getTerminal1(), 1); // remote control (g3 -> b1).
         return network;
     }
 
@@ -1382,16 +1445,19 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setBus("b3")
                 .setConnectableBus("b3")
                 .setSectionCount(0)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(1)
-                .setTargetDeadband(0.1)
+                .setLocalTargetV(1)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .withTargetDeadband(0.1)
+                    .add()
                 .newLinearModel()
                 .setMaximumSectionCount(50)
                 .setBPerSection(1E-3)
                 .setGPerSection(0.0)
                 .add()
                 .add();
-        network.getGenerator("g1").setRegulatingTerminal(network.getLine("l12").getTerminal1()); // remote control (g2 -> b1).
+        network.getGenerator("g1").getVoltageRegulation().setTerminal(network.getLine("l12").getTerminal1(), 1); // remote control (g2 -> b1).
         return network;
     }
 
@@ -1421,9 +1487,9 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         createLoad(b2, "l", 6, 1);
         createLine(network, b1, b2, "l12", 0.0);
         createLine(network, b2, b3, "l23", 0.0);
-        network.getGenerator("g1").setRegulatingTerminal(network.getLine("l011").getTerminal2());
-        network.getGenerator("g2").setRegulatingTerminal(network.getLine("l022").getTerminal2());
-        network.getGenerator("g3").setRegulatingTerminal(network.getLine("l033").getTerminal2());
+        network.getGenerator("g1").getVoltageRegulation().setTerminal(network.getLine("l011").getTerminal2(), 1);
+        network.getGenerator("g2").getVoltageRegulation().setTerminal(network.getLine("l022").getTerminal2(), 1);
+        network.getGenerator("g3").getVoltageRegulation().setTerminal(network.getLine("l033").getTerminal2(), 1);
         return network;
     }
 
@@ -1510,19 +1576,25 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setMinP(0)
                 .setMaxP(400)
                 .setTargetP(100)
-                .setTargetV(400)
-                .setRegulatingTerminal(l5.getTerminal())
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .withTargetValue(400)
+                    .withTerminal(l5.getTerminal())
+                    .add()
                 .add();
         b2.getVoltageLevel().newShuntCompensator()
                 .setId("SHUNT2")
                 .setBus("b2")
                 .setConnectableBus("b2")
                 .setSectionCount(0)
-                .setVoltageRegulatorOn(false)
-                .setRegulatingTerminal(l4.getTerminal())
-                .setTargetV(380)
-                .setTargetDeadband(5.0)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(false)
+                    .withTargetValue(380)
+                    .withTerminal(l4.getTerminal())
+                    .withTargetDeadband(5.0)
+                    .add()
                 .newLinearModel()
                 .setMaximumSectionCount(50)
                 .setBPerSection(-1E-2)
@@ -1534,10 +1606,13 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
                 .setBus("b3")
                 .setConnectableBus("b3")
                 .setSectionCount(0)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(l4.getTerminal())
-                .setTargetV(380)
-                .setTargetDeadband(5.0)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .withTargetValue(380)
+                    .withTerminal(l4.getTerminal())
+                    .withTargetDeadband(5.0)
+                    .add()
                 .newLinearModel()
                 .setMaximumSectionCount(50)
                 .setBPerSection(-1E-2)
@@ -1591,16 +1666,10 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         Generator g1Bis = network.getGenerator("g1Bis");
         Generator g4 = network.getGenerator("g4");
         Terminal regTerminal = network.getLine("l34").getTerminal2();
-        g1.setMaxP(10)
-                .setRegulatingTerminal(regTerminal)
-                .setTargetV(1.2);
+        g1.setMaxP(10).getVoltageRegulation().setTerminal(regTerminal, 1.2);
         g2.setMaxP(10);
-        g1Bis.setMaxP(10)
-                .setRegulatingTerminal(regTerminal)
-                .setTargetV(1.2);
-        g4.setMaxP(10)
-                .setRegulatingTerminal(regTerminal)
-                .setTargetV(1.2);
+        g1Bis.setMaxP(10).getVoltageRegulation().setTerminal(regTerminal, 1.2);
+        g4.setMaxP(10).getVoltageRegulation().setTerminal(regTerminal, 1.2);
         return network;
     }
 
@@ -1620,6 +1689,107 @@ public class VoltageControlNetworkFactory extends AbstractLoadFlowNetworkFactory
         createLine(network, b1, b2, "l12", 3.00);
         createLine(network, b2, b3, "l23", 3.00);
 
+        return network;
+    }
+
+    /**
+     * Two parallel 400/225 kV transformers, each controlling the voltage of its own 225 kV bus, the two 225 kV buses
+     * being nearby (tied by a short line), with 1% ratio steps from 0.9 to 1.1 (tap 10 is 1.0).
+     * <pre>
+     *            G1
+     *            |
+     *     -------B1------- 400 kV
+     *     |              |
+     *    T1             T2
+     *     |      L34     |
+     *     B3 ---------- B4 225 kV
+     *     |              |
+     *    LD3            LD4
+     * </pre>
+     */
+    public static Network createWithTwoParallelTransformersControllingNearbyBuses(double targetV, double targetDeadband) {
+        Network network = Network.create("two-parallel-transformers-nearby-buses", "test");
+        Substation s = network.newSubstation()
+                .setId("S")
+                .add();
+        VoltageLevel vl1 = s.newVoltageLevel()
+                .setId("VL1")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl1.getBusBreakerView().newBus()
+                .setId("B1")
+                .add();
+        vl1.newGenerator()
+                .setId("G1")
+                .setBus("B1")
+                .setConnectableBus("B1")
+                .setTargetP(600)
+                .setMinP(0)
+                .setMaxP(1000)
+                .setLocalTargetV(400)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
+                .add();
+        VoltageLevel vl2 = s.newVoltageLevel()
+                .setId("VL2")
+                .setNominalV(225)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        for (String busId : new String[] {"B3", "B4"}) {
+            vl2.getBusBreakerView().newBus()
+                    .setId(busId)
+                    .add();
+            vl2.newLoad()
+                    .setId("LD" + busId.substring(1))
+                    .setBus(busId)
+                    .setConnectableBus(busId)
+                    .setP0(300)
+                    .setQ0(150)
+                    .add();
+        }
+        network.newLine()
+                .setId("L34")
+                .setBus1("B3")
+                .setBus2("B4")
+                .setR(0.1)
+                .setX(1)
+                .add();
+        for (String[] t : new String[][] {{"T1", "B3"}, {"T2", "B4"}}) {
+            TwoWindingsTransformer twt = s.newTwoWindingsTransformer()
+                    .setId(t[0])
+                    .setBus1("B1")
+                    .setConnectableBus1("B1")
+                    .setBus2(t[1])
+                    .setConnectableBus2(t[1])
+                    .setRatedU1(400)
+                    .setRatedU2(225)
+                    .setR(0.5)
+                    .setX(6)
+                    .add();
+            RatioTapChangerAdder adder = twt.newRatioTapChanger()
+                    .setTapPosition(10)
+                    .setLoadTapChangingCapabilities(true)
+                    .newVoltageRegulation()
+                        .withMode(RegulationMode.VOLTAGE)
+                        .withTargetValue(targetV)
+                        .withTargetDeadband(targetDeadband)
+                        .withTerminal(twt.getTerminal2())
+                        .withRegulating(true)
+                        .add();
+            for (int i = 0; i <= 20; i++) {
+                adder.beginStep()
+                        .setRho(0.9 + i * 0.01)
+                        .setR(0)
+                        .setX(0)
+                        .setG(0)
+                        .setB(0)
+                        .endStep();
+            }
+            adder.add();
+        }
         return network;
     }
 }

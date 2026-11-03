@@ -15,6 +15,7 @@ import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -2119,8 +2120,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setMinP(0.0)
                 .setMaxP(10)
                 .setTargetP(5)
-                .setTargetV(30)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(30)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         network.getTwoWindingsTransformer("T2wT").getTerminal1().disconnect();
 
@@ -2152,8 +2153,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setMinP(0.0)
                 .setMaxP(10)
                 .setTargetP(5)
-                .setTargetV(30)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(30)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         network.getTwoWindingsTransformer("T2wT").getTerminal1().disconnect();
 
@@ -2183,8 +2184,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setMinP(0.0)
                 .setMaxP(10)
                 .setTargetP(5)
-                .setTargetV(30)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(30)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         network.getTwoWindingsTransformer("T2wT").getTerminal1().disconnect();
 

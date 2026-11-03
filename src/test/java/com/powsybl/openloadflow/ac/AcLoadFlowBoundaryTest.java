@@ -79,8 +79,8 @@ class AcLoadFlowBoundaryTest {
 
     @Test
     void testWithVoltageRegulationOn() {
-        g1.setTargetQ(0);
-        g1.setVoltageRegulatorOn(false);
+        g1.setLocalTargetQ(0);
+        g1.getVoltageRegulation().setRegulating(false);
         bl1.getGeneration().setVoltageRegulationOn(true);
         bl1.getGeneration().setMinP(0);
         bl1.getGeneration().setMaxP(10);
@@ -226,7 +226,7 @@ class AcLoadFlowBoundaryTest {
         bl1.setB(1e-3).setG(1e-4).setR(3.).setX(30.);
 
         // set g1 to regulate bl1 terminal at 400.0 kV
-        g1.setRegulatingTerminal(bl1.getTerminal()).setTargetV(400.0);
+        g1.getVoltageRegulation().setTerminal(bl1.getTerminal(), 400.0);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 

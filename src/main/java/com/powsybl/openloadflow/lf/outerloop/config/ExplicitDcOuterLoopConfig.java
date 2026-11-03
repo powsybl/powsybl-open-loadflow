@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.AbstractAreaInterchangeControlOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.AbstractHvdcAcEmulationLimitsOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
 
 import java.util.List;
@@ -25,12 +26,14 @@ import java.util.Optional;
 public class ExplicitDcOuterLoopConfig extends AbstractDcOuterLoopConfig {
 
     public static final List<String> NAMES = List.of(AbstractIncrementalPhaseControlOuterLoop.NAME,
-                                                        AbstractAreaInterchangeControlOuterLoop.NAME);
+                                                        AbstractAreaInterchangeControlOuterLoop.NAME,
+                                                        AbstractHvdcAcEmulationLimitsOuterLoop.NAME);
 
     private static Optional<DcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
         return switch (name) {
             case AbstractIncrementalPhaseControlOuterLoop.NAME -> createIncrementalPhaseControlOuterLoop(parameters);
             case AbstractAreaInterchangeControlOuterLoop.NAME -> createAreaInterchangeControlOuterLoop(parameters, parametersExt, loadFlowParametersOverride);
+            case AbstractHvdcAcEmulationLimitsOuterLoop.NAME -> createHvdcAcEmulationLimitsOuterLoop(parameters);
             default -> throw new PowsyblException("Unknown outer loop '" + name + "' for DC load flow");
         };
     }

@@ -66,6 +66,7 @@ class DerivableTest {
 
         static final double VALUE = 123456;
         static final double DER = 987654321;
+        static final Variable<AcVariableType> VARIABLE = new Variable<>(0, AcVariableType.BUS_V);
 
         @Override
         public ElementType getElementType() {
@@ -79,7 +80,7 @@ class DerivableTest {
 
         @Override
         public List<Variable<AcVariableType>> getVariables() {
-            return Collections.emptyList();
+            return List.of(VARIABLE);
         }
 
         @Override
@@ -113,5 +114,9 @@ class DerivableTest {
         // Check that only my term is called and that result is delegated to the active branch term
         assertEquals(-MyBranchEquationTerm.VALUE, derivable.eval());
         assertEquals(-MyBranchEquationTerm.DER, derivable.der(new Variable<>(0, AcVariableType.BUS_V)));
+        // the derivable depends on exactly the active branch terms' variables, and its derivative with respect
+        // to a variable no such term carries is zero (a term must not even be asked about it)
+        assertEquals(List.of(MyBranchEquationTerm.VARIABLE), derivable.getVariables());
+        assertEquals(0, derivable.der(new Variable<>(1, AcVariableType.BUS_V)), 0); // a negated empty sum is -0.0
     }
 }

@@ -18,7 +18,7 @@ import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.SingleEquationTerm;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
@@ -56,7 +56,7 @@ class LfSwitchTest {
     void setUp() {
         network = NodeBreakerNetworkFactory.create();
         acLoadFlowParameters = OpenLoadFlowParameters.createAcParameters(network, new LoadFlowParameters(),
-                new OpenLoadFlowParameters(), commonTestConfig.matrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), true, false);
+                new OpenLoadFlowParameters(), commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>(), true, false);
         List<LfNetwork> lfNetworks = Networks.load(network, acLoadFlowParameters.getNetworkParameters(), ReportNode.NO_OP);
         assertEquals(1, lfNetworks.size());
         lfNetwork = lfNetworks.get(0);

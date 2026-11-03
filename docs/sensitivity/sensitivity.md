@@ -2,7 +2,7 @@
 
 ## DC sensitivity analysis
 
-A DC sensitivity analysis starts from the DC flows computing described in the [load flow section](../loadflow/loadflow.md#dc-flows-computing). Simple sensitivity analyses are supported as:
+A DC sensitivity analysis starts from the DC flows computing described in the [load flow section](../detailed_models_description/equations.md#dc-flows-computing). Simple sensitivity analyses are supported as:
 - How an injection increase of 1 MW will impact the flow of a branch ;
 - How a phase shifting of 1° of a phase tap changer will impact the flow of a branch.
 
@@ -199,7 +199,7 @@ If an user asks for a sensitivity computation which is not possible to perform, 
 
 ## AC sensitivity analysis
 
-An AC sensitivity analysis starts from the AC flows computing described in the [load flow section](../loadflow/loadflow.md#ac-flows-computing). Simple sensitivity analyses are supported as:
+An AC sensitivity analysis starts from the AC flows computing described in the [load flow section](../detailed_models_description/equations.md#ac-flows-computing). Simple sensitivity analyses are supported as:
 - How an active injection increase of 1 MW will impact the flow of a branch ;
 - How an active injection increase of 1 MW will impact the current of a branch ;
 - How a phase shifting of 1° of a phase tap changer will impact the flow of a branch ;

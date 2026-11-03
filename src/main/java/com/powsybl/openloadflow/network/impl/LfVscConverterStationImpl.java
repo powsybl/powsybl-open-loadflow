@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.VscConverterStation;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -37,9 +38,21 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
         this.lossFactor = station.getLossFactor();
 
         // local control only
-        if (station.isVoltageRegulatorOn()) {
-            setVoltageControl(station.getVoltageSetpoint(), station.getTerminal(), station.getRegulatingTerminal(), parameters, report);
+        if (station.isRegulatingWithMode(RegulationMode.VOLTAGE)) {
+            setVoltageControl(station.getRegulatingTargetV(), station.getTerminal(), station.getRegulatingTerminal(), parameters, report);
         }
+    }
+
+    private LfVscConverterStationImpl(LfVscConverterStationImpl other, LfNetwork network) {
+        super(other, network);
+        this.stationRef = other.stationRef;
+        this.lossFactor = other.lossFactor;
+        this.hvdcDanglingInIidm = other.hvdcDanglingInIidm;
+    }
+
+    @Override
+    public LfGenerator copy(LfBus copyBus) {
+        return new LfVscConverterStationImpl(this, copyBus.getNetwork());
     }
 
     public static LfVscConverterStationImpl create(VscConverterStation station, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
@@ -101,7 +114,7 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
 
     @Override
     public double getTargetQ() {
-        return Networks.zeroIfNan(getStation().getReactivePowerSetpoint()) / PerUnit.SB;
+        return Networks.zeroIfNan(getStation().isRegulating() ? getStation().getRegulatingTargetQ() : getStation().getLocalTargetQ()) / PerUnit.SB;
     }
 
     @Override
@@ -114,6 +127,28 @@ public class LfVscConverterStationImpl extends AbstractLfGenerator implements Lf
     public double getMaxP() {
         HvdcLine hvdcLine = getStation().getHvdcLine();
         return hvdcLine != null ? hvdcLine.getMaxP() / PerUnit.SB : Double.MAX_VALUE;
+    }
+
+    private double getComputedActivePower() {
+        if (hvdc != null && hvdc.isAcEmulation()
+                && hvdc.getAcEmulationControl().getAcEmulationStatus() == LfHvdc.AcEmulationControl.AcEmulationStatus.LINEAR_MODE
+                && !hvdc.isDisabled()) {
+            double activePower = (hvdc.getConverterStation1() == this ? hvdc.getP1() : hvdc.getP2()).eval();
+            if (!Double.isNaN(activePower)) {
+                return -activePower;
+            }
+        }
+        return super.getTargetP();
+    }
+
+    @Override
+    public double getMinQ() {
+        return getMinQ(getComputedActivePower());
+    }
+
+    @Override
+    public double getMaxQ() {
+        return getMaxQ(getComputedActivePower());
     }
 
     @Override

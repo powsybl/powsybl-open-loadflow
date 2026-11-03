@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Closed-loop SVC pilot voltage sensitivity coefficients.
@@ -54,16 +53,14 @@ public final class SvcPilotPointClosedLoopSensitivity {
     /**
      * Compute the controlled-bus weights {@code w} for a unit perturbation of the queried zone's pilot voltage
      * target. Returns a map keyed by controlled bus to its weight (in pu V per pu V).
+     *
+     * <p>Builds and factorizes the coordination for this single query. To query several pilots at the same
+     * converged state, build a {@link Coordination} once and call {@link Coordination#weightsForPilot}.</p>
      */
     public static Map<LfBus, Double> computeControlledBusWeights(LfBus queriedPilotBus, AcLoadFlowContext context) {
-        LfNetwork lfNetwork = context.getNetwork();
-        List<LfSecondaryVoltageControl> svcs = lfNetwork.getSecondaryVoltageControls().stream()
-                .filter(svc -> !svc.getEnabledControllerBuses().isEmpty())
-                .toList();
-        Optional<LfSecondaryVoltageControl> queriedZoneOpt = svcs.stream()
-                .filter(svc -> svc.getPilotBus() == queriedPilotBus)
-                .findFirst();
-        if (queriedZoneOpt.isEmpty()) {
+        boolean activePilot = context.getNetwork().getSecondaryVoltageControls().stream()
+                .anyMatch(svc -> !svc.getEnabledControllerBuses().isEmpty() && svc.getPilotBus() == queriedPilotBus);
+        if (!activePilot) {
             // The queried zone has no enabled controller bus at the converged state (all its units
             // disconnected / out of reactive range / deactivated), so perturbing its pilot-point
             // target has no closed-loop effect: the sensitivity is identically zero. Return no
@@ -72,7 +69,24 @@ public final class SvcPilotPointClosedLoopSensitivity {
                     queriedPilotBus.getId());
             return Map.of();
         }
-        LfSecondaryVoltageControl queriedZone = queriedZoneOpt.get();
+        try (Coordination coordination = buildCoordination(context)) {
+            return coordination.weightsForPilot(queriedPilotBus);
+        }
+    }
+
+    /**
+     * Builds and LU-factorizes the all-zones coordination matrix {@code B = A.J_K^T}, each zone's last row
+     * replaced by its pilot-voltage constraint. {@code B} is pilot-independent, so one factorization serves every
+     * queried pilot. Returns {@code null} when there is no active SVC zone. The caller must close the result.
+     */
+    public static Coordination buildCoordination(AcLoadFlowContext context) {
+        LfNetwork lfNetwork = context.getNetwork();
+        List<LfSecondaryVoltageControl> svcs = lfNetwork.getSecondaryVoltageControls().stream()
+                .filter(svc -> !svc.getEnabledControllerBuses().isEmpty())
+                .toList();
+        if (svcs.isEmpty()) {
+            return null;
+        }
 
         // All-zones controller / controlled buses (same assembly as the SVC outer loop).
         List<LfBus> allControllerBuses = svcs.stream()
@@ -92,9 +106,9 @@ public final class SvcPilotPointClosedLoopSensitivity {
                 controllerBusIndex, controlledBusIndex).transpose();
         DenseMatrix b = a.times(jK);
 
-        // Replace the last row of each zone block with its pilot-voltage constraint, and put 1 at the queried
-        // zone's last-row position in the RHS (unit perturbation of that zone's pilot target).
-        DenseMatrix rhs = new DenseMatrix(b.getRowCount(), 1);
+        // Replace the last row of each zone block with its pilot-voltage constraint, and record, per pilot bus,
+        // the row that carries its unit perturbation in the RHS.
+        Map<LfBus, Integer> zoneRowByPilot = new LinkedHashMap<>();
         for (LfSecondaryVoltageControl svc : svcs) {
             List<LfBus> controlledInZone = svc.getEnabledControllerBuses().stream()
                     .map(bus -> bus.getGeneratorVoltageControl().orElseThrow().getControlledBus())
@@ -106,19 +120,56 @@ public final class SvcPilotPointClosedLoopSensitivity {
             for (int j = 0; j < b.getColumnCount(); j++) {
                 b.set(row, j, jVpp.get(j, 0));
             }
-            if (svc == queriedZone) {
-                rhs.set(row, 0, 1.0);
+            zoneRowByPilot.put(svc.getPilotBus(), row);
+        }
+
+        return new Coordination(allControlledBuses, controlledBusIndex, zoneRowByPilot, b.decomposeLU(), b.getRowCount());
+    }
+
+    /**
+     * The factorized all-zones SVC coordination system, reusable across every queried pilot at one converged
+     * state (one LU factorization, one back-substitution per pilot). Not valid after the load flow re-solves —
+     * build a fresh one per converged state.
+     */
+    public static final class Coordination implements AutoCloseable {
+
+        private final List<LfBus> allControlledBuses;
+        private final Map<Integer, Integer> controlledBusIndex;
+        private final Map<LfBus, Integer> zoneRowByPilot;
+        private final LUDecomposition luB;
+        private final int size;
+
+        private Coordination(List<LfBus> allControlledBuses, Map<Integer, Integer> controlledBusIndex,
+                             Map<LfBus, Integer> zoneRowByPilot, LUDecomposition luB, int size) {
+            this.allControlledBuses = allControlledBuses;
+            this.controlledBusIndex = controlledBusIndex;
+            this.zoneRowByPilot = zoneRowByPilot;
+            this.luB = luB;
+            this.size = size;
+        }
+
+        /**
+         * Controlled-bus weights {@code w} for a unit perturbation of {@code queriedPilotBus}'s target, via one
+         * back-substitution against the shared factorization. Empty if the bus is not an active pilot.
+         */
+        public Map<LfBus, Double> weightsForPilot(LfBus queriedPilotBus) {
+            Integer row = zoneRowByPilot.get(queriedPilotBus);
+            if (row == null) {
+                return Map.of();
             }
+            DenseMatrix rhs = new DenseMatrix(size, 1);
+            rhs.set(row, 0, 1.0);
+            luB.solve(rhs);
+            Map<LfBus, Double> weights = new LinkedHashMap<>();
+            for (LfBus controlled : allControlledBuses) {
+                weights.put(controlled, rhs.get(controlledBusIndex.get(controlled.getNum()), 0));
+            }
+            return weights;
         }
 
-        try (LUDecomposition lu = b.decomposeLU()) {
-            lu.solve(rhs);
+        @Override
+        public void close() {
+            luB.close();
         }
-
-        Map<LfBus, Double> weights = new LinkedHashMap<>();
-        for (LfBus controlled : allControlledBuses) {
-            weights.put(controlled, rhs.get(controlledBusIndex.get(controlled.getNum()), 0));
-        }
-        return weights;
     }
 }

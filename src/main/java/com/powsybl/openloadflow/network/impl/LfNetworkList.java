@@ -8,11 +8,14 @@
 package com.powsybl.openloadflow.network.impl;
 
 import com.powsybl.iidm.network.Network;
+import com.powsybl.openloadflow.NetworkVariantPool;
 import com.powsybl.openloadflow.network.LfNetwork;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -71,9 +74,61 @@ public class LfNetworkList implements AutoCloseable {
         }
     }
 
+    public static class PoolVariantReleaser extends AbstractVariantCleaner {
+
+        public PoolVariantReleaser(Network network, String workingVariantId, String tmpVariantId) {
+            super(network, workingVariantId, tmpVariantId);
+        }
+
+        @Override
+        public void clean() {
+            NetworkVariantPool.INSTANCE.release(network, tmpVariantId);
+        }
+    }
+
     @FunctionalInterface
     public interface VariantCleanerFactory {
         VariantCleaner create(Network network, String workingVariantId, String tmpVariantId);
+    }
+
+    public interface VariantProvider {
+
+        String getTmpVariantId(String workingVariantId);
+    }
+
+    public static class VariantCloner implements VariantProvider {
+
+        private final Network network;
+
+        public VariantCloner(Network network) {
+            this.network = Objects.requireNonNull(network);
+        }
+
+        @Override
+        public String getTmpVariantId(String workingVariantId) {
+            String tmpVariantId = "olf-tmp-" + UUID.randomUUID();
+            network.getVariantManager().cloneVariant(workingVariantId, tmpVariantId);
+            network.getVariantManager().setWorkingVariant(tmpVariantId);
+            return tmpVariantId;
+        }
+    }
+
+    public static class PoolVariantAcquirer implements VariantProvider {
+        private final Network network;
+        private final int networkVariantPoolSize;
+
+        public PoolVariantAcquirer(Network network, int networkVariantPoolSize) {
+            this.network = Objects.requireNonNull(network);
+            this.networkVariantPoolSize = networkVariantPoolSize;
+        }
+
+        @Override
+        public String getTmpVariantId(String workingVariantId) {
+            String tmpVariantId = NetworkVariantPool.INSTANCE.acquire(network, workingVariantId, networkVariantPoolSize);
+            network.getVariantManager().cloneVariant(workingVariantId, tmpVariantId, true);
+            network.getVariantManager().setWorkingVariant(tmpVariantId);
+            return tmpVariantId;
+        }
     }
 
     // list of networks sorted by descending size
@@ -81,13 +136,21 @@ public class LfNetworkList implements AutoCloseable {
 
     private final VariantCleaner variantCleaner;
 
-    public LfNetworkList(List<LfNetwork> list, VariantCleaner variantCleaner) {
+    // branches kept enabled in LfNetwork that are disconnected in the base case
+    private final List<String> permanentContingencyBranchIds;
+
+    public LfNetworkList(List<LfNetwork> list, VariantCleaner variantCleaner, List<String> permanentContingencyBranchIds) {
         this.list = Objects.requireNonNull(list);
         this.variantCleaner = variantCleaner;
+        this.permanentContingencyBranchIds = Objects.requireNonNull(permanentContingencyBranchIds);
+    }
+
+    public LfNetworkList(List<LfNetwork> list, VariantCleaner variantCleaner) {
+        this(list, variantCleaner, Collections.emptyList());
     }
 
     public LfNetworkList(List<LfNetwork> list) {
-        this(list, null);
+        this(list, null, Collections.emptyList());
     }
 
     public List<LfNetwork> getList() {
@@ -107,5 +170,9 @@ public class LfNetworkList implements AutoCloseable {
 
     public VariantCleaner getVariantCleaner() {
         return variantCleaner;
+    }
+
+    public List<String> getPermanentContingencyBranchIds() {
+        return permanentContingencyBranchIds;
     }
 }

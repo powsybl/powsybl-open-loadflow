@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 
 import java.time.ZonedDateTime;
@@ -85,9 +86,9 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("G1")
                 .setConnectableBus("B1")
                 .setBus("B1")
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .setTargetP(100.0)
-                .setTargetV(400.0)
+                .setLocalTargetV(400.0)
                 .setMinP(50.0)
                 .setMaxP(150.0)
                 .add();
@@ -229,9 +230,9 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("G1")
                 .setConnectableBus("B1")
                 .setBus("B1")
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .setTargetP(100.0)
-                .setTargetV(400.0)
+                .setLocalTargetV(400.0)
                 .setMinP(50.0)
                 .setMaxP(150.0)
                 .add();
@@ -364,9 +365,9 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("G1")
                 .setConnectableBus("B1")
                 .setBus("B1")
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .setTargetP(100.0)
-                .setTargetV(400.0)
+                .setLocalTargetV(400.0)
                 .setMinP(50.0)
                 .setMaxP(150.0)
                 .add();
@@ -557,9 +558,9 @@ public class PhaseControlFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("G1")
                 .setConnectableBus("B1")
                 .setBus("B1")
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .setTargetP(100.0)
-                .setTargetV(400.0)
+                .setLocalTargetV(400.0)
                 .setMinP(50.0)
                 .setMaxP(200.0)
                 .add();

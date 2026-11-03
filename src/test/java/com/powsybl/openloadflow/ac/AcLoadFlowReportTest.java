@@ -11,8 +11,8 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.RatioTapChanger;
 import com.powsybl.iidm.network.Terminal;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.*;
 import com.powsybl.openloadflow.CommonTestConfig;
@@ -21,7 +21,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.solver.MaxVoltageChangeStateVectorScaling;
 import com.powsybl.openloadflow.ac.solver.StateVectorScalingMode;
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
@@ -65,7 +65,7 @@ class AcLoadFlowReportTest {
                      .setMaxVoltageChangeStateVectorScalingMaxDv(MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV / 10)
                      .setMaxVoltageChangeStateVectorScalingMaxDphi(MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI / 10);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -89,7 +89,7 @@ class AcLoadFlowReportTest {
                 .setStateVectorScalingMode(StateVectorScalingMode.LINE_SEARCH)
                 .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -104,12 +104,14 @@ class AcLoadFlowReportTest {
         Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         var t2wt = network.getTwoWindingsTransformer("T2wT");
         t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal1())
-                .setRegulationMode(RatioTapChanger.RegulationMode.REACTIVE_POWER)
-                .setRegulationValue(-0.55);
+                .newVoltageRegulation()
+                    .withTargetDeadband(0)
+                    .withRegulating(true)
+                    .withTerminal(t2wt.getTerminal1())
+                    .withMode(RegulationMode.REACTIVE_POWER)
+                    .withTargetValue(-0.55)
+                    .build();
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
@@ -119,7 +121,7 @@ class AcLoadFlowReportTest {
         olfParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW))
                 .setTransformerReactivePowerControl(true);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -136,13 +138,16 @@ class AcLoadFlowReportTest {
         network.getBusBreakerView().getBus("b4").getConnectedTerminalStream().forEach(Terminal::disconnect);
 
         // CC1 SC1 has generator but no voltage control. OK in DC, but KO in AC.
-        network.getGenerator("g6").setTargetQ(0.0).setVoltageRegulatorOn(false);
+        network.getGenerator("g6").setLocalTargetQ(0.0)
+                .newVoltageRegulation()
+                    .withRegulating(false)
+                    .build();
         // CC2 SC2 has no generator connected. Ignored in for DC and AC.
         network.getGenerator("g10").disconnect();
 
         var lfParameters = new LoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED).setHvdcAcEmulation(false);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
 
         // test in AC
@@ -193,7 +198,7 @@ class AcLoadFlowReportTest {
 
         Network network = IeeeCdfNetworkFactory.create14();
         network.getGenerator("B1-G").setMaxP(200); // targetP > maxP, active power control and voltage control will be discarded
-        network.getGenerator("B2-G").setTargetV(10).setMaxP(4000); // not plausible targetV, voltage control will be discarded
+        network.getGenerator("B2-G").setLocalTargetV(10).setMaxP(4000); // not plausible targetV, voltage control will be discarded
         network.getGenerator("B3-G").setTargetP(10).setMaxP(10).setMinP(10); // minP ~= maxP, active power control will be discarded
         network.getGenerator("B6-G").setTargetP(10).setMinP(20); // targetP < minP active power control and voltage control will be discarded
         network.getGenerator("B8-G").newMinMaxReactiveLimits().setMinQ(10).setMaxQ(10).add(); // reactive range is too small, voltage control will be discarded
@@ -203,7 +208,7 @@ class AcLoadFlowReportTest {
                 .withMessageTemplate("testReport")
                 .build();
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -264,7 +269,7 @@ class AcLoadFlowReportTest {
     @Test
     void generatorVoltageControlDiscarded() throws IOException {
         Network network = FourBusNetworkFactory.create();
-        network.getGenerator("g2").setTargetV(10); // not plausible targetV, will be discarded and reported
+        network.getGenerator("g2").setLocalTargetV(10); // not plausible targetV, will be discarded and reported
 
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
@@ -274,7 +279,7 @@ class AcLoadFlowReportTest {
         lfParameters.setTransformerVoltageControlOn(true);
         OpenLoadFlowParameters.create(lfParameters).setMinNominalVoltageTargetVoltageCheck(0.5);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -289,12 +294,14 @@ class AcLoadFlowReportTest {
         Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
         var t2wt = network.getTwoWindingsTransformer("T2wT");
         t2wt.getRatioTapChanger()
-                .setTargetDeadband(0)
-                .setRegulating(true)
                 .setTapPosition(0)
-                .setRegulationTerminal(t2wt.getTerminal1())
-                .setRegulationMode(RatioTapChanger.RegulationMode.VOLTAGE)
-                .setTargetV(100); // not plausible, will be discarded and reported
+                .newVoltageRegulation()
+                    .withTargetDeadband(0)
+                    .withRegulating(true)
+                    .withTerminal(t2wt.getTerminal1())
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTargetValue(100) // not plausible, will be discarded and reported
+                    .build();
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
@@ -302,7 +309,7 @@ class AcLoadFlowReportTest {
         var lfParameters = new LoadFlowParameters();
         lfParameters.setTransformerVoltageControlOn(true);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -315,7 +322,8 @@ class AcLoadFlowReportTest {
     @Test
     void shuntVoltageControlDiscarded() throws IOException {
         Network network = ShuntNetworkFactory.createWithTwoShuntCompensators();
-        network.getShuntCompensator("SHUNT2").setVoltageRegulatorOn(true).setTargetV(600); // not plausible targetV, will be discarded and reported
+        network.getShuntCompensator("SHUNT2").setLocalTargetV(600) // not plausible targetV, will be discarded and reported
+                    .getVoltageRegulation().setRegulating(true);
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
@@ -323,7 +331,7 @@ class AcLoadFlowReportTest {
         var lfParameters = new LoadFlowParameters()
                 .setShuntCompensatorVoltageControlOn(true);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -336,7 +344,10 @@ class AcLoadFlowReportTest {
     @Test
     void testTransformerControlAlreadyExistsWithDifferentTargetV() throws IOException {
         Network network = VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl();
-        network.getTwoWindingsTransformer("T2wT2").getRatioTapChanger().setTargetV(34.5).setTargetDeadband(3.0);
+        network.getTwoWindingsTransformer("T2wT2").getRatioTapChanger()
+                .getVoltageRegulation()
+                .setTargetValue(34.5)
+                .setTargetDeadband(3.0);
         ReportNode reportNode = ReportNode.newRootReportNode()
                 .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
                 .withMessageTemplate("testReport")
@@ -346,7 +357,7 @@ class AcLoadFlowReportTest {
         var olfParameters = OpenLoadFlowParameters.create(lfParameters);
         olfParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -367,7 +378,7 @@ class AcLoadFlowReportTest {
         OpenLoadFlowParameters.create(lfParameters)
                 .setAreaInterchangeControl(true);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -389,7 +400,7 @@ class AcLoadFlowReportTest {
                 .setMinRealisticVoltage(0.99)
                 .setMaxRealisticVoltage(1.01);
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
                 .setReportNode(reportNode);
@@ -440,7 +451,7 @@ class AcLoadFlowReportTest {
             .setAcDcNetwork(true)
             .setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
 
-        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum));
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         LoadFlow.Runner runner = new LoadFlow.Runner(provider);
         LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
             .setReportNode(reportNode);
@@ -482,11 +493,10 @@ class AcLoadFlowReportTest {
                               Bus V: 1 pu, 0 rad
                               Bus injection: 70 MW, 0 MVar
                      + Outer loop DistributedSlack
-                        + SC0
-                           + Outer loop iteration 1
+                        + Outer loop iteration 1
+                           + SC0
                               Slack bus active power (40 MW) distributed in 1 distribution iteration(s)
-                        + SC1
-                           + Outer loop iteration 1
+                           + SC1
                               Slack bus active power (-19.998222 MW) distributed in 1 distribution iteration(s)
                      + Newton-Raphson on Network CC0
                         Newton-Raphson of outer loop iteration 1 of type DistributedSlack

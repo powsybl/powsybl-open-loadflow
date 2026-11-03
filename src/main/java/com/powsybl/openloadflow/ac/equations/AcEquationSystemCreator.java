@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.equations.dcnetwork.*;
 import com.powsybl.openloadflow.equations.*;
@@ -793,7 +792,7 @@ public class AcEquationSystemCreator {
     }
 
     protected void createDcLineEquations(LfDcLine dcLine, LfDcBus dcBus1, LfDcBus dcBus2, EquationSystem<AcVariableType, AcEquationType> equationSystem) {
-        // effective equations, could be closed one or open one
+        // effective equations, could be closed one or open (EvaluableConstants.ZERO) one
         Evaluable p1 = null;
         Evaluable p2 = null;
         Evaluable i1 = null;
@@ -809,7 +808,6 @@ public class AcEquationSystemCreator {
             if (!dcBus1.isGrounded()) {
                 closedP1 = new ClosedDcLineSide1PowerEquationTerm(dcLine, dcBus1, dcBus2, equationSystem.getVariableSet());
                 closedI1 = new ClosedDcLineSide1CurrentEquationTerm(dcLine, dcBus1, dcBus2, equationSystem.getVariableSet());
-
             }
             if (!dcBus2.isGrounded()) {
                 closedP2 = new ClosedDcLineSide2PowerEquationTerm(dcLine, dcBus1, dcBus2, equationSystem.getVariableSet());
@@ -819,13 +817,18 @@ public class AcEquationSystemCreator {
             i1 = closedI1;
             p2 = closedP2;
             i2 = closedI2;
+        } else {
+            p1 = EvaluableConstants.ZERO;
+            i1 = EvaluableConstants.ZERO;
+            p2 = EvaluableConstants.ZERO;
+            i2 = EvaluableConstants.ZERO;
         }
 
         createDcLineEquations(dcLine, dcBus1, dcBus2, equationSystem,
-                p1, i1,
-                p2, i2,
+                p1, i1, p2, i2,
                 closedP1, closedI1,
-                closedP2, closedI2);
+                closedP2, closedI2
+        );
     }
 
     protected EquationTerm<AcVariableType, AcEquationType> createClosedBranchSide1ActiveFlowEquationTerm(LfBranch branch, LfBus bus1, LfBus bus2,
@@ -958,7 +961,6 @@ public class AcEquationSystemCreator {
                                                 Evaluable p2, Evaluable i2,
                                                 SingleEquationTerm<AcVariableType, AcEquationType> closedP1, SingleEquationTerm<AcVariableType, AcEquationType> closedI1,
                                                 SingleEquationTerm<AcVariableType, AcEquationType> closedP2, SingleEquationTerm<AcVariableType, AcEquationType> closedI2) {
-
         if (closedI1 != null) {
             equationSystem.getEquation(dcBus1.getNum(), AcEquationType.DC_BUS_TARGET_I).orElseThrow()
                     .addTerm(closedI1);
@@ -993,20 +995,27 @@ public class AcEquationSystemCreator {
         LfBus bus = converter.getBus1();
         LfDcBus dcBus1 = converter.getDcBus1();
         LfDcBus dcBus2 = converter.getDcBus2();
-        if (converter.getControlMode() == AcDcConverter.ControlMode.P_PCC) {
-            // if a converter is in PCC Mode, we add an equation to set Pac injected into the converter
-            equationSystem.createEquation(converter, AcEquationType.AC_CONV_TARGET_P_REF)
-                    .addTerm(equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_P_AC)
-                            .createTerm());
-        } else {
-            // if a converter is in V Mode, we add an equation to set V = v1 - v2 the tension of the two dc buses connected to the converter
-            EquationTerm<AcVariableType, AcEquationType> v1 = equationSystem.getVariable(dcBus1.getNum(), AcVariableType.DC_BUS_V)
-                    .createTerm();
-            EquationTerm<AcVariableType, AcEquationType> v2 = equationSystem.getVariable(dcBus2.getNum(), AcVariableType.DC_BUS_V)
-                    .createTerm();
-            equationSystem.createEquation(converter, AcEquationType.DC_BUS_TARGET_V_REF)
-                    .addTerm(v1)
-                    .addTerm(v2.minus());
+        switch (converter.getControlMode()) {
+            case P_PCC ->
+                // in PCC mode, we add an equation to set Pac injected into the converter
+                equationSystem.createEquation(converter, AcEquationType.AC_CONV_TARGET_P_REF)
+                        .addTerm(equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_P_AC)
+                                .createTerm());
+            case DC_DROOP ->
+                // in droop mode, we add an equation enforcing U_dc = refVdc + k*(P - refP), coupling Pac and the DC voltage
+                equationSystem.createEquation(converter, AcEquationType.ACDC_CONV_DC_DROOP)
+                        .addTerm(new ConverterDroopEquationTerm(converter, dcBus1, dcBus2, equationSystem.getVariableSet()));
+            case V_DC -> {
+                // in V mode, we add an equation to set V = v1 - v2 the voltage between the two dc buses connected to the converter
+                EquationTerm<AcVariableType, AcEquationType> v1 = equationSystem.getVariable(dcBus1.getNum(), AcVariableType.DC_BUS_V)
+                        .createTerm();
+                EquationTerm<AcVariableType, AcEquationType> v2 = equationSystem.getVariable(dcBus2.getNum(), AcVariableType.DC_BUS_V)
+                        .createTerm();
+                equationSystem.createEquation(converter, AcEquationType.DC_BUS_TARGET_V_REF)
+                        .addTerm(v1)
+                        .addTerm(v2.minus());
+            }
+            default -> throw new IllegalStateException("Unsupported converter control mode: " + converter.getControlMode());
         }
 
         // The converter add its power pAc in AC power balance

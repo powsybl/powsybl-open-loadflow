@@ -68,6 +68,24 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         this.extrapolateReactiveLimits = parameters.isExtrapolateReactiveLimits();
     }
 
+    protected AbstractLfGenerator(AbstractLfGenerator other, LfNetwork network) {
+        super(other.initialTargetP, other.targetP);
+        this.network = Objects.requireNonNull(network);
+        this.asym = other.asym;
+        this.calculatedQ = other.calculatedQ;
+        this.targetV = other.targetV;
+        this.switchedToLocalVoltageRegulation = other.switchedToLocalVoltageRegulation;
+        this.generatorControlType = other.generatorControlType;
+        this.controlledBusId = other.controlledBusId;
+        this.controlledBranchId = other.controlledBranchId;
+        this.controlledBranchSide = other.controlledBranchSide;
+        this.remoteTargetQ = other.remoteTargetQ;
+        this.disabled = other.disabled;
+        this.referencePriority = other.referencePriority;
+        this.reference = other.reference;
+        this.extrapolateReactiveLimits = other.extrapolateReactiveLimits;
+    }
+
     protected record ActivePowerControlHelper(boolean participating, double participationFactor, double droop, double minTargetP, double maxTargetP) {
 
         @SuppressWarnings("unchecked")
@@ -139,6 +157,14 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         return false;
     }
 
+    /**
+     * Returns true if an equivalent local target voltage is defined, meaning this generator can be switched from
+     * remote to local voltage control without having to rescale its target voltage.
+     */
+    public boolean hasEquivalentLocalTargetV() {
+        return false;
+    }
+
     @Override
     public GeneratorControlType getGeneratorControlType() {
         return generatorControlType;
@@ -161,34 +187,42 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     protected abstract Optional<ReactiveLimits> getReactiveLimits();
 
-    @Override
-    public double getMinQ() {
+    protected double getMinQ(double activePower) {
         if (getReactiveLimits().isEmpty()) {
             return -Double.MAX_VALUE;
         }
         ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow();
         if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
-            return ((ReactiveCapabilityCurve) reactiveLimits).getMinQ(targetP * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
+            return ((ReactiveCapabilityCurve) reactiveLimits).getMinQ(activePower * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
         } else if (reactiveLimits.getKind() == ReactiveLimitsKind.SHAPE) {
-            return ((ReactiveCapabilityShape) reactiveLimits).getMinQ(targetP * PerUnit.SB, targetV * getBus().getNominalV());
+            return ((ReactiveCapabilityShape) reactiveLimits).getMinQ(activePower * PerUnit.SB, targetV * getBus().getNominalV());
         } else {
-            return reactiveLimits.getMinQ(targetP * PerUnit.SB) / PerUnit.SB;
+            return reactiveLimits.getMinQ(activePower * PerUnit.SB) / PerUnit.SB;
         }
     }
 
-    @Override
-    public double getMaxQ() {
+    protected double getMaxQ(double activePower) {
         if (getReactiveLimits().isEmpty()) {
             return Double.MAX_VALUE;
         }
         ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow();
         if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
-            return ((ReactiveCapabilityCurve) reactiveLimits).getMaxQ(targetP * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
+            return ((ReactiveCapabilityCurve) reactiveLimits).getMaxQ(activePower * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
         } else if (reactiveLimits.getKind() == ReactiveLimitsKind.SHAPE) {
-            return ((ReactiveCapabilityShape) reactiveLimits).getMaxQ(targetP * PerUnit.SB, targetV * getBus().getNominalV());
+            return ((ReactiveCapabilityShape) reactiveLimits).getMaxQ(activePower * PerUnit.SB, targetV * getBus().getNominalV());
         } else {
-            return reactiveLimits.getMaxQ(targetP * PerUnit.SB) / PerUnit.SB;
+            return reactiveLimits.getMaxQ(activePower * PerUnit.SB) / PerUnit.SB;
         }
+    }
+
+    @Override
+    public double getMinQ() {
+        return getMinQ(targetP);
+    }
+
+    @Override
+    public double getMaxQ() {
+        return getMaxQ(targetP);
     }
 
     @Override

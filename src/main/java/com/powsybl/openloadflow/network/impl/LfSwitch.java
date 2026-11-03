@@ -10,10 +10,11 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.LoadingLimits;
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.sa.LimitReductionManager;
+import com.powsybl.openloadflow.sa.LimitScalingManager;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 
@@ -38,6 +40,19 @@ public class LfSwitch extends AbstractLfBranch {
     public LfSwitch(LfNetwork network, LfBus bus1, LfBus bus2, Switch aSwitch, LfNetworkParameters parameters) {
         super(network, Objects.requireNonNull(bus1), Objects.requireNonNull(bus2), new SimplePiModel(), parameters);
         this.switchRef = Ref.create(aSwitch, parameters.isCacheEnabled());
+    }
+
+    private LfSwitch(LfSwitch other, LfNetwork network, LfBus bus1, LfBus bus2) {
+        super(other, network, Objects.requireNonNull(bus1), Objects.requireNonNull(bus2));
+        this.switchRef = other.switchRef;
+    }
+
+    @Override
+    public LfBranch copy(LfNetwork copyNetwork) {
+        return new LfSwitch(this,
+                copyNetwork,
+                bus1 == null ? null : copyNetwork.getBusById(bus1.getId()),
+                bus2 == null ? null : copyNetwork.getBusById(bus2.getId()));
     }
 
     private Switch getSwitch() {
@@ -57,6 +72,11 @@ public class LfSwitch extends AbstractLfBranch {
     @Override
     public boolean hasPhaseControllerCapability() {
         return false;
+    }
+
+    @Override
+    public Optional<PhaseTapChanger> getPhaseTapChanger() {
+        return Optional.empty();
     }
 
     @Override
@@ -367,12 +387,12 @@ public class LfSwitch extends AbstractLfBranch {
     }
 
     @Override
-    public List<LfLimitsGroup> getLimits1(final LimitType type, LimitReductionManager limitReductionManager) {
+    public List<LfLimitsGroup> getLimits1(final LimitType type, LimitScalingManager limitScalingManager) {
         return Collections.emptyList();
     }
 
     @Override
-    public double[] getLimitReductions(TwoSides side, LimitReductionManager limitReductionManager, LoadingLimits limits) {
+    public double[] getLimitScalings(TwoSides side, LimitScalingManager limitScalingManager, LoadingLimits limits) {
         return new double[] {};
     }
 

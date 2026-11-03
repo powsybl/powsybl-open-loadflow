@@ -201,7 +201,7 @@ public abstract class AbstractLfSynchronousNetworkTest {
     void testValidateBusesReturnsInvalidIfThereIsNoGeneratorNorVoltageSourceConverterControllingVoltageInAcMode() {
         Network network = AcDcNetworkFactory.createMtDcNetworkWithThreeAcZones();
         // There is no generator nor VSC controlling AC voltage. The synchronous network is invalid for AC load flow.
-        network.getGenerator("g1").setTargetQ(0).setVoltageRegulatorOn(false);
+        network.getGenerator("g1").setLocalTargetQ(0).removeVoltageRegulation();
 
         LfNetworkParameters params = new LfNetworkParameters().setAcDcNetwork(true);
         LfNetwork lfNet = Networks.load(network, params).getFirst();
@@ -216,7 +216,7 @@ public abstract class AbstractLfSynchronousNetworkTest {
     void testValidateBusesReturnsValidIfThereIsNoGeneratorNorVoltageSourceConverterControllingVoltageInDcMode() {
         Network network = AcDcNetworkFactory.createMtDcNetworkWithThreeAcZones();
         // There is no generator nor VSC controlling AC voltage. The synchronous network is still valid for DC load flow.
-        network.getGenerator("g1").setTargetQ(0).setVoltageRegulatorOn(false);
+        network.getGenerator("g1").setLocalTargetQ(0).removeVoltageRegulation();
 
         LfNetworkParameters params = new LfNetworkParameters().setAcDcNetwork(true);
         LfNetwork lfNet = Networks.load(network, params).getFirst();
@@ -247,7 +247,7 @@ public abstract class AbstractLfSynchronousNetworkTest {
         // VSC conv14 controls AC voltage. The synchronous network is valid for AC load flow, even if there is no true
         // generator.
         network.getGenerator("g1").remove();
-        network.getVoltageSourceConverter("conv14").setVoltageSetpoint(380).setVoltageRegulatorOn(true);
+        network.getVoltageSourceConverter("conv14").setLocalTargetV(380).getVoltageRegulation().setRegulating(true);
 
         LfNetworkParameters params = new LfNetworkParameters().setAcDcNetwork(true);
         LfNetwork lfNet = Networks.load(network, params).getFirst();

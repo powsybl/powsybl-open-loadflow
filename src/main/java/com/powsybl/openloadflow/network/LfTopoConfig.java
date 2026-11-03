@@ -112,4 +112,22 @@ public class LfTopoConfig {
     public Set<String> getBranchIdsToClose() {
         return branchIdsToClose;
     }
+
+    /**
+     * Keys of everything that shapes the networks loaded with this topo config: two topo configs with the same keys lead
+     * to the same loaded networks, whatever the contingencies and actions they come from.
+     */
+    public Set<String> toKeys() {
+        Set<String> keys = new HashSet<>();
+        switchesToOpen.forEach(sw -> keys.add("switchToOpen:" + sw.getId()));
+        switchesToClose.forEach(sw -> keys.add("switchToClose:" + sw.getId()));
+        busIdsToLose.forEach(busId -> keys.add("busToLose:" + busId));
+        branchIdsWithPtcToRetain.forEach(branchId -> keys.add("ptcToRetain:" + branchId));
+        branchIdsWithRtcToRetain.forEach(branchId -> keys.add("rtcToRetain:" + branchId));
+        shuntIdsToOperate.forEach(shuntId -> keys.add("shuntToOperate:" + shuntId));
+        branchIdsOpenableSide1.forEach(branchId -> keys.add("branchOpenableSide1:" + branchId));
+        branchIdsOpenableSide2.forEach(branchId -> keys.add("branchOpenableSide2:" + branchId));
+        branchIdsToClose.forEach(branchId -> keys.add("branchToClose:" + branchId));
+        return keys;
+    }
 }

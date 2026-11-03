@@ -22,8 +22,7 @@ public class ReactiveInjectionNetworkFactory extends AbstractLoadFlowNetworkFact
                 .setMinP(0)
                 .setMaxP(2 * p)
                 .setTargetP(p)
-                .setTargetQ(q)
-                .setVoltageRegulatorOn(false)
+                .setLocalTargetQ(q)
                 .add();
         g.getTerminal().setP(-p).setQ(-q);
         return g;
