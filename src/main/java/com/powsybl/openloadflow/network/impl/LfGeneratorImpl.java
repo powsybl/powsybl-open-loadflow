@@ -42,15 +42,11 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     private Double qPercent;
 
-    private boolean isTargetQForcedInReactiveLimits = false;
-
     private final boolean forceVoltageControl;
 
     private final double maxTargetP;
 
     private final double minTargetP;
-
-    private final boolean forceTargetQInReactiveLimits;
 
     private LfGeneratorImpl(Generator generator, LfNetwork network, LfNetworkParameters parameters, LfNetworkLoadingReport report) {
         super(network, generator.getTargetP() / PerUnit.SB, parameters);
@@ -66,8 +62,6 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         minTargetP = apcHelper.minTargetP();
         maxTargetP = apcHelper.maxTargetP();
 
-        forceTargetQInReactiveLimits = parameters.isForceTargetQInReactiveLimits() && parameters.isReactiveLimits();
-
         setReferencePriority(ReferencePriority.get(generator));
 
         if (!checkActivePowerControl(generator.getId(), generator.getTargetP(), generator.getMaxP(), minTargetP, maxTargetP,
@@ -82,6 +76,10 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
         if (generator.isRegulatingWithMode(RegulationMode.REACTIVE_POWER) && generator.hasRegulatingTerminal() && parameters.isGeneratorReactivePowerRemoteControl()) {
             setRemoteReactivePowerControl(generator.getRegulatingTerminal(), generator.getVoltageRegulation().getTargetValue());
+        }
+
+        if (generator.isRegulatingWithMode(RegulationMode.REACTIVE_POWER_PER_ACTIVE_POWER)) {
+            setReactivePowerPerActivePowerControl(generator.getVoltageRegulation().getSlope());
         }
 
         CoordinatedReactiveControl coordinatedReactiveControl = getGenerator().getExtension(CoordinatedReactiveControl.class);
@@ -107,7 +105,6 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         this.forceVoltageControl = other.forceVoltageControl;
         this.maxTargetP = other.maxTargetP;
         this.minTargetP = other.minTargetP;
-        this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
     }
 
     @Override
@@ -191,24 +188,13 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        double targetQ = Networks.zeroIfNan(getGenerator().getLocalTargetQ()) / PerUnit.SB;
-        if (forceTargetQInReactiveLimits) {
-            double computedTargetQ = targetQ;
-            double minQ = getMinQ();
-            double maxQ = getMaxQ();
-            if (computedTargetQ < minQ) {
-                computedTargetQ = minQ;
-            } else if (computedTargetQ > maxQ) {
-                computedTargetQ = maxQ;
-            }
-            if (!isTargetQForcedInReactiveLimits && targetQ != computedTargetQ) { // Logging and reporting only on first update to avoid too much messages
-                String message = Reports.reportGeneratorWithUpdatedTargetQ(network.getReportNode(), this, targetQ * PerUnit.SB, maxQ * PerUnit.SB);
-                LOGGER.info(message);
-                isTargetQForcedInReactiveLimits = true;
-            }
-            targetQ = computedTargetQ;
+        double targetQ;
+        if (generatorControlType == GeneratorControlType.REACTIVE_POWER_PER_ACTIVE_POWER) {
+            targetQ = getTargetP() * tanPhi;
+        } else {
+            targetQ = Networks.zeroIfNan(getGenerator().getLocalTargetQ()) / PerUnit.SB;
         }
-        return targetQ;
+        return checkIfForcedInReactiveLimits(targetQ);
     }
 
     @Override
