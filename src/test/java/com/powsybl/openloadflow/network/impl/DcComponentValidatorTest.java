@@ -30,6 +30,7 @@ class DcComponentValidatorTest {
         List<AcDcConverter<?>> convertersToSetInVdcMode = DcComponentValidator.resolveDcComponent(
                 allDcBuses(network),
                 List.of(network.getVoltageSourceConverter("conv23"), network.getVoltageSourceConverter("conv45")),
+                allDcSwitches(network),
                 NUM_DCC);
 
         assertTrue(convertersToSetInVdcMode.isEmpty());
@@ -43,6 +44,7 @@ class DcComponentValidatorTest {
         List<AcDcConverter<?>> convertersToSetInVdcMode = DcComponentValidator.resolveDcComponent(
                 allDcBuses(network),
                 List.of(network.getVoltageSourceConverter("conv23"), network.getVoltageSourceConverter("conv45")),
+                allDcSwitches(network),
                 NUM_DCC);
 
         assertTrue(convertersToSetInVdcMode.isEmpty());
@@ -60,6 +62,7 @@ class DcComponentValidatorTest {
         List<AcDcConverter<?>> convertersToSetInVdcMode = DcComponentValidator.resolveDcComponent(
                 allDcBuses(network),
                 List.of(network.getVoltageSourceConverter("conv23"), network.getVoltageSourceConverter("conv45")),
+                allDcSwitches(network),
                 NUM_DCC);
 
         assertEquals(1, convertersToSetInVdcMode.size());
@@ -71,6 +74,7 @@ class DcComponentValidatorTest {
         List<AcDcConverter<?>> convertersToSetInVdcMode2 = DcComponentValidator.resolveDcComponent(
                 allDcBuses(network),
                 List.of(network.getVoltageSourceConverter("conv23"), network.getVoltageSourceConverter("conv45")),
+                allDcSwitches(network),
                 NUM_DCC);
 
         assertEquals(1, convertersToSetInVdcMode2.size());
@@ -84,9 +88,24 @@ class DcComponentValidatorTest {
         List<AcDcConverter<?>> convertersToSetInVdcMode = DcComponentValidator.resolveDcComponent(
                 allDcBuses(network),
                 List.of(network.getVoltageSourceConverter("conv23"), network.getVoltageSourceConverter("conv45")),
+                allDcSwitches(network),
                 NUM_DCC);
 
         assertEquals(2, convertersToSetInVdcMode.size());
+    }
+
+    @Test
+    void dcSubComponentLinkedByResistiveDcSwitchNeedsNoPromotion() {
+        // conv23 (P_PCC, on dn3) reaches conv45 (V_DC, on dn4) through the resistive switch sw3b then the line dl3b4:
+        // dn3 and dn3b are distinct DC buses, so the switch must be followed to find conv45
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDcSwitchAndDcLine(0.5, 0.5);
+        List<AcDcConverter<?>> convertersToSetInVdcMode = DcComponentValidator.resolveDcComponent(
+                allDcBuses(network),
+                List.of(network.getVoltageSourceConverter("conv23"), network.getVoltageSourceConverter("conv45")),
+                allDcSwitches(network),
+                NUM_DCC);
+
+        assertTrue(convertersToSetInVdcMode.isEmpty());
     }
 
     @Test
@@ -97,7 +116,7 @@ class DcComponentValidatorTest {
         List<DcBus> deadSubComponent = List.of(network.getDcNode("dn3").getDcBus(), network.getDcNode("dn4").getDcBus());
 
         PowsyblException exception = assertThrows(PowsyblException.class,
-                () -> DcComponentValidator.resolveDcComponent(deadSubComponent, List.of(), NUM_DCC));
+                () -> DcComponentValidator.resolveDcComponent(deadSubComponent, List.of(), List.of(), NUM_DCC));
         assertTrue(exception.getMessage().contains("no AC-DC converter able to settle the DC voltage"));
     }
 
@@ -127,11 +146,15 @@ class DcComponentValidatorTest {
         List<AcDcConverter<?>> converters = List.of(network.getVoltageSourceConverter("conv"));
         List<DcBus> dcBuses = allDcBuses(network);
         PowsyblException exception = assertThrows(PowsyblException.class,
-                () -> DcComponentValidator.resolveDcComponent(dcBuses, converters, NUM_DCC));
+                () -> DcComponentValidator.resolveDcComponent(dcBuses, converters, List.of(), NUM_DCC));
         assertTrue(exception.getMessage().contains("not indirectly connected to a DC ground"));
     }
 
     private static List<DcBus> allDcBuses(Network network) {
         return network.getDcBusStream().toList();
+    }
+
+    private static List<DcSwitch> allDcSwitches(Network network) {
+        return network.getDcSwitchStream().toList();
     }
 }
