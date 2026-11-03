@@ -8,8 +8,6 @@
 package com.powsybl.openloadflow.reduction;
 
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.math.matrix.MatrixFactory;
-import com.powsybl.math.matrix.SparseMatrixFactory;
 
 import java.util.Set;
 
