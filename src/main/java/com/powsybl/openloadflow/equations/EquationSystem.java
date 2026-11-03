@@ -295,6 +295,10 @@ public class EquationSystem<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         listeners.forEach(listener -> listener.onEquationArrayChange(equationArray, elementNum, eventType));
     }
 
+    public void notifyEquationTermConstantsChange() {
+        listeners.forEach(listener -> listener.onEquationTermConstantsChange());
+    }
+
     public void write(Writer writer, boolean writeInactiveEquations) {
         try {
             for (SingleEquation<V, E> equation : equations.values().stream().sorted().collect(Collectors.toList())) {

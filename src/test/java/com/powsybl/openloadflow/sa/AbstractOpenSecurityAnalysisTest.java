@@ -26,8 +26,8 @@ import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
@@ -76,7 +76,7 @@ public abstract class AbstractOpenSecurityAnalysisTest {
     void setUp() {
         computationManager = Mockito.mock(ComputationManager.class);
         Mockito.when(computationManager.getExecutor()).thenReturn(ForkJoinPool.commonPool());
-        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new DTreeGraphConnectivityFactory<>();
         securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), connectivityFactory);
         loadFlowProvider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), connectivityFactory);
         loadFlowRunner = new LoadFlow.Runner(loadFlowProvider);
