@@ -50,7 +50,8 @@ public abstract class AbstractHvdcAcEmulationLimitsOuterLoop<V extends Enum<V> &
 
     private static boolean checkLinearMode(LfHvdc hvdc, boolean computeLoss, Logger logger, ReportNode reportNode) {
         // If the HVDC was in linear mode but overpasses P_max -> switching to saturated mode
-        double p1 = hvdc.getP1().eval();
+        hvdc.getAcEmulationControl().computeAcEmulationActivePowerFlow();
+        double p1 = hvdc.getAcEmulationControl().getComputedAcEmulationP1();
         if (p1 >= 0) {
             if (p1 > hvdc.getAcEmulationControl().getPMaxFromCS1toCS2()) {
                 hvdc.getAcEmulationControl().switchToSaturationFromCS1toCS2(computeLoss);
@@ -62,7 +63,7 @@ public abstract class AbstractHvdcAcEmulationLimitsOuterLoop<V extends Enum<V> &
                 return true;
             }
         } else {
-            double p2 = hvdc.getP2().eval();
+            double p2 = hvdc.getAcEmulationControl().getComputedAcEmulationP2();
             if (p2 > hvdc.getAcEmulationControl().getPMaxFromCS2toCS1()) {
                 hvdc.getAcEmulationControl().switchToSaturationFromCS2toCS1(computeLoss);
                 Reports.reportAcEmulationFromLinearToSaturated(reportNode, hvdc.getId(),
@@ -78,8 +79,9 @@ public abstract class AbstractHvdcAcEmulationLimitsOuterLoop<V extends Enum<V> &
 
     private static boolean checkSaturationMode(LfHvdc hvdc, boolean computeLoss, Logger logger, ReportNode reportNode) {
         LfHvdc.AcEmulationControl acEmulationControl = hvdc.getAcEmulationControl();
-        double p1 = hvdc.getP1().eval();
-        double p2 = hvdc.getP2().eval();
+        acEmulationControl.computeAcEmulationActivePowerFlow();
+        double p1 = acEmulationControl.getComputedAcEmulationP1();
+        double p2 = acEmulationControl.getComputedAcEmulationP2();
 
         if (p1 > 0 && p1 < hvdc.getAcEmulationControl().getPMaxFromCS1toCS2()
                 || p2 > 0 && p2 < hvdc.getAcEmulationControl().getPMaxFromCS2toCS1()) {

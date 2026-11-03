@@ -82,7 +82,7 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(LfVoltageSourceConverter.LfDroopReference.class, Set.of("k", "refVdc", "refP"));
         expected.put(LfGeneratorImpl.class, Set.of("generatorRef", "initialParticipating", "participating", "droop", "participationFactor", "qPercent",
                 "isTargetQForcedInReactiveLimits", "forceVoltageControl", "maxTargetP", "minTargetP", "forceTargetQInReactiveLimits"));
-        expected.put(LfHvdcImpl.AcEmulationControl.class, Set.of("hvdc", "droop", "p0", "pMaxFromCS1toCS2", "pMaxFromCS2toCS1", "acEmulationStatus"));
+        expected.put(LfHvdcImpl.AcEmulationControl.class, Set.of("hvdc", "droop", "p0", "pMaxFromCS1toCS2", "pMaxFromCS2toCS1", "acEmulationStatus", "computedAcEmulationP1", "computedAcEmulationP2"));
         expected.put(LfHvdcImpl.class, Set.of("id", "bus1", "bus2", "p1", "p2", "r", "nominalV", "converterStation1", "converterStation2", "acEmulation", "acEmulationControl"));
         expected.put(LfLegBranch.class, Set.of("twtRef", "legRef"));
         expected.put(LfLoadImpl.class, Set.of("bus", "loadModel", "loadsRefs", "lccCsRefs", "targetQ", "ensurePowerFactorConstantByLoad", "loadsAbsVariableTargetP",

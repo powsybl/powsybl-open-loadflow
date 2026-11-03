@@ -16,6 +16,8 @@ public class HvdcState extends ElementState<LfHvdc> {
     private final LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus;
     private final double vsc1TargetP;
     private final double vsc2TargetP;
+    private final double computedAcEmulationP1;
+    private final double computedAcEmulationP2;
 
     public HvdcState(LfHvdc hvdc) {
         super(hvdc);
@@ -25,9 +27,20 @@ public class HvdcState extends ElementState<LfHvdc> {
             // VSCs targetP are stored to be used if the AC emulation is in saturated mode
             vsc1TargetP = hvdc.getConverterStation1().getTargetP();
             vsc2TargetP = hvdc.getConverterStation2().getTargetP();
+            // computedAcEmulationP are used to store state at post-contingency step in case of LfHvdcAction
+            if (!hvdc.isDisabled()) {
+                hvdc.getAcEmulationControl().computeAcEmulationActivePowerFlow();
+                computedAcEmulationP1 = hvdc.getAcEmulationControl().getComputedAcEmulationP1();
+                computedAcEmulationP2 = hvdc.getAcEmulationControl().getComputedAcEmulationP2();
+            } else {
+                computedAcEmulationP1 = Double.NaN;
+                computedAcEmulationP2 = Double.NaN;
+            }
         } else {
             vsc1TargetP = Double.NaN;
             vsc2TargetP = Double.NaN;
+            computedAcEmulationP1 = Double.NaN;
+            computedAcEmulationP2 = Double.NaN;
             acEmulationStatus = null;
         }
     }
@@ -43,6 +56,8 @@ public class HvdcState extends ElementState<LfHvdc> {
         if (acEmulation) {
             element.getConverterStation1().setTargetP(vsc1TargetP);
             element.getConverterStation2().setTargetP(vsc2TargetP);
+            element.getAcEmulationControl().setComputedAcEmulationP1(computedAcEmulationP1);
+            element.getAcEmulationControl().setComputedAcEmulationP2(computedAcEmulationP2);
             element.updateAcEmulationStatus(acEmulationStatus);
         }
     }
