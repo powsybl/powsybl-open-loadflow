@@ -1,16 +1,17 @@
 # Configuration
 
-This page details the configuration parameters available for network reduction using the Ward equivalent method (`WardReductionParameters`).
+This page details the configuration parameters available for network reduction.
 
 ## Ward reduction parameters
 
-The following table summarizes all parameters defined in `WardReductionParameters`:
+The following table summarizes all parameters defined in `WardReductionParameters` for operating a network reduction with Ward equivalent.
 
 | Parameter | Type | Default value | Description |
 |---|---|---|---|
-| [`InternalVoltageLevelIds`](#Internalvoltagelevelids) | `Set<String>` | `Set.of()` | Set of voltage level IDs defining the internal area to be kept. |
-| [`EquivalentType`](#Equivalenttype) | `WardEquivalentType` | `STANDARD` | The Ward equivalent type to use for network reduction. |
-| [`LoadFlowParameters`](#Loadflowparameters) | `LoadFlowParameters` | `new LoadFlowParameters()` | The load flow parameters used for the creation of the internal `LfNetwork`. |
+| [`InternalVoltageLevelIds`](#InternalVoltageLevelIds) | `Set<String>` | `Set.of()` | Set of voltage level IDs defining the internal area to be kept. |
+| [`EquivalentType`](#EquivalentType) | `WardEquivalentType` | `STANDARD` | The Ward equivalent type to use for network reduction. |
+| [`LoadFlowParameters`](#LoadFlowParameters) | `LoadFlowParameters` | `new LoadFlowParameters()` | The load flow parameters used for the creation of the internal `LfNetwork`. |
+| [`EquivalentSuffix`](#EquivalentSuffix) | `String` | `-equivalent` | The suffix for naming equivalent objects. |
 
 ---
 
@@ -26,3 +27,7 @@ Defines the mathematical reduction formulation:
 ### LoadFlowParameters
 
 The `LoadFlowParameters` instance passed to configure the internal `LfNetwork` creation and solver behavior when evaluating the initial state and parameters for reduction.
+
+### EquivalentSuffix
+
+The suffix added to the identifier of equivalent VoltageLevel, Bus, Line, ShuntCompensator, Generator created in the network as part of the reduction process.

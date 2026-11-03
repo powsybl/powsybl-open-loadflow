@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.powsybl.openloadflow.reduction.ReductionEngine.EQUIVALENT;
 import static com.powsybl.openloadflow.reduction.ReductionUtil.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -65,7 +64,7 @@ class WardReductionTest {
         for (int i = 0; i < busesSVAfterReduction.size(); i++) {
             BusSV busBefore = busesSVBeforeReduction.get(i);
             BusSV busAfter = busesSVAfterReduction.get(i);
-            assertEquals(busBefore.id, busAfter.id.replace(EQUIVALENT, ""));
+            assertEquals(busBefore.id, busAfter.id.replace("-equivalent", ""));
             assertEquals(busBefore.v, busAfter.v, 1e-3);
             assertEquals(busBefore.angle, busAfter.angle, 1e-3);
         }
@@ -75,7 +74,7 @@ class WardReductionTest {
         // Return a list of bus state values for internal and boundary buses
         return network.getVoltageLevelStream()
             .filter(vl -> internalVlIds.contains(vl.getId())
-                || boundaryVLIds.contains(vl.getId().replace(EQUIVALENT, "")))
+                || boundaryVLIds.contains(vl.getId().replace("-equivalent", "")))
             .flatMap(vl -> vl.getBusView().getBusStream())
             .sorted(Comparator.comparing(Bus::getId))
             .map(bus -> new BusSV(bus.getId(), bus.getV(), bus.getAngle()))

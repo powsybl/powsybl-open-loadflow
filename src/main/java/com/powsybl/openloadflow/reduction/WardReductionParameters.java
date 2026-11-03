@@ -21,6 +21,7 @@ public class WardReductionParameters {
     private LoadFlowParameters parameters = new LoadFlowParameters();
     private WardEquivalentType equivalentType = WardEquivalentType.STANDARD;
     private Set<String> internalVoltageLevelIds = Set.of();
+    private String equivalentSuffix = "-equivalent";
 
     /**
      * Get the load flow parameters used for the {@code LfNetwork} creation.
@@ -81,4 +82,24 @@ public class WardReductionParameters {
         this.internalVoltageLevelIds = internalVoltageLevelIds;
         return this;
     }
+
+    /**
+     * Get the suffix for naming equivalent objects.
+     *
+     * @return the suffix for naming equivalent objects.
+     */
+    public String getEquivalentSuffix() {
+        return equivalentSuffix;
+    }
+
+    /**
+     * Set the suffix for naming equivalent objects.
+     * @param equivalentSuffix the suffix for naming equivalent objects.
+     * @return this instance for method chaining.
+     */
+    public WardReductionParameters setEquivalentSuffix(String equivalentSuffix) {
+        this.equivalentSuffix = equivalentSuffix;
+        return this;
+    }
+
 }

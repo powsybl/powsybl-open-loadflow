@@ -62,7 +62,7 @@ public final class WardReduction {
         WardEquivalent wardEquivalent = new WardEquivalent(lfNetwork, zones, parameters.getEquivalentType(), matrixFactory);
 
         // Reduce the network with equivalents
-        ReductionEngine reductionEngine = new ReductionEngine(network, lfNetwork, zones);
+        ReductionEngine reductionEngine = new ReductionEngine(network, lfNetwork, zones, parameters.getEquivalentSuffix());
 
         return reductionEngine.reduceWithWardEquivalent(wardEquivalent);
     }

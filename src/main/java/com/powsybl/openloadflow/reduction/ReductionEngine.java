@@ -27,10 +27,10 @@ public class ReductionEngine {
     /**
      * A constant used for labeling equivalent elements within the reduced network.
      */
-    public static final String EQUIVALENT = "-equivalent";
     private final Network network;
     private final LfNetwork lfNetwork;
     private final ZoneDecomposition zones;
+    private final String equivalentSuffix;
 
     /**
      * Create a new ReductionEngine instance for performing network reduction.
@@ -39,10 +39,11 @@ public class ReductionEngine {
      * @param lfNetwork The {@link LfNetwork} used for the reduction operation.
      * @param zones The {@link ZoneDecomposition} describing the part to keep (internal) and the part to reduce (external)
      */
-    ReductionEngine(Network network, LfNetwork lfNetwork, ZoneDecomposition zones) {
+    ReductionEngine(Network network, LfNetwork lfNetwork, ZoneDecomposition zones, String equivalentSuffix) {
         this.network = network;
         this.lfNetwork = lfNetwork;
         this.zones = zones;
+        this.equivalentSuffix = equivalentSuffix;
     }
 
     /**
@@ -71,7 +72,7 @@ public class ReductionEngine {
 
         // Create a new voltage level for each boundary bus
         for (LfBus boundaryBus : zones.getBoundaryBuses()) {
-            String newVlId = boundaryBus.getVoltageLevelId() + EQUIVALENT;
+            String newVlId = boundaryBus.getVoltageLevelId() + equivalentSuffix;
             VoltageLevel newVl = network.getVoltageLevel(newVlId);
             if (newVl == null) {
                 Substation boundarySubstation = network.getVoltageLevel(boundaryBus.getVoltageLevelId()).getNullableSubstation();
@@ -120,7 +121,7 @@ public class ReductionEngine {
     }
 
     private String getBusId(LfBus lfBus) {
-        return lfBus.getId() + EQUIVALENT;
+        return lfBus.getId() + equivalentSuffix;
     }
 
     private void removeBranch(LfBranch lfBranch) {
@@ -151,7 +152,7 @@ public class ReductionEngine {
             Bus bus2 = network.getBusBreakerView().getBus(getBusId(equivalentBranch.bus2));
 
             Line line = network.newLine()
-                .setId(equivalentBranch.bus1.getId() + "-" + equivalentBranch.bus2.getId() + "-equivalent-branch")
+                .setId(equivalentBranch.bus1.getId() + "-" + equivalentBranch.bus2.getId() + "-branch" + equivalentSuffix)
                 .setName("Equivalent branch " + equivalentBranch.bus1.getId() + "-" + equivalentBranch.bus2.getId())
                 .setEquivalent(true)
                 .setR(equivalentBranch.g / ySquare)
@@ -176,7 +177,7 @@ public class ReductionEngine {
             Bus bus = network.getBusBreakerView().getBus(getBusId(equivalentShunt.bus));
 
             ShuntCompensator shunt = bus.getVoltageLevel().newShuntCompensator()
-                .setId(equivalentShunt.bus.getId() + "-equivalent-shunt")
+                .setId(equivalentShunt.bus.getId() + "-shunt" + equivalentSuffix)
                 .setName("Equivalent shunt " + equivalentShunt.bus.getId())
                 .setEquivalent(true)
                 .setSectionCount(1)
@@ -202,7 +203,7 @@ public class ReductionEngine {
             Bus bus = network.getBusBreakerView().getBus(getBusId(equivalentInjection.bus));
 
             Generator generator = bus.getVoltageLevel().newGenerator()
-                .setId(equivalentInjection.bus.getId() + "-equivalent-injection")
+                .setId(equivalentInjection.bus.getId() + "-injection" + equivalentSuffix)
                 .setName("Equivalent injection " + equivalentInjection.bus.getId())
                 .setEquivalent(true)
                 .setMinP(-Double.MAX_VALUE)

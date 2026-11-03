@@ -118,7 +118,7 @@ $$
 ## Reduction of the IIDM network
 
 The Ward reduction process applied to an IIDM network comprises:
-1. **Creation of equivalent voltage levels**: For each boundary voltage level and bus, a new voltage level and bus (with the suffix `-equivalent`) is created in the network to isolate the boundary interface.
+1. **Creation of equivalent voltage levels**: For each boundary voltage level and bus, a new voltage level and bus is created in the network to isolate the boundary interface.
 2. **Reconnection of tie-lines**: The tie-lines connecting internal buses to boundary buses are moved on the boundary side to connect to the new equivalent voltage levels/buses.
 3. **Removal of external elements**: All external lines, transformers, voltage levels, and substations are removed.
 4. **Addition of equivalent elements**:
