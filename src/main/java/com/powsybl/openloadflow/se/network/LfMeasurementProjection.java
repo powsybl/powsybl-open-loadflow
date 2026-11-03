@@ -43,10 +43,6 @@ public class LfMeasurementProjection {
         }
     }
 
-    public LfNetwork getNetwork() {
-        return network;
-    }
-
     /**
      * The bus carrying the given identifier, empty if it is not part of this network:
      * it may belong to another island, or be out of service.

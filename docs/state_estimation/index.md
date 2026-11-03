@@ -24,7 +24,7 @@ behind a `StateEstimationProvider` with no change to the types below.
 | Here | In the API |
 |---|---|
 | `WlsParameters`, holding the tolerance and the iteration cap | an `Extension<StateEstimationParameters>` contributed by this provider, since neither setting changes what the answer means |
-| `Measurement`, `MeasuredQuantity` | built from the IIDM measurement extensions a network already carries |
+| `LfMeasurement`, `MeasuredQuantity` | built from the IIDM measurement extensions a network already carries |
 | `WlsResult`, already shaped after `ComponentResult` and carrying `BusResult` and `BranchResult` in IIDM units | one entry in `StateEstimationResult.getComponentResults()`, with its bus and branch results merged into the network-wide lists |
 | nothing yet | `ObservabilityResult`, from a measurement-graph traversal not implemented here |
 | nothing yet | `BadDataResult`, from normalized residuals the kernel already computes and discards |

@@ -18,8 +18,7 @@ import java.util.Objects;
  *
  * <ul>
  *   <li>per unit, on the network's own base;</li>
- *   <li>bus injections generation-positive: power fed into the network is positive,
- *       which equals the sum of the flows leaving the bus into its branches;</li>
+ *   <li>bus injections generation-positive: power fed into the network is positive;</li>
  *   <li>branch quantities positive when flowing from the bus into the branch at the
  *       given side, the side being resolved against the branch orientation.</li>
  * </ul>
@@ -35,31 +34,31 @@ import java.util.Objects;
  *
  * @author Šime Pavlić {@literal <sime.pavlic at kickstage.com>}
  */
-public record Measurement(MeasuredQuantity quantity, LfBus bus, LfBranch branch, int side,
+public record LfMeasurement(MeasuredQuantity quantity, LfBus bus, LfBranch branch, int side,
                           double valuePu, double sigmaPu) {
 
-    public Measurement {
+    public LfMeasurement {
         Objects.requireNonNull(quantity);
         if (sigmaPu <= 0) {
-            throw new IllegalArgumentException("Measurement standard deviation must be positive, was " + sigmaPu);
+            throw new IllegalArgumentException("LfMeasurement standard deviation must be positive, was " + sigmaPu);
         }
     }
 
     /** A voltage magnitude reading at a bus, per unit of nominal voltage. */
-    public static Measurement busVoltage(LfBus bus, double valuePu, double sigmaPu) {
-        return new Measurement(MeasuredQuantity.BUS_V, Objects.requireNonNull(bus), null, 0, valuePu, sigmaPu);
+    public static LfMeasurement busVoltage(LfBus bus, double valuePu, double sigmaPu) {
+        return new LfMeasurement(MeasuredQuantity.BUS_V, Objects.requireNonNull(bus), null, 0, valuePu, sigmaPu);
     }
 
     /** An injection reading at a bus, generation-positive, per unit. */
-    public static Measurement busInjection(LfBus bus, boolean active, double valuePu, double sigmaPu) {
-        return new Measurement(active ? MeasuredQuantity.BUS_P : MeasuredQuantity.BUS_Q,
+    public static LfMeasurement busInjection(LfBus bus, boolean active, double valuePu, double sigmaPu) {
+        return new LfMeasurement(active ? MeasuredQuantity.BUS_P : MeasuredQuantity.BUS_Q,
                 Objects.requireNonNull(bus), null, 0, valuePu, sigmaPu);
     }
 
     /** A flow or current reading at one side of a branch, per unit. */
-    public static Measurement branchFlow(LfBranch branch, MeasuredQuantity quantity, int side,
+    public static LfMeasurement branchFlow(LfBranch branch, MeasuredQuantity quantity, int side,
                                          double valuePu, double sigmaPu) {
-        return new Measurement(quantity, null, Objects.requireNonNull(branch), side, valuePu, sigmaPu);
+        return new LfMeasurement(quantity, null, Objects.requireNonNull(branch), side, valuePu, sigmaPu);
     }
 
     /** The weight this reading carries in the estimate: the inverse of its variance. */

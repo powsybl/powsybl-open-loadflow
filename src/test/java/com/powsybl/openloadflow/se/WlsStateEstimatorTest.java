@@ -69,7 +69,7 @@ class WlsStateEstimatorTest {
 
     @Test
     void recoversTheLoadFlowStateFromAFlatStart() {
-        List<Measurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
+        List<LfMeasurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
 
         WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
         estimator.initFlat();
@@ -92,7 +92,7 @@ class WlsStateEstimatorTest {
 
     @Test
     void derivesTheBranchFlowsTheEstimatedStateImplies() {
-        List<Measurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
+        List<LfMeasurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
 
         WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
         estimator.initFlat();
@@ -113,7 +113,7 @@ class WlsStateEstimatorTest {
 
     @Test
     void reportsTheAngleReferenceAndTheObjectiveItMinimized() {
-        List<Measurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
+        List<LfMeasurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
 
         WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
         estimator.initFlat();
@@ -138,7 +138,7 @@ class WlsStateEstimatorTest {
 
     @Test
     void leavesTheStateUntouchedWhenStartedAtTheAnswer() {
-        List<Measurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
+        List<LfMeasurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
 
         WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
         estimator.init(trueV, trueAngle);
@@ -153,9 +153,9 @@ class WlsStateEstimatorTest {
         LfBus bus = lfNetwork.getBuses().get(1);
         // two readings of the same voltage disagreeing by 0.1 pu, the second ten times
         // more precise: the estimate must land near the second
-        List<Measurement> measurements = new ArrayList<>(withNoiseFreeValues(describeRedundantMeterSet()));
-        measurements.add(Measurement.busVoltage(bus, trueV[bus.getNum()] - 0.05, 0.1));
-        measurements.add(Measurement.busVoltage(bus, trueV[bus.getNum()] + 0.05, 0.01));
+        List<LfMeasurement> measurements = new ArrayList<>(withNoiseFreeValues(describeRedundantMeterSet()));
+        measurements.add(LfMeasurement.busVoltage(bus, trueV[bus.getNum()] - 0.05, 0.1));
+        measurements.add(LfMeasurement.busVoltage(bus, trueV[bus.getNum()] + 0.05, 0.01));
 
         WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
         estimator.initFlat();
@@ -211,9 +211,9 @@ class WlsStateEstimatorTest {
 
         // the bus carries a shunt and a line and nothing else, so its device injection is
         // zero: the line flow and the shunt must cancel on both axes
-        List<Measurement> injections = List.of(
-                Measurement.busInjection(shuntBus, true, 0, 0.01),
-                Measurement.busInjection(shuntBus, false, 0, 0.01));
+        List<LfMeasurement> injections = List.of(
+                LfMeasurement.busInjection(shuntBus, true, 0, 0.01),
+                LfMeasurement.busInjection(shuntBus, false, 0, 0.01));
         WlsStateEstimator probe = new WlsStateEstimator(lf, injections);
         probe.init(v, angle);
         double[] predicted = probe.evaluate();
@@ -226,20 +226,20 @@ class WlsStateEstimatorTest {
      * Voltage at every bus, injections everywhere, and flows on both sides of every
      * branch: comfortably more readings than the 2n - 1 unknowns.
      */
-    private List<Measurement> describeRedundantMeterSet() {
-        List<Measurement> measurements = new ArrayList<>();
+    private List<LfMeasurement> describeRedundantMeterSet() {
+        List<LfMeasurement> measurements = new ArrayList<>();
         for (LfBus bus : lfNetwork.getBuses()) {
-            measurements.add(Measurement.busVoltage(bus, 0, 0.004));
-            measurements.add(Measurement.busInjection(bus, true, 0, 0.01));
-            measurements.add(Measurement.busInjection(bus, false, 0, 0.01));
+            measurements.add(LfMeasurement.busVoltage(bus, 0, 0.004));
+            measurements.add(LfMeasurement.busInjection(bus, true, 0, 0.01));
+            measurements.add(LfMeasurement.busInjection(bus, false, 0, 0.01));
         }
         for (LfBranch branch : lfNetwork.getBranches()) {
             if (branch.getBus1() == null || branch.getBus2() == null) {
                 continue;
             }
             for (int side = 1; side <= 2; side++) {
-                measurements.add(Measurement.branchFlow(branch, MeasuredQuantity.BRANCH_P, side, 0, 0.01));
-                measurements.add(Measurement.branchFlow(branch, MeasuredQuantity.BRANCH_Q, side, 0, 0.01));
+                measurements.add(LfMeasurement.branchFlow(branch, MeasuredQuantity.BRANCH_P, side, 0, 0.01));
+                measurements.add(LfMeasurement.branchFlow(branch, MeasuredQuantity.BRANCH_Q, side, 0, 0.01));
             }
         }
         return measurements;
@@ -249,15 +249,15 @@ class WlsStateEstimatorTest {
      * Replaces the placeholder values of a meter set with what those meters would read
      * in the load-flow state, so the readings carry no error.
      */
-    private List<Measurement> withNoiseFreeValues(List<Measurement> described) {
+    private List<LfMeasurement> withNoiseFreeValues(List<LfMeasurement> described) {
         WlsStateEstimator probe = new WlsStateEstimator(lfNetwork, described);
         probe.init(trueV, trueAngle);
         double[] exact = probe.evaluate();
 
-        List<Measurement> measurements = new ArrayList<>(described.size());
+        List<LfMeasurement> measurements = new ArrayList<>(described.size());
         for (int i = 0; i < described.size(); i++) {
-            Measurement m = described.get(i);
-            measurements.add(new Measurement(m.quantity(), m.bus(), m.branch(), m.side(), exact[i], m.sigmaPu()));
+            LfMeasurement m = described.get(i);
+            measurements.add(new LfMeasurement(m.quantity(), m.bus(), m.branch(), m.side(), exact[i], m.sigmaPu()));
         }
         return measurements;
     }

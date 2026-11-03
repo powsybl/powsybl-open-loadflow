@@ -49,7 +49,7 @@ public class WlsStateEstimator {
 
     private final LfNetwork network;
 
-    private final List<Measurement> measurements;
+    private final List<LfMeasurement> measurements;
 
     private final VariableSet<AcVariableType> variableSet = new VariableSet<>();
 
@@ -59,7 +59,7 @@ public class WlsStateEstimator {
 
     private final List<MeasurementEquation> equations = new ArrayList<>();
 
-    public WlsStateEstimator(LfNetwork network, List<Measurement> measurements) {
+    public WlsStateEstimator(LfNetwork network, List<LfMeasurement> measurements) {
         this.network = Objects.requireNonNull(network);
         this.measurements = List.copyOf(Objects.requireNonNull(measurements));
         int busCount = network.getBuses().size();
@@ -69,12 +69,12 @@ public class WlsStateEstimator {
         }
         this.state = new double[2 * busCount];
         this.stateVector = new StateVector(state);
-        for (Measurement measurement : this.measurements) {
+        for (LfMeasurement measurement : this.measurements) {
             equations.add(createEquation(measurement));
         }
     }
 
-    private MeasurementEquation createEquation(Measurement measurement) {
+    private MeasurementEquation createEquation(LfMeasurement measurement) {
         return switch (measurement.quantity()) {
             case BUS_V -> MeasurementEquations.busVoltage(measurement.bus(), variableSet, stateVector);
             case BUS_P -> MeasurementEquations.busInjection(measurement.bus(), true, variableSet, stateVector);
@@ -214,7 +214,7 @@ public class WlsStateEstimator {
     private double objectiveFunctionValue() {
         double objective = 0;
         for (int i = 0; i < equations.size(); i++) {
-            Measurement measurement = measurements.get(i);
+            LfMeasurement measurement = measurements.get(i);
             double residual = measurement.valuePu() - equations.get(i).eval();
             objective += measurement.weight() * residual * residual;
         }
@@ -232,7 +232,7 @@ public class WlsStateEstimator {
 
         for (int i = 0; i < equations.size(); i++) {
             MeasurementEquation equation = equations.get(i);
-            Measurement measurement = measurements.get(i);
+            LfMeasurement measurement = measurements.get(i);
             double weight = measurement.weight();
             double residual = measurement.valuePu() - equation.eval();
 
