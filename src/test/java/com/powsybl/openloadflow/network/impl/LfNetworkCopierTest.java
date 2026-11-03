@@ -126,7 +126,7 @@ class LfNetworkCopierTest {
     }
 
     @Test
-    public void testLfNetworkCopyEquivalenceAndCoverageOfAllCases() {
+    void testLfNetworkCopyEquivalenceAndCoverageOfAllCases() {
         LfNetworkCopyDeepFieldComparator deepFieldComparator = new LfNetworkCopyDeepFieldComparator();
         cases().forEach(c -> testCopyEquivalence(c, deepFieldComparator)); // testing copy equivalence for each case
         // testing globally at the end if all LfNetwork classes (listed in LfNetworkCopyFieldGuardTest) have been covered by all the cases
