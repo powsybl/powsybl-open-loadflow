@@ -112,7 +112,7 @@ class LfNetworkCopierTest {
                         p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true)),
                 new Case("acDcNetwork1", AcDcNetworkFactory.createAcDcNetwork1(),
                         p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true)),
-                new Case("acDcNetwork1", AcDcNetworkFactory.createAcDcNetworkWithDroopControl(),
+                new Case("acDcNetworkDroopControl", AcDcNetworkFactory.createAcDcNetworkWithDroopControl(),
                         p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true)),
                 new Case("acDcTwoPccConvertersWithoutVdcReference", AcDcNetworkFactory.createAcDcNetworkTwoPccConvertersWithoutVdcReference(),
                         p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true)),
