@@ -17,6 +17,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -26,6 +27,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mockito;
 
 import java.util.List;
 import java.util.Set;
@@ -1234,5 +1236,28 @@ class LoadFlowWithCachingTest {
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has not been invalidated
         newGen.setLocalTargetV(newGen.getLocalTargetV() + 0.1);
         assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues()); // check cache has not been invalidated
+    }
+
+    @Test
+    void testEvenShiloachIsNotUsedWhenDoingALoadFlowWithCache() {
+        EvenShiloachGraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = Mockito.spy(EvenShiloachGraphDecrementalConnectivityFactory.class);
+        var runner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), connectivityFactory));
+
+        Network network = NodeBreakerNetworkFactory.create();
+        parametersExt.setActionableSwitchesIds(Set.of("C"));
+        network.getSwitch("C").setOpen(true);
+        assertTrue(NetworkCache.AC_LF_INSTANCE.findEntry(network).isEmpty());
+
+        runner.run(network, parameters);
+        Mockito.verify(connectivityFactory, Mockito.atLeastOnce()).supportsIncremental();
+        Mockito.verify(connectivityFactory, Mockito.never()).create();
+
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+        network.getSwitch("C").setOpen(false);
+        assertNotNull(NetworkCache.AC_LF_INSTANCE.findEntry(network).orElseThrow().getValues());
+
+        runner.run(network, parameters);
+        Mockito.verify(connectivityFactory, Mockito.atLeastOnce()).supportsIncremental();
+        Mockito.verify(connectivityFactory, Mockito.never()).create();
     }
 }

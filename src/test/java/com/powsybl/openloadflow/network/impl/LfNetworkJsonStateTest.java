@@ -20,20 +20,8 @@ import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.network.AcDcNetworkFactory;
-import com.powsybl.openloadflow.network.HvdcNetworkFactory;
-import com.powsybl.openloadflow.network.LfBranch;
-import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.LfDcBranch;
-import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LfShunt;
-import com.powsybl.openloadflow.network.LfTopoConfig;
-import com.powsybl.openloadflow.network.MultiAreaNetworkFactory;
-import com.powsybl.openloadflow.network.PhaseControlFactory;
-import com.powsybl.openloadflow.network.PiModelArray;
-import com.powsybl.openloadflow.network.ShuntNetworkFactory;
-import com.powsybl.openloadflow.network.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
+import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -108,11 +96,11 @@ class LfNetworkJsonStateTest {
 
         Network network = c.networkSupplier().get();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         LfNetwork original = Networks.load(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP).get(0);
         Network network2 = c.networkSupplier().get();
         AcLoadFlowParameters acParameters2 = OpenLoadFlowParameters.createAcParameters(network2, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         LfNetwork restored = Networks.load(network2, new LfTopoConfig(), acParameters2.getNetworkParameters(), ReportNode.NO_OP).get(0);
 
         AcLoadFlowResult solveResult = run(original, acParameters);
@@ -142,7 +130,7 @@ class LfNetworkJsonStateTest {
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
         parameters.setShuntCompensatorVoltageControlOn(true);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         LfNetwork lfNetwork = Networks.load(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP).get(0);
 
         LfBus bus = lfNetwork.getBuses().get(0);
@@ -182,7 +170,7 @@ class LfNetworkJsonStateTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         LfNetwork original = Networks.load(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP).get(0);
 
         LfBus slackBus = original.getSynchronousNetworks().get(0).getSlackBuses().get(0);
@@ -216,7 +204,7 @@ class LfNetworkJsonStateTest {
 
         Network network2 = IeeeCdfNetworkFactory.create14();
         AcLoadFlowParameters acParameters2 = OpenLoadFlowParameters.createAcParameters(network2, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         LfNetwork restored = Networks.load(network2, new LfTopoConfig(), acParameters2.getNetworkParameters(), ReportNode.NO_OP).get(0);
         restored.readJson(new StringReader(state));
         assertEquals(state, dump(restored), "disabled / shunt-g json state round trip should be stable");
@@ -234,7 +222,7 @@ class LfNetworkJsonStateTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
-                new DenseMatrixFactory(), new com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory<>(LfBus::getNum));
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         acParameters.getNetworkParameters().setBreakers(true);
 
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, topoConfig,
@@ -254,7 +242,7 @@ class LfNetworkJsonStateTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters).setAcDcNetwork(true);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         LfNetwork original = Networks.load(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)
                 .stream().filter(n -> !n.getDcBuses().isEmpty()).findFirst().orElseThrow();
         run(original, acParameters);
@@ -262,7 +250,7 @@ class LfNetworkJsonStateTest {
 
         Network network2 = AcDcNetworkFactory.createAcDcNetworkWithThreeConverters();
         AcLoadFlowParameters acParameters2 = OpenLoadFlowParameters.createAcParameters(network2, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         LfNetwork restored = Networks.load(network2, new LfTopoConfig(), acParameters2.getNetworkParameters(), ReportNode.NO_OP)
                 .stream().filter(n -> !n.getDcBuses().isEmpty()).findFirst().orElseThrow();
         restored.readJson(new StringReader(state));
@@ -275,7 +263,7 @@ class LfNetworkJsonStateTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters).setAcDcNetwork(true);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         LfNetwork lfNetwork = Networks.load(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)
                 .stream().filter(n -> !n.getDcBuses().isEmpty()).findFirst().orElseThrow();
         assertTrue(dump(lfNetwork).contains("\"dcBranches\""), "dump should emit dcBranches");
@@ -304,7 +292,7 @@ class LfNetworkJsonStateTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
-                new DenseMatrixFactory(), new com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory<>(LfBus::getNum));
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         acParameters.getNetworkParameters().setBreakers(true);
 
         try (LfNetworkList originals = Networks.loadWithReconnectableElements(network, topoConfig,
@@ -323,7 +311,7 @@ class LfNetworkJsonStateTest {
             topoConfig2.getBranchIdsOpenableSide1().add("L1");
             topoConfig2.getBranchIdsOpenableSide2().add("L1");
             AcLoadFlowParameters acParameters2 = OpenLoadFlowParameters.createAcParameters(network2, parameters, parametersExt,
-                    new DenseMatrixFactory(), new com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory<>(LfBus::getNum));
+                    new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
             acParameters2.getNetworkParameters().setBreakers(true);
             try (LfNetworkList restoredList = Networks.loadWithReconnectableElements(network2, topoConfig2,
                     acParameters2.getNetworkParameters(), ReportNode.NO_OP)) {
@@ -340,7 +328,7 @@ class LfNetworkJsonStateTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         LfNetwork lfNetwork = Networks.load(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP).get(0);
         LfBus busWithLoad = lfNetwork.getBuses().stream()
                 .filter(b -> !b.getLoads().isEmpty())
@@ -361,7 +349,7 @@ class LfNetworkJsonStateTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         LfNetwork lfNetwork = Networks.load(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP).get(0);
         LfBus busWithoutShunt = lfNetwork.getBuses().stream()
                 .filter(b -> b.getShunt().isEmpty())
@@ -378,14 +366,14 @@ class LfNetworkJsonStateTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         LfNetwork original = Networks.load(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP).get(0);
         run(original, acParameters);
         String state = dump(original);
 
         Network network2 = IeeeCdfNetworkFactory.create14();
         AcLoadFlowParameters acParameters2 = OpenLoadFlowParameters.createAcParameters(network2, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         LfNetwork restored = Networks.load(network2, new LfTopoConfig(), acParameters2.getNetworkParameters(), ReportNode.NO_OP).get(0);
 
         java.nio.file.Path file = java.nio.file.Files.createTempFile("lfnetwork-state", ".json");
@@ -404,7 +392,7 @@ class LfNetworkJsonStateTest {
         LoadFlowParameters parameters = new LoadFlowParameters();
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt,
-                new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+                new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>());
         LfNetwork lfNetwork = Networks.load(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP).get(0);
 
         StringReader unknownReader = new StringReader("{\"buses\":[{\"id\":\"UNKNOWN\"}]}");
