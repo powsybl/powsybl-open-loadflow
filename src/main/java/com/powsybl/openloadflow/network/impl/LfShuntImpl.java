@@ -20,7 +20,7 @@ import java.util.*;
  */
 public class LfShuntImpl extends AbstractLfShunt {
 
-    final class ControllerImpl extends Controller {
+    private final class ControllerImpl extends Controller {
 
         private final Ref<ShuntCompensator> shuntCompensatorRef;
 

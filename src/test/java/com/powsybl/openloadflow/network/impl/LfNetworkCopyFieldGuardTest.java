@@ -29,6 +29,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class LfNetworkCopyFieldGuardTest {
 
+    // looked up by name so that private inner classes do not have to be widened for this test
+    private static Class<?> innerClass(Class<?> outer, String simpleName) {
+        return Arrays.stream(outer.getDeclaredClasses())
+                .filter(c -> c.getSimpleName().equals(simpleName))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(outer.getSimpleName() + "." + simpleName + " not found"));
+    }
+
     // All LfElement classes that can be copied
     public static Map<Class<?>, Set<String>> getLfNetworkExpectedFields() {
         Map<Class<?>, Set<String>> expected = new HashMap<>();
@@ -90,11 +98,11 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(LfSecondaryVoltageControl.ControlUnit.class, Set.of("id", "participate", "generatorVoltageControl"));
         expected.put(LfShunt.Controller.class, Set.of("id", "sectionsB", "sectionsG", "position", "minPosition", "bMagnitude"));
         expected.put(LfShuntImpl.class, Set.of("shuntCompensatorsRefs", "bus", "voltageControl", "voltageControlCapability", "voltageControlEnabled", "controllers", "b", "zb", "g"));
-        expected.put(LfShuntImpl.ControllerImpl.class, Set.of("shuntCompensatorRef"));
+        expected.put(innerClass(LfShuntImpl.class, "ControllerImpl"), Set.of("shuntCompensatorRef"));
         expected.put(LfStandbyAutomatonShunt.class, Set.of("svc", "b"));
         expected.put(LfStarBus.class, Set.of("t3wtRef", "nominalV"));
         expected.put(LfStaticVarCompensatorImpl.class, Set.of("svcRef", "reactiveLimits", "nominalV", "slope", "targetQ", "standByAutomaton", "b0", "standByAutomatonShunt"));
-        expected.put(LfStaticVarCompensatorImpl.SvcReactiveLimits.class, Set.of());
+        expected.put(innerClass(LfStaticVarCompensatorImpl.class, "SvcReactiveLimits"), Set.of());
         expected.put(LfSwitch.class, Set.of("switchRef"));
         expected.put(LfSynchronousNetworkImpl.class, Set.of("lfNetwork", "numSC", "slackBusSelector", "referenceBusSelector", "maxSlackBusCount", "referenceBus", "slackBuses",
                 "excludedSlackBuses", "referenceGenerator"));
