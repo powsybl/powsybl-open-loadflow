@@ -187,28 +187,38 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
 
     protected abstract Optional<ReactiveLimits> getReactiveLimits();
 
-    protected double computeLimitQ(double activePower, boolean isMin) {
+    protected double getMinQ(double activePower) {
         if (getReactiveLimits().isEmpty()) {
-            return isMin ? -Double.MAX_VALUE : Double.MAX_VALUE;
+            return -Double.MAX_VALUE;
         }
         ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow();
         if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
-            return isMin ? ((ReactiveCapabilityCurve) reactiveLimits).getMinQ(activePower * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB
-                    : ((ReactiveCapabilityCurve) reactiveLimits).getMaxQ(activePower * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
+            return ((ReactiveCapabilityCurve) reactiveLimits).getMinQ(activePower * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
         } else {
-            return isMin ? reactiveLimits.getMinQ(activePower * PerUnit.SB) / PerUnit.SB
-                    : reactiveLimits.getMaxQ(activePower * PerUnit.SB) / PerUnit.SB;
+            return reactiveLimits.getMinQ(activePower * PerUnit.SB) / PerUnit.SB;
+        }
+    }
+
+    protected double getMaxQ(double activePower) {
+        if (getReactiveLimits().isEmpty()) {
+            return Double.MAX_VALUE;
+        }
+        ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow();
+        if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
+            return ((ReactiveCapabilityCurve) reactiveLimits).getMaxQ(activePower * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
+        } else {
+            return reactiveLimits.getMaxQ(activePower * PerUnit.SB) / PerUnit.SB;
         }
     }
 
     @Override
     public double getMinQ() {
-        return computeLimitQ(targetP, true);
+        return getMinQ(targetP);
     }
 
     @Override
     public double getMaxQ() {
-        return computeLimitQ(targetP, false);
+        return getMaxQ(targetP);
     }
 
     @Override
