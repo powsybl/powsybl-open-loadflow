@@ -27,6 +27,8 @@ public class SimplePiModel implements PiModel {
     private double b2 = 0;
     private double r1 = 1;
     private double a1 = 0;
+    private double r21 = Double.NaN;
+    private double x21 = Double.NaN;
 
     private static final String NO_TAP_POSITION_ERROR = "No tap position change in simple Pi model implementation";
 
@@ -65,6 +67,39 @@ public class SimplePiModel implements PiModel {
     @Override
     public double getKsi() {
         return FastMath.atan2(r, x);
+    }
+
+    @Override
+    public double getR21() {
+        return Double.isNaN(r21) ? r : r21;
+    }
+
+    /**
+     * Side 2 series impedance of a non-reciprocal branch; {@code NaN} (the default) follows r and x.
+     */
+    public SimplePiModel setR21(double r21) {
+        this.r21 = r21;
+        return this;
+    }
+
+    @Override
+    public double getX21() {
+        return Double.isNaN(x21) ? x : x21;
+    }
+
+    public SimplePiModel setX21(double x21) {
+        this.x21 = x21;
+        return this;
+    }
+
+    @Override
+    public double getY21() {
+        return 1 / FastMath.hypot(getR21(), getX21());
+    }
+
+    @Override
+    public double getKsi21() {
+        return FastMath.atan2(getR21(), getX21());
     }
 
     @Override
@@ -173,32 +208,42 @@ public class SimplePiModel implements PiModel {
         throw new IllegalStateException(NO_TAP_POSITION_ERROR);
     }
 
-    @Override
-    public Optional<Complex> getCutZ(double minZ, LoadFlowModel loadFlowModel) {
-        Objects.requireNonNull(loadFlowModel);
+    private static Optional<Complex> cutZ(double r, double x, double minZ, LoadFlowModel loadFlowModel) {
         if (loadFlowModel == LoadFlowModel.DC) {
-            if (FastMath.abs(this.x) < minZ) {
+            if (FastMath.abs(x) < minZ) {
                 return Optional.of(Complex.valueOf(0, minZ));
             }
         } else {
-            double z = getZ();
-            if (z < minZ) {
-                double ksi = getKsi();
-                double newR = minZ * FastMath.sin(ksi);
-                double newX = minZ * FastMath.cos(ksi);
-                return Optional.of(Complex.valueOf(newR, newX));
+            if (FastMath.hypot(r, x) < minZ) {
+                double ksi = FastMath.atan2(r, x);
+                return Optional.of(Complex.valueOf(minZ * FastMath.sin(ksi), minZ * FastMath.cos(ksi)));
             }
         }
         return Optional.empty();
     }
 
     @Override
+    public Optional<Complex> getCutZ(double minZ, LoadFlowModel loadFlowModel) {
+        Objects.requireNonNull(loadFlowModel);
+        return cutZ(r, x, minZ, loadFlowModel);
+    }
+
+    @Override
     public boolean setMinZ(double minZ, LoadFlowModel loadFlowModel) {
-        return getCutZ(minZ, loadFlowModel).map(z -> {
-            SimplePiModel.this.r = z.getReal();
-            SimplePiModel.this.x = z.getImaginary();
+        Objects.requireNonNull(loadFlowModel);
+        boolean cut = cutZ(r, x, minZ, loadFlowModel).map(z -> {
+            r = z.getReal();
+            x = z.getImaginary();
             return true;
         }).orElse(false);
+        if (isNonReciprocal()) {
+            cut |= cutZ(getR21(), getX21(), minZ, loadFlowModel).map(z -> {
+                r21 = z.getReal();
+                x21 = z.getImaginary();
+                return true;
+            }).orElse(false);
+        }
+        return cut;
     }
 
     @Override
@@ -232,6 +277,8 @@ public class SimplePiModel implements PiModel {
         c.b2 = b2;
         c.r1 = r1;
         c.a1 = a1;
+        c.r21 = r21;
+        c.x21 = x21;
         return c;
     }
 

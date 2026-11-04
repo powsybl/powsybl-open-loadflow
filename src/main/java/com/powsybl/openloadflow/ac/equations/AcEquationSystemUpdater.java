@@ -207,15 +207,11 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
 
     private void updateAcClosedBranchEquationTerm(Evaluable branchTerm, PiModel piModel) {
         if (branchTerm instanceof AbstractClosedBranchAcFlowEquationTerm closedBranchTerm) {
-            double y = piModel.getY();
-            closedBranchTerm.setY(y);
-            closedBranchTerm.setKsi(piModel.getKsi());
+            closedBranchTerm.updateSeriesImpedance(piModel);
             closedBranchTerm.setB1(piModel.getB1());
             closedBranchTerm.setB2(piModel.getB2());
             closedBranchTerm.setG1(piModel.getG1());
             closedBranchTerm.setG2(piModel.getG2());
-            closedBranchTerm.setG12(piModel.getR() * y * y);
-            closedBranchTerm.setB12(-piModel.getX() * y * y);
         }
     }
 

@@ -30,6 +30,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -108,22 +109,31 @@ class EquationsTest {
 
     private LfDcBus dcBus2;
 
-    @BeforeEach
-    void setUp() {
-        branch = Mockito.mock(LfBranch.class, ANSWER);
+    private static LfBranch mockBranch(double r, double x, double y, double ksi, double r21, double x21, double y21, double ksi21) {
+        LfBranch branch = Mockito.mock(LfBranch.class, ANSWER);
         Mockito.doReturn(0).when(branch).getNum();
         Mockito.doReturn(false).when(branch).isDisabled();
         PiModel piModel = Mockito.mock(PiModel.class, ANSWER);
         Mockito.doReturn(piModel).when(branch).getPiModel();
-        Mockito.doReturn(R).when(piModel).getR();
-        Mockito.doReturn(X).when(piModel).getX();
-        Mockito.doReturn(Y).when(piModel).getY();
+        Mockito.doReturn(r).when(piModel).getR();
+        Mockito.doReturn(x).when(piModel).getX();
+        Mockito.doReturn(y).when(piModel).getY();
+        Mockito.doReturn(ksi).when(piModel).getKsi();
+        Mockito.doReturn(r21).when(piModel).getR21();
+        Mockito.doReturn(x21).when(piModel).getX21();
+        Mockito.doReturn(y21).when(piModel).getY21();
+        Mockito.doReturn(ksi21).when(piModel).getKsi21();
         Mockito.doReturn(G_1).when(piModel).getG1();
         Mockito.doReturn(G_2).when(piModel).getG2();
         Mockito.doReturn(B_1).when(piModel).getB1();
         Mockito.doReturn(B_2).when(piModel).getB2();
-        Mockito.doReturn(KSI).when(piModel).getKsi();
         Mockito.doReturn(R_1).when(piModel).getR1();
+        return branch;
+    }
+
+    @BeforeEach
+    void setUp() {
+        branch = mockBranch(R, X, Y, KSI, R, X, Y, KSI);
 
         bus1 = Mockito.mock(LfBus.class, ANSWER);
         bus2 = Mockito.mock(LfBus.class, ANSWER);
@@ -216,6 +226,51 @@ class EquationsTest {
         i2Eq.setStateVector(sv);
         double i2 = i2Eq.eval();
         assertEquals(i2, Math.hypot(p2, q2) / V_2, 10e-14);
+    }
+
+    @Test
+    void nonReciprocalBranchTest() {
+        VariableSet<AcVariableType> variableSet = new VariableSet<>();
+        var v1Var = variableSet.getVariable(0, AcVariableType.BUS_V);
+        var ph1Var = variableSet.getVariable(0, AcVariableType.BUS_PHI);
+        var v2Var = variableSet.getVariable(1, AcVariableType.BUS_V);
+        var ph2Var = variableSet.getVariable(1, AcVariableType.BUS_PHI);
+        var r1Var = variableSet.getVariable(0, AcVariableType.BRANCH_RHO1);
+        var a1Var = variableSet.getVariable(0, AcVariableType.BRANCH_ALPHA1);
+        var variables = List.of(v1Var, ph1Var, v2Var, ph2Var, r1Var, a1Var);
+        for (int i = 0; i < variables.size(); i++) {
+            variables.get(i).setRow(i);
+        }
+        var sv = new StateVector(new double[]{V_1, PH_1, V_2, PH_2, R_1, A_1});
+
+        double r21 = -0.6 * R;
+        double x21 = 1.1 * X;
+        double y21 = 1 / Math.hypot(r21, x21);
+        double ksi21 = Math.atan2(r21, x21);
+        LfBranch nonReciprocal = mockBranch(R, X, Y, KSI, r21, x21, y21, ksi21);
+        LfBranch reciprocal21 = mockBranch(r21, x21, y21, ksi21, r21, x21, y21, ksi21);
+
+        // side 1 terms use z12, side 2 terms use z21, each matching the reciprocal branch with that impedance
+        assertArrayEquals(eval(new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv),
+                eval(new ClosedBranchSide1ActiveFlowEquationTerm(nonReciprocal, bus1, bus2, variableSet, true, true), variables, sv));
+        assertArrayEquals(eval(new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv),
+                eval(new ClosedBranchSide1ReactiveFlowEquationTerm(nonReciprocal, bus1, bus2, variableSet, true, true), variables, sv));
+        assertArrayEquals(eval(new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv),
+                eval(new ClosedBranchSide1CurrentMagnitudeEquationTerm(nonReciprocal, bus1, bus2, variableSet, true, true), variables, sv));
+        assertArrayEquals(eval(new ClosedBranchSide2ActiveFlowEquationTerm(reciprocal21, bus1, bus2, variableSet, true, true), variables, sv),
+                eval(new ClosedBranchSide2ActiveFlowEquationTerm(nonReciprocal, bus1, bus2, variableSet, true, true), variables, sv));
+        assertArrayEquals(eval(new ClosedBranchSide2ReactiveFlowEquationTerm(reciprocal21, bus1, bus2, variableSet, true, true), variables, sv),
+                eval(new ClosedBranchSide2ReactiveFlowEquationTerm(nonReciprocal, bus1, bus2, variableSet, true, true), variables, sv));
+        assertArrayEquals(eval(new ClosedBranchSide2CurrentMagnitudeEquationTerm(reciprocal21, bus1, bus2, variableSet, true, true), variables, sv),
+                eval(new ClosedBranchSide2CurrentMagnitudeEquationTerm(nonReciprocal, bus1, bus2, variableSet, true, true), variables, sv));
+        assertNotEquals(eval(new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, true, true), variables, sv)[0],
+                eval(new ClosedBranchSide2ActiveFlowEquationTerm(nonReciprocal, bus1, bus2, variableSet, true, true), variables, sv)[0]);
+
+        // open branch terms use the impedance of the side whose flow they compute
+        assertArrayEquals(eval(new OpenBranchSide1ActiveFlowEquationTerm(reciprocal21, bus2, variableSet), variables, sv),
+                eval(new OpenBranchSide1ActiveFlowEquationTerm(nonReciprocal, bus2, variableSet), variables, sv));
+        assertArrayEquals(eval(new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus2, variableSet), variables, sv),
+                eval(new OpenBranchSide2ReactiveFlowEquationTerm(nonReciprocal, bus2, variableSet), variables, sv));
     }
 
     @Test

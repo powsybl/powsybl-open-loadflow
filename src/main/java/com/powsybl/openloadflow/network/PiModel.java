@@ -35,6 +35,30 @@ public interface PiModel {
 
     double getKsi();
 
+    /**
+     * Series impedance seen from side 2 (CGMES EquivalentBranch r21/x21). Equal to the side 1 impedance except for a
+     * non-reciprocal branch, whose side 2 flow equations use it instead of r/x.
+     */
+    default double getR21() {
+        return getR();
+    }
+
+    default double getX21() {
+        return getX();
+    }
+
+    default double getY21() {
+        return getY();
+    }
+
+    default double getKsi21() {
+        return getKsi();
+    }
+
+    default boolean isNonReciprocal() {
+        return getR21() != getR() || getX21() != getX();
+    }
+
     double getG1();
 
     double getB1();

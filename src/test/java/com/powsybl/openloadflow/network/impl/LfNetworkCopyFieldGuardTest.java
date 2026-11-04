@@ -113,7 +113,7 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(PiModelArray.class, Set.of("models", "lowTapPosition", "tapPositionIndex", "a1", "r1", "continuousR1", "branch", "minR1", "maxR1"));
         expected.put(ReactivePowerControl.class, Set.of("controlledSide", "controlledBranch"));
         expected.put(ShuntVoltageControl.class, Set.of());
-        expected.put(SimplePiModel.class, Set.of("r", "x", "g1", "b1", "g2", "b2", "r1", "a1"));
+        expected.put(SimplePiModel.class, Set.of("r", "x", "g1", "b1", "g2", "b2", "r1", "a1", "r21", "x21"));
         expected.put(TransformerPhaseControl.class, Set.of("controllerBranch", "controlledBranch", "targetDeadband", "controlledSide", "mode", "unit"));
         expected.put(TransformerReactivePowerControl.class, Set.of("controllerBranch", "targetDeadband"));
         expected.put(TransformerVoltageControl.class, Set.of());
