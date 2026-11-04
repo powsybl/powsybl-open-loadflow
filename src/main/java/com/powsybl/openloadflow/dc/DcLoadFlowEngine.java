@@ -23,6 +23,7 @@ import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.lf.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -30,7 +31,6 @@ import com.powsybl.openloadflow.network.LfNetworkLoader;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,7 +133,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
     }
 
     private void runOuterLoop(DcOuterLoop outerLoop, DcOuterLoopContext outerLoopContext, RunningContext runningContext) {
-        ReportNode olReportNode = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReportNode(), outerLoop.getName());
+        ReportNode olReportNode = LfReports.createOuterLoopReporter(outerLoopContext.getNetwork().getReportNode(), outerLoop.getName());
         OuterLoopResult outerLoopResult;
         int outerLoopIteration = 0;
 
@@ -170,7 +170,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                 && runningContext.outerLoopTotalIterations < context.getParameters().getMaxOuterLoopIterations());
 
         if (outerLoopResult.status() != OuterLoopStatus.STABLE) {
-            Reports.reportUnsuccessfulOuterLoop(olReportNode, outerLoopResult.status().name());
+            LfReports.reportUnsuccessfulOuterLoop(olReportNode, outerLoopResult.status().name());
         }
     }
 
@@ -181,7 +181,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             jacobianMatrix.solveTransposed(targetVectorArray);
             return true;
         } catch (MatrixException e) {
-            Reports.reportDcLfSolverFailure(reportNode, e.getMessage());
+            LfReports.reportDcLfSolverFailure(reportNode, e.getMessage());
             LOGGER.error("Failed to solve linear system for DC load flow", e);
             return false;
         }
@@ -248,10 +248,10 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             // In the case of slack mismatch not being fully distributed due to e.g. all generators hitting limits, the remaining mismatch is
             // checked against OLF parameter slackBusPMaxMismatch (and not epsilon) for appropriate reporting of distribution success or failure.
             if (Math.abs(remainingMismatch) > context.getParameters().getSlackBusPMaxMismatch() / PerUnit.SB) {
-                Reports.reportMismatchDistributionFailure(reportNode, remainingMismatch * PerUnit.SB);
+                LfReports.reportMismatchDistributionFailure(reportNode, remainingMismatch * PerUnit.SB);
             } else {
                 if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
-                    Reports.reportResidualDistributionMismatch(reportNode, remainingMismatch * PerUnit.SB);
+                    LfReports.reportResidualDistributionMismatch(reportNode, remainingMismatch * PerUnit.SB);
                 }
                 ActivePowerDistribution.reportAndLogSuccess(reportNode, initialSlackBusActivePowerMismatch, resultWbh);
             }
@@ -259,7 +259,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
                 distributedActivePower -= resultWbh.failedDistributedActivePower();
                 runningContext.lastSolverSuccess = false;
                 runningContext.lastOuterLoopResult = new OuterLoopResult("DistributedSlack", OuterLoopStatus.FAILED, resultWbh.failedMessage());
-                Reports.reportDcLfComplete(reportNode, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult.status().name());
+                LfReports.reportDcLfComplete(reportNode, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult.status().name());
                 return buildDcLoadFlowResult(network, runningContext, initialSlackBusActivePowerMismatch, distributedActivePower);
             }
         }
@@ -302,7 +302,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
         }
 
         if (runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
-            Reports.reportMaxOuterLoopIterations(reportNode, runningContext.outerLoopTotalIterations, true, LOGGER);
+            LfReports.reportMaxOuterLoopIterations(reportNode, runningContext.outerLoopTotalIterations, true, LOGGER);
         }
 
         // outer loops finalization (in reverse order to allow correct cleanup)
@@ -322,7 +322,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             }
         }
 
-        Reports.reportDcLfComplete(reportNode, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult.status().name());
+        LfReports.reportDcLfComplete(reportNode, runningContext.lastSolverSuccess, runningContext.lastOuterLoopResult.status().name());
 
         return buildDcLoadFlowResult(network, runningContext, initialSlackBusActivePowerMismatch, distributedActivePower);
     }

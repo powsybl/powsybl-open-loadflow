@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
-import com.powsybl.openloadflow.util.Derivable;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.List;

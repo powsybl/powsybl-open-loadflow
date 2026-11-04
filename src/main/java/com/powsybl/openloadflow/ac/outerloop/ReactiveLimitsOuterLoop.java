@@ -14,9 +14,9 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -130,13 +130,13 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
             pvToPqBuses.remove(strongestPvToPqBus);
             modifiedRemainingPvBusCount++;
             LOGGER.warn("All PV buses should switch PQ, strongest one '{}' will stay PV", strongestPvToPqBus.controllerBus.getId());
-            Reports.reportBusForcedToBePv(reportNode, strongestPvToPqBus.controllerBus.getId());
+            LfReports.reportBusForcedToBePv(reportNode, strongestPvToPqBus.controllerBus.getId());
         }
 
         if (!pvToPqBuses.isEmpty()) {
             done = true;
 
-            ReportNode summary = Reports.reportPvToPqBuses(reportNode, pvToPqBuses.size(), modifiedRemainingPvBusCount);
+            ReportNode summary = LfReports.reportPvToPqBuses(reportNode, pvToPqBuses.size(), modifiedRemainingPvBusCount);
 
             boolean log = LOGGER.isTraceEnabled();
 
@@ -151,16 +151,16 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
                 switch (pvToPqBus.limitType) {
                     case MAX_Q:
-                        Reports.reportPvToPqMaxQ(summary, controllerBus, pvToPqBus.q, pvToPqBus.qLimit, log, LOGGER);
+                        LfReports.reportPvToPqMaxQ(summary, controllerBus, pvToPqBus.q, pvToPqBus.qLimit, log, LOGGER);
                         break;
                     case MIN_Q:
-                        Reports.reportPvToPqMinQ(summary, controllerBus, pvToPqBus.q, pvToPqBus.qLimit, log, LOGGER);
+                        LfReports.reportPvToPqMinQ(summary, controllerBus, pvToPqBus.q, pvToPqBus.qLimit, log, LOGGER);
                         break;
                     case MIN_REALISTIC_V:
-                        Reports.reportPvToPqMinRealisticV(summary, controllerBus, pvToPqBus.qLimit, minRealisticVoltage, log, LOGGER);
+                        LfReports.reportPvToPqMinRealisticV(summary, controllerBus, pvToPqBus.qLimit, minRealisticVoltage, log, LOGGER);
                         break;
                     case MAX_REALISTIC_V:
-                        Reports.reportPvToPqMaxRealisticV(summary, controllerBus, pvToPqBus.qLimit, maxRealisticVoltage, log, LOGGER);
+                        LfReports.reportPvToPqMaxRealisticV(summary, controllerBus, pvToPqBus.qLimit, maxRealisticVoltage, log, LOGGER);
                         break;
                 }
             }
@@ -194,14 +194,14 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
             int pvPqSwitchCount = contextData.getPvPqSwitchCount(controllerBus.getId());
             if (pvPqSwitchCount >= maxPqPvSwitch) {
-                pqPvNodes.add(Reports.createRootReportPvPqSwitchLimit(reportNode, controllerBus, pvPqSwitchCount, log, LOGGER));
+                pqPvNodes.add(LfReports.createRootReportPvPqSwitchLimit(reportNode, controllerBus, pvPqSwitchCount, log, LOGGER));
             } else {
                 controllerBus.setGeneratorVoltageControlEnabledAndRecomputeTargetQ(true);
                 controllerBus.setQLimitType(null);
                 pqPvSwitchCount++;
 
                 if (pqToPvBus.limitType.isMaxLimit()) {
-                    pqPvNodes.add(Reports.createRootReportPqToPvBusMaxLimit(
+                    pqPvNodes.add(LfReports.createRootReportPqToPvBusMaxLimit(
                             reportNode,
                             controllerBus,
                             controllerBus.getGeneratorVoltageControl().map(VoltageControl::getControlledBus).orElseThrow(),
@@ -209,7 +209,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
                             log,
                             LOGGER));
                 } else {
-                    pqPvNodes.add(Reports.createRootReportPqToPvBusMinLimit(
+                    pqPvNodes.add(LfReports.createRootReportPqToPvBusMinLimit(
                             reportNode,
                             controllerBus,
                             controllerBus.getGeneratorVoltageControl().map(VoltageControl::getControlledBus).orElseThrow(),
@@ -222,7 +222,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         }
 
         if (!pqPvNodes.isEmpty()) {
-            ReportNode summary = Reports.reportPqToPvBuses(reportNode, pqPvSwitchCount, pqToPvBuses.size() - pqPvSwitchCount);
+            ReportNode summary = LfReports.reportPqToPvBuses(reportNode, pqPvSwitchCount, pqToPvBuses.size() - pqPvSwitchCount);
             pqPvNodes.forEach(summary::include);
         }
 
@@ -355,10 +355,10 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
             switch (bus.limitType) {
                 case MAX_Q:
-                    switchedNodes.add(Reports.createRootReportReactiveControllerBusesToPqMaxQ(reportNode, controllerBus, bus.q, bus.qLimit, log, LOGGER));
+                    switchedNodes.add(LfReports.createRootReportReactiveControllerBusesToPqMaxQ(reportNode, controllerBus, bus.q, bus.qLimit, log, LOGGER));
                     break;
                 case MIN_Q:
-                    switchedNodes.add(Reports.createRootReportReactiveControllerBusesToPqMinQ(reportNode, controllerBus, bus.q, bus.qLimit, log, LOGGER));
+                    switchedNodes.add(LfReports.createRootReportReactiveControllerBusesToPqMinQ(reportNode, controllerBus, bus.q, bus.qLimit, log, LOGGER));
                     break;
                 case MIN_REALISTIC_V, MAX_REALISTIC_V:
                     // Note: never happens for now. Robust mode applies only to remote voltage control generators
@@ -371,7 +371,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         }
 
         if (!switchedNodes.isEmpty()) {
-            ReportNode node = Reports.reportReactiveControllerBusesToPqBuses(reportNode, switchCount);
+            ReportNode node = LfReports.reportReactiveControllerBusesToPqBuses(reportNode, switchCount);
             switchedNodes.forEach(node::include);
         }
 
@@ -428,7 +428,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
 
         ReportNode iterationReportNode = reportNode;
         if (!pvToPqBuses.isEmpty() || !pqToPvBuses.isEmpty() || !busesWithUpdatedQLimits.isEmpty() || !reactiveControllerBusesToPqBuses.isEmpty()) {
-            iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
+            iterationReportNode = LfReports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
         }
 
         if (!pvToPqBuses.isEmpty() && switchPvPq(pvToPqBuses, remainingPvBusCount.intValue(), contextData, iterationReportNode)) {
@@ -439,7 +439,7 @@ public class ReactiveLimitsOuterLoop implements AcOuterLoop {
         }
         if (!busesWithUpdatedQLimits.isEmpty()) {
             LOGGER.info("{} buses blocked at a reactive limit have been adjusted because the reactive limit changed", busesWithUpdatedQLimits.size());
-            Reports.reportBusesWithUpdatedQLimits(iterationReportNode, busesWithUpdatedQLimits.size());
+            LfReports.reportBusesWithUpdatedQLimits(iterationReportNode, busesWithUpdatedQLimits.size());
             status = OuterLoopStatus.UNSTABLE;
         }
         if (!reactiveControllerBusesToPqBuses.isEmpty() && switchReactiveControllerBusPq(reactiveControllerBusesToPqBuses, iterationReportNode)) {
