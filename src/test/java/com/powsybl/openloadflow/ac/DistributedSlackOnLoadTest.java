@@ -26,6 +26,7 @@ import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.DistributedSlackNetworkFactory;
 import com.powsybl.openloadflow.network.EurostagFactory;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.ReferenceBusSelectionMode;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowResultBuilder;
@@ -197,7 +198,7 @@ class DistributedSlackOnLoadTest {
         parameters
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
         parametersExt
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+                .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
@@ -207,7 +208,7 @@ class DistributedSlackOnLoadTest {
         assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?\\d*\\.\\d* MW remains", reportNode);
 
         parametersExt
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+                .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.FAIL);
         reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         componentResult = result.getComponentResults().get(0);
@@ -217,11 +218,11 @@ class DistributedSlackOnLoadTest {
         assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?\\d*\\.\\d* MW remains", reportNode);
 
         parametersExt
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
+                .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.THROW);
         assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
 
         parametersExt
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR)
+                .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR)
                 .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
         ReferencePriority.set(network.getGenerator("g1"), 1);
         reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
@@ -241,7 +242,7 @@ class DistributedSlackOnLoadTest {
         parameters
                 .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
         parametersExt
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR)
+                .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR)
                 .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
         ReferencePriority.set(network.getGenerator("g1"), 1);
         var result = loadFlowRunner.run(network, parameters);

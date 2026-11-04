@@ -213,7 +213,7 @@ class SecondaryVoltageControlTest {
         modifyNetworkToUnblockGeneratorFromLimit();
         // This scenario works if the slack distribution fails and an injection is added at the slack bus
         parametersExt.setPlausibleActivePowerLimit(5000); // Remove large generators from slack distribution
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        parametersExt.setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
 
         parametersExt.setSecondaryVoltageControl(true);
 
@@ -299,7 +299,7 @@ class SecondaryVoltageControlTest {
                 .getControlZone("z1").orElseThrow().getPilotPoint().setTargetV(14.95);
 
         parametersExt.setPlausibleActivePowerLimit(5000); // Remove large generators from slack distribution
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        parametersExt.setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         parametersExt.setSecondaryVoltageControl(true);
 
         List<Contingency> contingencies = List.of(Contingency.branch("L1-2-1"), Contingency.branch("L1-5-1"));

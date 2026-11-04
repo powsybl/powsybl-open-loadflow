@@ -110,8 +110,8 @@ public class AcSecurityAnalysis extends AbstractSecurityAnalysis<AcVariableType,
         // in some post-contingency computation, it does not remain elements to participate to slack distribution.
         // in that case, no exception should be thrown. If parameters were configured to throw, reconfigure to FAIL.
         // (the contingency will be marked as not converged)
-        if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW == parameters.getSlackDistributionFailureBehavior()) {
-            parameters.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        if (LfNetworkParameters.SlackDistributionFailureBehavior.THROW == parameters.getSlackDistributionFailureBehavior()) {
+            parameters.setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.FAIL);
         }
         parameters.setVoltageInitReport(false); // there is no point in reporting the PreviousVoltageValue initializer
     }
