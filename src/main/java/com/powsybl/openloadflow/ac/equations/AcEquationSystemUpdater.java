@@ -274,7 +274,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
      * @param vDcEquation Equation to represent the converter in V_DC mode.
      * @param controlMode The current control mode of the converter.
      */
-    public static void activateControlModeEquation(Equation<AcVariableType, AcEquationType> pPccEquation, Equation<AcVariableType, AcEquationType> droopEquation,
+    static void activateControlModeEquation(Equation<AcVariableType, AcEquationType> pPccEquation, Equation<AcVariableType, AcEquationType> droopEquation,
                                                    Equation<AcVariableType, AcEquationType> vDcEquation, AcDcConverter.ControlMode controlMode) {
         switch (controlMode) {
             case P_PCC -> {

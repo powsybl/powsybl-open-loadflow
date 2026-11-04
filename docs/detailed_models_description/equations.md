@@ -402,3 +402,4 @@ If the converter has active power limits defined in the IIDM model and the param
 - If the converter is in `P_PCC` mode, OpenLoadFlow checks that its `targetP` is between `minP` and `maxP` and throws an exception otherwise.
 - If the converter is in `V_DC` or `DC_DROOP` mode, and it exceeds one of its active power limit, its active power is saturated to this limit by switching the converter to `P_PCC` mode with the exceeded limit as new `targetP`. 
 If this control mode switch leads to an invalid DC configuration (i.e. missing DC voltage regulation), the load flow fails. No de-saturation mechanism is implemented.
+- If several converters in the same DC component exceed their limits, only the one of them enters saturation mode at a time. The selected converter is the one the furthest from its active power limits. 
