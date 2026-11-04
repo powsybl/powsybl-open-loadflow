@@ -53,4 +53,12 @@ class PackageLayeringTest {
                         "com.powsybl.openloadflow.dc.equations..")
                 .check(classes);
     }
+
+    @Test
+    void equationsDoNotDependOnLoadFlow() {
+        noClasses().that().resideInAnyPackage("com.powsybl.openloadflow.equations..",
+                        "com.powsybl.openloadflow.ac.equations..", "com.powsybl.openloadflow.dc.equations..")
+                .should().dependOnClassesThat().resideInAPackage("com.powsybl.openloadflow.lf..")
+                .check(classes);
+    }
 }
