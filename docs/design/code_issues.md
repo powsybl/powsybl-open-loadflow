@@ -21,6 +21,23 @@ are relative to `com.powsybl.openloadflow`.
 The interactive diagram of this section is available in the online documentation.
 ```
 
+## Status
+
+The fixes are a stack of pull requests, one per issue, each based on the previous one
+([stack](https://github.com/powsybl/powsybl-open-loadflow/stack/1549)). The diagram above shows the dependencies of
+the `main` branch, before these pull requests are merged.
+
+| Issue | Status | Pull request |
+|---|---|---|
+| I1 | Fixed | [#1547](https://github.com/powsybl/powsybl-open-loadflow/pull/1547) |
+| I2 | Fixed | [#1548](https://github.com/powsybl/powsybl-open-loadflow/pull/1548) |
+| I3 | Fixed | [#1550](https://github.com/powsybl/powsybl-open-loadflow/pull/1550) |
+| I4 | Deferred to the Maven module split | - |
+| I5 | Fixed | [#1551](https://github.com/powsybl/powsybl-open-loadflow/pull/1551) |
+| I6 | Fixed | [#1552](https://github.com/powsybl/powsybl-open-loadflow/pull/1552) |
+| I7 | No code change needed | - |
+| I8, I9, I10 | Not started | - |
+
 ## Blocking issues
 
 ### I1: network model depends on OpenLoadFlowParameters
@@ -34,11 +51,11 @@ The interactive diagram of this section is available in the online documentation
 **Why it blocks:** `powsybl-na-network` would depend on `powsybl-open-loadflow`. The uses of `LoadFlowParameters`
 in the same classes are fine, it is a powsybl-core class.
 
-**Fix:** move `ReactiveRangeCheckMode`, `FictitiousGeneratorVoltageControlCheckMode` and
-`SlackDistributionFailureBehavior` out of `OpenLoadFlowParameters` as top-level enums of the `network` package, like
-the existing `network.SlackBusSelectionMode`. Move the two default value constants to `LfNetworkParameters`; the
+**Fix ([#1547](https://github.com/powsybl/powsybl-open-loadflow/pull/1547)):** move `ReactiveRangeCheckMode`,
+`FictitiousGeneratorVoltageControlCheckMode` and `SlackDistributionFailureBehavior` out of `OpenLoadFlowParameters`
+as nested enums of `network.LfNetworkParameters`. Move the two default value constants to `LfNetworkParameters`; the
 `OpenLoadFlowParameters` constants reference them. The parameters JSON format and the parameter names are unchanged,
-but Java code using `OpenLoadFlowParameters.<enum>` must import the enum from `network`.
+but Java code using `OpenLoadFlowParameters.<enum>` must use `LfNetworkParameters.<enum>` instead.
 
 ### I2: network model depends on security analysis
 
@@ -49,7 +66,8 @@ but Java code using `OpenLoadFlowParameters.<enum>` must import the enum from `n
 
 **Why it blocks:** `powsybl-na-network` would depend on the security analysis code of `powsybl-open-loadflow`.
 
-**Fix:** move `LimitScalingManager` and its test to `network`: limit scaling is a property of how branch limits are
+**Fix ([#1548](https://github.com/powsybl/powsybl-open-loadflow/pull/1548)):** move `LimitScalingManager` and its
+test to `network`: limit scaling is a property of how branch limits are
 read from IIDM, and the class only uses powsybl-core (`iidm.criteria`, `security.limitscaling`).
 `PropagatedContingencyCreationParameters` owns `CONTINGENCY_PROPAGATION_DEFAULT_VALUE`, and
 `OpenSecurityAnalysisParameters.CONTINGENCY_PROPAGATION_DEFAULT_VALUE` references it.
@@ -63,7 +81,8 @@ In addition, a javadoc `{@link}` of `network.impl.LfVoltageSourceConverterImpl` 
 **Why it blocks:** `powsybl-na-network` would depend on `powsybl-na-equations`. A cross-module `{@link}` breaks the
 javadoc generation of `powsybl-na-network`.
 
-**Fix:** move the HVDC loss formula to a static method `LfHvdc.getAbsActivePowerWithLosses`, called by the two
+**Fix ([#1550](https://github.com/powsybl/powsybl-open-loadflow/pull/1550)):** move the HVDC loss formula to a
+static method `LfHvdc.getAbsActivePowerWithLosses`, called by the two
 `HvdcAcEmulationSide*ActiveFlowEquationTerm` classes. Turn the javadoc link into `{@code ConverterDroopEquationTerm}`.
 
 ### I4: network loader depends on the load flow network variant pool
@@ -81,7 +100,8 @@ javadoc generation of `powsybl-na-network`.
 
 **Why it blocks:** `powsybl-na-equations` would depend on `powsybl-open-loadflow`.
 
-**Fix:** move `lf.AbstractEquationSystemUpdater` to `equations`. It only depends on `equations` and `network`
+**Fix ([#1551](https://github.com/powsybl/powsybl-open-loadflow/pull/1551)):** move
+`lf.AbstractEquationSystemUpdater` to `equations`. It only depends on `equations` and `network`
 (including `LoadFlowModel`), so it is not load flow specific. The AC and DC creators and updaters stay in
 `ac.equations`/`dc.equations` and go to `powsybl-na-equations` with the equation terms.
 
@@ -94,20 +114,26 @@ javadoc generation of `powsybl-na-network`.
 
 **Why it blocks:** `powsybl-na-commons` would depend on all the other modules.
 
-**Fix:**
+**Fix ([#1552](https://github.com/powsybl/powsybl-open-loadflow/pull/1552)):**
 - Split `Reports`, used by almost every package, by module:
-  - the 51 report methods used by the network packages move to a new `network.NetworkReports`. Their 51 message keys
-    move to `network/reports*.properties`, registered by a new `network.NetworkReportResourceBundle`;
-  - the load flow, security and sensitivity reports move to `lf.Reports`, and the bundle class to
-    `lf.PowsyblOpenLoadFlowReportResourceBundle`. Its `reports*.properties` keep the remaining 76 keys.
+  - the 51 report methods used by the network packages move to a new `network.util.NetworkReports`. Their 51
+    message keys move to `com/powsybl/openloadflow/network/reports*.properties`, registered by a new
+    `network.NetworkReportResourceBundle`;
+  - the load flow, security and sensitivity reports move to `lf.util.LfReports`, and the bundle class to
+    `lf.PowsyblOpenLoadFlowReportResourceBundle`. Its properties move to `com/powsybl/openloadflow/lf/reports*.properties`
+    with the remaining 76 keys, so its base name becomes `com.powsybl.openloadflow.lf.reports`.
 - Remove `OpenLoadFlowReportConstants`: its only constant becomes `NetworkReports.MISMATCH_TYPED_VALUE`.
 - Move `Derivable` to `equations`, where it is used (with `sensi`).
+- Rename the 11 report keys that were not in lowerCamelCase, e.g. `olf.OuterLoop` to `olf.outerLoop` and
+  `olf.NRMismatch` to `olf.nrMismatch`.
 
-Network reports can be added under a root report node built by the caller with only the Open Load Flow bundle, and
-load flow reports can be added under network report nodes. So every node created by `NetworkReports` uses all the
-report bundles found on the classpath, like the `LfNetwork` root report nodes already do
-(`withAllResourceBundlesFromClasspath()`). Without that, messages such as `olf.componentsWithoutGenerators` would no
-longer be found.
+A report node looks its message up in the bundles of its parent node, so network reports added under a node built
+with only the Open Load Flow bundle would not find their messages, e.g. `olf.componentsWithoutGenerators`. The bundles
+are set only where needed:
+- the `LfNetwork` root report nodes keep `withAllResourceBundlesFromClasspath()`, and the network reports added under
+  them inherit it;
+- the network report nodes that can be added directly under a caller's node name the network bundle;
+- the outer loop iteration root node, under which slack distribution adds network reports, names both bundles.
 
 ### I7: multi-threading helper depends on network loader and load flow
 
@@ -191,9 +217,18 @@ topology:
 ## Enforcing the layering until the split
 
 As long as all packages are in a single module, nothing prevents new back-dependencies. A layering test based on
-[ArchUnit](https://www.archunit.org/) is added together with the fixes. It declares one layer per target module
-with its packages, allows dependencies only towards the lower modules, and checks main and test classes together.
-I10 was found that way.
+[ArchUnit](https://www.archunit.org/) 1.5.1, `PackageLayeringTest`, is added with the I1 fix. Each fix adds the rule
+for the dependency it removes, and nothing more:
+
+| Rule | Added by |
+|---|---|
+| `network..` does not depend on `OpenLoadFlowParameters` | I1 |
+| `network..` does not depend on `sa..` | I2 |
+| `network..` does not depend on `ac.equations..` and `dc.equations..` | I3 |
+| `equations..`, `ac.equations..` and `dc.equations..` do not depend on `lf..` | I5 |
+| `util` (not `util.mt`) does not depend on any other package of this repository | I6 |
+
+The rules only check main classes. The layers of the target modules are:
 
 | Layer | Packages | May be used by |
 |---|---|---|

@@ -65,14 +65,20 @@ buildnumber and templating plugins and the `powsybl-tools` dependency.
 
 | Before | After |
 |---|---|
-| `OpenLoadFlowParameters.ReactiveRangeCheckMode`, `FictitiousGeneratorVoltageControlCheckMode`, `SlackDistributionFailureBehavior` | `network.ReactiveRangeCheckMode`, `network.FictitiousGeneratorVoltageControlCheckMode`, `network.SlackDistributionFailureBehavior` |
+| `OpenLoadFlowParameters.ReactiveRangeCheckMode`, `FictitiousGeneratorVoltageControlCheckMode`, `SlackDistributionFailureBehavior` | `network.LfNetworkParameters.ReactiveRangeCheckMode`, `LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode`, `LfNetworkParameters.SlackDistributionFailureBehavior` |
 | `sa.LimitScalingManager` | `network.LimitScalingManager` |
 | `NetworkVariantPool` | `network.impl.NetworkVariantPool` |
 | `lf.AbstractEquationSystemUpdater` | `equations.AbstractEquationSystemUpdater` |
-| `util.Reports` | `lf.Reports` and `network.NetworkReports` |
+| `util.Reports` | `lf.util.LfReports` and `network.util.NetworkReports` |
 | `util.report.PowsyblOpenLoadFlowReportResourceBundle` | `lf.PowsyblOpenLoadFlowReportResourceBundle` |
-| `OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE` | `network.NetworkReports.MISMATCH_TYPED_VALUE` |
+| `OpenLoadFlowReportConstants.MISMATCH_TYPED_VALUE` | `network.util.NetworkReports.MISMATCH_TYPED_VALUE` |
 | `util.Derivable` | `equations.Derivable` |
+
+- The I6 fix also changes the reports: the base name of the Open Load Flow report bundle becomes
+  `com.powsybl.openloadflow.lf.reports`, the network messages are in a new bundle
+  (`com.powsybl.openloadflow.network.reports`), and 11 message keys are renamed to lowerCamelCase. Code building root
+  report nodes with an explicit list of bundles must add the network bundle, and code reading report keys must use
+  the new names.
 
 - Test code of downstream projects using the test-jar must switch to `powsybl-na-test` and update its imports. This
   only affects test code.
@@ -134,8 +140,8 @@ repository is to be decided by the powsybl-open-sc maintainers when they decide 
 | `AcSolverFactory` implementations, `ContingencyActivePowerLossDistribution` | `powsybl-open-loadflow` |
 | `LfNetworkLoaderPostProcessor` SPI | `powsybl-na-network` |
 | `PowsyblOpenLoadFlowVersion` (`Version` SPI) | `powsybl-na-commons` |
-| `NetworkReportResourceBundle` and `network/reports*.properties` | `powsybl-na-network` |
-| `PowsyblOpenLoadFlowReportResourceBundle` and `reports*.properties` | `powsybl-open-loadflow` |
+| `NetworkReportResourceBundle` and `com/powsybl/openloadflow/network/reports*.properties` | `powsybl-na-network` |
+| `PowsyblOpenLoadFlowReportResourceBundle` and `com/powsybl/openloadflow/lf/reports*.properties` | `powsybl-open-loadflow` |
 
 `@AutoService` keeps generating the `META-INF/services` files of each module.
 
@@ -193,8 +199,9 @@ contingency and action APIs.
 
 ## Migration steps
 
-1. **Fix the code issues in the single module**, one pull request per issue of [code issues](code_issues.md), and
-   add the ArchUnit layering test to prevent new back-dependencies until the split.
+1. **Fix the code issues in the single module**, one pull request per issue of [code issues](code_issues.md) (see
+   its [status](code_issues.md#status)). Each pull request adds the ArchUnit layering rule that prevents its
+   dependency from coming back until the split.
 2. **Rename the GitHub repository** to `powsybl-network-analysis`. GitHub redirects the old URLs.
 3. **Create the multi-module layout** described above and move the sources module by module, with `git mv`. Each move
    is a pure file move, with no code change. Remove the test-jar and the ArchUnit layering test.
