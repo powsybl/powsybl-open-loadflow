@@ -44,8 +44,8 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(AbstractImpedantLfBranch.class, Set.of("connectedSide1", "connectedSide2", "disconnectionAllowedSide1", "disconnectionAllowedSide2", "p1", "q1", "i1",
                 "p2", "q2", "i2", "openP1", "openQ1", "openI1", "openP2", "openQ2", "openI2", "closedP1", "closedQ1", "closedI1", "closedP2", "closedQ2", "closedI2",
                 "additionalOpenP1", "additionalClosedP1", "additionalOpenQ1", "additionalClosedQ1", "additionalOpenP2", "additionalClosedP2", "additionalOpenQ2", "additionalClosedQ2"));
-        expected.put(AbstractLfAcDcConverter.class, Set.of("calculatedPac", "calculatedQac", "calculatedIconv1", "calculatedIconv2", "targetP", "pAc", "qAc", "lossFactors",
-                "targetVdc", "controlMode", "dcBus1", "dcBus2", "bus1"));
+        expected.put(AbstractLfAcDcConverter.class, Set.of("numDCC", "calculatedPac", "calculatedQac", "calculatedIconv1", "calculatedIconv2", "targetP", "pAc", "qAc", "lossFactors",
+                "targetVdc", "initialControlMode", "controlMode", "dcBus1", "dcBus2", "bus1"));
         expected.put(AbstractLfBranch.class, Set.of("bus1", "bus2", "currentLimits1", "activePowerLimits1", "apparentPowerLimits1", "currentLimits2", "activePowerLimits2",
                 "apparentPowerLimits2", "piModel", "phaseControl", "phaseControlEnabled", "voltageControl", "voltageControlEnabled", "transformerReactivePowerControl",
                 "zeroImpedanceContextByModel", "a1", "generatorReactivePowerControl", "asymLine"));
@@ -55,8 +55,8 @@ class LfNetworkCopyFieldGuardTest {
                 "converters", "shunt", "controllerShunt", "svcShunt", "distributedOnConformLoad", "loads", "loadTargetP", "loadTargetQ", "branches", "hvdcs",
                 "generatorVoltageControl", "generatorReactivePowerControl", "transformerVoltageControl", "voltageSourceConverterVoltageControl", "shuntVoltageControl",
                 "p", "q", "remoteControlReactivePercent", "zeroImpedanceNetwork", "asym", "area", "isGenerationTargetQFrozen", "forceTargetQInReactiveLimits", "numSC"));
-        expected.put(AbstractLfDcBus.class, Set.of("v", "nominalV"));
-        expected.put(AbstractLfDcLine.class, Set.of("dcBus1", "dcBus2", "p1", "i1", "p2", "i2", "r"));
+        expected.put(AbstractLfDcBus.class, Set.of("numDCC", "v", "nominalV"));
+        expected.put(AbstractLfDcLine.class, Set.of("numDCC", "dcBus1", "dcBus2", "p1", "i1", "p2", "i2", "r"));
         expected.put(AbstractLfGenerator.class, Set.of("network", "bus", "calculatedQ", "targetV", "switchedToLocalVoltageRegulation", "generatorControlType",
                 "controlledBusId", "controlledBranchId", "controlledBranchSide", "remoteTargetQ", "disabled", "asym", "referencePriority", "reference", "extrapolateReactiveLimits"));
         expected.put(AbstractLfInjection.class, Set.of("initialTargetP", "targetP"));
