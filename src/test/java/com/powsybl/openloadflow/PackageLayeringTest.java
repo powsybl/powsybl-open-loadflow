@@ -13,6 +13,8 @@ import com.tngtech.archunit.core.importer.ImportOption;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsideOfPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 /**
@@ -59,6 +61,14 @@ class PackageLayeringTest {
         noClasses().that().resideInAnyPackage("com.powsybl.openloadflow.equations..",
                         "com.powsybl.openloadflow.ac.equations..", "com.powsybl.openloadflow.dc.equations..")
                 .should().dependOnClassesThat().resideInAPackage("com.powsybl.openloadflow.lf..")
+                .check(classes);
+    }
+
+    @Test
+    void utilDoesNotDependOnOtherPackages() {
+        noClasses().that().resideInAPackage("com.powsybl.openloadflow.util")
+                .should().dependOnClassesThat(resideInAPackage("com.powsybl.openloadflow..")
+                        .and(resideOutsideOfPackage("com.powsybl.openloadflow.util")))
                 .check(classes);
     }
 }

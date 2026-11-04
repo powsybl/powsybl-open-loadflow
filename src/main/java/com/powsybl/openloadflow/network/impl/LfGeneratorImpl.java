@@ -13,8 +13,8 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.util.NetworkReports;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -201,7 +201,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
                 computedTargetQ = maxQ;
             }
             if (!isTargetQForcedInReactiveLimits && targetQ != computedTargetQ) { // Logging and reporting only on first update to avoid too much messages
-                String message = Reports.reportGeneratorWithUpdatedTargetQ(network.getReportNode(), this, targetQ * PerUnit.SB, maxQ * PerUnit.SB);
+                String message = NetworkReports.reportGeneratorWithUpdatedTargetQ(network.getReportNode(), this, targetQ * PerUnit.SB, maxQ * PerUnit.SB);
                 LOGGER.info(message);
                 isTargetQForcedInReactiveLimits = true;
             }

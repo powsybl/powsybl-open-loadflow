@@ -15,7 +15,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.equations.Vectors;
-import com.powsybl.openloadflow.util.Reports;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,7 +73,7 @@ public class MaxVoltageChangeStateVectorScaling implements StateVectorScaling {
         if (vCutCount > 0 || phiCutCount > 0) {
             LOGGER.debug("Step size: {} ({} dv and {} dphi changes outside thresholds)", stepSize, vCutCount, phiCutCount);
             if (reportNode != null) {
-                Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, vCutCount, phiCutCount);
+                LfReports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, vCutCount, phiCutCount);
             }
             Vectors.mult(dx, stepSize);
         }

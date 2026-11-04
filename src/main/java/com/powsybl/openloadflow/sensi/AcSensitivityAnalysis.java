@@ -26,10 +26,12 @@ import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
+import com.powsybl.openloadflow.equations.Derivable;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.lf.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.lf.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.*;
@@ -40,10 +42,8 @@ import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParame
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.sensi.mt.BufferedFactorReader;
 import com.powsybl.openloadflow.sensi.mt.SequentialSensitivityResultWriter;
-import com.powsybl.openloadflow.util.Derivable;
 import com.powsybl.openloadflow.util.Indexed;
 import com.powsybl.openloadflow.util.Lists2;
-import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.openloadflow.util.mt.ContingencyMultiThreadHelper;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
@@ -955,7 +955,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                       SensitivityFactorHolder<AcVariableType, AcEquationType> validFactorHolder, SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups,
                                       AcLoadFlowContext context, NetworkState networkState, DenseMatrix factorsStates) {
         if (lfNetworkChange.hasImpact()) {
-            ReportNode postContSimReportNode = Reports.createPostContingencySimulation(networkReportNode, lfNetworkChange.getContingencyId());
+            ReportNode postContSimReportNode = LfReports.createPostContingencySimulation(networkReportNode, lfNetworkChange.getContingencyId());
             lfNetwork.setReportNode(postContSimReportNode);
 
             lfNetworkChange.apply(lfParameters.getBalanceType(), acParameters.getNetworkParameters());
