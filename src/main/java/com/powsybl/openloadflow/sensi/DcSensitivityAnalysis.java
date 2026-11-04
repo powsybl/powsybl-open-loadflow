@@ -78,7 +78,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setUseTransformerRatio(lfParameters.isDcUseTransformerRatio())
                 .setDcApproximationType(parametersExt.getDcApproximationType());
 
-        if (parametersExt.getSlackDistributionFailureBehavior() != OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS) {
+        if (parametersExt.getSlackDistributionFailureBehavior() != LfNetworkParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS) {
             LOGGER.warn("Slack distribution failure mode {} ignored. Using LEAVE_ON_SLACK_BUS for DC sensitivity analysis", parametersExt.getSlackDistributionFailureBehavior());
         }
 
@@ -89,7 +89,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setDistributedSlack(lfParameters.isDistributedSlack())
                 // Currently the DC sensitivity analysis does not check slack distribution success or failure and runs always in
                 // mode LEAVE_ON_SLACK_BUS
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS)
+                .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS)
                 .setBalanceType(lfParameters.getBalanceType())
                 .setSetVToNan(true)
                 .setMaxOuterLoopIterations(parametersExt.getMaxOuterLoopIterations());

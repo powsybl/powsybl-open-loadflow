@@ -29,6 +29,7 @@ import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.ReferenceBusSelectionMode;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
@@ -80,7 +81,7 @@ class DistributedSlackOnGenerationTest {
                 .setDistributedSlack(true);
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
+                .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.THROW);
         reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
     }
 
@@ -455,7 +456,7 @@ class DistributedSlackOnGenerationTest {
     @Test
     void notEnoughActivePowerFailTest() {
         network.getLoad("l1").setP0(1000);
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        parametersExt.setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.FAIL);
         LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertFalse(result.isFullyConverged());
@@ -469,7 +470,7 @@ class DistributedSlackOnGenerationTest {
     @Test
     void notEnoughActivePowerLeaveOnSlackBusTest() {
         network.getLoad("l1").setP0(1000);
-        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        parametersExt.setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertTrue(result.isFullyConverged());
@@ -486,7 +487,7 @@ class DistributedSlackOnGenerationTest {
         g1.setMaxP(200.);
         parametersExt
                 .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY)
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
+                .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
         LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertTrue(result.isFullyConverged());
@@ -511,7 +512,7 @@ class DistributedSlackOnGenerationTest {
         // FIRST_SLACK mode does not select a reference generator, therefore internally we switch to FAIL mode.
         parametersExt
                 .setReferenceBusSelectionMode(ReferenceBusSelectionMode.FIRST_SLACK)
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
+                .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
         LoadFlowResult result = loadFlowRunner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), parameters, reportNode);
         LoadFlowResult.ComponentResult componentResult = result.getComponentResults().get(0);
         assertTrue(result.isFailed());
@@ -723,7 +724,7 @@ class DistributedSlackOnGenerationTest {
         parameters.setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_PARTICIPATION_FACTOR);
         parametersExt
                 .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY)
-                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
+                .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
         for (var g : network.getGenerators()) {
             ActivePowerControl<Generator> ext = g.getExtension(ActivePowerControl.class);
             if (g.getId().equals("g1")) {

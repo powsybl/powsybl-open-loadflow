@@ -61,14 +61,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String MODULE_SPECIFIC_PARAMETERS = "open-loadflow-default-parameters";
 
-    public enum SlackDistributionFailureBehavior {
-        THROW,
-        FAIL,
-        LEAVE_ON_SLACK_BUS,
-        DISTRIBUTE_ON_REFERENCE_GENERATOR
-    }
-
-    public static final SlackDistributionFailureBehavior SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE = SlackDistributionFailureBehavior.FAIL;
+    public static final LfNetworkParameters.SlackDistributionFailureBehavior SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE = LfNetworkParameters.SlackDistributionFailureBehavior.FAIL;
 
     public static final boolean VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE = true;
 
@@ -137,18 +130,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String NETWORK_CACHE_SCOPE_DEFAULT_VALUE = null;
 
-    public enum FictitiousGeneratorVoltageControlCheckMode {
-        FORCED,
-        NORMAL
-    }
+    protected static final LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE =
+        LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
 
-    protected static final FictitiousGeneratorVoltageControlCheckMode FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE = FictitiousGeneratorVoltageControlCheckMode.FORCED;
-
-    public static final boolean AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE = false;
+    public static final boolean AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE = LfNetworkParameters.AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
 
     public static final double AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE = 2.0;
 
-    public static final boolean FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE = false;
+    public static final boolean FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE = LfNetworkParameters.FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE;
 
     public static final boolean AC_DC_NETWORK_DEFAULT_VALUE = false;
 
@@ -405,7 +394,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, ParameterType.STRING,
             "Behavior in case of slack distribution failure",
-            SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE.name(), getEnumPossibleValues(SlackDistributionFailureBehavior.class), ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+            SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE.name(), getEnumPossibleValues(LfNetworkParameters.SlackDistributionFailureBehavior.class),
+            ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
         new Parameter(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, ParameterType.BOOLEAN,
             "Load power factor is constant",
             LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
@@ -460,7 +450,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             AcLoadFlowParameters.DEFAULT_MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
         new Parameter(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ParameterType.STRING,
             "Reactive range check mode",
-            LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactiveRangeCheckMode.class),
+            LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(LfNetworkParameters.ReactiveRangeCheckMode.class),
             ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME, ParameterType.DOUBLE,
             "Low impedance threshold in per unit",
@@ -600,7 +590,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             OpenLoadFlowParameters.GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, TRANSFORMER_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, ParameterType.STRING,
             "Specifies fictitious generators active power checks exemption for voltage control",
-            OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(FictitiousGeneratorVoltageControlCheckMode.class),
+            OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode.class),
             ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(AREA_INTERCHANGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN,
             "Area interchange control",
@@ -681,7 +671,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private List<String> slackBusesIds = Collections.emptyList();
 
-    private SlackDistributionFailureBehavior slackDistributionFailureBehavior = SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE;
+    private LfNetworkParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE;
 
     private boolean voltageRemoteControl = VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE;
 
@@ -746,13 +736,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double lowImpedanceThreshold = LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
 
-    public enum ReactiveRangeCheckMode {
-        MIN_MAX,
-        MAX,
-        TARGET_P
-    }
-
-    private ReactiveRangeCheckMode reactiveRangeCheckMode = LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
+    private LfNetworkParameters.ReactiveRangeCheckMode reactiveRangeCheckMode = LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
 
     private boolean networkCacheEnabled = LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE;
 
@@ -826,7 +810,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double generatorVoltageControlMinNominalVoltage = GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE;
 
-    private FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode = FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE;
+    private LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode = FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE;
 
     private boolean areaInterchangeControl = AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
 
@@ -898,11 +882,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public SlackDistributionFailureBehavior getSlackDistributionFailureBehavior() {
+    public LfNetworkParameters.SlackDistributionFailureBehavior getSlackDistributionFailureBehavior() {
         return slackDistributionFailureBehavior;
     }
 
-    public OpenLoadFlowParameters setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior slackDistributionFailureBehavior) {
+    public OpenLoadFlowParameters setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior) {
         this.slackDistributionFailureBehavior = Objects.requireNonNull(slackDistributionFailureBehavior);
         return this;
     }
@@ -1192,11 +1176,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public ReactiveRangeCheckMode getReactiveRangeCheckMode() {
+    public LfNetworkParameters.ReactiveRangeCheckMode getReactiveRangeCheckMode() {
         return reactiveRangeCheckMode;
     }
 
-    public OpenLoadFlowParameters setReactiveRangeCheckMode(ReactiveRangeCheckMode reactiveRangeCheckMode) {
+    public OpenLoadFlowParameters setReactiveRangeCheckMode(LfNetworkParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
         this.reactiveRangeCheckMode = reactiveRangeCheckMode;
         return this;
     }
@@ -1561,11 +1545,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return generatorVoltageControlMinNominalVoltage;
     }
 
-    public FictitiousGeneratorVoltageControlCheckMode getFictitiousGeneratorVoltageControlCheckMode() {
+    public LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode getFictitiousGeneratorVoltageControlCheckMode() {
         return fictitiousGeneratorVoltageControlCheckMode;
     }
 
-    public OpenLoadFlowParameters setFictitiousGeneratorVoltageControlCheckMode(FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode) {
+    public OpenLoadFlowParameters setFictitiousGeneratorVoltageControlCheckMode(LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode) {
         this.fictitiousGeneratorVoltageControlCheckMode = Objects.requireNonNull(fictitiousGeneratorVoltageControlCheckMode);
         return this;
     }
@@ -1751,7 +1735,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         config.getOptionalEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class)
             .ifPresent(this::setLowImpedanceBranchMode);
         config.getOptionalBooleanProperty(VOLTAGE_REMOTE_CONTROL_PARAM_NAME).ifPresent(this::setVoltageRemoteControl);
-        config.getOptionalEnumProperty(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, SlackDistributionFailureBehavior.class)
+        config.getOptionalEnumProperty(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, LfNetworkParameters.SlackDistributionFailureBehavior.class)
             .ifPresent(this::setSlackDistributionFailureBehavior);
         config.getOptionalBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME).ifPresent(this::setLoadPowerFactorConstant);
         config.getOptionalDoubleProperty(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME).ifPresent(this::setPlausibleActivePowerLimit);
@@ -1781,7 +1765,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         config.getOptionalDoubleProperty(MIN_REALISTIC_VOLTAGE_PARAM_NAME).ifPresent(this::setMinRealisticVoltage);
         config.getOptionalDoubleProperty(MAX_REALISTIC_VOLTAGE_PARAM_NAME).ifPresent(this::setMaxRealisticVoltage);
         config.getOptionalDoubleProperty(MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK_PARAM_NAME).ifPresent(this::setMinNominalVoltageRealisticVoltageCheck);
-        config.getOptionalEnumProperty(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ReactiveRangeCheckMode.class)
+        config.getOptionalEnumProperty(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, LfNetworkParameters.ReactiveRangeCheckMode.class)
             .ifPresent(this::setReactiveRangeCheckMode);
         config.getOptionalDoubleProperty(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME).ifPresent(this::setLowImpedanceThreshold);
         config.getOptionalBooleanProperty(NETWORK_CACHE_ENABLED_PARAM_NAME).ifPresent(this::setNetworkCacheEnabled);
@@ -1841,7 +1825,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         config.getOptionalDoubleProperty(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME).ifPresent(this::setAreaInterchangePMaxMismatch);
         config.getOptionalBooleanProperty(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME).ifPresent(this::setDisableInconsistentVoltageControls);
         config.getOptionalBooleanProperty(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setForceTargetQInReactiveLimits);
-        config.getOptionalEnumProperty(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, FictitiousGeneratorVoltageControlCheckMode.class)
+        config.getOptionalEnumProperty(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode.class)
             .ifPresent(this::setFictitiousGeneratorVoltageControlCheckMode);
         config.getOptionalBooleanProperty(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME).ifPresent(this::setVoltageRemoteControlRobustMode);
         config.getOptionalBooleanProperty(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setExtrapolateReactiveLimits);
@@ -1866,7 +1850,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         Optional.ofNullable(properties.get(VOLTAGE_REMOTE_CONTROL_PARAM_NAME))
                 .ifPresent(prop -> this.setVoltageRemoteControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME))
-                .ifPresent(prop -> this.setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.valueOf(prop)));
+                .ifPresent(prop -> this.setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.valueOf(prop)));
         Optional.ofNullable(properties.get(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME))
                 .ifPresent(prop -> this.setLoadPowerFactorConstant(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME))
@@ -1916,7 +1900,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         Optional.ofNullable(properties.get(MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK_PARAM_NAME))
                 .ifPresent(prop -> this.setMinNominalVoltageRealisticVoltageCheck(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME))
-                .ifPresent(prop -> this.setReactiveRangeCheckMode(ReactiveRangeCheckMode.valueOf(prop)));
+                .ifPresent(prop -> this.setReactiveRangeCheckMode(LfNetworkParameters.ReactiveRangeCheckMode.valueOf(prop)));
         Optional.ofNullable(properties.get(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME))
                 .ifPresent(prop -> this.setLowImpedanceThreshold(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(NETWORK_CACHE_ENABLED_PARAM_NAME))
@@ -2003,7 +1987,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         Optional.ofNullable(properties.get(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME))
                 .ifPresent(prop -> this.setGeneratorVoltageControlMinNominalVoltage(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE))
-                .ifPresent(prop -> this.setFictitiousGeneratorVoltageControlCheckMode(FictitiousGeneratorVoltageControlCheckMode.valueOf(prop)));
+                .ifPresent(prop -> this.setFictitiousGeneratorVoltageControlCheckMode(LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode.valueOf(prop)));
         Optional.ofNullable(properties.get(AREA_INTERCHANGE_CONTROL_PARAM_NAME))
                 .ifPresent(prop -> this.setAreaInterchangeControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME))

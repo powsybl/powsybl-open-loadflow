@@ -142,28 +142,28 @@ class AreaInterchangeControlTest {
     }
 
     static Stream<Arguments> allSlackDistributionFailureBehaviors() {
-        return Stream.of(Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS, -90, -20, -10),
-                Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL, Double.NaN, -30, 0),
-                Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR, Double.NaN, -30, 0),
-                Arguments.of(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW, Double.NaN, Double.NaN, Double.NaN));
+        return Stream.of(Arguments.of(LfNetworkParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS, -90, -20, -10),
+                Arguments.of(LfNetworkParameters.SlackDistributionFailureBehavior.FAIL, Double.NaN, -30, 0),
+                Arguments.of(LfNetworkParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR, Double.NaN, -30, 0),
+                Arguments.of(LfNetworkParameters.SlackDistributionFailureBehavior.THROW, Double.NaN, Double.NaN, Double.NaN));
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("allSlackDistributionFailureBehaviors")
-    void slackDistributionFailureBehaviorsTest(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior,
+    void slackDistributionFailureBehaviorsTest(LfNetworkParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior,
                                                double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
         runLfOneAreaSlackDistributionFailure(slackDistributionFailureBehavior, expectedGen1P, expectedMismatch, expectedDistributedP);
         parameters.setDc(true);
         runLfOneAreaSlackDistributionFailure(slackDistributionFailureBehavior, expectedGen1P, expectedMismatch, expectedDistributedP);
     }
 
-    private void runLfOneAreaSlackDistributionFailure(OpenLoadFlowParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior,
+    private void runLfOneAreaSlackDistributionFailure(LfNetworkParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior,
                                                       double expectedGen1P, double expectedMismatch, double expectedDistributedP) {
         parametersExt.setSlackDistributionFailureBehavior(slackDistributionFailureBehavior);
         Network network = MultiAreaNetworkFactory.createOneAreaBase();
         network.getGenerator("g1").setMinP(90); // the generator should go down to 70MW to meet the interchange target
 
-        if (slackDistributionFailureBehavior != OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW) {
+        if (slackDistributionFailureBehavior != LfNetworkParameters.SlackDistributionFailureBehavior.THROW) {
             var result = loadFlowRunner.run(network, parameters);
             var mainComponentResult = result.getComponentResults().get(0);
             assertEquals(expectedGen1P, network.getGenerator("g1").getTerminal().getP(), 1e-3);
