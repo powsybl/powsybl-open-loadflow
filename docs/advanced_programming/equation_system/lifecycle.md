@@ -35,8 +35,25 @@ so that several changes in a row cost a single update.
 | Equation activated, deactivated, created or removed | columns recomputed | array rebuilt | matrix rebuilt, new LU decomposition |
 | A variable is used for the first time, or not anymore | rows recomputed | unchanged | matrix rebuilt, new LU decomposition |
 
-The incremental LU update reuses the factorization of the previous values; if it fails, a full update is done
-instead.
+### Levels of Jacobian matrix update
+
+The Jacobian matrix is updated at three levels, from the cheapest to the most expensive:
+
+| Level | Triggered by | Matrix | LU decomposition |
+|---|---|---|---|
+| Incremental LU update | state update, term constants changed | same matrix and same non-zero elements, values overwritten in place | factorized again, reusing the analysis and the pivot order of the previous factorization |
+| Full LU update | term activated or deactivated | same as above, but some values may have become zero or non-zero | factorized again, choosing the pivots again, but keeping the structural analysis |
+| New LU decomposition | equation or variable added or removed, order of the equations changed | rebuilt from scratch, with a new size and new non-zero elements | discarded, a new decomposition (analysis, ordering and factorization) is computed at the next solve |
+
+Reusing the pivot order is only safe when the values have not changed too much: activating or deactivating terms can
+turn a good pivot into a zero or a very small value, hence the full update in that case. If an incremental update
+fails, a full update is done instead.
+
+The difference between the levels matters with a sparse matrix storage, the one used by the load flow. A sparse LU
+decomposition can only be updated if the number of non-zero elements of the matrix has not changed: this is why the
+matrix element of a deactivated term is kept, with a zero value, rather than removed. With a dense matrix storage, as
+in the [tutorial](tutorial.md), incremental and full updates are the same: the decomposition is discarded and
+computed again at the next solve.
 
 ```{note}
 Activating or deactivating a term, or changing its constants, does not invalidate the values of the equation vector: they are recomputed on the
