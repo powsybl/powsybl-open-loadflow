@@ -156,7 +156,7 @@ public class WoodburyEngine {
             lfActions.stream()
                     .filter(LfBoundaryLineAction.class::isInstance)
                     .map(LfBoundaryLineAction.class::cast)
-                    .filter(a -> a.isValid() && !a.getLfBoundaryLoad().isOriginalLoadDisabled(a.getBoundaryLineId()))
+                    .filter(a -> a.isValid() && !disabledNetwork.getBuses().contains(a.getLfBoundaryLoad().getBus()))
                     .forEach(boundaryLineAction -> {
                         LfBus bus = boundaryLineAction.getLfBoundaryLoad().getBus();
                         double deltaTargetP = -boundaryLineAction.getPowerShift().getActive();
