@@ -66,7 +66,7 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
     /**
      * Precompute the per-band droop reference points in per unit. The droop curve gives, per DC-voltage band, a
      * coefficient {@code k} that is the slope of {@code U_dc} versus {@code P}
-     * (see {@link com.powsybl.openloadflow.ac.equations.dcnetwork.ConverterDroopEquationTerm}).
+     * (see {@code ConverterDroopEquationTerm}).
      * The piecewise-linear curve is anchored at {@code (targetVdc, targetP)} and {@code refP} is propagated from
      * band to band so the curve stays continuous at each band boundary. For each band we store {@code refP}, the
      * anchored power at the band's lower voltage bound {@code refVdc = minV}.

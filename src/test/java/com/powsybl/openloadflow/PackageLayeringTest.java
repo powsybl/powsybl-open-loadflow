@@ -45,4 +45,12 @@ class PackageLayeringTest {
                 .should().dependOnClassesThat().resideInAPackage("com.powsybl.openloadflow.sa..")
                 .check(classes);
     }
+
+    @Test
+    void networkDoesNotDependOnAcDcEquations() {
+        noClasses().that().resideInAPackage("com.powsybl.openloadflow.network..")
+                .should().dependOnClassesThat().resideInAnyPackage("com.powsybl.openloadflow.ac.equations..",
+                        "com.powsybl.openloadflow.dc.equations..")
+                .check(classes);
+    }
 }
