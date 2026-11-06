@@ -157,9 +157,9 @@ public class WoodburyEngine {
                     .filter(LfBoundaryLineAction.class::isInstance)
                     .map(LfBoundaryLineAction.class::cast)
                     .filter(a -> a.isValid() && !a.getLfBoundaryLoad().isOriginalLoadDisabled(a.getBoundaryLineId()))
-                    .forEach(loadAction -> {
-                        LfBus bus = loadAction.getLfBoundaryLoad().getBus();
-                        double deltaTargetP = -loadAction.getPowerShift().getActive();
+                    .forEach(boundaryLineAction -> {
+                        LfBus bus = boundaryLineAction.getLfBoundaryLoad().getBus();
+                        double deltaTargetP = -boundaryLineAction.getPowerShift().getActive();
                         loadFlowContext.getEquationSystem().getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
                                 .filter(Equation::isActive)
                                 .ifPresent(eq -> targetVectorArray[eq.getColumn()] += deltaTargetP);
