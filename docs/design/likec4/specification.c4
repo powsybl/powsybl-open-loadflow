@@ -1,0 +1,46 @@
+specification {
+  element external {
+    style {
+      color gray
+    }
+  }
+  element consumer {
+    style {
+      shape person
+      color slate
+    }
+  }
+  element system {
+    style {
+      color primary
+    }
+  }
+  element module {
+    style {
+      shape component
+      color indigo
+    }
+  }
+  element pkggroup {
+    style {
+      color sky
+    }
+  }
+  element analysis {
+    style {
+      color amber
+      border dashed
+    }
+  }
+
+  relationship testScope {
+    color gray
+    line dotted
+  }
+
+  // Dependency crossing a target module boundary in the wrong direction: to be removed before the split
+  relationship violates {
+    color red
+    line dashed
+  }
+}

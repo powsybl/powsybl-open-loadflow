@@ -4,6 +4,11 @@ build:
   os: ubuntu-24.04
   tools:
     python: "3.12"
+    nodejs: "22"
+  jobs:
+    pre_build:
+      - npm ci --prefix docs
+      - npm run --prefix docs likec4:build
 
 sphinx:
   configuration: docs/conf.py
