@@ -271,7 +271,7 @@ class LfActionTest extends AbstractSerDeTest {
 
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
-                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new DTreeGraphConnectivityFactory<>(), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
 
@@ -309,7 +309,7 @@ class LfActionTest extends AbstractSerDeTest {
 
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
-                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new DTreeGraphConnectivityFactory<>(), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             LfAction lfAction = LfActionUtils.createLfAction(boundaryAction, network, lfNetwork);
@@ -330,7 +330,7 @@ class LfActionTest extends AbstractSerDeTest {
 
         var matrixFactory = new DenseMatrixFactory();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
-                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), matrixFactory, new DTreeGraphConnectivityFactory<>(), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             LfAction lfAction = LfActionUtils.createLfAction(boundaryAction, network, lfNetwork);
@@ -349,7 +349,7 @@ class LfActionTest extends AbstractSerDeTest {
                 .withRelativeValue(false)
                 .build();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
-                new LoadFlowParameters(), new OpenLoadFlowParameters(), new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>(), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             LfBoundaryLineAction lfAction = (LfBoundaryLineAction) LfActionUtils.createLfAction(action, network, lfNetwork);
@@ -376,7 +376,7 @@ class LfActionTest extends AbstractSerDeTest {
                 .withRelativeValue(true)
                 .build();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
-                new LoadFlowParameters(), new OpenLoadFlowParameters(), new DenseMatrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>(), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             LfBoundaryLineAction lfAction = (LfBoundaryLineAction) LfActionUtils.createLfAction(action, network, lfNetwork);
