@@ -12,6 +12,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.MatrixException;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -21,12 +22,11 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.lf.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkLoader;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
@@ -227,10 +227,10 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(balanceType, false, useActiveLimits);
             var result = activePowerDistribution.run(network.getSynchronousNetworks().getFirst(), initialSlackBusActivePowerMismatch);
             final LfGenerator referenceGenerator;
-            final LfNetworkParameters.SlackDistributionFailureBehavior behavior;
+            final OpenLoadFlowParameters.SlackDistributionFailureBehavior behavior;
             if (isAreaInterchangeControl && network.hasArea()) {
                 // actual behavior will be handled by the outerloop itself, just leave on slack bus here
-                behavior = LfNetworkParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
+                behavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS;
                 referenceGenerator = null;
             } else {
                 behavior = parameters.getSlackDistributionFailureBehavior();

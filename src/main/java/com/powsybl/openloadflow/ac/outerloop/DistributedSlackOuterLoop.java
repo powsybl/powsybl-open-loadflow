@@ -17,8 +17,8 @@ import com.powsybl.openloadflow.lf.outerloop.AbstractActivePowerDistributionOute
 import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.lf.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.network.LfSynchronousNetwork;
-import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;

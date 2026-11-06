@@ -1548,7 +1548,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         SensitivityAnalysisParameters sensiParameters = createParameters(false, "NGEN", true);
         sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
         // The slack distribution will fail for the NGEN contingency. But we want a result to ensure the slack has been relocated
-        OpenLoadFlowParameters.create(sensiParameters.getLoadFlowParameters()).setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        OpenLoadFlowParameters.create(sensiParameters.getLoadFlowParameters()).setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("NHV1_NHV2_1", "LOAD"),
                                                   createBranchFlowPerInjectionIncrease("NHV1_NHV2_2", "LOAD"),
                                                   createBranchFlowPerInjectionIncrease("NHV2_NLOAD", "LOAD"),

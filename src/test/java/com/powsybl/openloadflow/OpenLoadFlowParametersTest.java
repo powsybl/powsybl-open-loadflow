@@ -303,14 +303,14 @@ class OpenLoadFlowParametersTest {
         OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters);
 
         assertEquals(SlackBusSelectionMode.MOST_MESHED, olfParameters.getSlackBusSelectionMode());
-        assertEquals(LfNetworkParameters.SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());
+        assertEquals(SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());
 
         MapModuleConfig olfModuleConfig = platformConfig.createModuleConfig(MODULE_SPECIFIC_PARAMETERS);
         olfModuleConfig.setStringProperty(SLACK_BUS_SELECTION_MODE_PARAM_NAME, SlackBusSelectionMode.FIRST.toString());
         olfParameters.update(platformConfig);
 
         assertEquals(SlackBusSelectionMode.FIRST, olfParameters.getSlackBusSelectionMode());
-        assertEquals(LfNetworkParameters.SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());
+        assertEquals(SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());
     }
 
     @Test
@@ -344,11 +344,11 @@ class OpenLoadFlowParametersTest {
         LoadFlowParameters parameters = new LoadFlowParameters(List.of(loader), platformConfig);
         OpenLoadFlowParameters olfParameters = parameters.getExtensionByName("open-load-flow-parameters");
         assertNotNull(olfParameters);
-        assertEquals(LfNetworkParameters.SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());
+        assertEquals(SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());
         assertEquals(30, olfParameters.getMaxOuterLoopIterations());
 
         olfParameters.update(platformConfig);
-        assertEquals(LfNetworkParameters.SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());
+        assertEquals(SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());
         assertEquals(50, olfParameters.getMaxOuterLoopIterations());
 
     }

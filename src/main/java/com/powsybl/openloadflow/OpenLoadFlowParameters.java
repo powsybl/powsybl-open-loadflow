@@ -61,7 +61,14 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String MODULE_SPECIFIC_PARAMETERS = "open-loadflow-default-parameters";
 
-    public static final LfNetworkParameters.SlackDistributionFailureBehavior SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE = LfNetworkParameters.SlackDistributionFailureBehavior.FAIL;
+    public enum SlackDistributionFailureBehavior {
+        THROW,
+        FAIL,
+        LEAVE_ON_SLACK_BUS,
+        DISTRIBUTE_ON_REFERENCE_GENERATOR
+    }
+
+    public static final SlackDistributionFailureBehavior SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE = SlackDistributionFailureBehavior.FAIL;
 
     public static final boolean VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE = true;
 
@@ -394,8 +401,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, ParameterType.STRING,
             "Behavior in case of slack distribution failure",
-            SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE.name(), getEnumPossibleValues(LfNetworkParameters.SlackDistributionFailureBehavior.class),
-            ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
+            SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE.name(), getEnumPossibleValues(SlackDistributionFailureBehavior.class), ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
         new Parameter(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME, ParameterType.BOOLEAN,
             "Load power factor is constant",
             LOAD_POWER_FACTOR_CONSTANT_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, SLACK_DISTRIBUTION_CATEGORY_KEY),
@@ -671,7 +677,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private List<String> slackBusesIds = Collections.emptyList();
 
-    private LfNetworkParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior = SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE;
+    private SlackDistributionFailureBehavior slackDistributionFailureBehavior = SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_DEFAULT_VALUE;
 
     private boolean voltageRemoteControl = VOLTAGE_REMOTE_CONTROL_DEFAULT_VALUE;
 
@@ -882,11 +888,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public LfNetworkParameters.SlackDistributionFailureBehavior getSlackDistributionFailureBehavior() {
+    public SlackDistributionFailureBehavior getSlackDistributionFailureBehavior() {
         return slackDistributionFailureBehavior;
     }
 
-    public OpenLoadFlowParameters setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior slackDistributionFailureBehavior) {
+    public OpenLoadFlowParameters setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior slackDistributionFailureBehavior) {
         this.slackDistributionFailureBehavior = Objects.requireNonNull(slackDistributionFailureBehavior);
         return this;
     }
@@ -1735,7 +1741,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         config.getOptionalEnumProperty(LOW_IMPEDANCE_BRANCH_MODE_PARAM_NAME, LowImpedanceBranchMode.class)
             .ifPresent(this::setLowImpedanceBranchMode);
         config.getOptionalBooleanProperty(VOLTAGE_REMOTE_CONTROL_PARAM_NAME).ifPresent(this::setVoltageRemoteControl);
-        config.getOptionalEnumProperty(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, LfNetworkParameters.SlackDistributionFailureBehavior.class)
+        config.getOptionalEnumProperty(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME, SlackDistributionFailureBehavior.class)
             .ifPresent(this::setSlackDistributionFailureBehavior);
         config.getOptionalBooleanProperty(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME).ifPresent(this::setLoadPowerFactorConstant);
         config.getOptionalDoubleProperty(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME).ifPresent(this::setPlausibleActivePowerLimit);
@@ -1850,7 +1856,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         Optional.ofNullable(properties.get(VOLTAGE_REMOTE_CONTROL_PARAM_NAME))
                 .ifPresent(prop -> this.setVoltageRemoteControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(SLACK_DISTRIBUTION_FAILURE_BEHAVIOR_PARAM_NAME))
-                .ifPresent(prop -> this.setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.valueOf(prop)));
+                .ifPresent(prop -> this.setSlackDistributionFailureBehavior(SlackDistributionFailureBehavior.valueOf(prop)));
         Optional.ofNullable(properties.get(LOAD_POWER_FACTOR_CONSTANT_PARAM_NAME))
                 .ifPresent(prop -> this.setLoadPowerFactorConstant(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(PLAUSIBLE_ACTIVE_POWER_LIMIT_PARAM_NAME))
