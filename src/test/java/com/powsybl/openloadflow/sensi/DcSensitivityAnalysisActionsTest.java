@@ -11,7 +11,6 @@ import com.powsybl.action.*;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
-import com.powsybl.contingency.LoadContingency;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.contingency.strategy.condition.TrueCondition;
 import com.powsybl.iidm.network.Identifiable;
