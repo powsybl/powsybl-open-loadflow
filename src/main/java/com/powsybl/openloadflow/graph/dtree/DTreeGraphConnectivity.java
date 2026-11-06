@@ -42,6 +42,7 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
 
     public DTreeGraphConnectivity() {
         super(new DTGraph<>());
+        getGraph().setDTree(this);
     }
 
     @Override
@@ -83,6 +84,11 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     }
 
     @Override
+    public boolean connected(V vertex1, V vertex2) {
+        return getGraph().rootOf(vertex1) == getGraph().rootOf(vertex2);
+    }
+
+    @Override
     protected int getQuickComponentNumber(V vertex) {
         return getGraph().rootOf(vertex).getIndex();
     }
@@ -94,14 +100,14 @@ public class DTreeGraphConnectivity<V, E> extends AbstractGraphConnectivity<V, E
     }
 
     @Override
-    public Set<V> getConnectedComponent(V vertex) {
+    public Component<V> getConnectedComponent(V vertex) {
         checkSavedContext();
         checkVertex(vertex);
         return getGraph().createComponentView(vertex);
     }
 
     @Override
-    public Set<V> getLargestConnectedComponent() {
+    public Component<V> getLargestConnectedComponent() {
         checkSavedContext();
 
         if (componentSets == null) {
