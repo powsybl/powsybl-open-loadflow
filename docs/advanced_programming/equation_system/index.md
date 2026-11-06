@@ -17,17 +17,18 @@ tutorial.md
 
 ## The problem being solved
 
-The framework represents a square system of equations:
+The framework represents a system of equations:
 
 $$
 f(x) = t
 $$
 
-where $x \in \mathbb{R}^n$ is the vector of unknowns (the *state*), $t \in \mathbb{R}^n$ is the vector of targets and
-$f : \mathbb{R}^n \rightarrow \mathbb{R}^n$ is a function, each component $f_i$ being the left-hand side of one
-equation.
+where $x \in \mathbb{R}^n$ is the vector of the $n$ unknowns (the *state*), $t \in \mathbb{R}^m$ is the vector of
+the $m$ targets and $f : \mathbb{R}^n \rightarrow \mathbb{R}^m$ is a function, each component $f_i$ being the
+left-hand side of one equation.
 
-When $f$ is nonlinear, the system is solved with the Newton-Raphson method. Starting from an initial state $x_0$, each
+The load flow solves square systems, with as many equations as unknowns ($m = n$). When $f$ is nonlinear, the system
+is solved with the Newton-Raphson method. Starting from an initial state $x_0$, each
 iteration solves a linear system involving the Jacobian matrix $J = \partial f / \partial x$:
 
 $$

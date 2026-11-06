@@ -109,8 +109,12 @@ The **index** (`EquationSystemIndex`) maps the equation system to vectors and ma
   numbered from 0: this is their row.
 
 The index is updated lazily, on the first query after a change (`getColumnCount()`, `getRowCount()`,
-`getSortedSingleEquationsToSolve()`, `getSortedVariablesToFind()`...). The system to solve must be square: the
-Jacobian matrix checks that the number of rows equals the number of columns.
+`getSortedSingleEquationsToSolve()`, `getSortedVariablesToFind()`...).
+
+The index itself does not require as many equations as variables. The [Jacobian matrix](#jacobian-matrix) does,
+because it holds the LU decomposition used to solve the system: it checks that the number of rows equals the number of
+columns. This is likely to be revisited to support non-square systems, as needed for example by state estimation,
+where the number of measurements exceeds the number of state variables.
 
 ## Vectors
 
