@@ -51,11 +51,16 @@ the `main` branch, before these pull requests are merged.
 **Why it blocks:** `powsybl-na-network` would depend on `powsybl-open-loadflow`. The uses of `LoadFlowParameters`
 in the same classes are fine, it is a powsybl-core class.
 
-**Fix ([#1547](https://github.com/powsybl/powsybl-open-loadflow/pull/1547)):** move `ReactiveRangeCheckMode`,
-`FictitiousGeneratorVoltageControlCheckMode` and `SlackDistributionFailureBehavior` out of `OpenLoadFlowParameters`
-as nested enums of `network.LfNetworkParameters`. Move the two default value constants to `LfNetworkParameters`; the
-`OpenLoadFlowParameters` constants reference them. The parameters JSON format and the parameter names are unchanged,
-but Java code using `OpenLoadFlowParameters.<enum>` must use `LfNetworkParameters.<enum>` instead.
+**Fix ([#1547](https://github.com/powsybl/powsybl-open-loadflow/pull/1547)):**
+- move `ReactiveRangeCheckMode` and `FictitiousGeneratorVoltageControlCheckMode` out of `OpenLoadFlowParameters` as
+  nested enums of `network.LfNetworkParameters`. Move the two default value constants to `LfNetworkParameters`; the
+  `OpenLoadFlowParameters` constants reference them;
+- move `ActivePowerDistribution`, `GenerationActivePowerDistributionStep`, `LoadActivePowerDistributionStep` and
+  `ParticipatingElement` from `network.util` to `lf.util`: slack distribution is only used by the load flow engines,
+  outer loops, security and sensitivity analysis. `SlackDistributionFailureBehavior` stays in `OpenLoadFlowParameters`.
+
+The parameters JSON format and the parameter names are unchanged, but Java code using the two moved enums must use
+`LfNetworkParameters.<enum>` instead, and code using the slack distribution classes must import them from `lf.util`.
 
 ### I2: network model depends on security analysis
 
@@ -116,12 +121,12 @@ static method `LfHvdc.getAbsActivePowerWithLosses`, called by the two
 
 **Fix ([#1552](https://github.com/powsybl/powsybl-open-loadflow/pull/1552)):**
 - Split `Reports`, used by almost every package, by module:
-  - the 51 report methods used by the network packages move to a new `network.util.NetworkReports`. Their 51
+  - the 50 report methods used by the network packages move to a new `network.util.NetworkReports`. Their 50
     message keys move to `com/powsybl/openloadflow/network/reports*.properties`, registered by a new
     `network.NetworkReportResourceBundle`;
   - the load flow, security and sensitivity reports move to `lf.util.LfReports`, and the bundle class to
     `lf.PowsyblOpenLoadFlowReportResourceBundle`. Its properties move to `com/powsybl/openloadflow/lf/reports*.properties`
-    with the remaining 76 keys, so its base name becomes `com.powsybl.openloadflow.lf.reports`.
+    with the remaining 77 keys, so its base name becomes `com.powsybl.openloadflow.lf.reports`.
 - Remove `OpenLoadFlowReportConstants`: its only constant becomes `NetworkReports.MISMATCH_TYPED_VALUE`.
 - Move `Derivable` to `equations`, where it is used (with `sensi`).
 - Rename the 11 report keys that were not in lowerCamelCase, e.g. `olf.OuterLoop` to `olf.outerLoop` and

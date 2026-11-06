@@ -34,15 +34,14 @@ The interactive diagram of this section is available in the online documentation
 | `graph` | `powsybl-na-graph` | `graph`, `graph.dtree` | `powsybl-na-commons`, powsybl-core, jgrapht |
 | `network` | `powsybl-na-network` | `network`, `network.impl`, `network.util`, `network.action`, network report messages | `powsybl-na-graph`, powsybl-core (IIDM, loadflow, security analysis, contingency and action APIs) |
 | `equations` | `powsybl-na-equations` | `equations`, `ac.equations`, `dc.equations`, `adm` | `powsybl-na-network`, powsybl-core |
-| `open-loadflow` | `powsybl-open-loadflow` | root package, `lf`, `ac`, `ac.outerloop`, `ac.solver`, `dc`, `dc.fastdc`, `sa`, `sensi`, `util.mt`, load flow report messages | all the modules above, powsybl-core |
+| `open-loadflow` | `powsybl-open-loadflow` | root package, `lf`, `lf.util`, `ac`, `ac.outerloop`, `ac.solver`, `dc`, `dc.fastdc`, `sa`, `sensi`, `util.mt`, load flow report messages | all the modules above, powsybl-core |
 | `test` | `powsybl-na-test` | `test`: test networks and test utilities (see [test utilities](#test-utilities)) | `powsybl-na-commons`, powsybl-core, JUnit, Mockito |
 | `distribution` | `powsybl-na-distribution` | no code: aggregates all the modules for the code coverage report | all the modules |
 
 The reusable modules only depend on lower modules: `powsybl-na-equations` → `powsybl-na-network` →
 `powsybl-na-graph` → `powsybl-na-commons`. A dependency in the other direction fails the build, which is what makes
-them really reusable. The analyses depend on the reusable modules, and on `powsybl-open-loadflow` when they need a
-load flow, e.g. short circuit for its pre-fault state, or state estimation for a DC voltage initialization (see
-[analyses](#analyses)). Nothing depends on an analysis module, except `distribution`.
+them really reusable. The analyses can depend on any of these modules (see [analyses](#analyses)). Nothing depends
+on an analysis module, except `distribution`.
 
 Every module may depend on any powsybl-core artifact, including the loadflow and security analysis APIs. Each module
 declares the powsybl-core artifacts it uses: today the contingency, action, `iidm.criteria` and computation APIs are
@@ -65,7 +64,8 @@ buildnumber and templating plugins and the `powsybl-tools` dependency.
 
 | Before | After |
 |---|---|
-| `OpenLoadFlowParameters.ReactiveRangeCheckMode`, `FictitiousGeneratorVoltageControlCheckMode`, `SlackDistributionFailureBehavior` | `network.LfNetworkParameters.ReactiveRangeCheckMode`, `LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode`, `LfNetworkParameters.SlackDistributionFailureBehavior` |
+| `OpenLoadFlowParameters.ReactiveRangeCheckMode`, `FictitiousGeneratorVoltageControlCheckMode` | `network.LfNetworkParameters.ReactiveRangeCheckMode`, `LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode` |
+| `network.util.ActivePowerDistribution`, `GenerationActivePowerDistributionStep`, `LoadActivePowerDistributionStep`, `ParticipatingElement` | `lf.util.ActivePowerDistribution`, `GenerationActivePowerDistributionStep`, `LoadActivePowerDistributionStep`, `ParticipatingElement` |
 | `sa.LimitScalingManager` | `network.LimitScalingManager` |
 | `NetworkVariantPool` | `network.impl.NetworkVariantPool` |
 | `lf.AbstractEquationSystemUpdater` | `equations.AbstractEquationSystemUpdater` |
@@ -86,38 +86,20 @@ buildnumber and templating plugins and the `powsybl-tools` dependency.
 ### Analyses
 
 State estimation, short circuit and network reduction are meant to be modules of `powsybl-network-analysis`. They
-depend on the reusable modules and, when they need a load flow, on `powsybl-open-loadflow`. Short circuit and network
-reduction can stay outside the repository first, depending on the published `powsybl-na-*` artifacts, and join it
-later.
+can depend on any module of the repository. Short circuit and network reduction can stay outside the repository first,
+depending on the published artifacts, and join it later.
 
-```{raw} html
-<likec4-view view-id="targetReuse"></likec4-view>
-```
-
-```{only} latex
-The interactive diagram of this section is available in the online documentation.
-```
-
-| Analysis | Status | Joins the repository | Reuses |
-|---|---|---|---|
-| State estimation | developed in the repository (module `powsybl-na-state-estimation`, proposed name), draft in [#1530](https://github.com/powsybl/powsybl-open-loadflow/pull/1530) | by the end of 2026 | network model, AC equation terms for the measurement functions, `Variable`/`VariableSet`/`StateVector`, graph connectivity for observability analysis, possibly Open Load Flow for a DC voltage initialization |
-| Short circuit | exists outside: [powsybl-open-sc](https://github.com/powsybl/powsybl-open-sc), see [short circuit](#short-circuit) | to be decided by the powsybl-open-sc maintainers | network model, equation system, Open Load Flow AC engine for the pre-fault state |
-| Network reduction | proof of concept outside: [powsybl-incubator](https://github.com/powsybl/powsybl-incubator/tree/main/simulator/network-reduction) | timeline to be decided | network model, admittance matrix, graph connectivity to split internal and external areas |
+| Analysis | Status | Joins the repository |
+|---|---|---|
+| State estimation | developed in the repository (module `powsybl-na-state-estimation`, proposed name), draft in [#1530](https://github.com/powsybl/powsybl-open-loadflow/pull/1530) | by the end of 2026 |
+| Short circuit | exists outside: [powsybl-open-sc](https://github.com/powsybl/powsybl-open-sc), see [short circuit](#short-circuit) | to be decided by the powsybl-open-sc maintainers |
+| Network reduction | proof of concept outside: [powsybl-incubator](https://github.com/powsybl/powsybl-incubator/tree/main/simulator/network-reduction) | timeline to be decided |
 
 State estimation will be added by the end of 2026, so at least the code issues blocking `powsybl-na-commons`,
 `powsybl-na-graph`, `powsybl-na-network` and `powsybl-na-equations` should be fixed before then.
 
-State estimation does not use `EquationSystem` nor `JacobianMatrix`. `EquationSystem.createEquation` is
-get-or-create, keyed by element and equation type, so redundant meters of the same quantity at the same place would
-be merged into one equation, while redundancy is essential to state estimation. `JacobianMatrix` requires a square
-system and keeps its own LU decomposition, whereas a measurement Jacobian `H` has more rows than columns and the
-weighted least squares method factorizes the gain matrix `G = HᵀWH`, built by the estimator. This does not change
-the module boundaries: everything state estimation uses is in `powsybl-na-equations` or the modules below.
-
-An analysis that needs a load flow, such as state estimation for a DC voltage initialization, can use it either
-through the powsybl-core `LoadFlow` API or by calling Open Load Flow directly (e.g. its DC engine). Only the second
-way makes the module depend on `powsybl-open-loadflow`. The choice is left to each analysis implementation and is
-not part of the repository rename and reorganization.
+Which modules each analysis depends on, and how it uses them, is left to each analysis and is out of the scope of
+this design.
 
 ### Short circuit
 
@@ -126,8 +108,6 @@ The following is based on early testing with the current main branch of
 repository is to be decided by the powsybl-open-sc maintainers when they decide to join.
 
 - powsybl-open-sc fits in as a `short-circuit` group of modules, keeping its Java packages `com.powsybl.sc.*`.
-- Its engine needs `powsybl-open-loadflow`: it computes the pre-fault state with the Open Load Flow AC engine and
-  works on the network model and the equation system.
 - No code migration was needed: the code compiled and its tests passed with the current powsybl-core and Open Load
   Flow, the code issue fixes included. Only formatting changes were required by the stricter checkstyle of the newer
   `powsybl-parent`.
