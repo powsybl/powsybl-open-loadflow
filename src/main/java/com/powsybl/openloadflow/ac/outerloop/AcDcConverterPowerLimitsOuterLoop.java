@@ -18,10 +18,7 @@ import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfDcComponentValidator;
 import com.powsybl.openloadflow.network.LfNetwork;
 
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Outer loop that ensures AC-DC converters operate within their power limits, changing their control mode if needed.
@@ -57,18 +54,12 @@ public class AcDcConverterPowerLimitsOuterLoop implements AcOuterLoop {
 
             List<LfAcDcConverter> converters = LfDcComponentValidator.getAcDcConverters(context.getNetwork(), numDcc);
 
-            // List all converters violating their power limits and the distance to this limit
-            Map<LfAcDcConverter, Double> convertersDistanceToLimit = getConvertersViolatingLimits(converters);
+            // Get the converter to change in P_PCC mode, if any needs to.
+            LfAcDcConverter selectedConverter = selectConverterToSwitchInPpccMode(converters);
 
-            if (convertersDistanceToLimit.isEmpty()) {
+            if (selectedConverter == null) {  // No converters violate its limit
                 continue;
             }
-
-            // Get the converter with the largest distance to its power limit : this is the one we want to change in P_PCC mode
-            // This is a very simple heuristic, that may be challenged in the future.
-            LfAcDcConverter selectedConverter = convertersDistanceToLimit.entrySet().stream()
-                    .max(Comparator.comparingDouble(Map.Entry::getValue))
-                    .map(Map.Entry::getKey).orElseThrow();
 
             // However, in a first place, we must ensure that this control mode change does not prevent the control of DC buses voltage.
             if (!LfDcComponentValidator.isValidAfterConverterChangesToPpccMode(context.getNetwork(), numDcc, selectedConverter)) {
@@ -91,26 +82,36 @@ public class AcDcConverterPowerLimitsOuterLoop implements AcOuterLoop {
     }
 
     /**
-     * List the converters in V_DC and DC_DROOP mode that exceeded their power limit.
-     * @param converters The converters in a given DC component.
-     * @return A map whose key are AC-DC converters violating their active power limit and that maps them to the distance to this limit in absolute value.
+     * Get the converter with the largest distance to its power limit : this is the one we want to change in P_PCC mode
+     * This is a very simple heuristic, that may be challenged in the future.
+     *
+     * @param converters The list of converters in the same DC network.
+     * @return The converter the furthest to its active power limits, to be switched in P_PCC mode, or null if all converters are within their active power limits.
      */
-    private Map<LfAcDcConverter, Double> getConvertersViolatingLimits(List<LfAcDcConverter> converters) {
-        List<AcDcConverter.ControlMode> controlModesToCheck = List.of(AcDcConverter.ControlMode.V_DC, AcDcConverter.ControlMode.DC_DROOP);
-        Map<LfAcDcConverter, Double> convertersDistanceToLimit = new HashMap<>();
+    private LfAcDcConverter selectConverterToSwitchInPpccMode(List<LfAcDcConverter> converters) {
+        double maxDistanceToAnyLimit = 0d;
+        LfAcDcConverter selectedConverter = null;
         for (LfAcDcConverter converter : converters) {
-            if (controlModesToCheck.contains(converter.getControlMode())) {
-                if (converter.getPac() < converter.getMinP() - maxActivePowerMismatch) {
+            if (converter.getControlMode() == AcDcConverter.ControlMode.V_DC || converter.getControlMode() == AcDcConverter.ControlMode.DC_DROOP) {
+                double distanceToLowerLimit = converter.getMinP() - converter.getPac();
+                if (distanceToLowerLimit > maxActivePowerMismatch) {
                     // Converter is below its lower limit
-                    convertersDistanceToLimit.put(converter, converter.getMinP() - converter.getPac());
+                    if (distanceToLowerLimit > maxDistanceToAnyLimit) {
+                        maxDistanceToAnyLimit = distanceToLowerLimit;
+                        selectedConverter = converter;
+                    }
                 }
-                if (converter.getPac() > converter.getMaxP() + maxActivePowerMismatch) {
+                double distanceToHigherLimit = converter.getPac() - converter.getMaxP();
+                if (distanceToHigherLimit > maxActivePowerMismatch) {
                     // Converter is above its higher limit
-                    convertersDistanceToLimit.put(converter, converter.getPac() - converter.getMaxP());
+                    if (distanceToHigherLimit > maxDistanceToAnyLimit) {
+                        maxDistanceToAnyLimit = distanceToHigherLimit;
+                        selectedConverter = converter;
+                    }
                 }
             }
         }
-        return convertersDistanceToLimit;
+        return selectedConverter;
     }
 
     @Override
