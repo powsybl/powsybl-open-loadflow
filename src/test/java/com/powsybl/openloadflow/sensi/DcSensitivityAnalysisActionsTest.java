@@ -898,7 +898,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
 
     @Test
     void testBoundaryLineActionInOperatorStrategy() {
-        Network network = BoundaryFactory.createWithTieLine();
+        Network network = BoundaryFactory.createWithLoad();
         runDcLf(network);
 
         SensitivityAnalysisParameters sensiParameters = createParameters(true)
@@ -907,10 +907,10 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         List<SensitivityFactor> factors = createFactorMatrix(
                 List.of(network.getGenerator("g1")),
                 network.getBranchStream().toList());
-        List<Contingency> contingencies = List.of(new Contingency("l13", new LoadContingency("load1")));
-        List<Action> actions = List.of(new BoundaryLineActionBuilder().withId("boundaryLineAction").withNetworkElementId("h2")
+        List<Contingency> contingencies = List.of(new Contingency("l13", new BranchContingency("l13")));
+        List<Action> actions = List.of(new BoundaryLineActionBuilder().withId("boundaryLineAction").withBoundaryLineId("bl1")
                 .withRelativeValue(false).withActivePowerValue(50).build());
-        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyLoad",
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategyBoundaryLine",
                 ContingencyContext.all(), new TrueCondition(), List.of("boundaryLineAction")));
 
         assertDoesNotThrow(() -> sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
