@@ -16,4 +16,9 @@ public class EvenShiloachGraphDecrementalConnectivityFactory<V, E> implements Gr
     public GraphConnectivity<V, E> create() {
         return new EvenShiloachGraphDecrementalConnectivity<>();
     }
+
+    @Override
+    public boolean supportsIncremental() {
+        return false;
+    }
 }

@@ -25,7 +25,7 @@ import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfSecondaryVoltageControl;
@@ -303,7 +303,7 @@ class SecondaryVoltageControlTest {
         parametersExt.setSecondaryVoltageControl(true);
 
         List<Contingency> contingencies = List.of(Contingency.branch("L1-2-1"), Contingency.branch("L1-5-1"));
-        OpenSecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        OpenSecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         assertDoesNotThrow(() -> securityAnalysisProvider.run(network,
                 network.getVariantManager().getWorkingVariantId(),
                 n -> contingencies,

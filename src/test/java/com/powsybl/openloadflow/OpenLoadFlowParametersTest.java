@@ -23,7 +23,7 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.json.JsonLoadFlowParameters;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.config.ExplicitAcOuterLoopConfig;
 import com.powsybl.openloadflow.network.*;
@@ -647,7 +647,7 @@ class OpenLoadFlowParametersTest {
 
         parametersExt.setVoltageTargetPriorities(List.of("SHUNT"));
         LfNetworkParameters lfNetworkParameters = OpenLoadFlowParameters.getNetworkParameters(parameters, parametersExt, new FirstSlackBusSelector(),
-            new EvenShiloachGraphDecrementalConnectivityFactory<>(), false);
+            new DTreeGraphConnectivityFactory<>(), false);
         assertEquals(0, lfNetworkParameters.getVoltageTargetPriority(VoltageControl.Type.SHUNT)); // user-provided
         assertEquals(1, lfNetworkParameters.getVoltageTargetPriority(VoltageControl.Type.VOLTAGE_SOURCE_CONVERTER)); // filled from default
         assertEquals(2, lfNetworkParameters.getVoltageTargetPriority(VoltageControl.Type.GENERATOR)); // filled from default
