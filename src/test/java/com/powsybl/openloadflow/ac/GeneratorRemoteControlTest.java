@@ -896,13 +896,13 @@ class GeneratorRemoteControlTest extends AbstractLoadFlowNetworkFactory {
         assertVoltageEquals(150.0, nload);
 
         generator2.setTargetP(1.0);
-        parametersExt.setReactiveRangeCheckMode(OpenLoadFlowParameters.ReactiveRangeCheckMode.TARGET_P);
+        parametersExt.setReactiveRangeCheckMode(LfNetworkParameters.ReactiveRangeCheckMode.TARGET_P);
         LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
         assertTrue(result2.isFullyConverged());
         assertVoltageEquals(164.88, nload);
 
         generator2.setTargetP(0.0);
-        parametersExt.setReactiveRangeCheckMode(OpenLoadFlowParameters.ReactiveRangeCheckMode.MIN_MAX);
+        parametersExt.setReactiveRangeCheckMode(LfNetworkParameters.ReactiveRangeCheckMode.MIN_MAX);
         LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
         assertTrue(result3.isFullyConverged());
         assertVoltageEquals(164.88, nload);

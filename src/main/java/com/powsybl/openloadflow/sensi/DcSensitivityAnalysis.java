@@ -30,13 +30,13 @@ import com.powsybl.openloadflow.dc.fastdc.ComputedElement;
 import com.powsybl.openloadflow.dc.fastdc.ConnectivityBreakAnalysis;
 import com.powsybl.openloadflow.dc.fastdc.WoodburyEngine;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.lf.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
-import com.powsybl.openloadflow.network.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -54,8 +54,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.powsybl.openloadflow.lf.util.ParticipatingElement.normalizeParticipationFactors;
 import static com.powsybl.openloadflow.network.impl.PropagatedContingency.cleanContingencies;
-import static com.powsybl.openloadflow.network.util.ParticipatingElement.normalizeParticipationFactors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}

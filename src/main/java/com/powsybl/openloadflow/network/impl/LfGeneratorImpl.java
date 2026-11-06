@@ -12,7 +12,6 @@ import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.extensions.*;
 import com.powsybl.iidm.network.regulation.RegulationMode;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -57,7 +56,7 @@ public final class LfGeneratorImpl extends AbstractLfGenerator {
         this.generatorRef = Ref.create(generator, parameters.isCacheEnabled());
         // we force voltage control of generators tagged as condensers or tagged as fictitious if the dedicated mode is activated.
         forceVoltageControl = generator.isCondenser()
-            || generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlCheckMode() == OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
+            || generator.isFictitious() && parameters.getFictitiousGeneratorVoltageControlCheckMode() == LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
         var apcHelper = ActivePowerControlHelper.create(generator, generator.getMinP(), generator.getMaxP());
         initialParticipating = apcHelper.participating();
         participating = initialParticipating;
