@@ -17,7 +17,6 @@ import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.network.PhaseControlFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
@@ -681,7 +680,7 @@ class WoodburyDcSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnal
 
         securityAnalysisParameters.getExtension(OpenSecurityAnalysisParameters.class)
                 .setDcFastMode(dcFastMode);
-        parametersExt.setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
 
         SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, monitors, securityAnalysisParameters,
                 operatorStrategies, actions, ReportNode.NO_OP);

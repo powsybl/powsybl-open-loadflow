@@ -31,13 +31,6 @@ public class LfNetworkParameters {
         NORMAL
     }
 
-    public enum SlackDistributionFailureBehavior {
-        THROW,
-        FAIL,
-        LEAVE_ON_SLACK_BUS,
-        DISTRIBUTE_ON_REFERENCE_GENERATOR
-    }
-
     public static final double PLAUSIBLE_ACTIVE_POWER_LIMIT_DEFAULT_VALUE = 10000;
 
     public static final boolean USE_ACTIVE_LIMITS_DEFAULT_VALUE = true;

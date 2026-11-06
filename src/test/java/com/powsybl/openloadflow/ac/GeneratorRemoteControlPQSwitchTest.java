@@ -22,7 +22,6 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.outerloop.ReactiveLimitsOuterLoop;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
@@ -173,7 +172,7 @@ class GeneratorRemoteControlPQSwitchTest {
         parametersExt = OpenLoadFlowParameters.create(parameters)
                 .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED)
                 .setVoltageRemoteControl(true)
-                .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.FAIL);
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
 
         // Activate trace logs to ensure ReactiveLimitsLoop trace logs are run at least once per build
         LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();

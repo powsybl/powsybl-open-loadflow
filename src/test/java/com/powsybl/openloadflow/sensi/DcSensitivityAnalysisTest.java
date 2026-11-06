@@ -164,12 +164,12 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         sensiParameters.getLoadFlowParameters().setDistributedSlack(true);
         // fails with default parameters
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class)
-                        .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.FAIL);
+                        .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
         assertThrows(PowsyblException.class, () -> runLf(network, sensiParameters.getLoadFlowParameters()));
 
         // Run with LEAVE_ON_SLACK_BUS to get a reference result
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class)
-                .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         assertDoesNotThrow(() -> runLf(network, sensiParameters.getLoadFlowParameters()));
 
         Map<String, Double> functionReferenceByLine = new HashMap<>();
@@ -192,7 +192,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
 
         // Note that slack distribution failure behaviour parameter is ignored
         sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class)
-                .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.FAIL);
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
         assertDoesNotThrow(() -> sensiRunner.run(network, factors, runParameters));
     }
 

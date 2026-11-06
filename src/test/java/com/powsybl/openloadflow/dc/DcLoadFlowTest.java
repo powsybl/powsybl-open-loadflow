@@ -527,7 +527,7 @@ class DcLoadFlowTest {
         parameters.setPhaseShifterRegulationOn(true);
         parametersExt.setAreaInterchangeControl(true);
         parametersExt.setAreaInterchangePMaxMismatch(1)
-                .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.FAIL);
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
 
         var result = loadFlowRunner.run(network, parameters);
         assertFalse(result.isFullyConverged());
@@ -616,7 +616,7 @@ class DcLoadFlowTest {
     void testDcResidualMismatchRemaining() {
         Network network = IeeeCdfNetworkFactory.create9();
         // The purpose of this test is to verify the report when slack distribution mismatch is left on slack bus.
-        parametersExt.setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         parametersExt.setPlausibleActivePowerLimit(5000); // remove large generators from slack distribution to cause slack distribution failure
         network.getGenerator("B1-G").setTargetP(67.99); // Setting target P to have an initially almost balanced network
         ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
@@ -638,7 +638,7 @@ class DcLoadFlowTest {
         // Remove large generators from slack distribution to cause a slack distribution failure
         parametersExt.setPlausibleActivePowerLimit(5000);
 
-        parametersExt.setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
         ReportNode reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         var runParameters = LoadFlowRunParameters.getDefault()
                 .setParameters(parameters)
@@ -651,7 +651,7 @@ class DcLoadFlowTest {
         assertEquals(0, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
         assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?321\\.\\d* MW remains", reportNode);
 
-        parametersExt.setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.FAIL);
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
         reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         runParameters.setReportNode(reportNode);
         result = loadFlowRunner.run(network, runParameters);
@@ -663,11 +663,11 @@ class DcLoadFlowTest {
         assertEquals(0, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
         assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?321\\.\\d* MW remains", reportNode);
 
-        parametersExt.setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.THROW);
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
         CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
         assertEquals("Failed to distribute slack bus active power mismatch, 321.90 MW remains", e.getCause().getMessage());
 
-        parametersExt.setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR);
         parametersExt.setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
         reportNode = ReportNode.newRootReportNode().withMessageTemplate("test").build();
         runParameters.setReportNode(reportNode);

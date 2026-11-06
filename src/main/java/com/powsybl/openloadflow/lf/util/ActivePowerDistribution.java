@@ -5,15 +5,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.network.util;
+package com.powsybl.openloadflow.lf.util;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfLoad;
-import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfSynchronousNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.util.Reports;
@@ -152,7 +152,7 @@ public final class ActivePowerDistribution {
 
     public record ResultWithFailureBehaviorHandling(boolean failed, String failedMessage, int iteration, double remainingMismatch, boolean movedBuses, double failedDistributedActivePower) { }
 
-    public static ResultWithFailureBehaviorHandling handleDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior behavior,
+    public static ResultWithFailureBehaviorHandling handleDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior behavior,
                                                                                       LfGenerator referenceGenerator,
                                                                                       double activePowerMismatch,
                                                                                       Result result, String failMessageTemplate) {
@@ -160,10 +160,10 @@ public final class ActivePowerDistribution {
         Objects.requireNonNull(result);
         ResultWithFailureBehaviorHandling resultWithFailureBehaviorHandling;
 
-        final LfNetworkParameters.SlackDistributionFailureBehavior effectiveBehavior;
+        final OpenLoadFlowParameters.SlackDistributionFailureBehavior effectiveBehavior;
         // if requested behavior is to distribute on reference generator, but there is no reference generator, we fall back internally to FAIL mode
-        if (LfNetworkParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR == behavior && referenceGenerator == null) {
-            effectiveBehavior = LfNetworkParameters.SlackDistributionFailureBehavior.FAIL;
+        if (OpenLoadFlowParameters.SlackDistributionFailureBehavior.DISTRIBUTE_ON_REFERENCE_GENERATOR == behavior && referenceGenerator == null) {
+            effectiveBehavior = OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL;
             LOGGER.debug("Distribution failure behavior is DISTRIBUTE_ON_REFERENCE_GENERATOR but no reference generator selected, switching to FAIL mode");
         } else {
             effectiveBehavior = behavior;

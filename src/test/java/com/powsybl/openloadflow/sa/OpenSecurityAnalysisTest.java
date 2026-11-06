@@ -1676,7 +1676,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         params.setHvdcAcEmulation(true);
         params.addExtension(OpenLoadFlowParameters.class,
                 new OpenLoadFlowParameters()
-                        .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.FAIL));
+                        .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL));
         LoadFlowResult r = runLoadFlow(n, params);
         assertTrue(r.isFullyConverged());
         assertActivePowerEquals(0.0126, n.getLine("l12").getTerminal1());
@@ -3260,7 +3260,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         Network network = DistributedSlackNetworkFactory.create();
         Load l1 = network.getLoad("l1");
         LoadFlowParameters lfParameters = new LoadFlowParameters();
-        OpenLoadFlowParameters.create(lfParameters).setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.THROW);
+        OpenLoadFlowParameters.create(lfParameters).setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW);
         SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters()
                 .setLoadFlowParameters(lfParameters);
         List<Contingency> contingencies = List.of(new Contingency("l1", List.of(new LoadContingency("l1"))));
@@ -3286,7 +3286,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(600., postContingencyResult.getConnectivityResult().getDisconnectedLoadActivePower(), 1e-6);
 
         // check OLF parameters weren't modified to reach this
-        assertEquals(LfNetworkParameters.SlackDistributionFailureBehavior.THROW, OpenLoadFlowParameters.get(lfParameters).getSlackDistributionFailureBehavior());
+        assertEquals(OpenLoadFlowParameters.SlackDistributionFailureBehavior.THROW, OpenLoadFlowParameters.get(lfParameters).getSlackDistributionFailureBehavior());
     }
 
     @Test
@@ -4958,7 +4958,7 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
                 .setHvdcAcEmulation(false);
 
         p.addExtension(OpenLoadFlowParameters.class, new OpenLoadFlowParameters()
-                .setSlackDistributionFailureBehavior(LfNetworkParameters.SlackDistributionFailureBehavior.FAIL));
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL));
 
         SecurityAnalysisParameters sp = new SecurityAnalysisParameters();
         sp.setLoadFlowParameters(p);
