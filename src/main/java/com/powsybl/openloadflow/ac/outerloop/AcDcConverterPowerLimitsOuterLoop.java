@@ -16,7 +16,6 @@ import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.LfAcDcConverter;
 import com.powsybl.openloadflow.network.LfDcBus;
 import com.powsybl.openloadflow.network.LfDcComponentValidator;
-import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.List;
 
@@ -41,16 +40,11 @@ public class AcDcConverterPowerLimitsOuterLoop implements AcOuterLoop {
     }
 
     @Override
-    public void initialize(AcOuterLoopContext context) {
-        context.setData(new ContextData(context.getNetwork()));
-    }
-
-    @Override
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
+        List<Integer> numDccs = context.getNetwork().getDcBuses().stream().map(LfDcBus::getNumDCC).distinct().sorted().toList();
         // In each DC network, up to one converter control mode can be modified
         OuterLoopStatus globalStatus = OuterLoopStatus.STABLE;
-        ContextData contextData = (ContextData) context.getData();
-        for (int numDcc : contextData.numDccs) {
+        for (int numDcc : numDccs) {
 
             List<LfAcDcConverter> converters = LfDcComponentValidator.getAcDcConverters(context.getNetwork(), numDcc);
 
@@ -118,13 +112,5 @@ public class AcDcConverterPowerLimitsOuterLoop implements AcOuterLoop {
     public boolean isNeeded(AcLoadFlowContext context) {
         // Needed if the network contains an AC-DC converter.
         return !context.getNetwork().getVoltageSourceConverters().isEmpty();
-    }
-
-    private static final class ContextData {
-        private final List<Integer> numDccs;
-
-        private ContextData(LfNetwork network) {
-            numDccs = network.getDcBuses().stream().map(LfDcBus::getNumDCC).distinct().sorted().toList();
-        }
     }
 }

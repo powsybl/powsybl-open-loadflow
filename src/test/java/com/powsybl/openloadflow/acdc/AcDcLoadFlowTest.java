@@ -1316,8 +1316,10 @@ class AcDcLoadFlowTest {
         assertEquals(ControlMode.V_DC, conv24.getControlMode());
         // Check that conv13 absorbs a bit more than 30 MW
         VoltageSourceConverter conv13 = network.getVoltageSourceConverter("conv13");
-        double expectedVdn4 = 0.5 * (400 + sqrt(400 * 400 + 4 * 0.1 * limit));
-        double expectedDcLineLoss = Math.pow(400 - expectedVdn4, 2) / 0.1;
+        double vdn3 = 400d;
+        double dcLineR = 0.1;
+        double expectedVdn4 = 0.5 * (vdn3 + sqrt(vdn3 * vdn3 + 4 * dcLineR * limit));
+        double expectedDcLineLoss = Math.pow(vdn3 - expectedVdn4, 2) / dcLineR;
         assertActivePowerEquals(-limit + expectedDcLineLoss, conv13.getTerminal1());
 
         // Check this setpoint change is reflected in AC
@@ -1343,8 +1345,10 @@ class AcDcLoadFlowTest {
         assertEquals(ControlMode.V_DC, conv24.getControlMode());
         // Check that conv13 absorbs a bit more than 60 MW
         VoltageSourceConverter conv13 = network.getVoltageSourceConverter("conv13");
-        double expectedVdn4 = 0.5 * (400 + sqrt(400 * 400 + 4 * 0.1 * limit));
-        double expectedDcLineLoss = Math.pow(400 - expectedVdn4, 2) / 0.1;
+        double vdn3 = 400d;
+        double dcLineR = 0.1;
+        double expectedVdn4 = 0.5 * (vdn3 + sqrt(vdn3 * vdn3 + 4 * dcLineR * limit));
+        double expectedDcLineLoss = Math.pow(vdn3 - expectedVdn4, 2) / dcLineR;
         assertActivePowerEquals(-limit + expectedDcLineLoss, conv13.getTerminal1());
 
         // Check this setpoint change is reflected in AC
@@ -1378,8 +1382,10 @@ class AcDcLoadFlowTest {
         assertEquals(ControlMode.DC_DROOP, conv24.getControlMode());
         // Check that conv13 absorbs a bit more than 30 MW
         VoltageSourceConverter conv13 = network.getVoltageSourceConverter("conv13");
-        double expectedVdn4 = 0.5 * (400 + sqrt(400 * 400 + 4 * 0.1 * limit));
-        double expectedDcLineLoss = Math.pow(400 - expectedVdn4, 2) / 0.1;
+        double vdn3 = 400d;
+        double dcLineR = 0.1;
+        double expectedVdn4 = 0.5 * (vdn3 + sqrt(vdn3 * vdn3 + 4 * dcLineR * limit));
+        double expectedDcLineLoss = Math.pow(400 - expectedVdn4, 2) / dcLineR;
         assertActivePowerEquals(-limit + expectedDcLineLoss, conv13.getTerminal1());
 
         // Check this setpoint change is reflected in AC
@@ -1479,8 +1485,10 @@ class AcDcLoadFlowTest {
         // Check its IIDM control mode is still V_DC
         assertEquals(ControlMode.V_DC, conv24.getControlMode());
         // Check that conv13 absorbs a bit more than 30 MW
-        double expectedVdn4 = 0.5 * (400 + sqrt(400 * 400 + 4 * 0.1 * conv24Limit));
-        double expectedDcLineLoss = Math.pow(400 - expectedVdn4, 2) / 0.1;
+        double vdn3 = 400d;
+        double dcLineR = 0.1;
+        double expectedVdn4 = 0.5 * (vdn3 + sqrt(vdn3 * vdn3 + 4 * dcLineR * conv24Limit));
+        double expectedDcLineLoss = Math.pow(vdn3 - expectedVdn4, 2) / dcLineR;
         assertActivePowerEquals(-conv24Limit + expectedDcLineLoss, conv13.getTerminal1());
 
         // Check this setpoint change is reflected in AC
