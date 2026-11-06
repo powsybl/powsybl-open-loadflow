@@ -38,4 +38,11 @@ class PackageLayeringTest {
                 .should().dependOnClassesThat().belongToAnyOf(OpenLoadFlowParameters.class)
                 .check(classes);
     }
+
+    @Test
+    void networkDoesNotDependOnSecurityAnalysis() {
+        noClasses().that().resideInAPackage("com.powsybl.openloadflow.network..")
+                .should().dependOnClassesThat().resideInAPackage("com.powsybl.openloadflow.sa..")
+                .check(classes);
+    }
 }
