@@ -22,8 +22,8 @@ public class LfDcSwitchImpl extends AbstractLfDcBranch {
 
     private final Ref<DcSwitch> dcSwitchRef;
 
-    public LfDcSwitchImpl(LfDcBus dcBus1, LfDcBus dcBus2, LfNetwork network, DcSwitch dcSwitch, LfNetworkParameters parameters) {
-        super(network, dcBus1, dcBus2, dcSwitch.getR());
+    public LfDcSwitchImpl(LfDcBus dcBus1, LfDcBus dcBus2, LfNetwork network, int numDCC, DcSwitch dcSwitch, LfNetworkParameters parameters) {
+        super(network, numDCC, dcBus1, dcBus2, dcSwitch.getR());
         this.dcSwitchRef = Ref.create(dcSwitch, parameters.isCacheEnabled());
     }
 
@@ -42,6 +42,7 @@ public class LfDcSwitchImpl extends AbstractLfDcBranch {
 
     public static LfDcSwitchImpl create(DcSwitch dcSwitch,
                                         LfNetwork network,
+                                        int numDCC,
                                         LfDcBus dcBus1,
                                         LfDcBus dcBus2,
                                         LfNetworkParameters parameters) {
@@ -50,7 +51,7 @@ public class LfDcSwitchImpl extends AbstractLfDcBranch {
         Objects.requireNonNull(dcBus1);
         Objects.requireNonNull(dcBus2);
         Objects.requireNonNull(parameters);
-        return new LfDcSwitchImpl(dcBus1, dcBus2, network, dcSwitch, parameters);
+        return new LfDcSwitchImpl(dcBus1, dcBus2, network, numDCC, dcSwitch, parameters);
     }
 
     private DcSwitch getDcSwitch() {

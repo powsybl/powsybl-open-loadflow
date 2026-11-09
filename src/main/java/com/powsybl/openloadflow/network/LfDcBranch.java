@@ -15,6 +15,11 @@ import com.powsybl.openloadflow.util.Evaluable;
 public interface LfDcBranch extends LfElement, LfCopyable<LfDcBranch, LfNetwork> {
 
     /**
+     * @return The number of the DC component this DC line belongs to.
+     */
+    int getNumDCC();
+
+    /**
      * @return The LfDcBus on side one of the DC branch
      */
     LfDcBus getDcBus1();
