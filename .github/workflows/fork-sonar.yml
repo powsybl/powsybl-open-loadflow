@@ -1,0 +1,30 @@
+name: CI on forks - Sonar analysis
+
+on:
+  workflow_run:
+    workflows: [CI on forks - build and tests]
+    types:
+      - completed
+
+permissions: {}
+
+jobs:
+  sonar:
+    name: Run Sonar Analysis for forks
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    permissions:
+      actions: write
+      checks: write
+      contents: read
+      issues: read
+      pull-requests: write
+      statuses: write
+    steps:
+      - name: Setup [JDK, Sonar]
+        uses: powsybl/github-ci/powsybl-fork-sonar@refs/pull/82/head # Last commit on PR https://github.com/powsybl/github-ci/pull/82 - to be changed once the PR is merged
+        with:
+          sonar_token: ${{ secrets.SONAR_TOKEN }}
+          sonar_projectKey: 'com.powsybl:powsybl-open-loadflow'
