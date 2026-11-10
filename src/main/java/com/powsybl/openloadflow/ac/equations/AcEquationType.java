@@ -21,6 +21,12 @@ public enum AcEquationType implements Quantity {
     SHUNT_TARGET_B("shunt_target_b", ElementType.SHUNT_COMPENSATOR), // shunt susceptance
     BRANCH_TARGET_P("branch_target_p", ElementType.BRANCH), // phase shifter active flow control
     BRANCH_TARGET_Q("branch_target_q", ElementType.BRANCH), // generator reactive power control
+    BRANCH_TARGET_P1("branch_target_p1", ElementType.BRANCH), // active power at side 1 of a branch
+    BRANCH_TARGET_P2("branch_target_p2", ElementType.BRANCH), // active power at side 2 of a branch
+    BRANCH_TARGET_Q1("branch_target_q1", ElementType.BRANCH), // reactive power at side 1 of a branch
+    BRANCH_TARGET_Q2("branch_target_q2", ElementType.BRANCH), // reactive power at side 2 of a branch
+    BRANCH_TARGET_I1("branch_target_i1", ElementType.BRANCH), // current magnitude at side 1 of a branch
+    BRANCH_TARGET_I2("branch_target_i2", ElementType.BRANCH), // current magnitude at side 2 of a branch
     BRANCH_TARGET_ALPHA1("branch_target_\u03B1", ElementType.BRANCH), // phase shifter constant shift
     BRANCH_TARGET_RHO1("branch_target_\u03C1", ElementType.BRANCH), // transformer constant voltage control
     DISTR_Q("distr_q", ElementType.BUS), // remote control reactive power distribution, both for voltage and reactive power control
