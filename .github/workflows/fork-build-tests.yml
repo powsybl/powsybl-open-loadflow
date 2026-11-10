@@ -1,0 +1,19 @@
+name: CI on forks - build and tests
+
+on:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  build:
+    name: Build OS ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    if: github.event.pull_request.head.repo.fork == true
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Setup [JDK, Maven build]
+        uses: powsybl/github-ci/powsybl-fork-build@refs/pull/82/head # Last commit on PR https://github.com/powsybl/github-ci/pull/82 - to be changed once the PR is merged
