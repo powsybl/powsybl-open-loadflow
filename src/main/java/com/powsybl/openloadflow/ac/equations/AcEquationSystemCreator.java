@@ -163,7 +163,7 @@ public class AcEquationSystemCreator {
                 EquationTerm<AcVariableType, AcEquationType> q = rpc.getControlledSide() == TwoSides.ONE
                         ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
                         : new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-                equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_Q)
+                equationSystem.createEquation(branch, AcEquationType.branchTargetQ(rpc.getControlledSide()))
                         .addTerm(q);
                 createGeneratorReactivePowerDistributionEquations(rpc, equationSystem, creationParameters);
                 updateGeneratorReactivePowerControlBranchEquations(rpc, equationSystem);
@@ -177,7 +177,7 @@ public class AcEquationSystemCreator {
                 .stream()
                 .filter(b -> !b.isDisabled()) // discard disabled controller elements
                 .toList();
-        Equation<AcVariableType, AcEquationType> qEq = equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.BRANCH_TARGET_Q)
+        Equation<AcVariableType, AcEquationType> qEq = equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.branchTargetQ(generatorReactivePowerControl.getControlledSide()))
                 .orElseThrow();
 
         if (controlledBranch.isDisabled()) {
@@ -544,9 +544,9 @@ public class AcEquationSystemCreator {
                 EquationTerm<AcVariableType, AcEquationType> p = phaseControl.getControlledSide() == TwoSides.ONE
                         ? new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
                         : new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-                equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_P)
+                equationSystem.createEquation(branch, AcEquationType.branchTargetP(phaseControl.getControlledSide()))
                         .addTerm(p)
-                        .setActive(false); // by default BRANCH_TARGET_ALPHA1 is active and BRANCH_TARGET_P inactive
+                        .setActive(false); // by default BRANCH_TARGET_ALPHA1 is active and the branch active power target inactive
             }
         }
     }
@@ -569,7 +569,7 @@ public class AcEquationSystemCreator {
             boolean controlEnabled = !controllerBranch.isDisabled() && !controlledBranch.isDisabled() && controllerBranch.isPhaseControlEnabled();
 
             // activate/de-activate phase control equation
-            equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.BRANCH_TARGET_P)
+            equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.branchTargetP(phaseControl.getControlledSide()))
                     .orElseThrow()
                     .setActive(controlEnabled);
 

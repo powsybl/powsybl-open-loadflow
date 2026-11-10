@@ -50,8 +50,10 @@ public class JacobianMatrixFastDecoupled
     private static final Set<AcEquationType> EQUATIONS_WITH_DEDICATED_DERIVATE = Set.of(
             BUS_TARGET_P,
             BUS_TARGET_Q,
-            BRANCH_TARGET_P,
-            BRANCH_TARGET_Q,
+            BRANCH_TARGET_P1,
+            BRANCH_TARGET_P2,
+            BRANCH_TARGET_Q1,
+            BRANCH_TARGET_Q2,
             DISTR_Q,
             BUS_DISTR_SLACK_P
     );
