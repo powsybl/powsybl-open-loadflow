@@ -25,7 +25,7 @@ public class LfDcBusImpl extends AbstractLfDcBus {
     private boolean isGrounded = false;
 
     public LfDcBusImpl(DcBus dcBus, LfNetwork network, double nominalV, LfNetworkParameters parameters) {
-        super(network, nominalV, dcBus.getV());
+        super(network, dcBus.getDcComponent().getNum(), nominalV, dcBus.getV());
         this.dcBusRef = Ref.create(dcBus, parameters.isCacheEnabled());
     }
 
