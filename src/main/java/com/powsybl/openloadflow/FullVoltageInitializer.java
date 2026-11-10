@@ -47,7 +47,7 @@ public class FullVoltageInitializer implements VoltageInitializer {
         ReportNode initReportNode = Reports.reportVoltageInitializer(reportNode, NAME);
         magnitudeInitializer.prepare(network, initReportNode);
         angleInitializer.prepare(network, initReportNode);
-        // TODO: remove this TODO only used for test
+        // TODO: remove this TODO only used for test 2
     }
 
     @Override
