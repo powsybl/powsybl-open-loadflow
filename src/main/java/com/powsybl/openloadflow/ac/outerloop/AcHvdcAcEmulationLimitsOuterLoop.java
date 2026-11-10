@@ -35,7 +35,7 @@ public class AcHvdcAcEmulationLimitsOuterLoop
         OuterLoopStatus status = OuterLoopStatus.STABLE;
 
         for (LfHvdc hvdc : context.getNetwork().getHvdcs()) {
-            if (!hvdc.isAcEmulation() || hvdc.getBus1().isDisabled() || hvdc.getBus2().isDisabled() || hvdc.isDisabled()) {
+            if (!hvdc.isAcEmulation() || hvdc.isDisabled()) {
                 continue;
             }
             if (checkAcEmulationMode(hvdc, true, LOGGER, reportNode)) {
