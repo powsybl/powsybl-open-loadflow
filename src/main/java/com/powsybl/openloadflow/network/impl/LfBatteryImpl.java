@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.ReactiveLimits;
 import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
+import com.powsybl.openloadflow.util.Reports;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -54,6 +55,10 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
         if (battery.isRegulatingWithMode(RegulationMode.VOLTAGE)) {
             setVoltageControl(battery.getRegulatingTargetV(), battery.getTerminal(), battery.getRegulatingTerminal(), parameters, report);
         }
+
+        if (battery.isRegulatingWithMode(RegulationMode.REACTIVE_POWER_PER_ACTIVE_POWER)) {
+            setReactivePowerPerActivePowerControl(battery.getVoltageRegulation().getSlope());
+        }
     }
 
     private LfBatteryImpl(LfBatteryImpl other, LfNetwork network) {
@@ -91,7 +96,13 @@ public final class LfBatteryImpl extends AbstractLfGenerator {
 
     @Override
     public double getTargetQ() {
-        return (getBattery().isRegulating() ? getBattery().getRegulatingTargetQ() : getBattery().getLocalTargetQ()) / PerUnit.SB;
+        double targetQ;
+        if (generatorControlType == GeneratorControlType.REACTIVE_POWER_PER_ACTIVE_POWER) {
+            targetQ = getTargetP() * tanPhi;
+        } else {
+            targetQ = (getBattery().isRegulating() ? getBattery().getRegulatingTargetQ() : getBattery().getLocalTargetQ()) / PerUnit.SB;
+        }
+        return checkIfForcedInReactiveLimits(targetQ);
     }
 
     @Override

@@ -105,7 +105,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
 
     private boolean isGenerationTargetQFrozen = false;
 
-    protected boolean forceTargetQInReactiveLimits;
+    private boolean hasTargetQDependingOnTargetP;
 
     private final int numSC;
 
@@ -115,7 +115,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         this.angle = angle;
         this.numSC = numSC;
         this.distributedOnConformLoad = parameters.isDistributedOnConformLoad();
-        this.forceTargetQInReactiveLimits = parameters.isForceTargetQInReactiveLimits() && parameters.isReactiveLimits();
+        this.hasTargetQDependingOnTargetP = parameters.isForceTargetQInReactiveLimits() && parameters.isReactiveLimits();
     }
 
     protected AbstractLfBus(AbstractLfBus other, LfNetwork network) {
@@ -124,7 +124,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
         this.v = other.v;
         this.angle = other.angle;
         this.distributedOnConformLoad = other.distributedOnConformLoad;
-        this.forceTargetQInReactiveLimits = other.forceTargetQInReactiveLimits;
+        this.hasTargetQDependingOnTargetP = other.hasTargetQDependingOnTargetP;
 
         for (LfGenerator otherGenerator : other.generators) {
             add(otherGenerator.copy(this));
@@ -392,6 +392,9 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     protected void add(LfGenerator generator) {
         generators.add(generator);
         generator.setBus(this);
+        if (generator.hasReactivePowerPerActivePowerControl()) {
+            this.hasTargetQDependingOnTargetP = true;
+        }
         invalidateGenerationTargetQ();
     }
 
@@ -462,7 +465,7 @@ public abstract class AbstractLfBus extends AbstractElement implements LfBus {
     @Override
     public void invalidateGenerationTargetP() {
         generationTargetP = null;
-        if (forceTargetQInReactiveLimits && !isGenerationTargetQFrozen) {
+        if (hasTargetQDependingOnTargetP && !isGenerationTargetQFrozen) {
             invalidateGenerationTargetQ();
         }
     }
