@@ -13,17 +13,13 @@ import com.powsybl.computation.CompletableFutureTask;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
+import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfTopoConfig;
-import com.powsybl.openloadflow.network.impl.LfNetworkList;
-import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.network.impl.PropagatedContingency;
-import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
+import com.powsybl.openloadflow.network.impl.*;
 import com.powsybl.openloadflow.util.Reports;
+import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -68,6 +64,47 @@ public final class ContingencyMultiThreadHelper {
                     .filter(n -> n.getMessageKey().equals(Reports.POST_CONTINGENCY_SIMULATION_KEY))
                     .forEach(mainReportNode::addCopy);
         }
+    }
+
+    public static void buildFinalReport(final ReportNode mainReport,
+                                        final Map<Integer, List<LfNetwork>> networkCopies,
+                                        final List<Contingency> contingencies) {
+        Objects.requireNonNull(mainReport);
+        Objects.requireNonNull(networkCopies);
+
+        // For each thread except 0 (which already filled the mainReport)
+        for (Map.Entry<Integer, List<LfNetwork>> entry : networkCopies.entrySet()) {
+            // For each LfNetwork in the thread
+            for (LfNetwork lfNetwork : entry.getValue()) {
+                ReportNode networkReport = lfNetwork.getReportNode();
+
+                int numCC = lfNetwork.getNumCC();
+                int numSC = lfNetwork.getSynchronousNetworks().getFirst().getNumSC();
+
+                ReportNode mainNetworkNode = findLfNetworkNode(mainReport, numCC, numSC);
+
+                if (mainNetworkNode != null) {
+                    // Add all POST_CONTINGENCY_SIMULATION_KEY nodes from this network's report
+                    mainNetworkNode.addCopy(networkReport);
+                    /*networkReport.getChildren().stream()
+                            .filter(n -> n.getMessageKey()
+                                    .equals(Reports.POST_CONTINGENCY_SIMULATION_KEY))
+                            .forEach(mainNetworkNode::addCopy);*/
+                }
+            }
+        }
+    }
+
+    private static ReportNode findLfNetworkNode(final ReportNode mainReport,
+                                                final int numCC, final int numSC) {
+        return mainReport.getChildren().stream()
+                .filter(r -> r.getMessageKey().equals(Reports.LF_NETWORK_KEY))
+                .filter(r -> r.getValue(Reports.NETWORK_NUM_CC).isPresent()
+                        && r.getValue(Reports.NETWORK_NUM_CC).get().getValue().equals(numCC)
+                        && r.getValue(Reports.NETWORK_NUM_SC).isPresent()
+                        && r.getValue(Reports.NETWORK_NUM_SC).get().getValue().equals(numSC))
+                .findFirst()
+                .orElse(null);
     }
 
     public interface ParameterProvider<P extends AbstractLoadFlowParameters<P>> {
@@ -129,6 +166,42 @@ public final class ContingencyMultiThreadHelper {
             }
         } finally {
             network.getVariantManager().allowVariantMultiThreadAccess(oldAllowVariantMultiThreadAccess);
+        }
+
+        int networkRank = 0;
+        for (var lfNetworks : lfNetworksList) {
+            if (networkRank != 0) {
+                reportMerger.mergeReportThreadResults(rootReportNode, reportNodes.get(networkRank));
+            }
+            lfNetworks.close();
+            networkRank += 1;
+        }
+    }
+
+    public static <P extends AbstractLoadFlowParameters<P>> void runAnalysisOnCopy(int nbThreads,
+                                                                                  ContingencyRunner<P> contingencyRunner,
+                                                                                  ReportNode rootReportNode,
+                                                                                  ReportMerger reportMerger,
+                                                                                  Executor executor) throws ExecutionException {
+        List<ReportNode> reportNodes = Collections.synchronizedList(new ArrayList<>(Collections.nCopies(nbThreads, ReportNode.NO_OP)));
+        List<LfNetworkList> lfNetworksList = new ArrayList<>();
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        for (int i = 0; i < nbThreads; i++) {
+            final int workerNum = i;
+            futures.add(CompletableFutureTask.runAsync(
+                    () -> contingencyRunner.run(workerNum, null, null, null),
+                    executor));
+        }
+
+        try {
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .get(); // we need to use get instead of join to get an interruption exception
+        } catch (InterruptedException e) {
+            // also interrupt worker threads
+            for (var future : futures) {
+                future.cancel(true);
+            }
+            Thread.currentThread().interrupt();
         }
 
         int networkRank = 0;
