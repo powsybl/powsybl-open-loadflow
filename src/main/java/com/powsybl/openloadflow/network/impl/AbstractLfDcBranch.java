@@ -17,7 +17,7 @@ import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLine {
+public abstract class AbstractLfDcBranch extends AbstractElement implements LfDcBranch {
 
     private final int numDCC;
 
@@ -35,7 +35,7 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
 
     private final double r; // in Ohm
 
-    protected AbstractLfDcLine(LfNetwork network, int numDCC, LfDcBus dcBus1, LfDcBus dcBus2, double r) {
+    protected AbstractLfDcBranch(LfNetwork network, int numDCC, LfDcBus dcBus1, LfDcBus dcBus2, double r) {
         super(network);
         this.numDCC = numDCC;
         this.dcBus1 = dcBus1;
@@ -43,7 +43,7 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
         this.r = r;
     }
 
-    protected AbstractLfDcLine(AbstractLfDcLine other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2) {
+    protected AbstractLfDcBranch(AbstractLfDcBranch other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2) {
         super(network);
         this.numDCC = other.numDCC;
         this.dcBus1 = dcBus1;
@@ -69,7 +69,7 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
 
     @Override
     public ElementType getType() {
-        return ElementType.DC_LINE;
+        return ElementType.DC_BRANCH;
     }
 
     @Override
@@ -95,5 +95,14 @@ public abstract class AbstractLfDcLine extends AbstractElement implements LfDcLi
     @Override
     public void setI2(Evaluable i2) {
         this.i2 = Objects.requireNonNull(i2);
+    }
+
+    @Override
+    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
+        if (isDisabled()) {
+            updateFlows(Double.NaN, Double.NaN, Double.NaN, Double.NaN);
+        } else {
+            updateFlows(i1.eval(), i2.eval(), p1.eval(), p2.eval());
+        }
     }
 }

@@ -31,8 +31,8 @@ public final class LfDcComponentValidator {
 
     /**
      * Check that a DC component is a configuration Open Load Flow can solve, and resolve any DC subcomponent (i.e. set
-     * of DC buses connected through DC lines only) that has no element imposing the DC voltage (no connected DC
-     * ground and no fully connected V_DC/DC_DROOP converter), by selecting all fully connected P_PCC
+     * of DC buses connected through DC lines and resistive DC switches only) that has no element imposing the DC voltage
+     * (no connected DC ground and no fully connected V_DC/DC_DROOP converter), by selecting all fully connected P_PCC
      * converters of that subcomponent to be promoted to V_DC control internally. Disconnected converters are
      * ignored: only fully connected ones take part in the checks/resolution.
      *
@@ -44,7 +44,7 @@ public final class LfDcComponentValidator {
      */
     public static List<LfAcDcConverter> resolve(LfNetwork lfNetwork, int numDCC) {
         // Compute DC subcomponents graph
-        GraphConnectivity<LfDcBus, LfDcLine> graph = buildDcSubComponentGraph(lfNetwork, numDCC);
+        GraphConnectivity<LfDcBus, LfDcBranch> graph = buildDcSubComponentGraph(lfNetwork, numDCC);
 
         // Check all converters are indirectly connected to a DC ground
         for (LfAcDcConverter converter : getAcDcConverters(lfNetwork, numDCC)) {
@@ -79,7 +79,7 @@ public final class LfDcComponentValidator {
      */
     public static boolean isValidAfterConverterChangesToPpccMode(LfNetwork lfNetwork, int numDCC, LfAcDcConverter converterToSwitchInPpccMode) {
         // Compute DC subcomponents graph
-        GraphConnectivity<LfDcBus, LfDcLine> graph = buildDcSubComponentGraph(lfNetwork, numDCC);
+        GraphConnectivity<LfDcBus, LfDcBranch> graph = buildDcSubComponentGraph(lfNetwork, numDCC);
 
         // Check if the DC subcomponent of the converter's DC buses has still an element imposing voltage
         for (LfDcBus converterDcBus : List.of(converterToSwitchInPpccMode.getDcBus1(), converterToSwitchInPpccMode.getDcBus2())) {
@@ -126,7 +126,7 @@ public final class LfDcComponentValidator {
     }
 
     /**
-     * Tells whether a DC subcomponent has o grounded DC bus.
+     * Tells whether a DC subcomponent has no grounded DC bus.
      */
     private static boolean isSubComponentConnectedToGround(Set<LfDcBus> dcBusesInSubComponent) {
         return dcBusesInSubComponent.stream().anyMatch(LfDcBus::isGrounded);
@@ -165,20 +165,20 @@ public final class LfDcComponentValidator {
     }
 
     /**
-     * Build DC subcomponent connectivity graph. Only LfDcLines are considered as edges, so each DC pole is in a
+     * Build DC subcomponent connectivity graph. Only LfDcBranches are considered as edges, so each DC pole is in a
      * distinct connected component
      *
      * @param lfNetwork The network containing the DC component
      * @param numDCC The number of the DC component
-     * @return A graph with LfDcBuses as vertices and LfDcLines as edges.
+     * @return A graph with LfDcBuses as vertices and LfDcBranches as edges.
      */
-    private static GraphConnectivity<LfDcBus, LfDcLine> buildDcSubComponentGraph(LfNetwork lfNetwork, int numDCC) {
-        GraphConnectivity<LfDcBus, LfDcLine> graph = new DTreeGraphConnectivityFactory<LfDcBus, LfDcLine>().create();
+    private static GraphConnectivity<LfDcBus, LfDcBranch> buildDcSubComponentGraph(LfNetwork lfNetwork, int numDCC) {
+        GraphConnectivity<LfDcBus, LfDcBranch> graph = new DTreeGraphConnectivityFactory<LfDcBus, LfDcBranch>().create();
         List<LfDcBus> dcBusesInSubComponent = getDcBuses(lfNetwork, numDCC);
         dcBusesInSubComponent.forEach(graph::addVertex);
 
-        // All DC lines in the DC component.
-        List<LfDcLine> dcLinesInSubComponent = lfNetwork.getDcLines().stream().filter(l -> l.getNumDCC() == numDCC).toList();
+        // All DC branches in the DC component.
+        List<LfDcBranch> dcLinesInSubComponent = lfNetwork.getDcBranches().stream().filter(l -> l.getNumDCC() == numDCC).toList();
         dcLinesInSubComponent.stream()
                 .filter(l -> l.getDcBus1() != null && l.getDcBus2() != null)  // DC line must be fully connected
                 .forEach(l -> graph.addEdge(l.getDcBus1(), l.getDcBus2(), l));

@@ -91,6 +91,15 @@ class LfDcComponentValidatorTest {
     }
 
     @Test
+    void dcSubComponentLinkedByResistiveDcSwitchNeedsNoPromotion() {
+        // conv23 (P_PCC, on dn3) reaches conv45 (V_DC, on dn4) through the resistive switch sw3b then the line dl3b4:
+        // dn3 and dn3b are distinct DC buses, so the switch must be followed to find conv45
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDcSwitchAndDcLine(0.5, 0.5);
+        LfNetwork lfNetwork = Networks.load(network, networkParameters).getFirst();
+        assertTrue(getConvertersSwitchedToVdcMode(lfNetwork).isEmpty());
+    }
+
+    @Test
     void converterWithNoDcBusReachingGroundIsRejected() {
         // Converter conv23 negative pole is not grounded
         Network network = AcDcNetworkFactory.createAcDcNetwork1();
