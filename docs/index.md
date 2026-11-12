@@ -52,6 +52,7 @@ hidden: true
 loadflow/index.md
 security/index.md
 sensitivity/index.md
+reduction/index.md
 detailed_models_description/index.md
 advanced_programming/index.md
 ```
