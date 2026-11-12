@@ -83,25 +83,21 @@ public class AcDcConverterPowerLimitsOuterLoop implements AcOuterLoop {
      * @return The converter the furthest to its active power limits, to be switched in P_PCC mode, or null if all converters are within their active power limits.
      */
     private LfAcDcConverter selectConverterToSwitchInPpccMode(List<LfAcDcConverter> converters) {
-        double maxDistanceToAnyLimit = 0d;
+        double maxDistanceToAnyLimit = maxActivePowerMismatch;  // This initialisation allows to ignore violation under maxActivePowerMismatch that are simply Newton-Raphson error
         LfAcDcConverter selectedConverter = null;
         for (LfAcDcConverter converter : converters) {
             if (converter.getControlMode() == AcDcConverter.ControlMode.V_DC || converter.getControlMode() == AcDcConverter.ControlMode.DC_DROOP) {
                 double distanceToLowerLimit = converter.getMinP() - converter.getPac();
-                if (distanceToLowerLimit > maxActivePowerMismatch) {
+                if (distanceToLowerLimit > maxDistanceToAnyLimit) {
                     // Converter is below its lower limit
-                    if (distanceToLowerLimit > maxDistanceToAnyLimit) {
-                        maxDistanceToAnyLimit = distanceToLowerLimit;
-                        selectedConverter = converter;
-                    }
+                    maxDistanceToAnyLimit = distanceToLowerLimit;
+                    selectedConverter = converter;
                 }
                 double distanceToHigherLimit = converter.getPac() - converter.getMaxP();
-                if (distanceToHigherLimit > maxActivePowerMismatch) {
+                if (distanceToHigherLimit > maxDistanceToAnyLimit) {
                     // Converter is above its higher limit
-                    if (distanceToHigherLimit > maxDistanceToAnyLimit) {
-                        maxDistanceToAnyLimit = distanceToHigherLimit;
-                        selectedConverter = converter;
-                    }
+                    maxDistanceToAnyLimit = distanceToHigherLimit;
+                    selectedConverter = converter;
                 }
             }
         }

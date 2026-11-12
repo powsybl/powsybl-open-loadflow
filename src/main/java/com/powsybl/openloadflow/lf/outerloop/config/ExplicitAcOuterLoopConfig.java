@@ -43,7 +43,8 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                      IncrementalTransformerReactivePowerControlOuterLoop.NAME,
                                                      AbstractAreaInterchangeControlOuterLoop.NAME,
                                                      FreezingHvdcACEmulationOuterloop.NAME,
-                                                     AbstractHvdcAcEmulationLimitsOuterLoop.NAME);
+                                                     AbstractHvdcAcEmulationLimitsOuterLoop.NAME,
+                                                     AcDcConverterPowerLimitsOuterLoop.NAME);
 
     private static Optional<AcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
         return switch (name) {

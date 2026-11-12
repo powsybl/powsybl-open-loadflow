@@ -1291,6 +1291,17 @@ class AcDcLoadFlowTest {
         return LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters).get(0);
     }
 
+    @Test
+    void testSettingInDroopModeWithoutADroopCurveIsRejected() {
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LfNetworkParameters().setAcDcNetwork(true)).getFirst();
+        LfAcDcConverter converter = lfNetwork.getVoltageSourceConverter(0);
+
+        // The converter does not have a droop curve. Trying to set it in DC_DROOP mode raises an exception
+        PowsyblException e = assertThrows(PowsyblException.class, () -> converter.setControlMode(ControlMode.DC_DROOP));
+        assertEquals("AC/DC converter 'conv23' cannot be set to DC_DROOP control mode because it does not have a droop curve", e.getMessage());
+    }
+
     // -- AC-DC converter AC power limits
 
     @Test
@@ -1441,14 +1452,16 @@ class AcDcLoadFlowTest {
         vsc.setMaxP(Double.MAX_VALUE);
         vsc.setMinP(vsc.getTargetP() + 1);
 
-        PowsyblException e1 = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
+        LfNetworkLoaderImpl lfNetworkLoader = new LfNetworkLoaderImpl();
+        PowsyblException e1 = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, lfNetworkLoader, lfParameters));
         assertTrue(e1.getMessage().contains("is below its minP"));
 
         // Set maxP under targetP
         vsc.setMinP(-Double.MAX_VALUE);
         vsc.setMaxP(vsc.getTargetP() - 1);
 
-        PowsyblException e2 = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
+        LfNetworkLoaderImpl lfNetworkLoader2 = new LfNetworkLoaderImpl();
+        PowsyblException e2 = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, lfNetworkLoader2, lfParameters));
         assertTrue(e2.getMessage().contains("is above its maxP"));
 
         // If OpenLoadFlow useActiveLimits parameter is set to false, no exception is raised
