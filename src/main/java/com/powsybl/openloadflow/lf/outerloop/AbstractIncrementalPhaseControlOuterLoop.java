@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.lf.outerloop;
 
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
@@ -41,8 +42,11 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
     public static final String NAME = "IncrementalPhaseControl";
     protected final Logger logger;
 
-    protected AbstractIncrementalPhaseControlOuterLoop(Logger logger) {
+    private final OpenLoadFlowParameters.IncrementalControlInteractionScope interactionScope;
+
+    protected AbstractIncrementalPhaseControlOuterLoop(Logger logger, OpenLoadFlowParameters.IncrementalControlInteractionScope interactionScope) {
         this.logger = Objects.requireNonNull(logger);
+        this.interactionScope = Objects.requireNonNull(interactionScope);
     }
 
     @Override
@@ -113,31 +117,55 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
         }
     }
 
+    private static double getActivePower(TransformerPhaseControl phaseControl) {
+        LfBranch controlledBranch = phaseControl.getControlledBranch();
+        var p = phaseControl.getControlledSide() == TwoSides.ONE
+                ? controlledBranch.getP1() : controlledBranch.getP2();
+        return p.eval();
+    }
+
+    private static double getActivePowerMismatch(TransformerPhaseControl phaseControl) {
+        return phaseControl.getTargetValue() - getActivePower(phaseControl);
+    }
+
     protected void checkActivePowerControlPhaseControls(AbstractSensitivityContext<V, E> sensitivityContext, IncrementalContextData contextData,
                                                            List<TransformerPhaseControl> activePowerControlPhaseControls,
                                                            List<DiscreteControllerChange> activePowerControlPstsThatChangedTap) {
 
-        for (TransformerPhaseControl phaseControl : activePowerControlPhaseControls) {
+        var prediction = new IncrementalContextData.MismatchPrediction<>(activePowerControlPhaseControls,
+                AbstractIncrementalPhaseControlOuterLoop::getActivePowerMismatch,
+                AbstractIncrementalPhaseControlOuterLoop::getHalfTargetDeadband,
+                interactionScope);
+
+        for (TransformerPhaseControl phaseControl : prediction.sortByDecreasingExcess(activePowerControlPhaseControls)) {
             LfBranch controllerBranch = phaseControl.getControllerBranch();
             LfBranch controlledBranch = phaseControl.getControlledBranch();
-            var p = phaseControl.getControlledSide() == TwoSides.ONE
-                    ? controlledBranch.getP1() : controlledBranch.getP2();
-            double pValue = p.eval();
+            var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
+            // includes the effect of the moves of the other phase shifters already decided in this outer loop iteration
+            double predictedMismatch = prediction.getMismatch(phaseControl);
             double halfTargetDeadband = getHalfTargetDeadband(phaseControl);
-            if (Math.abs(pValue - phaseControl.getTargetValue()) > halfTargetDeadband) {
-                var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
-                double dp = phaseControl.getTargetValue() - pValue;
+            if (Math.abs(predictedMismatch) > halfTargetDeadband) {
                 double a2p = sensitivityContext.calculateSensitivityFromA2P(controllerBranch, controlledBranch, phaseControl.getControlledSide());
                 if (Math.abs(a2p) > SENSI_EPS) {
-                    double da = Math.toRadians(dp / a2p);
-                    logger.trace("Controlled branch '{}' active power is {} MW and out of target value {} MW (half deadband={} MW), a phase shift of {}° is required",
-                            controlledBranch.getId(), pValue * PerUnit.SB, phaseControl.getTargetValue() * PerUnit.SB, halfTargetDeadband * PerUnit.SB, Math.toDegrees(da));
+                    double da = Math.toRadians(predictedMismatch / a2p);
+                    logger.trace("Controlled branch '{}' active power is {} MW and predicted out of target value {} MW by {} MW (half deadband={} MW), a phase shift of {}° is required",
+                            controlledBranch.getId(), getActivePower(phaseControl) * PerUnit.SB, phaseControl.getTargetValue() * PerUnit.SB,
+                            predictedMismatch * PerUnit.SB, halfTargetDeadband * PerUnit.SB, Math.toDegrees(da));
                     PiModel piModel = controllerBranch.getPiModel();
 
                     int oldTapPosition = piModel.getTapPosition();
+                    double oldA1 = piModel.getA1();
                     Range<Integer> tapPositionRange = piModel.getTapPositionRange();
-                    piModel.updateTapPositionToReachNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection())
-                            .ifPresent(controllerContext::updateAllowedDirection);
+                    piModel.updateTapPositionToReachNewA1(da, MAX_TAP_SHIFT, controllerContext.getAllowedDirection()).ifPresent(direction -> {
+                        double discreteDa = Math.toDegrees(piModel.getA1() - oldA1);
+                        if (prediction.applyIfImproved(phaseControl, otherPhaseControl -> discreteDa * sensitivityContext.calculateSensitivityFromA2P(controllerBranch,
+                                otherPhaseControl.getControlledBranch(), otherPhaseControl.getControlledSide()))) {
+                            controllerContext.updateAllowedDirection(direction);
+                        } else {
+                            logger.trace("Controller branch '{}' is not adjusted because it would increase controlled active power mismatches", controllerBranch.getId());
+                            piModel.setTapPosition(oldTapPosition);
+                        }
+                    });
 
                     if (piModel.getTapPosition() != oldTapPosition) {
                         logger.debug("Controller branch '{}' change tap from {} to {} to reach active power target (full range: {})", controllerBranch.getId(),
