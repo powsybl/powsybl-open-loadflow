@@ -16,6 +16,7 @@ import gnu.trove.list.array.TByteArrayList;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.TIntIntMap;
 import gnu.trove.map.hash.TIntIntHashMap;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -70,7 +71,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     private final TIntArrayList termElementNums = new TIntArrayList();
 
     // for each term number, activity status
-    private final TByteArrayList termActive = new TByteArrayList();
+    private final List<MutableBoolean> termActive = new ArrayList<>();
 
     // for each term number, list of derivative variables
     private final List<List<Derivative<V>>> termDerivatives = new ArrayList<>();
@@ -113,7 +114,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     }
 
     public boolean isTermActive(int termNum) {
-        return termActive.getQuick(termNum) == 1;
+        return termActive.get(termNum).booleanValue();
+    }
+
+    public MutableBoolean getTermActiveRef(int termNum) {
+        return termActive.get(termNum);
     }
 
     public int getEquationElementNum(int termNum) {
@@ -140,7 +145,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         }
         equationElementNums.add(equationElementNum);
         termElementNums.add(termElementNum);
-        termActive.add((byte) (evaluator.isDisabled(termElementNum) ? 0 : 1));
+        termActive.add(new MutableBoolean(!evaluator.isDisabled(termElementNum)));
         termDerivatives.add(evaluator.getDerivatives(termElementNum));
         equationArray.invalidateEquationDerivativeVectors();
         equationArray.getEquationSystem().notifyEquationTermArrayChange(this, termNum, EquationTermEventType.EQUATION_TERM_ADDED);
@@ -180,7 +185,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         if (termNum == -1) {
             throw new PowsyblException("Array term element num not found");
         }
-        return termActive.getQuick(termNum) == 1;
+        return isTermActive(termNum);
     }
 
     public void setTermElementActive(int termElementNum, boolean active) {
@@ -188,9 +193,9 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         if (termNum == -1) {
             throw new PowsyblException("Array term element num not found");
         }
-        boolean oldActive = termActive.getQuick(termNum) == 1;
+        boolean oldActive = isTermActive(termNum);
         if (active != oldActive) {
-            termActive.setQuick(termNum, (byte) (active ? 1 : 0));
+            termActive.get(termNum).setValue(active);
             equationArray.getEquationSystem().notifyEquationTermArrayChange(this, termNum, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED : EquationTermEventType.EQUATION_TERM_DEACTIVATED);
         }
     }
@@ -299,11 +304,11 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         boolean isFirst = first;
         for (int i = iStart; i < iEnd; i++) {
             int termNum = termNumsConcatenated.getQuick(i);
-            if (writeInactiveTerms || termActive.getQuick(termNum) == 1) {
+            if (writeInactiveTerms || isTermActive(termNum)) {
                 if (!isFirst) {
                     writer.append(" + ");
                 }
-                if (termActive.getQuick(termNum) == 0) {
+                if (!isTermActive(termNum)) {
                     writer.write("[ ");
                 }
                 writer.append(evaluator.getName());
@@ -316,7 +321,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
                     }
                 }
                 writer.write(")");
-                if (termActive.getQuick(termNum) == 0) {
+                if (!isTermActive(termNum)) {
                     writer.write(" ]");
                 }
                 isFirst = false;

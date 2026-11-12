@@ -234,7 +234,7 @@ public class JacobianMatrixFastDecoupled
     }
 
     @Override
-    protected void updateDer() {
+    protected void updateDer(boolean zeroValuesChanged) {
         throw new IllegalStateException("Fast-Decoupled solver does not need to update its Jacobian matrices during a load flow calculation");
     }
 
