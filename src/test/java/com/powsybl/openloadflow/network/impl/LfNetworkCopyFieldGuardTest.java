@@ -56,7 +56,7 @@ class LfNetworkCopyFieldGuardTest {
                 "generatorVoltageControl", "generatorReactivePowerControl", "transformerVoltageControl", "voltageSourceConverterVoltageControl", "shuntVoltageControl",
                 "p", "q", "remoteControlReactivePercent", "zeroImpedanceNetwork", "asym", "area", "isGenerationTargetQFrozen", "forceTargetQInReactiveLimits", "numSC"));
         expected.put(AbstractLfDcBus.class, Set.of("numDCC", "v", "nominalV"));
-        expected.put(AbstractLfDcLine.class, Set.of("numDCC", "dcBus1", "dcBus2", "p1", "i1", "p2", "i2", "r"));
+        expected.put(AbstractLfDcBranch.class, Set.of("numDCC", "dcBus1", "dcBus2", "p1", "i1", "p2", "i2", "r"));
         expected.put(AbstractLfGenerator.class, Set.of("network", "bus", "calculatedQ", "targetV", "switchedToLocalVoltageRegulation", "generatorControlType",
                 "controlledBusId", "controlledBranchId", "controlledBranchSide", "remoteTargetQ", "disabled", "asym", "referencePriority", "reference", "extrapolateReactiveLimits"));
         expected.put(AbstractLfInjection.class, Set.of("initialTargetP", "targetP"));
@@ -79,6 +79,7 @@ class LfNetworkCopyFieldGuardTest {
                 "fictitiousInjectionTargetQ", "violationLocation"));
         expected.put(LfDcBusImpl.class, Set.of("dcBusRef", "isGrounded"));
         expected.put(LfDcLineImpl.class, Set.of("dcLineRef"));
+        expected.put(LfDcSwitchImpl.class, Set.of("dcSwitchRef"));
         expected.put(LfVoltageSourceConverter.LfDroopReference.class, Set.of("k", "refVdc", "refP"));
         expected.put(LfGeneratorImpl.class, Set.of("generatorRef", "initialParticipating", "participating", "droop", "participationFactor", "qPercent",
                 "isTargetQForcedInReactiveLimits", "forceVoltageControl", "maxTargetP", "minTargetP", "forceTargetQInReactiveLimits"));
@@ -89,7 +90,7 @@ class LfNetworkCopyFieldGuardTest {
                 "absVariableTargetP", "distributedOnConformLoad", "loadsDisablingStatus", "p", "q"));
         expected.put(LfNetwork.class, Set.of("numCC", "synchronousNetworks", "slackBusSelector", "referenceBusSelector", "maxSlackBusCount", "busesById", "busesByIndex",
                 "branches", "branchesById", "branchesByOriginalId", "shuntCount", "shuntsByIndex", "shuntsById", "generatorsById", "loadsById", "areasById", "areas", "hvdcs",
-                "hvdcsById", "dcBusByIndex", "dcBusById", "dcLinesByIndex", "voltageSourceConvertersByIndex", "listeners", "validity", "connectivityFactory", "connectivity",
+                "hvdcsById", "dcBusByIndex", "dcBusById", "dcBranchesByIndex", "voltageSourceConvertersByIndex", "listeners", "validity", "connectivityFactory", "connectivity",
                 "zeroImpedanceNetworksByModel", "reportNode", "secondaryVoltageControls", "voltageAngleLimits", "overloadManagementSystems", "connectivityRemovedBranches"));
         expected.put(LfNetwork.LfVoltageAngleLimit.class, Set.of("id", "from", "to", "highValue", "lowValue"));
         expected.put(LfOverloadManagementSystem.class, Set.of("monitoredBranch", "monitoredSide", "branchTrippingList"));
