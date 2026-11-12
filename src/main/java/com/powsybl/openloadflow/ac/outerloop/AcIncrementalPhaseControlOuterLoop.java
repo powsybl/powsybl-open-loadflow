@@ -23,9 +23,9 @@ import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChange;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.Range;
 import org.slf4j.LoggerFactory;
 
@@ -215,14 +215,14 @@ public class AcIncrementalPhaseControlOuterLoop
 
         if (!currentLimiterPstsThatChangedTap.isEmpty() || !activePowerControlPstsThatChangedTap.isEmpty()) {
             status = OuterLoopStatus.UNSTABLE;
-            ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
+            ReportNode iterationReportNode = LfReports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
             if (!currentLimiterPstsThatChangedTap.isEmpty()) {
-                ReportNode summary = Reports.reportCurrentLimiterPstsChangedTaps(iterationReportNode, currentLimiterPstsThatChangedTap.size());
-                currentLimiterPstsThatChangedTap.forEach(change -> Reports.reportTransformerControlChangedTapsDetail(summary, change));
+                ReportNode summary = LfReports.reportCurrentLimiterPstsChangedTaps(iterationReportNode, currentLimiterPstsThatChangedTap.size());
+                currentLimiterPstsThatChangedTap.forEach(change -> LfReports.reportTransformerControlChangedTapsDetail(summary, change));
             }
             if (!activePowerControlPstsThatChangedTap.isEmpty()) {
-                ReportNode summary = Reports.reportActivePowerControlPstsChangedTaps(iterationReportNode, activePowerControlPstsThatChangedTap.size());
-                activePowerControlPstsThatChangedTap.forEach(change -> Reports.reportTransformerControlChangedTapsDetail(summary, change));
+                ReportNode summary = LfReports.reportActivePowerControlPstsChangedTaps(iterationReportNode, activePowerControlPstsThatChangedTap.size());
+                activePowerControlPstsThatChangedTap.forEach(change -> LfReports.reportTransformerControlChangedTapsDetail(summary, change));
             }
         }
 

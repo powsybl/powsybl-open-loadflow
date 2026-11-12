@@ -10,7 +10,6 @@ package com.powsybl.openloadflow.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.network.ElementType;
-import com.powsybl.openloadflow.util.Derivable;
 
 import java.util.List;
 import java.util.Objects;

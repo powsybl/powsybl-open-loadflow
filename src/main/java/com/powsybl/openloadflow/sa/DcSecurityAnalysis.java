@@ -20,9 +20,9 @@ import com.powsybl.openloadflow.lf.outerloop.config.AbstractDcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.DcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.DefaultDcOuterLoopConfig;
 import com.powsybl.openloadflow.lf.outerloop.config.ExplicitDcOuterLoopConfig;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
-import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.PostContingencyComputationStatus;
 import com.powsybl.security.monitor.StateMonitor;
 
@@ -43,7 +43,7 @@ public class DcSecurityAnalysis extends AbstractSecurityAnalysis<DcVariableType,
 
     @Override
     protected ReportNode createSaRootReportNode() {
-        return Reports.createDcSecurityAnalysis(reportNode, network.getId());
+        return LfReports.createDcSecurityAnalysis(reportNode, network.getId());
     }
 
     @Override

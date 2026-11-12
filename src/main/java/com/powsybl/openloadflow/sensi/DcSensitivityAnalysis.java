@@ -29,6 +29,7 @@ import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
 import com.powsybl.openloadflow.dc.fastdc.ComputedElement;
 import com.powsybl.openloadflow.dc.fastdc.ConnectivityBreakAnalysis;
 import com.powsybl.openloadflow.dc.fastdc.WoodburyEngine;
+import com.powsybl.openloadflow.equations.Derivable;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.*;
@@ -40,7 +41,6 @@ import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParame
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
-import com.powsybl.openloadflow.util.Derivable;
 import com.powsybl.openloadflow.util.Indexed;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
