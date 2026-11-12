@@ -29,6 +29,8 @@ public class BusState extends BusDcState {
     private final double svcShuntB;
     private final Map<String, LfGenerator.GeneratorControlType> generatorsControlType;
     private final LfBus.QLimitType qLimitType;
+    private final double generatorVoltageControlTargetValue;
+    private final double remoteControlReactivePercent;
 
     private static final class LoadState extends LoadDcState {
 
@@ -67,6 +69,11 @@ public class BusState extends BusDcState {
         svcShuntB = svcShunt != null ? svcShunt.getB() : Double.NaN;
         this.generatorsControlType = bus.getGenerators().stream().collect(Collectors.toMap(LfGenerator::getId, LfGenerator::getGeneratorControlType));
         qLimitType = bus.getQLimitType().orElse(null);
+        generatorVoltageControlTargetValue = bus.getGeneratorVoltageControl()
+                .filter(vc -> vc.getControlledBus() == bus)
+                .map(GeneratorVoltageControl::getTargetValue)
+                .orElse(Double.NaN);
+        remoteControlReactivePercent = bus.getRemoteControlReactivePercent();
     }
 
     @Override
@@ -104,6 +111,10 @@ public class BusState extends BusDcState {
         }
         element.getGenerators().forEach(g -> g.setGeneratorControlType(generatorsControlType.get(g.getId())));
         element.setQLimitType(qLimitType);
+        if (!Double.isNaN(generatorVoltageControlTargetValue)) {
+            element.getGeneratorVoltageControl().orElseThrow().setTargetValue(generatorVoltageControlTargetValue);
+        }
+        element.setRemoteControlReactivePercent(remoteControlReactivePercent);
     }
 
     public static BusState save(LfBus bus) {

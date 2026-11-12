@@ -46,6 +46,9 @@ public class Control {
         for (int i = 0; i < controllerBuses.size(); i++) {
             LfBus controllerBus = controllerBuses.get(i);
             for (LfGenerator generator : controllerBus.getGenerators()) {
+                if (generator.isDisabled()) {
+                    continue; // lost by a contingency
+                }
                 double maxRangeQ = generator.getRangeQ(LfGenerator.ReactiveRangeMode.MAX);
                 // if one reactive range is not plausible, we fallback to uniform keys
                 if (maxRangeQ < PlausibleValues.MIN_REACTIVE_RANGE / PerUnit.SB || maxRangeQ > PlausibleValues.MAX_REACTIVE_RANGE / PerUnit.SB) {
@@ -63,6 +66,9 @@ public class Control {
         for (int i = 0; i < controllerBuses.size(); i++) {
             LfBus controllerBus = controllerBuses.get(i);
             for (LfGenerator generator : controllerBus.getGenerators()) {
+                if (generator.isDisabled()) {
+                    continue; // lost by a contingency
+                }
                 double qKey = generator.getRemoteControlReactiveKey().orElse(Double.NaN);
                 if (Double.isNaN(qKey)) {
                     // in case of one missing key, we fallback to keys based on reactive power range
