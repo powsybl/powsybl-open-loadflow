@@ -212,14 +212,9 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             // Try first with incremental update
             updateLu(true);
         } catch (MatrixException ex) {
-            if (zeroValuesChanged) {
-                // Try another time without incremental
-                LOGGER.warn("Exception when updating LU matrix in incremental mode. Retrying without incremental mode");
-                updateLu(false);
-            } else {
-                // Rethrow the exception
-                throw ex;
-            }
+            // Try another time without incremental
+            LOGGER.warn("Exception when updating LU matrix in incremental mode. Retrying without incremental mode");
+            updateLu(false);
         }
     }
 
