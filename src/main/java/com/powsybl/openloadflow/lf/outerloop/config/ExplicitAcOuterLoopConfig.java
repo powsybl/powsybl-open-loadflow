@@ -43,7 +43,8 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                      IncrementalTransformerReactivePowerControlOuterLoop.NAME,
                                                      AbstractAreaInterchangeControlOuterLoop.NAME,
                                                      FreezingHvdcACEmulationOuterloop.NAME,
-                                                     AbstractHvdcAcEmulationLimitsOuterLoop.NAME);
+                                                     AbstractHvdcAcEmulationLimitsOuterLoop.NAME,
+                                                     AcDcConverterPowerLimitsOuterLoop.NAME);
 
     private static Optional<AcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
         return switch (name) {
@@ -81,6 +82,7 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
             case AbstractAreaInterchangeControlOuterLoop.NAME -> createAreaInterchangeControlOuterLoop(parameters, parametersExt, loadFlowParametersOverride);
             case FreezingHvdcACEmulationOuterloop.NAME -> createFreezingHvdcACEmulationOuterLoop(parametersExt);
             case AbstractHvdcAcEmulationLimitsOuterLoop.NAME -> createHvdcAcEmulationLimitsOuterLoop(parameters);
+            case AcDcConverterPowerLimitsOuterLoop.NAME -> createAcDcConverterPowerLimitsOuterLoop(parametersExt);
             default -> throw new PowsyblException("Unknown outer loop '" + name + "' for AC load flow");
         };
     }

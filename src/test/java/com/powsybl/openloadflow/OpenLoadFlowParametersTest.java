@@ -573,7 +573,7 @@ class OpenLoadFlowParametersTest {
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
                 .setSecondaryVoltageControl(true);
 
-        assertEquals(List.of("DistributedSlack", "HvdcAcEmulationLimits", "SecondaryVoltageControl", "VoltageMonitoring", "ReactiveLimits", "ShuntVoltageControl"),
+        assertEquals(List.of("DistributedSlack", "HvdcAcEmulationLimits", "AcDcConverterPowerLimits", "SecondaryVoltageControl", "VoltageMonitoring", "ReactiveLimits", "ShuntVoltageControl"),
             OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setOuterLoopNames(List.of("ReactiveLimits", "SecondaryVoltageControl"));
@@ -591,7 +591,7 @@ class OpenLoadFlowParametersTest {
         assertEquals("Ordered explicit list of outer loop names, supported outer loops are for AC : [IncrementalPhaseControl, " +
                 "DistributedSlack, IncrementalShuntVoltageControl, IncrementalTransformerVoltageControl, VoltageMonitoring, PhaseControl, " +
                 "ReactiveLimits, SecondaryVoltageControl, ShuntVoltageControl, SimpleTransformerVoltageControl, TransformerVoltageControl, " +
-                "AutomationSystem, IncrementalTransformerReactivePowerControl, AreaInterchangeControl, FreezingHvdcACEmulation, HvdcAcEmulationLimits], " +
+                "AutomationSystem, IncrementalTransformerReactivePowerControl, AreaInterchangeControl, FreezingHvdcACEmulation, HvdcAcEmulationLimits, AcDcConverterPowerLimits], " +
                 "and for DC : [IncrementalPhaseControl, AreaInterchangeControl, HvdcAcEmulationLimits]",
             OpenLoadFlowParameters.SPECIFIC_PARAMETERS.stream().filter(p -> p.getName().equals(OpenLoadFlowParameters.OUTER_LOOP_NAMES_PARAM_NAME)).findFirst().orElseThrow().getDescription());
     }
@@ -623,11 +623,11 @@ class OpenLoadFlowParametersTest {
                 .setDistributedSlack(true);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
 
-        assertEquals(List.of("DistributedSlack", "HvdcAcEmulationLimits", "VoltageMonitoring", "ReactiveLimits"),
+        assertEquals(List.of("DistributedSlack", "HvdcAcEmulationLimits", "AcDcConverterPowerLimits", "VoltageMonitoring", "ReactiveLimits"),
             OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setAreaInterchangeControl(true);
-        assertEquals(List.of("HvdcAcEmulationLimits", "AreaInterchangeControl", "VoltageMonitoring", "ReactiveLimits"),
+        assertEquals(List.of("HvdcAcEmulationLimits", "AcDcConverterPowerLimits", "AreaInterchangeControl", "VoltageMonitoring", "ReactiveLimits"),
             OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setOuterLoopNames(List.of("DistributedSlack", "AreaInterchangeControl"));

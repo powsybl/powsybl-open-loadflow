@@ -30,16 +30,19 @@ public class NetworkState {
 
     private final List<HvdcState> hvdcStates;
 
+    private final List<AcDcConverterState> acDcConverterStates;
+
     private final Set<LfBus> excludedSlackBuses;
 
     private final List<AreaState> areaStates;
 
-    protected NetworkState(LfNetwork network, List<BusState> busStates, List<BranchState> branchStates, List<HvdcState> hvdcStates,
+    protected NetworkState(LfNetwork network, List<BusState> busStates, List<BranchState> branchStates, List<HvdcState> hvdcStates, List<AcDcConverterState> acDcConverterStates,
                            Set<LfBus> excludedSlackBuses, List<AreaState> areaStates) {
         this.network = Objects.requireNonNull(network);
         this.busStates = Objects.requireNonNull(busStates);
         this.branchStates = Objects.requireNonNull(branchStates);
         this.hvdcStates = Objects.requireNonNull(hvdcStates);
+        this.acDcConverterStates = Objects.requireNonNull(acDcConverterStates);
         this.excludedSlackBuses = Objects.requireNonNull(excludedSlackBuses);
         this.areaStates = Objects.requireNonNull(areaStates);
     }
@@ -51,11 +54,12 @@ public class NetworkState {
         List<BusState> busStates = ElementState.save(network.getBuses(), BusState::save);
         List<BranchState> branchStates = ElementState.save(network.getBranches(), BranchState::save);
         List<HvdcState> hvdcStates = ElementState.save(network.getHvdcs(), HvdcState::save);
+        List<AcDcConverterState> acDcConverterStates = ElementState.save(network.getVoltageSourceConverters().stream().map(LfAcDcConverter.class::cast).toList(), AcDcConverterState::save);
         List<AreaState> areaStates = ElementState.save(network.getAreas(), AreaState::save);
         Set<LfBus> excludedSlackBuses = network.getSynchronousNetworks().stream()
             .flatMap(lfScNetwork -> lfScNetwork.getExcludedSlackBuses().stream())
             .collect(Collectors.toSet());
-        return new NetworkState(network, busStates, branchStates, hvdcStates, excludedSlackBuses, areaStates);
+        return new NetworkState(network, busStates, branchStates, hvdcStates, acDcConverterStates, excludedSlackBuses, areaStates);
     }
 
     public void restore() {
@@ -63,6 +67,7 @@ public class NetworkState {
         ElementState.restore(busStates);
         ElementState.restore(branchStates);
         ElementState.restore(hvdcStates);
+        ElementState.restore(acDcConverterStates);
         ElementState.restore(areaStates);
         // Set excluded slack buses of each synchronous network
         network.getSynchronousNetworks().forEach(scLfNetwork -> scLfNetwork.setExcludedSlackBuses(excludedSlackBuses));
