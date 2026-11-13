@@ -9,7 +9,6 @@ package com.powsybl.openloadflow.equations;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -109,7 +108,6 @@ class EquationDerivativeVector {
             valuesByTerm[i] = termActive[i] ? termDerValues[i][termElementNum[i]] : 0.0;
         }
     }
-
 
     void update(boolean recomputeRows) {
         if (termNums.length > 0) {

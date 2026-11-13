@@ -187,10 +187,10 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
         for (var eq : equationSystem.getIndex().getSortedEquationArraysToSolve()) {
             eq.der((column, row, value, matrixElementIndex) -> {
-                        matrix.addAtIndex(matrixElementIndex, value);
-                        return matrixElementIndex; // don't change element index
-                    },
-                    zeroValuesChanged);
+                matrix.addAtIndex(matrixElementIndex, value);
+                return matrixElementIndex; // don't change element index
+            },
+            zeroValuesChanged);
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));

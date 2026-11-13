@@ -7,18 +7,15 @@
  */
 package com.powsybl.openloadflow.equations;
 
-import com.google.common.base.Stopwatch;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfElement;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.TIntIntMap;
-import gnu.trove.map.hash.TIntDoubleHashMap;
 import gnu.trove.map.hash.TIntIntHashMap;
 
 import java.io.IOException;
 import java.io.Writer;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -541,7 +538,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     row = equationDerivativeVector.rowsByCell[cellIndex];
                     if (row != -1) {
                         value = equationDerivativeVector.valuesByCell[cellIndex];
-                        for (int i = 0 ; i < computedRows.length ; i++) {
+                        for (int i = 0; i < computedRows.length; i++) {
                             if (computedRows[i] == row) {
                                 value += computedDers[i];
                                 computedRows[i] = -1;
@@ -551,7 +548,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                     }
                 }
                 // Filling remaining cells that were not in the EquationDerivativeVector
-                for (int i = 0 ; i < computedRows.length ; i++) {
+                for (int i = 0; i < computedRows.length; i++) {
                     if (computedRows[i] != -1) {
                         onDer(handler, column, computedRows[i], computedDers[i]);
                     }
