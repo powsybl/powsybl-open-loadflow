@@ -15,7 +15,6 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -43,16 +42,20 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
     private static BiConsumer<EquationSystemIndex<AcVariableType, AcEquationType>,
             EquationSystemIndex.VariableRowFillerInput<AcVariableType, AcEquationType>> variableRowFiller() {
         return (equationSystemIndex, input) -> {
+            // Goal is to have variable rows that correspond to the equation columns they are associated with
+            // At least :
+            // - BUS_TARGET_P equation column should have the corresponding phi variable for the same element num
+            // - BUS_TARGET_Q equation column should have the corresponding v variable for the same element num
             MutableInt rowCounter = input.rowCounter();
             List<Variable<AcVariableType>> sortedVariables = input.sortedVariables();
             List<EquationArray<AcVariableType, AcEquationType>> sortedEquationArrays = input.sortedEquationArrays();
             List<SingleEquation<AcVariableType, AcEquationType>> sortedSingleEquations = input.sortedSingleEquations();
             List<Variable<AcVariableType>> sortedVariablesToFind = sortedVariables.stream().sorted(Variable::compareForEquationSystemIndex).toList();
-            // If no separator is given, trying to order variables corresponding to equation columns (to optimize KLU)
+            // Clearing all rows
             for (Variable<AcVariableType> variable : sortedVariablesToFind) {
                 variable.setRow(-1);
             }
-            // First iterating over equation array if existing (usually BUS_P first and BUS_Q)
+            // First iterating over equation array (BUS_P first and BUS_Q)
             Iterator<Variable<AcVariableType>> variableIt = sortedVariablesToFind.iterator();
             for (EquationArray<AcVariableType, AcEquationType> equationArray : sortedEquationArrays) {
                 for (int elementNum : equationArray.getColumnToElementNumList()) {

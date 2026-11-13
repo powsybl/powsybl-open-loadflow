@@ -128,15 +128,15 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
         columnCountFromArrayEquations = 0;
         if (isSeparatedInFirstPart == null) {
             // If there is no need of separating, columns are arranged in this order :
-            // - Single equations
             // - Equation arrays
+            // - Single equations
             updateEquationColumns(sortedSingleEquationsToSolve, equationSystem.getEquationArrays());
         } else {
             // If there is a separating predicate (Used for Fast Decoupled), columns are arranged in this order :
-            // - First part of single equations
             // - First part of equation arrays
-            // - Second part of single equations
+            // - First part of single equations
             // - Second part of equation arrays
+            // - Second part of single equations
             Map<Boolean, List<SingleEquation<V, E>>> separatedSingleEquationsToSolve = sortedSingleEquationsToSolve.stream()
                     .collect(Collectors.partitioningBy(e -> isSeparatedInFirstPart.test(e.getType())));
             Map<Boolean, List<EquationArray<V, E>>> separatedEquationArrays = equationSystem.getEquationArrays().stream()

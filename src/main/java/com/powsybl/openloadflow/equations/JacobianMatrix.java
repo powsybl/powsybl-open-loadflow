@@ -127,15 +127,6 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         int estimatedNonZeroValueCount = rowCount * 3;
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
 
-        // When initializing the matrix, it must be filled in the column order (in case of SparseMatrix)
-        //
-        // SingleEquations are sorted by their column number
-        // EquationArrays are sorted by their first column number (and all following column numbers are contiguous for a defined length)
-        //
-        // Example of EquationSystemIndex organization (e.g. in Fast Decoupled) with each index (corresponding to unique column number) :
-        //   0    |   1    | ... | 12 | 13 | ... | 31 | 32 | 33 | ... | 51 |   52   |   53   | ... | 64 | ... | 83 | 84 | ... | 101 |  <-- index
-        // Single | Single | ... |        Array       |        Array       | Single | Single | ... |     Array     |      Array     |
-
         Iterator<SingleEquation<V, E>> itSortedSingleEquation = equationSystem.getIndex().getSortedSingleEquationsToSolve().iterator();
         Iterator<EquationArray<V, E>> itSortedEquationArray = equationSystem.getIndex().getSortedEquationArraysToSolve().iterator();
 
