@@ -9,8 +9,8 @@ package com.powsybl.openloadflow.ac.equations;
 
 import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.TwoSides;
-import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.AbstractEquationSystemUpdater;
+import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
