@@ -32,6 +32,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.Actions;
 import com.powsybl.openloadflow.network.action.LfAction;
@@ -45,7 +46,6 @@ import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.Indexed;
 import com.powsybl.openloadflow.util.Lists2;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.openloadflow.util.mt.ContingencyMultiThreadHelper;
 import com.powsybl.security.*;
 import com.powsybl.security.limitscaling.LimitScaling;
@@ -520,7 +520,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
         try (C context = createLoadFlowContext(lfNetwork, p)) {
             ReportNode networkReportNode = lfNetwork.getReportNode();
-            ReportNode preContSimReportNode = Reports.createPreContingencySimulation(networkReportNode);
+            ReportNode preContSimReportNode = LfReports.createPreContingencySimulation(networkReportNode);
             lfNetwork.setReportNode(preContSimReportNode);
 
             // run pre-contingency simulation
@@ -759,7 +759,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                                     PreContingencyNetworkResult preContingencyNetworkResult, List<PostContingencyResult> postContingencyResults,
                                     Consumer<P> contingencyParametersResetter, Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId,
                                     List<OperatorStrategyResult> operatorStrategyResults, Iterator<PropagatedContingency> contingencyIt) {
-        ReportNode postContSimReportNode = Reports.createPostContingencySimulation(networkReportNode, lfContingency.getId());
+        ReportNode postContSimReportNode = LfReports.createPostContingencySimulation(networkReportNode, lfContingency.getId());
         lfNetwork.setReportNode(postContSimReportNode);
 
         ContingencyLoadFlowParameters contingencyLoadFlowParameters = propagatedContingency.getContingency().getExtension(ContingencyLoadFlowParameters.class);
@@ -792,7 +792,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 // but need to set generators initialTargetP positions to the current (=postContingency) targetP
                 lfNetwork.setGeneratorsInitialTargetPToTargetP();
                 OperatorStrategy operatorStrategy = operatorStrategiesForThisContingency.get(0).value();
-                ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
+                ReportNode osSimReportNode = LfReports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.getId());
                 lfNetwork.setReportNode(osSimReportNode);
                 runActionSimulation(lfNetwork, context,
                     operatorStrategy, preContingencyLimitViolationManager,
@@ -805,7 +805,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 // multiple operator strategies, save post contingency state for later restoration after action
                 NetworkState postContingencyNetworkState = NetworkState.save(lfNetwork);
                 for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesForThisContingency) {
-                    ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.value().getId());
+                    ReportNode osSimReportNode = LfReports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.value().getId());
                     lfNetwork.setReportNode(osSimReportNode);
                     runActionSimulation(lfNetwork, context,
                         operatorStrategy.value(), preContingencyLimitViolationManager,

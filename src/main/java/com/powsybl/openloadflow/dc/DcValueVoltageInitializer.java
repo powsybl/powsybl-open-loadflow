@@ -15,8 +15,8 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.util.NetworkReports;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
-import com.powsybl.openloadflow.util.Reports;
 
 import java.util.List;
 import java.util.Objects;
@@ -56,7 +56,7 @@ public class DcValueVoltageInitializer implements VoltageInitializer {
     @Override
     public void prepare(LfNetwork network, ReportNode reportNode) {
         ReportNode originalReportNode = network.getReportNode();
-        network.setReportNode(Reports.reportVoltageInitializer(reportNode, NAME));
+        network.setReportNode(NetworkReports.reportVoltageInitializer(reportNode, NAME));
 
         if (!network.getDcBuses().isEmpty()) {
             // Throw exception here, otherwise DC load flow will run anyway

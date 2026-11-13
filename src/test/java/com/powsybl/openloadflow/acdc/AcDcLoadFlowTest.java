@@ -28,12 +28,17 @@ import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
 import java.util.concurrent.CompletionException;
+import java.util.stream.Stream;
 
 import static com.powsybl.openloadflow.network.AcDcNetworkFactory.createBaseNetwork;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static java.lang.Math.sqrt;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -1001,6 +1006,51 @@ class AcDcLoadFlowTest {
         assertEquals(0., network.getDcLine("dl45").getDcTerminal1().getI());
     }
 
+    static Stream<Arguments> dcSwitchResistanceCases() {
+        return Stream.of(
+            // 3 different distributions of the resistance between the DcSwitch and DcLine, including a case
+            // with zero-resistance switch.
+            Arguments.of(0.0, 1.0),
+            Arguments.of(0.5, 0.5),
+            Arguments.of(0.25, 0.75)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("dcSwitchResistanceCases")
+    void testDcSwitchResistanceLineEquivalence(double rSwitch, double rLine) {
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDcSwitchAndDcLine(rSwitch, rLine);
+
+        double targetP = network.getVoltageSourceConverter("conv23").getTargetP(); // MW
+        double targetVdc = network.getVoltageSourceConverter("conv45").getTargetVdc(); // kV
+        double rSw = network.getDcSwitch("sw3b").getR(); // Ohm
+        double rLi = network.getDcLine("dl3b4").getR(); // Ohm
+        double rTotal = rSw + rLi;
+
+        // Expected values derived analytically:
+        // Assumption: converter losses = 0 so DC power at conv23 = targetP
+        //   V_dn4 = targetVdc (imposed by inverter conv45)
+        //   V_dn3 = V_dn4 + I * rTotal  (Ohm's law across the full path)
+        //   P = V_dn3 * I quadratic equation, solved here for V_dn3
+        //   V_dn3b computed through the voltage divider formula.
+        double sqrtdelta = sqrt(targetVdc * targetVdc + 4 * rTotal * targetP);
+        double expectedVdn3 = 0.5 * (targetVdc + sqrtdelta);  // voltage at dn3 (kV)
+        double expectedIdc = (expectedVdn3 - targetVdc) / rTotal * 1000;  // DC current through the path (A)
+        double expectedVdn4 = targetVdc;
+        double expectedVdn3b = expectedVdn4 + rLi / (rLi + rSw) * (expectedVdn3 - expectedVdn4);  // voltage at dn3b (kV)
+
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertVoltageEquals(expectedVdn4, network.getDcNode("dn4"));
+        assertVoltageEquals(expectedVdn3, network.getDcNode("dn3"));
+        assertVoltageEquals(expectedVdn3b, network.getDcNode("dn3b"));
+
+        VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
+        assertDcCurrentEquals(expectedIdc, conv23.getDcTerminal2());
+    }
+
     @Test
     void testNoDcGround() {
         // The DC network should contain a DC ground. This should trigger an Exception
@@ -1025,35 +1075,6 @@ class AcDcLoadFlowTest {
 
         List<String> secondScSlackBusIds = result.getComponentResults().getLast().getSlackBusResults().stream().map(LoadFlowResult.SlackBusResult::getId).toList();
         assertEquals(List.of("vl5_0"), secondScSlackBusIds); // Only one bus on this synchronous component
-    }
-
-    @Test
-    void testUnsupportedDcSwitchWithNonZeroR() {
-        Network network = AcDcNetworkFactory.createMtDcNetworkWithThreeAcZones();
-        network.getDcLine("dl47").remove();
-        DcSwitch sw47 = network.newDcSwitch()
-                .setId("sw47")
-                .setKind(DcSwitchKind.BREAKER)
-                .setDcNode1("dn4p")
-                .setDcNode2("dn7")
-                .setOpen(false)
-                .setR(0.0)
-                .add();
-        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
-        parametersExt.setMaxSlackBusCount(2);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged()); // Load flow succeeds because DcSwitch has R = 0
-
-        sw47.setR(0.1);
-        CompletionException e = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
-        assertEquals("DcSwitch sw47 has non zero resistance: not handled yet in AC DC load flow (R = 0.1)", e.getCause().getMessage());
-
-        sw47.setOpen(true);
-        network.getVoltageSourceConverter("conv14")
-                .setTargetVdc(525.)
-                .setControlMode(AcDcConverter.ControlMode.V_DC);
-        result = loadFlowRunner.run(network, parameters);
-        assertFalse(result.isFullyConverged()); // Load flow do not succeed but no exception is thrown because of open switch
     }
 
     @Test

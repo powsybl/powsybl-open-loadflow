@@ -11,9 +11,9 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.LfHvdc;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 
 import static com.powsybl.openloadflow.network.LfHvdc.AcEmulationControl.AcEmulationStatus.*;
@@ -54,7 +54,7 @@ public abstract class AbstractHvdcAcEmulationLimitsOuterLoop<V extends Enum<V> &
         if (p1 >= 0) {
             if (p1 > hvdc.getAcEmulationControl().getPMaxFromCS1toCS2()) {
                 hvdc.getAcEmulationControl().switchToSaturationFromCS1toCS2(computeLoss);
-                Reports.reportAcEmulationFromLinearToSaturated(reportNode, hvdc.getId(),
+                LfReports.reportAcEmulationFromLinearToSaturated(reportNode, hvdc.getId(),
                         hvdc.getConverterStation1().getId(),
                         hvdc.getConverterStation2().getId(),
                         hvdc.getAcEmulationControl().getPMaxFromCS1toCS2() * PerUnit.SB,
@@ -65,7 +65,7 @@ public abstract class AbstractHvdcAcEmulationLimitsOuterLoop<V extends Enum<V> &
             double p2 = hvdc.getP2().eval();
             if (p2 > hvdc.getAcEmulationControl().getPMaxFromCS2toCS1()) {
                 hvdc.getAcEmulationControl().switchToSaturationFromCS2toCS1(computeLoss);
-                Reports.reportAcEmulationFromLinearToSaturated(reportNode, hvdc.getId(),
+                LfReports.reportAcEmulationFromLinearToSaturated(reportNode, hvdc.getId(),
                         hvdc.getConverterStation2().getId(),
                         hvdc.getConverterStation1().getId(),
                         hvdc.getAcEmulationControl().getPMaxFromCS2toCS1() * PerUnit.SB,
@@ -85,12 +85,12 @@ public abstract class AbstractHvdcAcEmulationLimitsOuterLoop<V extends Enum<V> &
                 || p2 > 0 && p2 < hvdc.getAcEmulationControl().getPMaxFromCS2toCS1()) {
             // If the HVDC was in saturation mode but goes back within active power limits -> switching to linear mode
             hvdc.getAcEmulationControl().switchToLinearMode();
-            Reports.reportAcEmulationBackToLinear(reportNode, hvdc.getId(), logger);
+            LfReports.reportAcEmulationBackToLinear(reportNode, hvdc.getId(), logger);
             return true;
         } else if (p1 < 0 && acEmulationControl.getAcEmulationStatus() == SATURATION_MODE_FROM_CS1_TO_CS2) {
             // If the HVDC was in saturation mode CS1toCS2 but goes over opposite Pmax -> switching to saturation mode CS2toCS1
             hvdc.getAcEmulationControl().switchToSaturationFromCS2toCS1(computeLoss);
-            Reports.reportAcEmulationSaturationSideSwitch(reportNode, hvdc.getId(),
+            LfReports.reportAcEmulationSaturationSideSwitch(reportNode, hvdc.getId(),
                     hvdc.getConverterStation2().getId(),
                     hvdc.getConverterStation1().getId(),
                     hvdc.getAcEmulationControl().getPMaxFromCS2toCS1() * PerUnit.SB,
@@ -99,7 +99,7 @@ public abstract class AbstractHvdcAcEmulationLimitsOuterLoop<V extends Enum<V> &
         } else if (p2 < 0 && acEmulationControl.getAcEmulationStatus() == SATURATION_MODE_FROM_CS2_TO_CS1) {
             // If the HVDC was in saturation mode CS2toCS1 but goes over opposite Pmax -> switching to saturation mode CS1toCS2
             hvdc.getAcEmulationControl().switchToSaturationFromCS1toCS2(computeLoss);
-            Reports.reportAcEmulationSaturationSideSwitch(reportNode, hvdc.getId(),
+            LfReports.reportAcEmulationSaturationSideSwitch(reportNode, hvdc.getId(),
                     hvdc.getConverterStation1().getId(),
                     hvdc.getConverterStation2().getId(),
                     hvdc.getAcEmulationControl().getPMaxFromCS1toCS2() * PerUnit.SB,
