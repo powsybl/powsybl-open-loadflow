@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.equations;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -55,9 +56,7 @@ class EquationDerivativeVector {
 
         // each potential cell of the jacobian matrix will be stored in values (one cell can be the sum of multiple terms)
         // so there are fewer values than size (but pre allocating all size) (nbCells < size)
-        valuesByCell = new double[size];
         rowRefsByCell = new Number[size];
-        rowsByCell = new int[size];
 
         Variable<?> previousVariable = null;
         int previousEquationElementNum = -1;
@@ -91,6 +90,9 @@ class EquationDerivativeVector {
             nbCellsByEquationElementNum[previousEquationElementNum] = nbCellsByEquation;
         }
         nbCells = cellIndex;
+
+        valuesByCell = new double[cellIndex];
+        rowsByCell = new int[cellIndex];
     }
 
     private void updateRows() {
