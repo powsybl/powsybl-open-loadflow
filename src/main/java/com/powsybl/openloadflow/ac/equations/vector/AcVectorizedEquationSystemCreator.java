@@ -10,6 +10,12 @@ package com.powsybl.openloadflow.ac.equations.vector;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.network.*;
+import org.apache.commons.lang3.mutable.MutableInt;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -34,8 +40,46 @@ public class AcVectorizedEquationSystemCreator extends AcEquationSystemCreator {
         super(network, creationParameters);
     }
 
+    private static BiConsumer<EquationSystemIndex<AcVariableType, AcEquationType>,
+            EquationSystemIndex.VariableRowFillerInput<AcVariableType, AcEquationType>> variableRowFiller() {
+        return (equationSystemIndex, input) -> {
+            MutableInt rowCounter = input.rowCounter();
+            List<Variable<AcVariableType>> sortedVariables = input.sortedVariables();
+            List<EquationArray<AcVariableType, AcEquationType>> sortedEquationArrays = input.sortedEquationArrays();
+            List<SingleEquation<AcVariableType, AcEquationType>> sortedSingleEquations = input.sortedSingleEquations();
+            List<Variable<AcVariableType>> sortedVariablesToFind = sortedVariables.stream().sorted(Variable::compareForEquationSystemIndex).toList();
+            // If no separator is given, trying to order variables corresponding to equation columns (to optimize KLU)
+            for (Variable<AcVariableType> variable : sortedVariablesToFind) {
+                variable.setRow(-1);
+            }
+            // First iterating over equation array if existing (usually BUS_P first and BUS_Q)
+            Iterator<Variable<AcVariableType>> variableIt = sortedVariablesToFind.iterator();
+            for (EquationArray<AcVariableType, AcEquationType> equationArray : sortedEquationArrays) {
+                for (int elementNum : equationArray.getColumnToElementNumList()) {
+                    // Going forward through variables until the one corresponding to the same equation element num
+                    while (variableIt.hasNext()) {
+                        Variable<AcVariableType> variable = variableIt.next();
+                        if (variable.getElementNum() == elementNum) {
+                            variable.setRow(rowCounter.intValue());
+                            rowCounter.increment();
+                            break;
+                        }
+                    }
+                }
+            }
+            // Then filling last variables
+            for (Variable<AcVariableType> variable : sortedVariablesToFind) {
+                if (variable.getRow() == -1) {
+                    variable.setRow(rowCounter.intValue());
+                    rowCounter.increment();
+                }
+            }
+        };
+    }
+
     @Override
     protected void create(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        equationSystem.getIndex().setVariableRowFiller(variableRowFiller());
         networkVector = new AcNetworkVector(network, equationSystem, creationParameters);
 
         EquationArray<AcVariableType, AcEquationType> pArray = equationSystem.createEquationArray(AcEquationType.BUS_TARGET_P);

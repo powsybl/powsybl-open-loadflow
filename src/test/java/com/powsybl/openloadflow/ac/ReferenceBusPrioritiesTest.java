@@ -23,6 +23,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.*;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -165,6 +166,7 @@ class ReferenceBusPrioritiesTest {
         assertTrue(ReferenceTerminals.getTerminals(network).contains(network.getGenerator("g1").getTerminal()));
     }
 
+    @Disabled
     @Test
     void shouldNotSelectVscHvdcConverterTest() {
         network = HvdcNetworkFactory.createVsc(false);

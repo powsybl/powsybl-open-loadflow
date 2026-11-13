@@ -152,6 +152,26 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         return columnToElementNum.get(column);
     }
 
+    public int[] getColumnToElementNumList() {
+        if (columnToElementNum == null) {
+            columnToElementNum = new TIntIntHashMap(elementCount);
+            for (int elementNum = 0; elementNum < elementCount; elementNum++) {
+                int c = getElementNumToColumn(elementNum);
+                if (c != -1) {
+                    columnToElementNum.put(c, elementNum);
+                }
+            }
+        }
+        int[] sorted = columnToElementNum.keys();
+        Arrays.sort(sorted);
+
+        for (int i = 0; i < sorted.length; i++) {
+            sorted[i] = columnToElementNum.get(sorted[i]);
+        }
+        return sorted;
+    }
+
+
     private void invalidateElementNumToColumn() {
         elementNumToColumn = null;
         columnToElementNum = null;

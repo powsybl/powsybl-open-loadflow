@@ -77,6 +77,17 @@ public class Variable<V extends Enum<V> & Quantity> implements Comparable<Variab
         return c;
     }
 
+    public int compareForEquationSystemIndex(Variable<V> o) {
+        if (o == this) {
+            return 0;
+        }
+        int c = type.ordinal() - o.type.ordinal();
+        if (c == 0) {
+            c = elementNum - o.elementNum;
+        }
+        return c;
+    }
+
     public void write(Writer writer) throws IOException {
         writer.write(type.getSymbol());
         writer.write(Integer.toString(elementNum));

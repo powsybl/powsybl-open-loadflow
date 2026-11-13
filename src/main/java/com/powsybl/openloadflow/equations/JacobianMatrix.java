@@ -14,6 +14,7 @@ import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.math.matrix.MatrixFactory;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -141,25 +142,36 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         SingleEquation<V, E> eq = itSortedSingleEquation.hasNext() ? itSortedSingleEquation.next() : null;
         EquationArray<V, E> eqArray = itSortedEquationArray.hasNext() ? itSortedEquationArray.next() : null;
         int index = 0; // index is either the column number of SingleEquation, either the first column of EquationArray
+        MutableInt nonZeroInDiagonal = new MutableInt();
         while (eq != null || eqArray != null) {
+            while (eqArray != null && index == eqArray.getFirstColumn()) { // Compute derivatives of next EquationArrays
+                eqArray.der((column, row, value, matrixElementIndex) -> {
+                    if (row == column) {
+                        nonZeroInDiagonal.increment();
+                    }
+                    return matrix.addAndGetIndex(row, column, value);
+                });
+                index += eqArray.getLength();
+                eqArray = itSortedEquationArray.hasNext() ? itSortedEquationArray.next() : null;
+            }
             while (eq != null && index == eq.getColumn()) { // Compute derivatives of all SingleEquations until next EquationArray
                 final int column = index;
                 eq.der((variable, value, matrixElementIndex) -> {
                     int row = variable.getRow();
+                    if (row == column) {
+                        nonZeroInDiagonal.increment();
+                    }
                     return matrix.addAndGetIndex(row, column, value);
                 });
                 index++;
                 eq = itSortedSingleEquation.hasNext() ? itSortedSingleEquation.next() : null;
             }
-            while (eqArray != null && index == eqArray.getFirstColumn()) { // Compute derivatives of next EquationArrays
-                eqArray.der((column, row, value, matrixElementIndex) ->
-                        matrix.addAndGetIndex(row, column, value));
-                index += eqArray.getLength();
-                eqArray = itSortedEquationArray.hasNext() ? itSortedEquationArray.next() : null;
-            }
         }
 
-        LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+        LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us ({} out of {} diagonal terms are non zero)",
+                stopwatch.elapsed(TimeUnit.MICROSECONDS),
+                nonZeroInDiagonal.intValue(),
+                index);
     }
 
     private void clearLu() {

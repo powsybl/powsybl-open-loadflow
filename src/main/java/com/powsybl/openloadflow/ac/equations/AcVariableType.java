@@ -14,8 +14,8 @@ import com.powsybl.openloadflow.network.ElementType;
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public enum AcVariableType implements Quantity {
-    BUS_V("v", ElementType.BUS), // bus voltage magnitude
     BUS_PHI("\u03C6", ElementType.BUS), // bus voltage angle
+    BUS_V("v", ElementType.BUS), // bus voltage magnitude
     BUS_V_ZERO("vh", ElementType.BUS), // bus voltage magnitude for zero sequence
     BUS_PHI_ZERO("\u03C6h", ElementType.BUS), // bus voltage angle for zero sequence
     BUS_V_NEGATIVE("vi", ElementType.BUS), // bus voltage magnitude for negative sequence

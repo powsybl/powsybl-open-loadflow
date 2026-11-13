@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -50,6 +52,14 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private final List<EquationSystemIndexListener<V, E>> listeners = new ArrayList<>();
 
+    public record VariableRowFillerInput<V extends Enum<V> & Quantity,
+            E extends Enum<E> & Quantity>(MutableInt rowCounter,
+                                          List<Variable<V>> sortedVariables,
+                                         List<EquationArray<V, E>> sortedEquationArrays,
+                                         List<SingleEquation<V, E>> sortedSingleEquations) {}
+
+    private BiConsumer<EquationSystemIndex<V,E>, VariableRowFillerInput<V, E>> variableRowFiller = null;
+
     public EquationSystemIndex(EquationSystem<V, E> equationSystem) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
         equationSystem.addListener(this);
@@ -57,6 +67,10 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     public void addListener(EquationSystemIndexListener<V, E> listener) {
         listeners.add(Objects.requireNonNull(listener));
+    }
+
+    public void setVariableRowFiller(BiConsumer<EquationSystemIndex<V,E>, VariableRowFillerInput<V, E>> variableRowFiller) {
+        this.variableRowFiller = variableRowFiller;
     }
 
     public void removeListener(EquationSystemIndexListener<V, E> listener) {
@@ -92,14 +106,14 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
     }
 
     private void updateEquationColumns(Collection<SingleEquation<V, E>> singleEquations, Collection<EquationArray<V, E>> equationArrays) {
-        for (SingleEquation<V, E> equation : singleEquations) {
-            equation.setColumn(columnCount++);
-        }
         for (EquationArray<V, E> equationArray : equationArrays) {
             equationArray.setFirstColumn(columnCount);
             columnCount += equationArray.getLength();
             columnCountFromArrayEquations += equationArray.getLength();
             sortedEquationArraysToSolve.add(equationArray);
+        }
+        for (SingleEquation<V, E> equation : singleEquations) {
+            equation.setColumn(columnCount++);
         }
     }
 
@@ -144,10 +158,21 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     private void updateVariablesToFind(Predicate<V> isSeparatedInFirstPart) {
         sortedVariablesToFind = sortedMapVariablesToFindRefCount.keySet().stream().sorted().toList();
-        rowCount = 0;
+        MutableInt rowCounter = new MutableInt(0);
         if (isSeparatedInFirstPart == null) {
-            for (Variable<V> variable : sortedVariablesToFind) {
-                variable.setRow(rowCount++);
+            if (variableRowFiller != null) {
+                // Trying to order variables in an optimzed way for KLU
+                VariableRowFillerInput<V, E> input = new VariableRowFillerInput<>(rowCounter,
+                        sortedVariablesToFind,
+                        sortedEquationArraysToSolve,
+                        sortedSingleEquationsToSolve);
+                variableRowFiller.accept(this, input);
+            } else {
+                // Default way, as sorted variables
+                for (Variable<V> variable : sortedVariablesToFind) {
+                    variable.setRow(rowCounter.intValue());
+                    rowCounter.increment();
+                }
             }
         } else {
             // If there is a separating predicate (Used for Fast Decoupled), rows are arranged in two parts :
@@ -155,12 +180,14 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
                     .collect(Collectors.partitioningBy(v -> isSeparatedInFirstPart.test(v.getType())));
             for (boolean isFirstPart : List.of(true, false)) {
                 for (Variable<V> variable : separatedVariables.get(isFirstPart)) {
-                    variable.setRow(rowCount++);
+                    variable.setRow(rowCounter.intValue());
+                    rowCounter.increment();
                 }
             }
             sortedVariablesToFind = Stream.concat(separatedVariables.get(true).stream(), separatedVariables.get(false).stream()).toList();
         }
         variablesIndexValid = true;
+        rowCount = rowCounter.intValue();
         LOGGER.debug("Variables index updated ({} rows)", rowCount);
     }
 
@@ -392,9 +419,6 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
 
     public Equation<V, E> getEquationAtColumn(int column) {
         update();
-        if (sortedEquationArraysToSolve.isEmpty()) {
-            return sortedSingleEquationsToSolve.get(column);
-        }
         int equationsFromArrayExplored = 0;
         for (EquationArray<V, E> equationArray : sortedEquationArraysToSolve) {
             if (column < equationArray.getFirstColumn()) {
@@ -407,7 +431,8 @@ public class EquationSystemIndex<V extends Enum<V> & Quantity, E extends Enum<E>
             }
             equationsFromArrayExplored += equationArray.getLength();
         }
-        throw new PowsyblException("Equation of column " + column + " not found");
+        return sortedSingleEquationsToSolve.get(column - equationsFromArrayExplored);
+        //throw new PowsyblException("Equation of column " + column + " not found");
     }
 
     public List<Variable<V>> getSortedVariablesToFind() {

@@ -198,23 +198,19 @@ public class JacobianMatrixFastDecoupled
     protected void initDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        int singleEquationsRangeIndex = equationSystem.getEquationArrays().isEmpty() ? rangeIndex : equationSystem.getEquationArrays().stream().findFirst().orElseThrow().getFirstColumn();
+        int singleEquationsRangeIndex = equationSystem.getEquationArrays().isEmpty() ? rangeIndex : rangeIndex - equationSystem.getEquationArrays().stream().findFirst().orElseThrow().getLength();
 
         List<SingleEquation<AcVariableType, AcEquationType>> subsetSingleEquationsToSolve = isPhiSystem ?
             equationSystem.getIndex().getSortedSingleEquationsToSolve().subList(0, singleEquationsRangeIndex) :
             equationSystem.getIndex().getSortedSingleEquationsToSolve().subList(singleEquationsRangeIndex, equationSystem.getIndex().getSortedSingleEquationsToSolve().size());
         List<EquationArray<AcVariableType, AcEquationType>> subsetEquationArrays = isPhiSystem ?
             equationSystem.getEquationArrays().stream().filter(e -> e.getFirstColumn() < rangeIndex).toList() :
-            equationSystem.getEquationArrays().stream().filter(e -> e.getFirstColumn() > rangeIndex).toList();
+            equationSystem.getEquationArrays().stream().filter(e -> e.getFirstColumn() >= rangeIndex).toList();
 
         int rowColumnCount = isPhiSystem ? rangeIndex : equationSystem.getIndex().getRowCount() - rangeIndex;
 
         int estimatedNonZeroValueCount = rowColumnCount * 3;
         matrix = matrixFactory.create(rowColumnCount, rowColumnCount, estimatedNonZeroValueCount);
-
-        for (Equation<AcVariableType, AcEquationType> eq : subsetSingleEquationsToSolve) {
-            derEquationFastDecoupled(eq);
-        }
 
         for (EquationArray<AcVariableType, AcEquationType> eqArray : subsetEquationArrays) {
             for (int elementNum = 0; elementNum < eqArray.getElementCount(); elementNum++) {
@@ -224,6 +220,10 @@ public class JacobianMatrixFastDecoupled
                 }
                 derEquationFastDecoupled(eq);
             }
+        }
+
+        for (Equation<AcVariableType, AcEquationType> eq : subsetSingleEquationsToSolve) {
+            derEquationFastDecoupled(eq);
         }
 
         if (isPhiSystem) {
