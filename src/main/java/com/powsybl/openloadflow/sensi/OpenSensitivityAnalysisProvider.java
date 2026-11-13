@@ -37,6 +37,7 @@ import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.action.Actions;
@@ -44,7 +45,6 @@ import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParame
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.openloadflow.util.ProviderConstants;
-import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.sensitivity.*;
 import com.powsybl.sensitivity.json.SensitivityJsonModule;
 import org.slf4j.Logger;
@@ -157,7 +157,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         OpenLoadFlowParameters.log(loadFlowParameters, loadFlowParametersExt);
 
         network.getVariantManager().setWorkingVariant(workingVariantId);
-        ReportNode sensiReportNode = Reports.createSensitivityAnalysis(reportNode, network.getId());
+        ReportNode sensiReportNode = LfReports.createSensitivityAnalysis(reportNode, network.getId());
 
         OpenSensitivityAnalysisParameters sensitivityAnalysisParametersExt =
                 OpenSensitivityAnalysisParameters.getOrDefault(sensitivityAnalysisParameters);

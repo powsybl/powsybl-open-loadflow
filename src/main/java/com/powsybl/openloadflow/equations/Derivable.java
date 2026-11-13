@@ -5,11 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.util;
+package com.powsybl.openloadflow.equations;
 
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.equations.Quantity;
-import com.powsybl.openloadflow.equations.Variable;
+import com.powsybl.openloadflow.util.Evaluable;
 
 import java.util.List;
 

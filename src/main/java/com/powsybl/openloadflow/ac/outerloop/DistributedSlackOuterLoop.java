@@ -17,10 +17,11 @@ import com.powsybl.openloadflow.lf.outerloop.AbstractActivePowerDistributionOute
 import com.powsybl.openloadflow.lf.outerloop.DistributedSlackContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.lf.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.LfSynchronousNetwork;
-import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.network.util.NetworkReports;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +63,7 @@ public class DistributedSlackOuterLoop
         Map<Integer, Double> slackMismatchPerSynchronousComponent = context.getLastSolverResult().getSlackBusActivePowerMismatch();
 
         // We need to create a root report node in oder to include it only if there are child reports
-        ReportNode iterationReportNode = Reports.createRootOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
+        ReportNode iterationReportNode = LfReports.createRootOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
         boolean severalSc = context.getNetwork().getSynchronousNetworks().size() > 1;
 
         OuterLoopStatus globalStatus = OuterLoopStatus.STABLE;
@@ -105,7 +106,7 @@ public class DistributedSlackOuterLoop
             LOGGER.debug("Already balanced");
             return new OuterLoopResult(this, OuterLoopStatus.STABLE);
         }
-        ReportNode iterationReportNode = createSubReport ? Reports.createLfSynchronousNetworkReportNode(reportNode, lfScNetwork.getNumSC()) : reportNode;
+        ReportNode iterationReportNode = createSubReport ? NetworkReports.createLfSynchronousNetworkReportNode(reportNode, lfScNetwork.getNumSC()) : reportNode;
         ActivePowerDistribution.Result result = activePowerDistribution.run(lfScNetwork, slackBusActivePowerMismatch);
         ActivePowerDistribution.ResultWithFailureBehaviorHandling resultWbh = ActivePowerDistribution.handleDistributionFailureBehavior(
                 context.getLoadFlowContext().getParameters().getSlackDistributionFailureBehavior(),
@@ -117,10 +118,10 @@ public class DistributedSlackOuterLoop
         double remainingMismatch = resultWbh.remainingMismatch();
         double distributedActivePower = slackBusActivePowerMismatch - remainingMismatch;
         if (Math.abs(remainingMismatch) > slackBusPMaxMismatch / PerUnit.SB) {
-            Reports.reportMismatchDistributionFailure(iterationReportNode, remainingMismatch * PerUnit.SB);
+            LfReports.reportMismatchDistributionFailure(iterationReportNode, remainingMismatch * PerUnit.SB);
         } else {
             if (Math.abs(remainingMismatch) > ActivePowerDistribution.P_RESIDUE_EPS) {
-                Reports.reportResidualDistributionMismatch(reportNode, remainingMismatch * PerUnit.SB);
+                LfReports.reportResidualDistributionMismatch(reportNode, remainingMismatch * PerUnit.SB);
             }
             ActivePowerDistribution.reportAndLogSuccess(iterationReportNode, slackBusActivePowerMismatch, resultWbh);
         }
