@@ -12,11 +12,11 @@ import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfGenerator;
 import com.powsybl.openloadflow.network.LfStaticVarCompensator;
 import com.powsybl.openloadflow.network.VoltageControl;
-import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.Range;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,7 +66,7 @@ public class MonitoringVoltageOuterLoop implements AcOuterLoop {
                     || pqToPvBus.voltageLimitDirection == VoltageLimitDirection.MIN) {
                 newTargetV = getSvcTargetV(controllerBus, pqToPvBus.voltageLimitDirection);
                 controllerBus.getGeneratorVoltageControl().ifPresent(vc -> vc.setTargetValue(newTargetV));
-                Reports.reportStandByAutomatonActivation(reportNode, controllerBus.getId(), newTargetV);
+                LfReports.reportStandByAutomatonActivation(reportNode, controllerBus.getId(), newTargetV);
                 if (LOGGER.isTraceEnabled()) {
                     if (pqToPvBus.voltageLimitDirection == VoltageLimitDirection.MAX) {
                         LOGGER.trace("Switch bus '{}' PQ -> PV with high targetV={}", controllerBus.getId(), newTargetV);

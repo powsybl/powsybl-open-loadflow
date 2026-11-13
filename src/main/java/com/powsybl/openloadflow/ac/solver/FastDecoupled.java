@@ -11,11 +11,11 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfSynchronousNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
-import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,9 +129,9 @@ public class FastDecoupled extends AbstractAcSolver {
         LOGGER.debug("Step size: {} ({} {} changes outside thresholds)", stepSize, cutCount, variableName);
         if (reportNode != null) {
             if (isPhiType) {
-                Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, 0, cutCount);
+                LfReports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, 0, cutCount);
             } else {
-                Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, cutCount, 0);
+                LfReports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, cutCount, 0);
             }
         }
     }
@@ -185,7 +185,7 @@ public class FastDecoupled extends AbstractAcSolver {
 
         LOGGER.debug("Step size: {}", stepSize);
         if (reportNode != null) {
-            Reports.reportLineSearchStateVectorScaling(reportNode, stepSize);
+            LfReports.reportLineSearchStateVectorScaling(reportNode, stepSize);
         }
     }
 
@@ -255,7 +255,7 @@ public class FastDecoupled extends AbstractAcSolver {
         try {
             // create iteration report
             // - add 1 to iteration so that it starts at 1 instead of 0
-            ReportNode iterationReportNode = detailedReport ? Reports.createAcMismatchReporter(reportNode, iterations.intValue() + 1) : null;
+            ReportNode iterationReportNode = detailedReport ? LfReports.createAcMismatchReporter(reportNode, iterations.intValue() + 1) : null;
 
             try {
                 // Solution on PHI
@@ -266,7 +266,7 @@ public class FastDecoupled extends AbstractAcSolver {
                 runSingleSystemSolution(jV, vEquationVector, rangeIndex, false, iterationReportNode);
             } catch (MatrixException e) {
                 LOGGER.error(e.toString(), e);
-                Reports.reportAcSolverError(reportNode, getName(), e.toString());
+                LfReports.reportAcSolverError(reportNode, getName(), e.toString());
                 return AcSolverStatus.SOLVER_FAILED;
             }
 
@@ -309,9 +309,9 @@ public class FastDecoupled extends AbstractAcSolver {
 
             LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
 
-            ReportNode initialReportNode = detailedReport ? Reports.createAcMismatchReporter(reportNode, 0) : null;
+            ReportNode initialReportNode = detailedReport ? LfReports.createAcMismatchReporter(reportNode, 0) : null;
             if (detailedReport) {
-                Reports.reportSolverNorm(initialReportNode, initialTestResult.getNorm());
+                LfReports.reportSolverNorm(initialReportNode, initialTestResult.getNorm());
             }
             if (detailedReport || LOGGER.isTraceEnabled()) {
                 reportAndLogLargestMismatchByAcEquationType(initialReportNode, equationSystem, equationVector.getArray(), LOGGER);
