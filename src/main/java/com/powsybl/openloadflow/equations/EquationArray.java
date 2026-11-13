@@ -47,12 +47,15 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     private final Map<Integer, List<SingleEquationTerm<V, E>>> singleTermsByTermElementNum = new TreeMap<>();
     private final Map<Integer, AdditionalSingleTermsByEquation> singleTermsByEquationElementNum = new TreeMap<>();
 
-    private final int[] equationDerivativeVectorStartIndices;
     private EquationDerivativeVector equationDerivativeVector;
+    private int[][] additionalTermsRows;
+    private double[][] additionalTermsDers;
 
     private final class AdditionalSingleTermsByEquation {
         private final List<SingleEquationTerm<V, E>> terms = new ArrayList<>();
         private final TreeMap<Variable<V>, List<SingleEquationTerm<V, E>>> termsByVariable = new TreeMap<>();
+        private int[] variableRows;
+        private double[] derValues;
 
         void addSingleTerm(SingleEquationTerm<V, E> termImpl, Equation<V, E> equation) {
             terms.add(termImpl);
@@ -68,6 +71,38 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             equationSystem.notifyEquationTermChange(termImpl, EquationTermEventType.EQUATION_TERM_ADDED);
             if (termImpl.hasRhs()) {
                 throw new UnsupportedOperationException("Rhs not supported yet");
+            }
+        }
+
+        void computeRows() {
+            final int nbVariables = termsByVariable.size();
+            variableRows = new int[nbVariables];
+            derValues = new double[nbVariables];
+            int i = 0;
+            for (Map.Entry<Variable<V>, List<SingleEquationTerm<V, E>>> entry : termsByVariable.entrySet()) {
+                int row = entry.getKey().getRow();
+                if (row != -1) {
+                    variableRows[i] = row;
+                    i++;
+                }
+            }
+            variableRows = Arrays.copyOf(variableRows, i);
+            derValues = Arrays.copyOf(derValues, i);
+        }
+
+        void computeDer() {
+            int i = 0;
+            for (Map.Entry<Variable<V>, List<SingleEquationTerm<V, E>>> entry : termsByVariable.entrySet()) {
+                int row = entry.getKey().getRow();
+                if (row != -1) {
+                    derValues[i] = 0.0;
+                    for (var term : entry.getValue()) {
+                        if (term.isActive()) {
+                            derValues[i] += term.der(entry.getKey());
+                        }
+                    }
+                    i++;
+                }
             }
         }
     }
@@ -93,6 +128,8 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
 
     private final MatrixElementIndexes matrixElementIndexes = new MatrixElementIndexes();
 
+    private int valueIndex;
+
     public EquationArray(E type, int elementCount, EquationSystem<V, E> equationSystem) {
         this.type = Objects.requireNonNull(type);
         this.elementCount = elementCount;
@@ -102,7 +139,6 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         hasSingleEquationTerms = new boolean[elementCount];
         Arrays.fill(hasSingleEquationTerms, false);
         this.length = elementCount; // all activated initially
-        this.equationDerivativeVectorStartIndices = new int[elementCount + 1];
     }
 
     public E getType() {
@@ -399,11 +435,10 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         if (equationDerivativeVector == null) {
             List<EquationDerivativeElement<?>> allTerms = new ArrayList<>();
             for (int elementNum = 0; elementNum < elementCount; elementNum++) {
-                equationDerivativeVectorStartIndices[elementNum] = allTerms.size();
                 addEquationDerivativeVectorSortedTerms(elementNum, allTerms);
             }
-            equationDerivativeVectorStartIndices[elementCount] = allTerms.size();
             equationDerivativeVector = new EquationDerivativeVector(allTerms, this);
+
         }
     }
 
@@ -421,7 +456,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 // for each term of each, add an entry for each derivative operation we need
                 var termDerivatives = termArray.getTermDerivatives(termNum);
                 for (Derivative<V> derivative : termDerivatives) {
-                    terms.add(new EquationDerivativeElement<>(termArrayNum, termNum, derivative));
+                    terms.add(new EquationDerivativeElement<>(termArrayNum, termNum, elementNum, derivative));
                 }
             }
         }
@@ -436,17 +471,37 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         matrixElementIndexes.reset();
     }
 
-    public void der(DerHandler handler) {
+    void updateAdditionalTerms(boolean recomputeRows) {
+        if (recomputeRows) {
+            additionalTermsRows = new int[elementCount][];
+            additionalTermsDers = new double[elementCount][];
+        }
+        for (Map.Entry<Integer, AdditionalSingleTermsByEquation> entry : singleTermsByEquationElementNum.entrySet()) {
+            int elementNum = entry.getKey();
+            if (!elementActive[elementNum]) {
+                continue;
+            }
+            AdditionalSingleTermsByEquation additionalTerms = entry.getValue();
+            if (recomputeRows) {
+                additionalTerms.computeRows();
+                additionalTermsRows[elementNum] = additionalTerms.variableRows;
+                additionalTermsDers[elementNum] = additionalTerms.derValues;
+            }
+            additionalTerms.computeDer();
+        }
+    }
+
+    public void der(DerHandler handler, boolean recomputeRows) {
         Objects.requireNonNull(handler);
 
         updateEquationDerivativeVectors();
-        equationDerivativeVector.update(this);
-
+        equationDerivativeVector.update(recomputeRows);
+        updateAdditionalTerms(recomputeRows);
+        valueIndex = 0;
         // calculate all derivative values
         // process column by column so equation by equation of the array
-        int valueIndex = 0;
+
         for (int elementNum = 0; elementNum < elementCount; elementNum++) {
-            List<Integer> computedRows = new ArrayList<>();
             // skip inactive elements
             if (!elementActive[elementNum]) {
                 continue;
@@ -455,84 +510,57 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             int column = getElementNumToColumn(elementNum);
             // for each equation of the array we already have the list of terms to derive and its variable sorted
             // by variable row (required by solvers)
+            double value;
+            int row;
 
-            // process term by term
-            double value = 0;
-            int row = 0;
-
-            AdditionalSingleTermsByEquation additionalTerms = null;
-            if (hasSingleEquationTerms[elementNum]) {
-                additionalTerms = singleTermsByEquationElementNum.get(elementNum);
-            }
-
-            int prevRow = -1;
-            int iStart = this.equationDerivativeVectorStartIndices[elementNum];
-            int iEnd = this.equationDerivativeVectorStartIndices[elementNum + 1];
-            for (int i = iStart; i < iEnd; i++) {
-
-                // the derivative variable row
-                row = equationDerivativeVector.rows[i];
-
-                // if an element at (row, column) is complete (we switch to another row), notify
-                if (prevRow != -1 && row != prevRow) {
-                    if (additionalTerms != null) {
-                        computedRows.add(prevRow);
-                        for (Variable<V> v : additionalTerms.termsByVariable.keySet()) {
-                            if (v.getRow() == prevRow) {
-                                for (var term : additionalTerms.termsByVariable.get(v)) {
-                                    if (term.isActive()) {
-                                        value += term.der(v);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    onDer(handler, column, prevRow, value, valueIndex);
-                    valueIndex++;
-                    value = 0;
-                }
-                prevRow = row;
-                value += equationDerivativeVector.values[i];
-            }
-
-            // remaining notif
-            if (prevRow != -1) {
-                if (additionalTerms != null) {
-                    computedRows.add(prevRow);
-                    for (Variable<V> v : additionalTerms.termsByVariable.keySet()) {
-                        if (v.getRow() == prevRow) {
-                            for (var term : additionalTerms.termsByVariable.get(v)) {
-                                if (term.isActive()) {
-                                    value += term.der(v);
-                                }
-                            }
-                        }
+            if (!hasSingleEquationTerms[elementNum]) {
+                // fast way without additional terms
+                int cellIndexStart = equationDerivativeVector.cellIndexByEquationElementNum[elementNum];
+                int cellIndexCount = equationDerivativeVector.nbCellsByEquationElementNum[elementNum];
+                for (int cellIndex = cellIndexStart;
+                     cellIndex < cellIndexStart + cellIndexCount;
+                     cellIndex++) {
+                    row = equationDerivativeVector.rowsByCell[cellIndex];
+                    if (row != -1) {
+                        value = equationDerivativeVector.valuesByCell[cellIndex];
+                        onDer(handler, column, row, value);
                     }
                 }
-                onDer(handler, column, prevRow, value, valueIndex);
-                valueIndex++;
-            }
-
-            if (additionalTerms != null) {
-                for (Variable<V> v : additionalTerms.termsByVariable.keySet()) {
-                    if (v.getRow() != -1 && !computedRows.contains(v.getRow())) {
-                        value = 0;
-                        for (var term : additionalTerms.termsByVariable.get(v)) {
-                            if (term.isActive()) {
-                                value += term.der(v);
+            } else {
+                int[] computedRows = additionalTermsRows[elementNum].clone(); // cloning to erase each computed rows
+                double[] computedDers = additionalTermsDers[elementNum];
+                // Filling all the cells that have been computed in EquationDerivativeVector
+                int cellIndexStart = equationDerivativeVector.cellIndexByEquationElementNum[elementNum];
+                int cellIndexCount = equationDerivativeVector.nbCellsByEquationElementNum[elementNum];
+                for (int cellIndex = cellIndexStart;
+                     cellIndex < cellIndexStart + cellIndexCount;
+                     cellIndex++) {
+                    row = equationDerivativeVector.rowsByCell[cellIndex];
+                    if (row != -1) {
+                        value = equationDerivativeVector.valuesByCell[cellIndex];
+                        for (int i = 0; i < computedRows.length; i++) {
+                            if (computedRows[i] == row) {
+                                value += computedDers[i];
+                                computedRows[i] = -1;
                             }
                         }
-                        onDer(handler, column, v.getRow(), value, valueIndex);
-                        valueIndex++;
+                        onDer(handler, column, row, value);
+                    }
+                }
+                // Filling remaining cells that were not in the EquationDerivativeVector
+                for (int i = 0; i < computedRows.length; i++) {
+                    if (computedRows[i] != -1) {
+                        onDer(handler, column, computedRows[i], computedDers[i]);
                     }
                 }
             }
         }
     }
 
-    private void onDer(DerHandler handler, int column, int row, double value, int valueIndex) {
+    private void onDer(DerHandler handler, int column, int row, double value) {
         int matrixElementIndex = handler.onDer(column, row, value, matrixElementIndexes.get(valueIndex));
         matrixElementIndexes.set(valueIndex, matrixElementIndex);
+        valueIndex++;
     }
 
     public void write(Writer writer, boolean writeInactiveEquations) throws IOException {

@@ -89,7 +89,7 @@ class EquationArrayTest {
             eq.der((column, row, value, matrixElementIndex) -> {
                 m.set(row, column, value);
                 return valueIndex[0]++;
-            });
+            }, true);
         }
         return m;
     }
