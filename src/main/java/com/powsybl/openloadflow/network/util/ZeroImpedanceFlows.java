@@ -47,8 +47,9 @@ public class ZeroImpedanceFlows {
         });
 
         // zero flows for all zero impedance branches outside the tree
+        double q = loadFlowModel == LoadFlowModel.DC ? Double.NaN : 0.0;
         graph.edgeSet().stream().filter(branch -> !tree.getEdges().contains(branch))
-                .forEach(branch -> results.put(branch, new LfBranch.LfBranchResults(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)));
+                .forEach(branch -> results.put(branch, new LfBranch.LfBranchResults(0.0, 0.0, q, q, 0.0, 0.0)));
         return results;
     }
 
@@ -166,8 +167,8 @@ public class ZeroImpedanceFlows {
             if (loadFlowModel == LoadFlowModel.AC) {
                 return Math.hypot(p, q) / v;
             } else {
-                // DC
-                return p / dcPowerFactor;
+                // DC, same as impedant branches
+                return Math.abs(p) / dcPowerFactor;
             }
         }
 
@@ -197,6 +198,11 @@ public class ZeroImpedanceFlows {
                 i2 = computeCurrent(p2, q2, branch.getBus2().getV());
             }
 
+            if (loadFlowModel == LoadFlowModel.DC) {
+                // reactive power is not modeled in DC, same as impedant branches
+                q1 = Double.NaN;
+                q2 = Double.NaN;
+            }
             results.put(branch, new LfBranch.LfBranchResults(p1, p2, q1, q2, i1, i2));
         }
 

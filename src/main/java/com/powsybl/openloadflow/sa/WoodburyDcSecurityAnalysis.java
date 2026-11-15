@@ -185,6 +185,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         return newFlowStates;
     }
 
+    // no zero impedance branch in fast DC mode (min impedance enforced): the cache only reads branch evaluables
     private static ZeroImpedanceFlowsCache createZeroImpedanceFlowsCache(DcLoadFlowContext context) {
         return new ZeroImpedanceFlowsCache(LoadFlowModel.DC, context.getParameters().getEquationSystemCreationParameters().getDcPowerFactor());
     }
@@ -208,11 +209,12 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         // update post contingency network result
         var postContingencyNetworkResult = new PostContingencyNetworkResult(lfNetwork, monitorIndex, woodburyContext.createResultExtension,
                 preContingencyNetworkResult, contingency, woodburyContext.modifiedMonitoredElementsParameters());
-        postContingencyNetworkResult.update(isBranchDisabledDueToContingency, createZeroImpedanceFlowsCache(loadFlowContext));
+        ZeroImpedanceFlowsCache zeroImpedanceFlowsCache = createZeroImpedanceFlowsCache(loadFlowContext);
+        postContingencyNetworkResult.update(isBranchDisabledDueToContingency, zeroImpedanceFlowsCache);
 
         // detect violations
         var postContingencyLimitViolationManager = new LimitViolationManager(preContingencyLimitViolationManager, woodburyContext.limitScalings, woodburyContext.violationsParameters);
-        postContingencyLimitViolationManager.detectViolations(lfNetwork, isBranchDisabledDueToContingency);
+        postContingencyLimitViolationManager.detectViolations(lfNetwork, isBranchDisabledDueToContingency, zeroImpedanceFlowsCache);
 
         // connectivity result due to the contingency
         var connectivityResult = new ConnectivityResult(
@@ -260,12 +262,13 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         // update network result
         var postActionsNetworkResult = new PostContingencyNetworkResult(lfNetwork, monitorIndex, woodburyContext.createResultExtension,
                 preContingencyNetworkResult, contingency, woodburyContext.modifiedMonitoredElementsParameters);
-        postActionsNetworkResult.update(isBranchDisabledDueToContingency, createZeroImpedanceFlowsCache(loadFlowContext));
+        ZeroImpedanceFlowsCache zeroImpedanceFlowsCache = createZeroImpedanceFlowsCache(loadFlowContext);
+        postActionsNetworkResult.update(isBranchDisabledDueToContingency, zeroImpedanceFlowsCache);
 
         // detect violations
         var postActionsViolationManager = new LimitViolationManager(preContingencyLimitViolationManager,
                 woodburyContext.limitScalings, woodburyContext.violationsParameters);
-        postActionsViolationManager.detectViolations(lfNetwork, isBranchDisabledDueToContingency);
+        postActionsViolationManager.detectViolations(lfNetwork, isBranchDisabledDueToContingency, zeroImpedanceFlowsCache);
 
         return new OperatorStrategyResult(operatorStrategy,
             List.of(
@@ -426,11 +429,12 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
             // update network result
             var preContingencyNetworkResult = new PreContingencyNetworkResult(lfNetwork, monitorIndex, createResultExtension);
-            preContingencyNetworkResult.update(createZeroImpedanceFlowsCache(context));
+            ZeroImpedanceFlowsCache zeroImpedanceFlowsCache = createZeroImpedanceFlowsCache(context);
+            preContingencyNetworkResult.update(zeroImpedanceFlowsCache);
 
             // detect violations
             var preContingencyLimitViolationManager = new LimitViolationManager(limitScalings);
-            preContingencyLimitViolationManager.detectViolations(lfNetwork);
+            preContingencyLimitViolationManager.detectViolations(lfNetwork, zeroImpedanceFlowsCache);
             WoodburyContext woodburyContext = new WoodburyContext(context, operatorStrategiesByContingencyId, lfActionById, createResultExtension,
                     securityAnalysisParameters.getIncreasedViolationsParameters(), limitScalings,
                     securityAnalysisParameters.getModifiedMonitoredElementsParameters());

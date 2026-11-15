@@ -500,11 +500,13 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             if (preContingencyComputationOk) {
                 afterPreContingencySimulation(p);
 
+                ZeroImpedanceFlowsCache zeroImpedanceFlowsCache = createZeroImpedanceFlowsCache(securityAnalysisParameters);
+
                 // update network result
-                preContingencyNetworkResult.update(createZeroImpedanceFlowsCache(securityAnalysisParameters));
+                preContingencyNetworkResult.update(zeroImpedanceFlowsCache);
 
                 // detect violations
-                preContingencyLimitViolationManager.detectViolations(lfNetwork);
+                preContingencyLimitViolationManager.detectViolations(lfNetwork, zeroImpedanceFlowsCache);
 
                 // save base state for later restoration after each contingency
                 NetworkState networkState = NetworkState.save(lfNetwork);
@@ -605,11 +607,13 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 contingency, securityAnalysisParameters.getModifiedMonitoredElementsParameters());
 
         if (status.equals(PostContingencyComputationStatus.CONVERGED)) {
+            ZeroImpedanceFlowsCache zeroImpedanceFlowsCache = createZeroImpedanceFlowsCache(securityAnalysisParameters);
+
             // update network result
-            postContingencyNetworkResult.update(createZeroImpedanceFlowsCache(securityAnalysisParameters));
+            postContingencyNetworkResult.update(zeroImpedanceFlowsCache);
 
             // detect violations
-            postContingencyLimitViolationManager.detectViolations(network);
+            postContingencyLimitViolationManager.detectViolations(network, zeroImpedanceFlowsCache);
         }
 
         stopwatch.stop();
@@ -673,11 +677,13 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 contingency, securityAnalysisParameters.getModifiedMonitoredElementsParameters());
 
         if (status.equals(PostContingencyComputationStatus.CONVERGED)) {
+            ZeroImpedanceFlowsCache zeroImpedanceFlowsCache = createZeroImpedanceFlowsCache(securityAnalysisParameters);
+
             // update network result
-            postActionsNetworkResult.update(createZeroImpedanceFlowsCache(securityAnalysisParameters));
+            postActionsNetworkResult.update(zeroImpedanceFlowsCache);
 
             // detect violations
-            postActionsViolationManager.detectViolations(network);
+            postActionsViolationManager.detectViolations(network, zeroImpedanceFlowsCache);
         }
 
         stopwatch.stop();
