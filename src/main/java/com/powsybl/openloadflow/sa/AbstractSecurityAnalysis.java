@@ -500,11 +500,13 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
             if (preContingencyComputationOk) {
                 afterPreContingencySimulation(p);
 
+                NetworkStateBranchFlows branchFlows = createNetworkStateBranchFlows(securityAnalysisParameters);
+
                 // update network result
-                preContingencyNetworkResult.update(createNetworkStateBranchFlows(securityAnalysisParameters));
+                preContingencyNetworkResult.update(branchFlows);
 
                 // detect violations
-                preContingencyLimitViolationManager.detectViolations(lfNetwork);
+                preContingencyLimitViolationManager.detectViolations(lfNetwork, branchFlows);
 
                 // save base state for later restoration after each contingency
                 NetworkState networkState = NetworkState.save(lfNetwork);
@@ -605,11 +607,13 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 contingency, securityAnalysisParameters.getModifiedMonitoredElementsParameters());
 
         if (status.equals(PostContingencyComputationStatus.CONVERGED)) {
+            NetworkStateBranchFlows branchFlows = createNetworkStateBranchFlows(securityAnalysisParameters);
+
             // update network result
-            postContingencyNetworkResult.update(createNetworkStateBranchFlows(securityAnalysisParameters));
+            postContingencyNetworkResult.update(branchFlows);
 
             // detect violations
-            postContingencyLimitViolationManager.detectViolations(network);
+            postContingencyLimitViolationManager.detectViolations(network, branchFlows);
         }
 
         stopwatch.stop();
@@ -673,11 +677,13 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 contingency, securityAnalysisParameters.getModifiedMonitoredElementsParameters());
 
         if (status.equals(PostContingencyComputationStatus.CONVERGED)) {
+            NetworkStateBranchFlows branchFlows = createNetworkStateBranchFlows(securityAnalysisParameters);
+
             // update network result
-            postActionsNetworkResult.update(createNetworkStateBranchFlows(securityAnalysisParameters));
+            postActionsNetworkResult.update(branchFlows);
 
             // detect violations
-            postActionsViolationManager.detectViolations(network);
+            postActionsViolationManager.detectViolations(network, branchFlows);
         }
 
         stopwatch.stop();

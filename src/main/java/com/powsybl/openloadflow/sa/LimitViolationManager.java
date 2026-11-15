@@ -16,6 +16,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LimitScalingManager;
+import com.powsybl.openloadflow.network.util.NetworkStateBranchFlows;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.*;
@@ -24,9 +25,7 @@ import org.apache.commons.lang3.function.TriFunction;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.ToDoubleFunction;
 
 /**
  * Limit violation manager. A reference limit violation manager could be specified to only report violations that
@@ -64,21 +63,24 @@ public class LimitViolationManager {
     /**
      * Detect violations on branches and on buses
      * @param network network on which the violation limits are checked
+     * @param branchFlows branch flows of the current network state
      */
-    public void detectViolations(LfNetwork network) {
-        detectViolations(network, LfElement::isDisabled);
+    public void detectViolations(LfNetwork network, NetworkStateBranchFlows branchFlows) {
+        detectViolations(network, LfElement::isDisabled, branchFlows);
     }
 
     /**
      * Detect violations on branches and on buses
      * @param network network on which the violation limits are checked
      * @param isBranchDisabled predicate to evaluate if a branch of the network is disabled or not
+     * @param branchFlows branch flows of the current network state
      */
-    public void detectViolations(LfNetwork network, Predicate<LfBranch> isBranchDisabled) {
+    public void detectViolations(LfNetwork network, Predicate<LfBranch> isBranchDisabled, NetworkStateBranchFlows branchFlows) {
         Objects.requireNonNull(network);
+        Objects.requireNonNull(branchFlows);
 
         // Detect violation limits on branches
-        network.getBranches().stream().filter(b -> !isBranchDisabled.test(b)).forEach(this::detectBranchViolations);
+        network.getBranches().stream().filter(b -> !isBranchDisabled.test(b)).forEach(b -> detectBranchViolations(b, branchFlows));
 
         // Detect violation limits on buses
         network.getBuses().stream().filter(b -> !b.isDisabled()).forEach(this::detectBusViolations);
@@ -116,10 +118,9 @@ public class LimitViolationManager {
         addLimitViolation(limitViolation, Pair.of(voltageAngleLimit.getId(), limitViolation.getOperationalLimitsGroupId()));
     }
 
-    private void detectBranchCurrentViolations(LfBranch branch, LfBus bus, Function<LfBranch, Evaluable> iGetter, LfBranch.LfLimitsGroup limitsGroup, TwoSides side) {
+    private void detectBranchCurrentViolations(LfBranch branch, LfBus bus, double i, LfBranch.LfLimitsGroup limitsGroup, TwoSides side) {
         List<LfBranch.LfLimit> limits = limitsGroup.getSortedLimits();
         String operationalLimitsGroupId = limitsGroup.getOperationalLimitsGroupId();
-        double i = iGetter.apply(branch).eval();
         for (LfBranch.LfLimit limit : limits) {
             if (i > limit.getScaledValue()) {
                 addBranchLimitViolation(createLimitViolation(branch, operationalLimitsGroupId, limit, LimitViolationType.CURRENT, PerUnit.ib(bus.getNominalV()), i, side));
@@ -128,10 +129,9 @@ public class LimitViolationManager {
         }
     }
 
-    private void detectBranchActivePowerViolations(LfBranch branch, Function<LfBranch, Evaluable> pGetter, LfBranch.LfLimitsGroup limitsGroup, TwoSides side) {
+    private void detectBranchActivePowerViolations(LfBranch branch, double p, LfBranch.LfLimitsGroup limitsGroup, TwoSides side) {
         List<LfBranch.LfLimit> limits = limitsGroup.getSortedLimits();
         String operationalLimitsGroupId = limitsGroup.getOperationalLimitsGroupId();
-        double p = pGetter.apply(branch).eval();
         for (LfBranch.LfLimit limit : limits) {
             if (Math.abs(p) > limit.getScaledValue()) {
                 addBranchLimitViolation(createLimitViolation(branch, operationalLimitsGroupId, limit, LimitViolationType.ACTIVE_POWER, PerUnit.SB, p, side));
@@ -140,11 +140,10 @@ public class LimitViolationManager {
         }
     }
 
-    private void detectBranchApparentPowerViolations(LfBranch branch, ToDoubleFunction<LfBranch> sGetter, LfBranch.LfLimitsGroup limitsGroup, TwoSides side) {
+    private void detectBranchApparentPowerViolations(LfBranch branch, double s, LfBranch.LfLimitsGroup limitsGroup, TwoSides side) {
         List<LfBranch.LfLimit> limits = limitsGroup.getSortedLimits();
         String operationalLimitsGroupId = limitsGroup.getOperationalLimitsGroupId();
         //Apparent power is not relevant for fictitious branches and may be NaN
-        double s = sGetter.applyAsDouble(branch);
         if (!Double.isNaN(s)) {
             for (LfBranch.LfLimit limit : limits) {
                 if (s > limit.getScaledValue()) {
@@ -155,41 +154,80 @@ public class LimitViolationManager {
         }
     }
 
-    private void detectBranchSideViolations(LfBranch branch, LfBus bus,
-                                            TriFunction<LfBranch, LimitType, LimitScalingManager, List<LfBranch.LfLimitsGroup>> limitsGetter,
-                                            Function<LfBranch, Evaluable> iGetter,
-                                            Function<LfBranch, Evaluable> pGetter,
-                                            ToDoubleFunction<LfBranch> sGetter,
-                                            TwoSides side) {
-        List<LfBranch.LfLimitsGroup> limitsGroups = limitsGetter.apply(branch, LimitType.CURRENT, limitScalingManager);
-        for (LfBranch.LfLimitsGroup limitsGroup : limitsGroups) {
-            detectBranchCurrentViolations(branch, bus, iGetter, limitsGroup, side);
-        }
+    private record BranchSideLimits(List<LfBranch.LfLimitsGroup> current, List<LfBranch.LfLimitsGroup> activePower,
+                                    List<LfBranch.LfLimitsGroup> apparentPower) {
 
-        limitsGroups = limitsGetter.apply(branch, LimitType.ACTIVE_POWER, limitScalingManager);
-        for (LfBranch.LfLimitsGroup limitsGroup : limitsGroups) {
-            detectBranchActivePowerViolations(branch, pGetter, limitsGroup, side);
-        }
+        private static final BranchSideLimits EMPTY = new BranchSideLimits(List.of(), List.of(), List.of());
 
-        limitsGroups = limitsGetter.apply(branch, LimitType.APPARENT_POWER, limitScalingManager);
-        for (LfBranch.LfLimitsGroup limitsGroup : limitsGroups) {
-            detectBranchApparentPowerViolations(branch, sGetter, limitsGroup, side);
+        private boolean isEmpty() {
+            return current.isEmpty() && activePower.isEmpty() && apparentPower.isEmpty();
+        }
+    }
+
+    private BranchSideLimits getBranchSideLimits(LfBranch branch, LfBus bus,
+                                                 TriFunction<LfBranch, LimitType, LimitScalingManager, List<LfBranch.LfLimitsGroup>> limitsGetter) {
+        if (bus == null) {
+            return BranchSideLimits.EMPTY;
+        }
+        return new BranchSideLimits(limitsGetter.apply(branch, LimitType.CURRENT, limitScalingManager),
+                                    limitsGetter.apply(branch, LimitType.ACTIVE_POWER, limitScalingManager),
+                                    limitsGetter.apply(branch, LimitType.APPARENT_POWER, limitScalingManager));
+    }
+
+    /**
+     * Flows are given as {@link Evaluable} rather than values so that only the limited quantities are evaluated: most
+     * branches only have current limits, and AC active/reactive power evaluation is costly. As detection runs for every
+     * branch in every state, evaluating all flows was measured about 5% slower (whole detection time) on a 28k branches
+     * network.
+     */
+    private void detectBranchSideViolations(LfBranch branch, LfBus bus, BranchSideLimits limits, Evaluable i, Evaluable p, Evaluable q, TwoSides side) {
+        if (!limits.current().isEmpty()) {
+            double iValue = i.eval();
+            for (LfBranch.LfLimitsGroup limitsGroup : limits.current()) {
+                detectBranchCurrentViolations(branch, bus, iValue, limitsGroup, side);
+            }
+        }
+        if (!limits.activePower().isEmpty()) {
+            double pValue = p.eval();
+            for (LfBranch.LfLimitsGroup limitsGroup : limits.activePower()) {
+                detectBranchActivePowerViolations(branch, pValue, limitsGroup, side);
+            }
+        }
+        if (!limits.apparentPower().isEmpty()) {
+            double s = Math.hypot(p.eval(), q.eval());
+            for (LfBranch.LfLimitsGroup limitsGroup : limits.apparentPower()) {
+                detectBranchApparentPowerViolations(branch, s, limitsGroup, side);
+            }
         }
     }
 
     /**
      * Detect violation limits on one branch and add them to the given list
      * @param branch branch of interest
+     * @param branchFlows branch flows of the current network state
      */
-    private void detectBranchViolations(LfBranch branch) {
-        // detect violation limits on a branch
-        // Only detect the most serious one (findFirst) : limit violations are ordered by severity
-        if (branch.getBus1() != null) {
-            detectBranchSideViolations(branch, branch.getBus1(), LfBranch::getLimits1, LfBranch::getI1, LfBranch::getP1, LfBranch::computeApparentPower1, TwoSides.ONE);
+    private void detectBranchViolations(LfBranch branch, NetworkStateBranchFlows branchFlows) {
+        BranchSideLimits limits1 = getBranchSideLimits(branch, branch.getBus1(), LfBranch::getLimits1);
+        BranchSideLimits limits2 = getBranchSideLimits(branch, branch.getBus2(), LfBranch::getLimits2);
+        if (limits1.isEmpty() && limits2.isEmpty()) {
+            // limits are fetched before flows so that zero impedance flows, computed on the whole zero impedance
+            // network at first request, are never computed for branches without limits
+            return;
         }
 
-        if (branch.getBus2() != null) {
-            detectBranchSideViolations(branch, branch.getBus2(), LfBranch::getLimits2, LfBranch::getI2, LfBranch::getP2, LfBranch::computeApparentPower2, TwoSides.TWO);
+        // detect violation limits on a branch
+        // Only detect the most serious one (findFirst) : limit violations are ordered by severity
+        if (branchFlows.isZeroImpedance(branch)) {
+            // zero impedance branches have no flow evaluables: all their flows are computed per zero impedance network
+            LfBranch.LfBranchResults flows = branchFlows.getFlows(branch);
+            detectBranchSideViolations(branch, branch.getBus1(), limits1, flows::i1, flows::p1, flows::q1, TwoSides.ONE);
+            detectBranchSideViolations(branch, branch.getBus2(), limits2, flows::i2, flows::p2, flows::q2, TwoSides.TWO);
+        } else {
+            // NetworkStateBranchFlows.getFlows would also work for impedant branches, but it eagerly evaluates the six
+            // flows (p, q, i on both sides). Passing the branch evaluables instead defers evaluation to the quantities
+            // that actually have limits, typically only the currents: see detectBranchSideViolations
+            detectBranchSideViolations(branch, branch.getBus1(), limits1, branch.getI1(), branch.getP1(), branch.getQ1(), TwoSides.ONE);
+            detectBranchSideViolations(branch, branch.getBus2(), limits2, branch.getI2(), branch.getP2(), branch.getQ2(), TwoSides.TWO);
         }
     }
 

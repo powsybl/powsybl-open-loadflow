@@ -39,6 +39,20 @@ However limitations remain until the core security analysis API evolves:
 - Convergence status of contingencies that affect multiple components are not reported (only the first run component's status)
 - Actions that change the topology of the network by connecting components not initially connected (using TerminalConnectionAction) are not supported
 
+## Zero impedance branches
+
+When the `lowImpedanceBranchMode` load flow parameter is `REPLACE_BY_ZERO_IMPEDANCE_LINE`,
+flows of zero impedance branches are not part of the load flow solution. They are computed afterward, from bus injections
+and flows of adjacent impedant branches, for monitored branches (state monitors) and for branches with operational limits
+(limit violations detection).
+
+Please note that:
+- When zero impedance branches form a loop, the flow distribution among the branches of the loop cannot be determined:
+  only the branches of a spanning tree of the zero impedance subnetwork carry flow, the other ones are reported with a zero flow.
+  Reported flows and limit violations on such parallel zero impedance branches thus depend on the spanning tree that has been chosen.
+- In DC, as for impedant branches, reactive power of zero impedance branches is not computed and apparent power limits are not checked.
+- With `dcFastMode`, zero impedance branches are always replaced by minimum impedance lines.
+
 ## DC detailed model
 
 Please note that security analysis supports AC-DC networks with DC detailed model only if:
