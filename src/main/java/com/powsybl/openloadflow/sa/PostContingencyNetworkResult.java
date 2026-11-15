@@ -12,8 +12,10 @@ import com.powsybl.contingency.ContingencyElement;
 import com.powsybl.contingency.ContingencyElementType;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
+import com.powsybl.openloadflow.network.util.ZeroImpedanceFlowsCache;
 import com.powsybl.security.SecurityAnalysisParameters.ModifiedMonitoredElementsParameters;
 import com.powsybl.security.monitor.StateMonitor;
+import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResult;
 import com.powsybl.security.results.ChangedPhaseTapChanger;
@@ -39,10 +41,10 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
 
     private final ModifiedMonitoredElementsParameters modifiedMonitoredElementsParameters;
 
-    public PostContingencyNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension,
-                                        PreContingencyNetworkResult preContingencyNetworkResult, Contingency contingency, LoadFlowModel loadFlowModel, double dcPowerFactor,
+    public PostContingencyNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension,
+                                        PreContingencyNetworkResult preContingencyNetworkResult, Contingency contingency,
                                         ModifiedMonitoredElementsParameters modifiedMonitoredElementsParameters) {
-        super(network, monitorIndexes, createResultExtension, loadFlowModel, dcPowerFactor);
+        super(network, monitorIndex, createResultExtension);
         this.preContingencyNetworkResult = Objects.requireNonNull(preContingencyNetworkResult);
         this.contingency = Objects.requireNonNull(contingency);
         this.modifiedMonitoredElementsParameters = modifiedMonitoredElementsParameters;
@@ -54,12 +56,12 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
         threeWindingsTransformerResults.clear();
     }
 
-    public void addResults(StateMonitor monitor, Predicate<LfBranch> isBranchDisabled, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
-        addResults(monitor, branch -> createBranchResults(branch, zeroImpedanceFlows), isBranchDisabled,
-                this::createBusResults, id -> create3WTransformerResults(id, zeroImpedanceFlows));
+    public void addResults(StateMonitor monitor, Predicate<LfBranch> isBranchDisabled, ZeroImpedanceFlowsCache zeroImpedanceFlowsCache) {
+        addResults(monitor, branch -> createBranchResults(branch, zeroImpedanceFlowsCache), isBranchDisabled,
+                this::createBusResults, id -> create3WTransformerResults(id, zeroImpedanceFlowsCache));
     }
 
-    private void createBranchResults(LfBranch branch, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
+    private void createBranchResults(LfBranch branch, ZeroImpedanceFlowsCache zeroImpedanceFlowsCache) {
         var preContingencyBranchResult = preContingencyNetworkResult.getBranchResult(branch.getId());
         double preContingencyBranchP1 = preContingencyBranchResult != null ? preContingencyBranchResult.getP1() : Double.NaN;
         double preContingencyBranchOfContingencyP1 = Double.NaN;
@@ -75,7 +77,7 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
                 }
             }
         }
-        List<BranchResult> results = branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension, zeroImpedanceFlows, loadFlowModel);
+        List<BranchResult> results = branch.createBranchResult(preContingencyBranchP1, preContingencyBranchOfContingencyP1, createResultExtension, zeroImpedanceFlowsCache);
         BranchResult postContingencyBranchResult = results.getFirst(); // getFirst for the tie-line case, all others have only one BranchResult
         if (changed(preContingencyBranchResult, postContingencyBranchResult)) {
             branchResults.addAll(results);
@@ -113,9 +115,9 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
         }
     }
 
-    private void create3WTransformerResults(String id, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
+    private void create3WTransformerResults(String id, ZeroImpedanceFlowsCache zeroImpedanceFlowsCache) {
         var preContingencyResult = preContingencyNetworkResult.getThreeWindingsTransformerResult(id);
-        var postContingencyResult = LfLegBranch.createThreeWindingsTransformerResult(network, id, createResultExtension, zeroImpedanceFlows, loadFlowModel);
+        var postContingencyResult = LfLegBranch.createThreeWindingsTransformerResult(network, id, createResultExtension, zeroImpedanceFlowsCache);
         if (changed(preContingencyResult, postContingencyResult)) {
             threeWindingsTransformerResults.add(postContingencyResult);
         }
@@ -137,8 +139,8 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
     }
 
     @Override
-    public void update() {
-        update(LfBranch::isDisabled);
+    public void update(ZeroImpedanceFlowsCache zeroImpedanceFlowsCache) {
+        update(LfBranch::isDisabled, zeroImpedanceFlowsCache);
     }
 
     @Override
@@ -157,16 +159,10 @@ public class PostContingencyNetworkResult extends AbstractNetworkResult {
                         }));
     }
 
-    public void update(Predicate<LfBranch> isBranchDisabled) {
+    public void update(Predicate<LfBranch> isBranchDisabled, ZeroImpedanceFlowsCache zeroImpedanceFlowsCache) {
         clear();
         StateMonitor stateMonitor = monitorIndex.getSpecificStateMonitors().get(contingency.getId());
-        if (stateMonitor != null) {
-            Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getSpecificStateMonitors().get(contingency.getId()), network);
-            addResults(stateMonitor, isBranchDisabled, zeroImpedanceFlows);
-        } else {
-            Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getAllStateMonitor(), network);
-            addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
-        }
+        addResults(stateMonitor != null ? stateMonitor : monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlowsCache);
         storeInitialPhaseTapChangerInfo();
         updateChangedPhaseTapChanger();
     }

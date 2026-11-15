@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.LineFortescue;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.util.ZeroImpedanceFlowsCache;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 import org.slf4j.Logger;
@@ -235,13 +236,12 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
 
     @Override
     public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
-                                                 boolean createExtension, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows,
-                                                 LoadFlowModel loadFlowModel) {
+                                                 boolean createExtension, ZeroImpedanceFlowsCache zeroImpedanceFlowsCache) {
         var branch = getBranch();
         double currentScale1 = PerUnit.ib(branch.getTerminal1().getVoltageLevel().getNominalV());
         double currentScale2 = PerUnit.ib(branch.getTerminal2().getVoltageLevel().getNominalV());
 
-        var branchResult = buildBranchResult(loadFlowModel, zeroImpedanceFlows, currentScale1, currentScale2, preContingencyBranchP1, preContingencyBranchOfContingencyP1);
+        var branchResult = buildBranchResult(zeroImpedanceFlowsCache, currentScale1, currentScale2, preContingencyBranchP1, preContingencyBranchOfContingencyP1);
         if (createExtension) {
             branchResult.addExtension(OlfBranchResult.class, new OlfBranchResult(piModel.getR1(), piModel.getContinuousR1(),
                     getV1() * branch.getTerminal1().getVoltageLevel().getNominalV(),

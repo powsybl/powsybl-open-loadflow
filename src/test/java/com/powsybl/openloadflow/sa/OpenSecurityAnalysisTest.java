@@ -5220,6 +5220,43 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(expectedL12P1, result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
     }
 
+    @ParameterizedTest
+    @CsvSource(useHeadersInDisplayName = true, textBlock = """
+            dc,    side
+            false, ONE
+            true,  ONE
+            false, TWO
+            true,  TWO
+        """)
+    void testMonitoredZeroImpedanceBranchConnectedOneSide(boolean dc, TwoSides side) {
+        Network network = FourBusNetworkFactory.create();
+
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
+                .setDc(dc);
+        OpenLoadFlowParameters.create(loadFlowParameters)
+                .setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
+
+        network.getLine("l14")
+                .setR(0.0)
+                .setX(0.0)
+                .getTerminal(side).disconnect();
+        List<Contingency> contingencies = List.of(Contingency.line("l12"));
+
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l14"), Collections.emptySet(), Collections.emptySet()));
+
+        SecurityAnalysisResult result = assertDoesNotThrow(() -> runSecurityAnalysis(network, contingencies, monitors, loadFlowParameters));
+        BranchResult preContingencyResult = result.getPreContingencyResult().getNetworkResult().getBranchResult("l14");
+        BranchResult postContingencyResult = result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l14");
+        for (BranchResult branchResult : List.of(preContingencyResult, postContingencyResult)) {
+            double connectedSideP = side == TwoSides.ONE ? branchResult.getP2() : branchResult.getP1();
+            double connectedSideI = side == TwoSides.ONE ? branchResult.getI2() : branchResult.getI1();
+            double openSideP = side == TwoSides.ONE ? branchResult.getP1() : branchResult.getP2();
+            assertEquals(0, connectedSideP, DELTA_POWER);
+            assertEquals(0, connectedSideI, DELTA_I);
+            assertTrue(Double.isNaN(openSideP));
+        }
+    }
+
     @ParameterizedTest(name = "DC = {0}")
     @ValueSource(booleans = {false, true})
     void testZeroFlowTransfer(boolean dc) {
