@@ -216,7 +216,7 @@ public class VoltageMagnitudeInitializer implements VoltageInitializer {
             }
         }
 
-        try (JacobianMatrix<InitVmVariableType, InitVmEquationType> j = new JacobianMatrix<>(equationSystem, matrixFactory)) {
+        try (SquareJacobianMatrix<InitVmVariableType, InitVmEquationType> j = new SquareJacobianMatrix<>(equationSystem, matrixFactory)) {
             double[] targets = TargetVector.createArray(network, equationSystem, new TargetVector.Initializer<InitVmVariableType, InitVmEquationType>() {
                 @Override
                 public void initialize(SingleEquation<InitVmVariableType, InitVmEquationType> equation, LfNetwork network, double[] targets) {

@@ -8,8 +8,8 @@
 package com.powsybl.openloadflow.lf;
 
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.Quantity;
+import com.powsybl.openloadflow.equations.SquareJacobianMatrix;
 import com.powsybl.openloadflow.network.LfNetwork;
 
 import java.util.Objects;
@@ -26,7 +26,7 @@ public abstract class AbstractLoadFlowContext<V extends Enum<V> & Quantity, E ex
 
     protected EquationSystem<V, E> equationSystem;
 
-    protected JacobianMatrix<V, E> jacobianMatrix;
+    protected SquareJacobianMatrix<V, E> jacobianMatrix;
 
     protected AbstractLoadFlowContext(LfNetwork network, P parameters) {
         this.network = Objects.requireNonNull(network);

@@ -118,24 +118,24 @@ class LUDecompositionTest {
 
         double[] values = new double[] {0.1};
 
-        try (JacobianMatrix<AcVariableType, AcEquationType> j = new JacobianMatrix<>(equationSystem, spyMatrixFactory)) {
+        try (SquareJacobianMatrix<AcVariableType, AcEquationType> j = new SquareJacobianMatrix<>(equationSystem, spyMatrixFactory)) {
             // First update
             j.solve(values);
             assertFalse(spyMatrixFactory.exceptionThrown);
             // second update that triggers incremental update
-            j.updateStatus(JacobianMatrix.Status.VALUES_INVALID);
+            j.updateStatus(SquareJacobianMatrix.Status.VALUES_INVALID);
             j.solve(values);
             // An eception should be thrown but the solve should continue
             assertTrue(spyMatrixFactory.exceptionThrown);
 
             // Force always fail
             spyMatrixFactory.alwaysFail = true;
-            j.updateStatus(JacobianMatrix.Status.VALUES_INVALID);
+            j.updateStatus(SquareJacobianMatrix.Status.VALUES_INVALID);
             assertThrows(MatrixException.class, () -> j.solve(values));
 
             // Force always fail in non incremental case
             spyMatrixFactory.alwaysFail = true;
-            j.updateStatus(JacobianMatrix.Status.VALUES_AND_ZEROS_INVALID);
+            j.updateStatus(SquareJacobianMatrix.Status.VALUES_AND_ZEROS_INVALID);
             assertThrows(MatrixException.class, () -> j.solve(values));
         }
 

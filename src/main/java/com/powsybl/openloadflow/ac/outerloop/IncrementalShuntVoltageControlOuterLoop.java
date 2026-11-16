@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.equations.SquareJacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChange;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
@@ -102,7 +102,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
 
         SensitivityContext(LfNetwork network, List<LfShunt> controllerShunts,
                                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                  JacobianMatrix<AcVariableType, AcEquationType> j) {
+                                  SquareJacobianMatrix<AcVariableType, AcEquationType> j) {
             controllerShuntIndex = createControllerShuntIndex(network, controllerShunts);
             sensitivities = calculateSensitivityValues(controllerShunts, controllerShuntIndex, equationSystem, j);
         }
@@ -118,7 +118,7 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
 
         private static DenseMatrix calculateSensitivityValues(List<LfShunt> controllerShunts, int[] controllerShuntIndex,
                                                               EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                              JacobianMatrix<AcVariableType, AcEquationType> j) {
+                                                              SquareJacobianMatrix<AcVariableType, AcEquationType> j) {
             int nRows = equationSystem.getIndex().getColumnCount();
             int nColumns = controllerShunts.size();
 

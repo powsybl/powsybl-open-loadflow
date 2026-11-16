@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * @author Šime Pavlić {@literal <sime.pavlic at kickstage.com>}
  */
-class RectangularJacobianMatrixTest {
+class JacobianMatrixTest {
 
     private LfNetwork lfNetwork;
 
@@ -84,8 +84,8 @@ class RectangularJacobianMatrixTest {
     void testOverDeterminedSystem() {
         EquationSystem<AcVariableType, AcEquationType> equationSystem = createOverDeterminedSystem();
 
-        try (RectangularJacobianMatrix<AcVariableType, AcEquationType> j =
-                     new RectangularJacobianMatrix<>(equationSystem, new DenseMatrixFactory())) {
+        try (JacobianMatrix<AcVariableType, AcEquationType> j =
+                     new JacobianMatrix<>(equationSystem, new DenseMatrixFactory())) {
             int variableCount = equationSystem.getIndex().getRowCount();
             int equationCount = equationSystem.getIndex().getColumnCount();
             assertTrue(equationCount > variableCount, "the system is expected to be over determined");
@@ -104,12 +104,12 @@ class RectangularJacobianMatrixTest {
 
         DenseMatrix square;
         DenseMatrix rectangular;
-        try (JacobianMatrix<AcVariableType, AcEquationType> j =
-                     new JacobianMatrix<>(equationSystem, new DenseMatrixFactory())) {
+        try (SquareJacobianMatrix<AcVariableType, AcEquationType> j =
+                     new SquareJacobianMatrix<>(equationSystem, new DenseMatrixFactory())) {
             square = j.getMatrix().toDense();
         }
-        try (RectangularJacobianMatrix<AcVariableType, AcEquationType> j =
-                     new RectangularJacobianMatrix<>(equationSystem, new DenseMatrixFactory())) {
+        try (JacobianMatrix<AcVariableType, AcEquationType> j =
+                     new JacobianMatrix<>(equationSystem, new DenseMatrixFactory())) {
             rectangular = j.getMatrix().toDense();
         }
 
@@ -122,8 +122,8 @@ class RectangularJacobianMatrixTest {
     void testSquareJacobianRejectsOverDeterminedSystem() {
         EquationSystem<AcVariableType, AcEquationType> equationSystem = createOverDeterminedSystem();
 
-        try (JacobianMatrix<AcVariableType, AcEquationType> j =
-                     new JacobianMatrix<>(equationSystem, new DenseMatrixFactory())) {
+        try (SquareJacobianMatrix<AcVariableType, AcEquationType> j =
+                     new SquareJacobianMatrix<>(equationSystem, new DenseMatrixFactory())) {
             PowsyblException e = assertThrows(PowsyblException.class, j::getMatrix);
             assertTrue(e.getMessage().contains("same number of equations"), e.getMessage());
         }
@@ -133,12 +133,12 @@ class RectangularJacobianMatrixTest {
     void testSparseAndDenseGiveSameDerivatives() {
         DenseMatrix dense;
         DenseMatrix sparse;
-        try (RectangularJacobianMatrix<AcVariableType, AcEquationType> j =
-                     new RectangularJacobianMatrix<>(createOverDeterminedSystem(), new DenseMatrixFactory())) {
+        try (JacobianMatrix<AcVariableType, AcEquationType> j =
+                     new JacobianMatrix<>(createOverDeterminedSystem(), new DenseMatrixFactory())) {
             dense = j.getMatrix().toDense();
         }
-        try (RectangularJacobianMatrix<AcVariableType, AcEquationType> j =
-                     new RectangularJacobianMatrix<>(createOverDeterminedSystem(), new SparseMatrixFactory())) {
+        try (JacobianMatrix<AcVariableType, AcEquationType> j =
+                     new JacobianMatrix<>(createOverDeterminedSystem(), new SparseMatrixFactory())) {
             sparse = j.getMatrix().toDense();
         }
 

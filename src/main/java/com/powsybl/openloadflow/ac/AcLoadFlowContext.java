@@ -14,7 +14,7 @@ import com.powsybl.openloadflow.ac.equations.asym.AsymmetricalAcEquationSystemCr
 import com.powsybl.openloadflow.ac.equations.vector.AcVectorizedEquationSystemCreator;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
-import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.equations.SquareJacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowContext;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -35,7 +35,7 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
     }
 
     @Override
-    public JacobianMatrix<AcVariableType, AcEquationType> getJacobianMatrix() {
+    public SquareJacobianMatrix<AcVariableType, AcEquationType> getJacobianMatrix() {
         if (jacobianMatrix == null) {
             jacobianMatrix = new AcJacobianMatrix(getEquationSystem(), parameters.getMatrixFactory(), network);
         }

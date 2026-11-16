@@ -15,7 +15,7 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
-import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.equations.SquareJacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfNetwork;
 
@@ -53,7 +53,7 @@ public class NewtonRaphsonFactory implements AcSolverFactory {
 
     @Override
     public AcSolver create(LfNetwork network, AcLoadFlowParameters parameters, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                           JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
+                           SquareJacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
                            EquationVector<AcVariableType, AcEquationType> equationVector) {
         return new NewtonRaphson(network, (NewtonRaphsonParameters) parameters.getAcSolverParameters(), equationSystem, j, targetVector, equationVector, parameters.isDetailedReport());
     }

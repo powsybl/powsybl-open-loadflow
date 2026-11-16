@@ -11,8 +11,8 @@ import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.Quantity;
+import com.powsybl.openloadflow.equations.SquareJacobianMatrix;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
 import com.powsybl.openloadflow.network.*;
@@ -71,13 +71,13 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
 
         private final List<LfBranch> controllerBranches;
         private final EquationSystem<V, E> equationSystem;
-        private final JacobianMatrix<V, E> jacobianMatrix;
+        private final SquareJacobianMatrix<V, E> jacobianMatrix;
         private final int[] controllerBranchIndex;
         private DenseMatrix sensitivities;
 
         protected AbstractSensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
                                   EquationSystem<V, E> equationSystem,
-                                  JacobianMatrix<V, E> jacobianMatrix) {
+                                  SquareJacobianMatrix<V, E> jacobianMatrix) {
             this.controllerBranches = Objects.requireNonNull(controllerBranches);
             this.equationSystem = Objects.requireNonNull(equationSystem);
             this.jacobianMatrix = Objects.requireNonNull(jacobianMatrix);
@@ -93,7 +93,7 @@ public abstract class AbstractIncrementalPhaseControlOuterLoop<V extends Enum<V>
 
         public abstract DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,
                                                                EquationSystem<V, E> equationSystem,
-                                                               JacobianMatrix<V, E> jacobianMatrix);
+                                                               SquareJacobianMatrix<V, E> jacobianMatrix);
 
         private EquationTerm<V, E> getP1(LfBranch controlledBranch) {
             return (EquationTerm<V, E>) controlledBranch.getP1();

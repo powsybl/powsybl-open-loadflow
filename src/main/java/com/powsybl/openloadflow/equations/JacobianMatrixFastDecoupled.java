@@ -26,7 +26,7 @@ import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
  * @author Jeanne Archambault {@literal <jeanne.archambault at artelys.com>}
  */
 public class JacobianMatrixFastDecoupled
-        extends JacobianMatrix<AcVariableType, AcEquationType> {
+        extends SquareJacobianMatrix<AcVariableType, AcEquationType> {
 
     private final int rangeIndex;
 
