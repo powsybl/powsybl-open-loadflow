@@ -31,6 +31,9 @@ import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/**
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ */
 class DcSensitivityAnalysisPreventiveStateTest extends AbstractSensitivityAnalysisTest {
 
     DcSensitivityAnalysisPreventiveStateTest(CommonTestConfig config) {
