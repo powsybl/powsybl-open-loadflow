@@ -35,6 +35,10 @@ public class ZeroImpedanceFlowsCache {
         this.dcPowerFactor = dcPowerFactor;
     }
 
+    public boolean isZeroImpedance(LfBranch branch) {
+        return branch.isZeroImpedance(loadFlowModel);
+    }
+
     /**
      * Branch is expected not to be disabled.
      */
