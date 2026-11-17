@@ -146,7 +146,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         termElementNums.add(termElementNum);
         termActive.add(new MutableBoolean(!evaluator.isDisabled(termElementNum)));
         termDerivatives.add(evaluator.getDerivatives(termElementNum));
-        equationArray.invalidateEquationDerivativeVectors();
+        equationArray.invalidateEquationDerivativeStructure();
         equationArray.getEquationSystem().notifyEquationTermArrayChange(this, termNum, EquationTermEventType.EQUATION_TERM_ADDED);
         return this;
     }

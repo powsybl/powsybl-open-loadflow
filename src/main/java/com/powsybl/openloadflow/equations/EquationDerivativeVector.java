@@ -94,25 +94,24 @@ class EquationDerivativeVector {
         rowsByCell = new int[cellIndex];
     }
 
-    private void updateRows() {
+    private void updateRowsByCell() {
         for (int cellIndex = 0; cellIndex < nbCells; cellIndex++) {
             rowsByCell[cellIndex] = rowRefsByCell[cellIndex].intValue(); // updating row of the current cell
-        }
-        for (int i = 0; i < termNums.length; i++) {
-            termActive[i] = termActiveRef[i].booleanValue(); // updating active status of the terms
         }
     }
 
     private void updateValuesByTerms() {
         for (int i = 0; i < termNums.length; i++) {
-            valuesByTerm[i] = termActive[i] ? termDerValues[i][termElementNum[i]] : 0.0;
+            boolean isActive = termActiveRef[i].booleanValue();
+            termActive[i] = isActive; // updating active status of the terms
+            valuesByTerm[i] = isActive ? termDerValues[i][termElementNum[i]] : 0.0;
         }
     }
 
     void update(boolean recomputeRows) {
         if (termNums.length > 0) {
             if (recomputeRows) {
-                updateRows();
+                updateRowsByCell();
             }
             updateValuesByTerms();
             double sum = valuesByTerm[0];

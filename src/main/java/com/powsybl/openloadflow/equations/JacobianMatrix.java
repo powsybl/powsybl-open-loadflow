@@ -153,8 +153,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             }
             while (eqArray != null && index == eqArray.getFirstColumn()) { // Compute derivatives of next EquationArrays
                 eqArray.der((column, row, value, matrixElementIndex) ->
-                        matrix.addAndGetIndex(row, column, value),
-                        true);
+                        matrix.addAndGetIndex(row, column, value), true);
                 index += eqArray.getLength();
                 eqArray = itSortedEquationArray.hasNext() ? itSortedEquationArray.next() : null;
             }
@@ -175,7 +174,8 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         clearLu();
     }
 
-    protected void updateDer(boolean zeroValuesChanged) {
+    protected void updateDer(boolean recomputeRows) {
+
         Stopwatch stopwatch = Stopwatch.createStarted();
 
         matrix.reset();
@@ -189,7 +189,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             eq.der((column, row, value, matrixElementIndex) -> {
                 matrix.addAtIndex(matrixElementIndex, value);
                 return matrixElementIndex;
-            }, zeroValuesChanged);
+            }, recomputeRows);
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
@@ -205,15 +205,20 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
-    private void updateValues(boolean zeroValuesChanged) {
-        updateDer(zeroValuesChanged);
+    private void updateValues(boolean recomputeRows) {
+        updateDer(recomputeRows);
         try {
-            // Try first with incremental update
-            updateLu(true);
+            // Try first with incremental update if no need to recompute rows
+            updateLu(!recomputeRows);
         } catch (MatrixException ex) {
-            // Try another time without incremental
-            LOGGER.warn("Exception when updating LU matrix in incremental mode. Retrying without incremental mode");
-            updateLu(false);
+            if (!recomputeRows) {
+                // Try another time without incremental
+                LOGGER.warn("Exception when updating LU matrix in incremental mode. Retrying without incremental mode");
+                updateLu(false);
+            } else {
+                // Rethrow the exception
+                throw ex;
+            }
         }
     }
 
@@ -229,11 +234,11 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                     break;
 
                 case VALUES_INVALID:
-                    updateValues(false);
+                    updateValues(true);
                     break;
 
                 case VALUES_AND_ZEROS_INVALID:
-                    updateValues(true);
+                    updateValues(false);
                     break;
 
                 default:
