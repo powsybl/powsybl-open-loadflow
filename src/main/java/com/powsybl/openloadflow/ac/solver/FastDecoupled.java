@@ -21,7 +21,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
@@ -29,6 +31,9 @@ import java.util.Objects;
 public class FastDecoupled extends AbstractAcSolver {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FastDecoupled.class);
+
+    private static final Set<AcEquationType> BRANCH_TARGET_PQ = EnumSet.of(AcEquationType.BRANCH_TARGET_P1,
+            AcEquationType.BRANCH_TARGET_P2, AcEquationType.BRANCH_TARGET_Q1, AcEquationType.BRANCH_TARGET_Q2);
 
     protected final NewtonRaphsonParameters parameters;
 
@@ -80,7 +85,8 @@ public class FastDecoupled extends AbstractAcSolver {
         return switch (acEquationType) {
             case BUS_TARGET_P,
                  BUS_TARGET_PHI,
-                 BRANCH_TARGET_P,
+                 BRANCH_TARGET_P1,
+                 BRANCH_TARGET_P2,
                  BRANCH_TARGET_ALPHA1,
                  ZERO_PHI,
                  DUMMY_TARGET_P,
@@ -88,7 +94,8 @@ public class FastDecoupled extends AbstractAcSolver {
             case BUS_TARGET_Q,
                  BUS_TARGET_V,
                  SHUNT_TARGET_B,
-                 BRANCH_TARGET_Q,
+                 BRANCH_TARGET_Q1,
+                 BRANCH_TARGET_Q2,
                  BRANCH_TARGET_RHO1,
                  DISTR_Q,
                  ZERO_V,
@@ -190,7 +197,7 @@ public class FastDecoupled extends AbstractAcSolver {
     }
 
     private int retrieveBusNumFromEquation(Equation<AcVariableType, AcEquationType> equation) {
-        if (equation.getType() == AcEquationType.BRANCH_TARGET_P || equation.getType() == AcEquationType.BRANCH_TARGET_Q) {
+        if (BRANCH_TARGET_PQ.contains(equation.getType())) {
             // Equations of those types have only one term
             if (equation.getTerms().size() != 1) {
                 throw new IllegalStateException("Equation: " + equation + " is expected to have only one term not " + equation.getTerms().size());
