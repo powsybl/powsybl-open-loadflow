@@ -14,11 +14,11 @@ import com.powsybl.openloadflow.ac.AcOuterLoopContext;
 import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.LfHvdc;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,9 +86,9 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
                             controllerId = lfHvdc.getConverterStation2().getId();
                             nonControllerId = lfHvdc.getConverterStation1().getId();
                         }
-                        Reports.reportFreezeHvdc(context.getNetwork().getReportNode(), lfHvdc.getId(), controllerId, nonControllerId, setPointHvdc, LOGGER);
+                        LfReports.reportFreezeHvdc(context.getNetwork().getReportNode(), lfHvdc.getId(), controllerId, nonControllerId, setPointHvdc, LOGGER);
                     } else {
-                        Reports.reportNoFreezeBecauseHvdcAction(context.getNetwork().getReportNode(), lfHvdc.getId(), LOGGER);
+                        LfReports.reportNoFreezeBecauseHvdcAction(context.getNetwork().getReportNode(), lfHvdc.getId(), LOGGER);
                     }
                 });
     }
@@ -117,7 +117,7 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
 
         if (!frozenHvdc.isEmpty()) {
             for (LfHvdc lfHvdc : frozenHvdc) {
-                Reports.reportUnfreezeHvdc(reportNode, lfHvdc.getId(), LOGGER);
+                LfReports.reportUnfreezeHvdc(reportNode, lfHvdc.getId(), LOGGER);
                 lfHvdc.getAcEmulationControl().switchToLinearMode();
             }
         }

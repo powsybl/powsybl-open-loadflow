@@ -227,7 +227,7 @@ class AcloadFlowReactiveLimitsTest {
         // Set reactive range check mode so that gen2 is not excluded from V control
         // Set reactive power tolerance smaller than the small gen2 reactive power capability.
         parametersExt
-            .setReactiveRangeCheckMode(OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX)
+            .setReactiveRangeCheckMode(LfNetworkParameters.ReactiveRangeCheckMode.MAX)
             .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
             .setMaxReactivePowerMismatch(0.01);
 

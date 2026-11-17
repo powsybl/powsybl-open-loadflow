@@ -31,6 +31,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
@@ -288,7 +289,7 @@ public class OpenLoadFlowProvider implements LoadFlowProvider {
 
         LOGGER.info("Version: {}", new PowsyblOpenLoadFlowVersion());
 
-        ReportNode lfReportNode = Reports.createLoadFlowReporter(reportNode, network.getId());
+        ReportNode lfReportNode = LfReports.createLoadFlowReporter(reportNode, network.getId());
 
         return CompletableFuture.supplyAsync(() -> {
 

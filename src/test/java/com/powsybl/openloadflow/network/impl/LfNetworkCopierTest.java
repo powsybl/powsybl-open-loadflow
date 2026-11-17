@@ -116,6 +116,8 @@ class LfNetworkCopierTest {
                         p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true)),
                 new Case("acDcTwoPccConvertersWithoutVdcReference", AcDcNetworkFactory.createAcDcNetworkTwoPccConvertersWithoutVdcReference(),
                         p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true)),
+                new Case("AcDcNetworkWithDcSwitchOnly", AcDcNetworkFactory.createAcDcNetworkWithDcSwitchOnly(1.0),
+                        p -> OpenLoadFlowParameters.create(p).setAcDcNetwork(true)),
                 new Case("fixedCurrentLimits", EurostagFactory.fix(EurostagTutorialExample1Factory.createWithFixedCurrentLimits())),
                 new Case("asymmetrical", createAsymNetwork(),
                         p -> {

@@ -52,6 +52,7 @@
         <jafama.version>2.3.2</jafama.version>
         <slf4jtoys.version>1.6.3</slf4jtoys.version>
         <asciitable.version>0.3.2</asciitable.version>
+        <archunit.version>1.5.1</archunit.version>
 
         <powsybl-core.version>7.4.0</powsybl-core.version>
 
@@ -171,6 +172,12 @@
         <!-- Runtime dependencies -->
 
         <!-- Test dependencies -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit</artifactId>
+            <version>${archunit.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>

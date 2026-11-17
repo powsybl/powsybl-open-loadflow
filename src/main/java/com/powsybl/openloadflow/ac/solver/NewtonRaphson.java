@@ -12,11 +12,11 @@ import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfSynchronousNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
-import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,14 +55,14 @@ public class NewtonRaphson extends AbstractAcSolver {
         try {
             // create iteration report
             // - add 1 to iteration so that it starts at 1 instead of 0
-            ReportNode iterationReportNode = detailedReport ? Reports.createAcMismatchReporter(reportNode, iterations.intValue() + 1) : null;
+            ReportNode iterationReportNode = detailedReport ? LfReports.createAcMismatchReporter(reportNode, iterations.intValue() + 1) : null;
 
             // solve f(x) = j * dx
             try {
                 j.solveTransposed(equationVector.getArray());
             } catch (MatrixException e) {
                 LOGGER.error(e.toString(), e);
-                Reports.reportAcSolverError(reportNode, getName(), e.toString());
+                LfReports.reportAcSolverError(reportNode, getName(), e.toString());
                 return AcSolverStatus.SOLVER_FAILED;
             }
             // f(x) now contains dx
@@ -110,9 +110,9 @@ public class NewtonRaphson extends AbstractAcSolver {
 
         LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
 
-        ReportNode initialReportNode = detailedReport ? Reports.createAcMismatchReporter(reportNode, 0) : null;
+        ReportNode initialReportNode = detailedReport ? LfReports.createAcMismatchReporter(reportNode, 0) : null;
         if (detailedReport) {
-            Reports.reportSolverNorm(initialReportNode, initialTestResult.getNorm());
+            LfReports.reportSolverNorm(initialReportNode, initialTestResult.getNorm());
         }
         if (detailedReport || LOGGER.isTraceEnabled()) {
             reportAndLogLargestMismatchByAcEquationType(initialReportNode, equationSystem, equationVector.getArray(), LOGGER);
