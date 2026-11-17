@@ -9,15 +9,13 @@ package com.powsybl.openloadflow.equations;
 
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
  * @author Florian Dupuy {@literal <florian.dupuy at rte-france.com>}
  */
 class EquationDerivativeVector {
-
-    private final int[] termArrayNums;
-    private final int[] termNums;
 
     // cache
     private final Number[] rowRefsByCell;
@@ -26,44 +24,39 @@ class EquationDerivativeVector {
     private final double[] valuesByTerm;
     private final double[][] termDerValues;
     private final MutableBoolean[] termActiveRef;
-    private final boolean[] termActive;
+    private final int nbTerms;
 
     protected final double[] valuesByCell;
     protected final int[] cellIndexByEquationElementNum;
     protected final int[] nbCellsByEquationElementNum;
-    protected final boolean[] isNewCell;
+    protected final int[] cellStarts;
     private final int nbCells;
 
     EquationDerivativeVector(List<EquationDerivativeElement<?>> elements, EquationArray<?, ?> equationArray) {
-        int size = elements.size();
+        nbTerms = elements.size();
 
         // compute all derivatives for each of the term array
         var termArrays = equationArray.getTermArrays();
 
-        termArrayNums = new int[size];
-        termNums = new int[size];
-        termElementNum = new int[size];
-        termDerValues = new double[size][];
-        valuesByTerm = new double[size];
-        termActiveRef = new MutableBoolean[size];
-        termActive = new boolean[size];
-
-        isNewCell = new boolean[size]; // is true if row or equationElementNum of term i is different than term i-1
+        termElementNum = new int[nbTerms];
+        termDerValues = new double[nbTerms][];
+        valuesByTerm = new double[nbTerms];
+        termActiveRef = new MutableBoolean[nbTerms];
 
         cellIndexByEquationElementNum = new int[equationArray.getElementCount()];
         nbCellsByEquationElementNum = new int[equationArray.getElementCount()];
 
         // each potential cell of the jacobian matrix will be stored in values (one cell can be the sum of multiple terms)
         // so there are fewer values than size (but pre allocating all size) (nbCells < size)
-        rowRefsByCell = new Number[size];
+        rowRefsByCell = new Number[nbTerms];
+        int[] cellIndices = new int[nbTerms + 1];
 
         Variable<?> previousVariable = null;
         int previousEquationElementNum = -1;
         int cellIndex = 0;
         int nbCellsByEquation = 0;
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < nbTerms; i++) {
             EquationDerivativeElement<?> element = elements.get(i);
-            termNums[i] = element.termNum;
             var termArray = termArrays.get(element.termArrayNum);
             termDerValues[i] = termArray.evalDer()[element.derivative.getLocalIndex()];
             termElementNum[i] = termArray.getTermElementNum(element.termNum);
@@ -79,19 +72,20 @@ class EquationDerivativeVector {
                 }
                 previousVariable = variable;
                 previousEquationElementNum = element.equationElementNum;
-                isNewCell[i] = true;
+                cellIndices[cellIndex] = i;
                 rowRefsByCell[cellIndex] = variable.getRowRef();
                 cellIndex++;
                 nbCellsByEquation++;
             }
         }
+        cellIndices[cellIndex] = nbTerms;
         if (previousEquationElementNum != -1) {
             nbCellsByEquationElementNum[previousEquationElementNum] = nbCellsByEquation;
         }
         nbCells = cellIndex;
-
-        valuesByCell = new double[cellIndex];
-        rowsByCell = new int[cellIndex];
+        cellStarts = Arrays.copyOf(cellIndices, nbCells + 1);
+        valuesByCell = new double[nbCells];
+        rowsByCell = new int[nbCells];
     }
 
     private void updateRowsByCell() {
@@ -101,29 +95,28 @@ class EquationDerivativeVector {
     }
 
     private void updateValuesByTerms() {
-        for (int i = 0; i < termNums.length; i++) {
-            boolean isActive = termActiveRef[i].booleanValue();
-            termActive[i] = isActive; // updating active status of the terms
-            valuesByTerm[i] = isActive ? termDerValues[i][termElementNum[i]] : 0.0;
+        for (int i = 0; i < nbTerms; i++) {
+            valuesByTerm[i] = termActiveRef[i].booleanValue() ? termDerValues[i][termElementNum[i]] : 0.0;
         }
     }
 
     void update(boolean recomputeRows) {
-        if (termNums.length > 0) {
+        if (nbTerms > 0) {
             if (recomputeRows) {
                 updateRowsByCell();
             }
             updateValuesByTerms();
-            double sum = valuesByTerm[0];
-            int cellIndex = 0;
-            for (int i = 1; i < termNums.length; i++) {
-                if (isNewCell[i]) {
-                    valuesByCell[cellIndex++] = sum;
-                    sum = 0.0;
+            int start;
+            int end = cellStarts[0];
+            for (int c = 0; c < nbCells; c++) {
+                start = end;
+                end = cellStarts[c + 1];
+                double sum = 0.0;
+                for (int i = start; i < end; i++) {
+                    sum += valuesByTerm[i];
                 }
-                sum += valuesByTerm[i];
+                valuesByCell[c] = sum;
             }
-            valuesByCell[cellIndex] = sum;
         }
     }
 }

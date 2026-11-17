@@ -207,11 +207,11 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private void updateValues(boolean recomputeRows) {
         updateDer(recomputeRows);
+        boolean allowIncrementalUpdate = !recomputeRows;
         try {
-            // Try first with incremental update if no need to recompute rows
-            updateLu(!recomputeRows);
+            updateLu(allowIncrementalUpdate);
         } catch (MatrixException ex) {
-            if (!recomputeRows) {
+            if (allowIncrementalUpdate) {
                 // Try another time without incremental
                 LOGGER.warn("Exception when updating LU matrix in incremental mode. Retrying without incremental mode");
                 updateLu(false);
@@ -234,11 +234,11 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                     break;
 
                 case VALUES_INVALID:
-                    updateValues(true);
+                    updateValues(false);
                     break;
 
                 case VALUES_AND_ZEROS_INVALID:
-                    updateValues(false);
+                    updateValues(true);
                     break;
 
                 default:

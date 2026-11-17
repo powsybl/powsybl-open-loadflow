@@ -125,7 +125,7 @@ class LUDecompositionTest {
             // second update that triggers incremental update
             j.updateStatus(JacobianMatrix.Status.VALUES_INVALID);
             j.solve(values);
-            // An eception should be thrown but the solve should continue
+            // An exception should be thrown but the solve should continue
             assertTrue(spyMatrixFactory.exceptionThrown);
 
             // Force always fail

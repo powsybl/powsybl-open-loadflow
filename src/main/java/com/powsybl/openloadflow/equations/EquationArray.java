@@ -440,7 +440,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         int onDer(int column, int row, double value, int matrixElementIndex);
     }
 
-    private void updateEquationDerivativeVectors() {
+    private void buildEquationDerivativeVectors() {
         if (equationDerivativeVector == null) {
             List<EquationDerivativeElement<?>> allTerms = new ArrayList<>();
             for (int elementNum = 0; elementNum < elementCount; elementNum++) {
@@ -497,7 +497,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     public void der(DerHandler handler, boolean recomputeRows) {
         Objects.requireNonNull(handler);
 
-        updateEquationDerivativeVectors();
+        buildEquationDerivativeVectors();
         equationDerivativeVector.update(recomputeRows);
         updateAdditionalTerms(recomputeRows);
         valueIndex = 0;
@@ -516,9 +516,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             int column = getElementNumToColumn(elementNum);
             // for each equation of the array we already have the list of terms to derive and its variable sorted
             // by variable row (required by solvers)
-            double value;
             int row;
-
             if (!hasSingleEquationTerms[elementNum]) {
                 // fast way without additional terms
                 int cellIndexStart = equationDerivativeVector.cellIndexByEquationElementNum[elementNum];
@@ -528,11 +526,11 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                      cellIndex++) {
                     row = equationDerivativeVector.rowsByCell[cellIndex];
                     if (row != -1) {
-                        value = equationDerivativeVector.valuesByCell[cellIndex];
-                        onDer(handler, column, row, value);
+                        onDer(handler, column, row, equationDerivativeVector.valuesByCell[cellIndex]);
                     }
                 }
             } else {
+                double value;
                 var it = itAdditional.next();
                 while (it.getKey() != elementNum) {
                     it = itAdditional.next(); // iterating until reaching elementNum (faster than always calling get(elementNum))
