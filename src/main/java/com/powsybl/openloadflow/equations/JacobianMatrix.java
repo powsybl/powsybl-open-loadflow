@@ -252,19 +252,24 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
     }
 
     /**
+     * For consumers of {@link #getMatrix()} that require a square system without going through an LU decomposition.
+     * Checked on the equation system rather than on the matrix, which is a square sub-matrix in fast decoupled mode.
+     *
      * @throws com.powsybl.commons.PowsyblException if the equation system is not square
      */
+    public void checkSquare() {
+        int rowCount = equationSystem.getIndex().getRowCount();
+        int columnCount = equationSystem.getIndex().getColumnCount();
+        if (rowCount != columnCount) {
+            throw new PowsyblException("Expected to have same number of equations (" + columnCount
+                    + ") and variables (" + rowCount + ")");
+        }
+    }
+
     private LUDecomposition getLUDecomposition() {
+        checkSquare();
         Matrix m = getMatrix();
         if (lu == null) {
-            // checked on the equation system rather than on m, which is a square sub-matrix in fast decoupled mode
-            int rowCount = equationSystem.getIndex().getRowCount();
-            int columnCount = equationSystem.getIndex().getColumnCount();
-            if (rowCount != columnCount) {
-                throw new PowsyblException("Expected to have same number of equations (" + columnCount
-                        + ") and variables (" + rowCount + ")");
-            }
-
             Stopwatch stopwatch = Stopwatch.createStarted();
 
             lu = m.decomposeLU();

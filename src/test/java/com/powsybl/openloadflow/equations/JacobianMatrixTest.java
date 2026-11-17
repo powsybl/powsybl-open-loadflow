@@ -109,6 +109,17 @@ class JacobianMatrixTest {
     }
 
     @Test
+    void testCheckSquareRejectsOverDeterminedSystem() {
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = createOverDeterminedSystem();
+
+        try (JacobianMatrix<AcVariableType, AcEquationType> j =
+                     new JacobianMatrix<>(equationSystem, new DenseMatrixFactory())) {
+            PowsyblException e = assertThrows(PowsyblException.class, j::checkSquare);
+            assertTrue(e.getMessage().contains("same number of equations"), e.getMessage());
+        }
+    }
+
+    @Test
     void testSparseAndDenseGiveSameDerivatives() {
         DenseMatrix dense;
         DenseMatrix sparse;

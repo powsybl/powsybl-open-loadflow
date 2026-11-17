@@ -61,6 +61,7 @@ public class NewtonKrylov extends AbstractAcSolver {
         KinsolParameters kinsolParameters = new KinsolParameters()
                 .setMaxIters(parameters.getMaxIterations())
                 .setLineSearch(parameters.isLineSearch());
+        j.checkSquare();
         Kinsol kinsol = new Kinsol((SparseMatrix) j.getMatrix(), (x, f) -> {
             equationSystem.getStateVector().set(x);
             equationVector.minus(targetVector);
