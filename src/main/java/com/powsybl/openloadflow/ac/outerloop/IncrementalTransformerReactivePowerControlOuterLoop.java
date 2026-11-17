@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.SquareJacobianMatrix;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChange;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
@@ -108,14 +108,14 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
 
         SensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
                                   EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                  SquareJacobianMatrix<AcVariableType, AcEquationType> j) {
+                                  JacobianMatrix<AcVariableType, AcEquationType> j) {
             controllerBranchIndex = LfBranch.createIndex(network, controllerBranches);
             sensitivities = calculateSensitivityValues(controllerBranches, controllerBranchIndex, equationSystem, j);
         }
 
         private static DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,
                                                               EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                              SquareJacobianMatrix<AcVariableType, AcEquationType> j) {
+                                                              JacobianMatrix<AcVariableType, AcEquationType> j) {
             DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getColumnCount(), controllerBranches.size());
             for (LfBranch controllerBranch : controllerBranches) {
                 equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_RHO1)

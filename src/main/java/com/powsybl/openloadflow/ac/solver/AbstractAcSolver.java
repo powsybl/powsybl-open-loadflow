@@ -31,7 +31,7 @@ public abstract class AbstractAcSolver implements AcSolver {
 
     protected final EquationSystem<AcVariableType, AcEquationType> equationSystem;
 
-    protected final SquareJacobianMatrix<AcVariableType, AcEquationType> j;
+    protected final JacobianMatrix<AcVariableType, AcEquationType> j;
 
     protected final TargetVector<AcVariableType, AcEquationType> targetVector;
 
@@ -45,7 +45,7 @@ public abstract class AbstractAcSolver implements AcSolver {
 
     protected AbstractAcSolver(LfNetwork network,
                                EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                               SquareJacobianMatrix<AcVariableType, AcEquationType> j,
+                               JacobianMatrix<AcVariableType, AcEquationType> j,
                                TargetVector<AcVariableType, AcEquationType> targetVector,
                                EquationVector<AcVariableType, AcEquationType> equationVector,
                                boolean detailedReport) {

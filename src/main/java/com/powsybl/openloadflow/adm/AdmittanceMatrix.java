@@ -12,7 +12,7 @@ import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.SquareJacobianMatrix;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.network.LfBus;
 import org.apache.commons.math3.complex.Complex;
 
@@ -38,7 +38,7 @@ public class AdmittanceMatrix implements AutoCloseable {
 
     public static AdmittanceMatrix create(AdmittanceEquationSystem ySystem, MatrixFactory matrixFactory) {
         Objects.requireNonNull(matrixFactory);
-        try (var j = new SquareJacobianMatrix<>(ySystem.getEquationSystem(), matrixFactory)) {
+        try (var j = new JacobianMatrix<>(ySystem.getEquationSystem(), matrixFactory)) {
             return new AdmittanceMatrix(ySystem.getEquationSystem(), j.getMatrix());
         }
     }

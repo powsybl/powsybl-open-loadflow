@@ -17,7 +17,7 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
-import com.powsybl.openloadflow.equations.SquareJacobianMatrix;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
@@ -34,7 +34,7 @@ public class NewtonKrylov extends AbstractAcSolver {
 
     public NewtonKrylov(LfNetwork network, NewtonKrylovParameters parameters,
                         EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                        SquareJacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
+                        JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
                         EquationVector<AcVariableType, AcEquationType> equationVector) {
         super(network, equationSystem, j, targetVector, equationVector, false);
         this.parameters = Objects.requireNonNull(parameters);

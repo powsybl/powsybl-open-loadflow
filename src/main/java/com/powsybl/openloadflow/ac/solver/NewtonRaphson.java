@@ -36,7 +36,7 @@ public class NewtonRaphson extends AbstractAcSolver {
 
     public NewtonRaphson(LfNetwork network, NewtonRaphsonParameters parameters,
                          EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                         SquareJacobianMatrix<AcVariableType, AcEquationType> j,
+                         JacobianMatrix<AcVariableType, AcEquationType> j,
                          TargetVector<AcVariableType, AcEquationType> targetVector,
                          EquationVector<AcVariableType, AcEquationType> equationVector,
                          boolean detailedReport) {

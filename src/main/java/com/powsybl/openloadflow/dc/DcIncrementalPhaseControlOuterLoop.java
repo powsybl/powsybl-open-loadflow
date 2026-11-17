@@ -12,7 +12,7 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.SquareJacobianMatrix;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChange;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
@@ -39,13 +39,13 @@ public class DcIncrementalPhaseControlOuterLoop
 
     public static class DcSensitivityContext extends AbstractSensitivityContext<DcVariableType, DcEquationType> {
         public DcSensitivityContext(LfNetwork network, List<LfBranch> controllerBranches, EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                    SquareJacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix) {
+                                    JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix) {
             super(network, controllerBranches, equationSystem, jacobianMatrix);
         }
 
         public DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,
                                                       EquationSystem<DcVariableType, DcEquationType> equationSystem,
-                                                      SquareJacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix) {
+                                                      JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix) {
             DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getColumnCount(), controllerBranches.size());
             for (LfBranch controllerBranch : controllerBranches) {
                 equationSystem.getEquation(controllerBranch.getNum(), DcEquationType.BRANCH_TARGET_ALPHA1)

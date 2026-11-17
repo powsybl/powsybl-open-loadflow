@@ -8,8 +8,8 @@
 package com.powsybl.openloadflow.lf;
 
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.Quantity;
-import com.powsybl.openloadflow.equations.SquareJacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.network.LfNetwork;
 
@@ -18,7 +18,7 @@ import com.powsybl.openloadflow.network.LfNetwork;
  */
 public interface LoadFlowContext<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity, P extends AbstractLoadFlowParameters> extends AutoCloseable {
 
-    SquareJacobianMatrix<V, E> getJacobianMatrix();
+    JacobianMatrix<V, E> getJacobianMatrix();
 
     P getParameters();
 

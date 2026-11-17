@@ -24,7 +24,7 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
-import com.powsybl.openloadflow.equations.SquareJacobianMatrix;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
@@ -110,7 +110,7 @@ class AcSolverFactoryTest {
 
         @Override
         public AcSolver create(LfNetwork network, AcLoadFlowParameters parameters, EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                               SquareJacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
+                               JacobianMatrix<AcVariableType, AcEquationType> j, TargetVector<AcVariableType, AcEquationType> targetVector,
                                EquationVector<AcVariableType, AcEquationType> equationVector) {
             return new AcSolverMock(network, equationSystem, (AcSolverMockParameters) parameters.getAcSolverParameters());
         }

@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.SquareJacobianMatrix;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.network.*;
@@ -113,7 +113,7 @@ public class SecondaryVoltageControlOuterLoop implements AcOuterLoop {
 
         private static DenseMatrix calculateSensitivityValues(List<LfBus> controlledBuses, Map<Integer, Integer> busNumToSensiColumn,
                                                               EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                              SquareJacobianMatrix<AcVariableType, AcEquationType> j) {
+                                                              JacobianMatrix<AcVariableType, AcEquationType> j) {
             DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getColumnCount(), controlledBuses.size());
             for (LfBus controlledBus : controlledBuses) {
                 equationSystem.getEquation(controlledBus.getNum(), AcEquationType.BUS_TARGET_V)

@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.SquareJacobianMatrix;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
@@ -78,7 +78,7 @@ class DcLoadFlowMatrixTest {
                     .print(ps, equationSystem.getColumnNames(), null);
         }
 
-        try (var j = new SquareJacobianMatrix<>(equationSystem, commonTestConfig.matrixFactory())) {
+        try (var j = new JacobianMatrix<>(equationSystem, commonTestConfig.matrixFactory())) {
             try (PrintStream ps = LoggerFactory.getInfoPrintStream(LOGGER)) {
                 ps.println("J=");
                 j.getMatrix().print(ps, equationSystem.getRowNames(), equationSystem.getColumnNames());
@@ -116,7 +116,7 @@ class DcLoadFlowMatrixTest {
 
         equationSystem = new DcEquationSystemCreator(mainNetwork).create(false);
 
-        try (var j = new SquareJacobianMatrix<>(equationSystem, commonTestConfig.matrixFactory())) {
+        try (var j = new JacobianMatrix<>(equationSystem, commonTestConfig.matrixFactory())) {
             try (DcTargetVector targets = new DcTargetVector(mainNetwork, equationSystem)) {
                 var dx = Arrays.copyOf(targets.getArray(), targets.getArray().length);
                 try (LUDecomposition lu = j.getMatrix().decomposeLU()) {

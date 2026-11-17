@@ -13,7 +13,6 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
@@ -98,33 +97,13 @@ class JacobianMatrixTest {
     }
 
     @Test
-    void testSameDerivativesAsSquareJacobian() {
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcEquationSystemCreator(lfNetwork).create();
-        AcSolverUtil.initStateVector(lfNetwork, equationSystem, new UniformValueVoltageInitializer());
-
-        DenseMatrix square;
-        DenseMatrix rectangular;
-        try (SquareJacobianMatrix<AcVariableType, AcEquationType> j =
-                     new SquareJacobianMatrix<>(equationSystem, new DenseMatrixFactory())) {
-            square = j.getMatrix().toDense();
-        }
-        try (JacobianMatrix<AcVariableType, AcEquationType> j =
-                     new JacobianMatrix<>(equationSystem, new DenseMatrixFactory())) {
-            rectangular = j.getMatrix().toDense();
-        }
-
-        assertEquals(square.getRowCount(), square.getColumnCount());
-        assertTrue(countNonZero(square) > 0);
-        assertMatrixEquals(square, rectangular);
-    }
-
-    @Test
-    void testSquareJacobianRejectsOverDeterminedSystem() {
+    void testSolveRejectsOverDeterminedSystem() {
         EquationSystem<AcVariableType, AcEquationType> equationSystem = createOverDeterminedSystem();
 
-        try (SquareJacobianMatrix<AcVariableType, AcEquationType> j =
-                     new SquareJacobianMatrix<>(equationSystem, new DenseMatrixFactory())) {
-            PowsyblException e = assertThrows(PowsyblException.class, j::getMatrix);
+        try (JacobianMatrix<AcVariableType, AcEquationType> j =
+                     new JacobianMatrix<>(equationSystem, new DenseMatrixFactory())) {
+            double[] b = new double[equationSystem.getIndex().getRowCount()];
+            PowsyblException e = assertThrows(PowsyblException.class, () -> j.solve(b));
             assertTrue(e.getMessage().contains("same number of equations"), e.getMessage());
         }
     }

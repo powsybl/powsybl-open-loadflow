@@ -17,7 +17,7 @@ import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.equations.SquareJacobianMatrix;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChange;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
@@ -59,13 +59,13 @@ public class AcIncrementalPhaseControlOuterLoop
     public static class AcSensitivityContext extends AbstractSensitivityContext<AcVariableType, AcEquationType> {
         public AcSensitivityContext(LfNetwork network, List<LfBranch> controllerBranches,
                                     EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                    SquareJacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix) {
+                                    JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix) {
             super(network, controllerBranches, equationSystem, jacobianMatrix);
         }
 
         public DenseMatrix calculateSensitivityValues(List<LfBranch> controllerBranches, int[] controllerBranchIndex,
                                                       EquationSystem<AcVariableType, AcEquationType> equationSystem,
-                                                      SquareJacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix) {
+                                                      JacobianMatrix<AcVariableType, AcEquationType> jacobianMatrix) {
             DenseMatrix rhs = new DenseMatrix(equationSystem.getIndex().getColumnCount(), controllerBranches.size());
             for (LfBranch controllerBranch : controllerBranches) {
                 equationSystem.getEquation(controllerBranch.getNum(), AcEquationType.BRANCH_TARGET_ALPHA1)

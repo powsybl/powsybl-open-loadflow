@@ -1,6 +1,5 @@
 /**
  * Copyright (c) 2019, RTE (http://www.rte-france.com)
- * Copyright (c) 2026, Elia Group (https://www.eliagroup.eu)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -9,7 +8,11 @@
 package com.powsybl.openloadflow.equations;
 
 import com.google.common.base.Stopwatch;
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.math.matrix.Matrix;
+import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.math.matrix.MatrixFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,11 +24,11 @@ import java.util.concurrent.TimeUnit;
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
- * The derivatives of an equation system, of any shape. {@link SquareJacobianMatrix} adds the LU
- * decomposition and the solve methods, which need the system to be square.
+ * The derivatives of an equation system. The matrix is built for any shape, but {@link #solve} and
+ * {@link #solveTransposed} go through an LU decomposition, which exists only for a square system.
+ * On any other shape they throw.
  *
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
- * @author Šime Pavlić {@literal <sime.pavlic at kickstage.com>}
  */
 public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
         implements EquationSystemIndexListener<V, E>, StateVectorListener, AutoCloseable {
@@ -40,6 +43,8 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     protected Matrix matrix;
 
+    private LUDecomposition lu;
+
     protected enum Status {
         VALID,
         VALUES_INVALID, // same structure but values have to be updated
@@ -49,8 +54,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
 
     private Status status = Status.STRUCTURE_INVALID;
 
-    public JacobianMatrix(EquationSystem<V, E> equationSystem, MatrixFactory matrixFactory,
-                          boolean invalidateValuesWhenStateUpdate) {
+    public JacobianMatrix(EquationSystem<V, E> equationSystem, MatrixFactory matrixFactory, boolean invalidateValuesWhenStateUpdate) {
         this.equationSystem = Objects.requireNonNull(equationSystem);
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.invalidateValuesWhenStateUpdate = invalidateValuesWhenStateUpdate;
@@ -158,6 +162,18 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix built in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
 
+    private void clearLu() {
+        if (lu != null) {
+            lu.close();
+        }
+        lu = null;
+    }
+
+    private void initMatrix() {
+        initDer();
+        clearLu();
+    }
+
     protected void updateDer() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
@@ -178,12 +194,30 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
     }
 
-    protected void initMatrix() {
-        initDer();
+    private void updateLu(boolean allowIncrementalUpdate) {
+        if (lu != null) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
+
+            lu.update(allowIncrementalUpdate);
+
+            LOGGER.debug(PERFORMANCE_MARKER, "LU decomposition updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+        }
     }
 
-    protected void updateValues(boolean allowIncrementalUpdate) {
+    private void updateValues(boolean allowIncrementalUpdate) {
         updateDer();
+        try {
+            updateLu(allowIncrementalUpdate);
+        } catch (MatrixException ex) {
+            if (allowIncrementalUpdate) {
+                // Try another time without incremental
+                LOGGER.warn("Exception when updating LU matrix in incremental mode. Retrying without incremental mode");
+                updateLu(false);
+            } else {
+                // Rethrow the exception
+                throw ex;
+            }
+        }
     }
 
     public void forceUpdate() {
@@ -217,10 +251,54 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return matrix;
     }
 
+    /**
+     * @throws com.powsybl.commons.PowsyblException if the equation system is not square
+     */
+    private LUDecomposition getLUDecomposition() {
+        Matrix m = getMatrix();
+        if (lu == null) {
+            // checked on the equation system rather than on m, which is a square sub-matrix in fast decoupled mode
+            int rowCount = equationSystem.getIndex().getRowCount();
+            int columnCount = equationSystem.getIndex().getColumnCount();
+            if (rowCount != columnCount) {
+                throw new PowsyblException("Expected to have same number of equations (" + columnCount
+                        + ") and variables (" + rowCount + ")");
+            }
+
+            Stopwatch stopwatch = Stopwatch.createStarted();
+
+            lu = m.decomposeLU();
+
+            LOGGER.debug(PERFORMANCE_MARKER, "LU decomposition done in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
+        }
+        return lu;
+    }
+
+    /** Requires a square equation system. */
+    public void solve(double[] b) {
+        getLUDecomposition().solve(b);
+    }
+
+    /** Requires a square equation system. */
+    public void solveTransposed(double[] b) {
+        getLUDecomposition().solveTransposed(b);
+    }
+
+    /** Requires a square equation system. */
+    public void solve(DenseMatrix b) {
+        getLUDecomposition().solve(b);
+    }
+
+    /** Requires a square equation system. */
+    public void solveTransposed(DenseMatrix b) {
+        getLUDecomposition().solveTransposed(b);
+    }
+
     @Override
     public void close() {
         equationSystem.getIndex().removeListener(this);
         equationSystem.getStateVector().removeListener(this);
         matrix = null;
+        clearLu();
     }
 }

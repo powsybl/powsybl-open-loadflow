@@ -16,7 +16,7 @@ import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.SquareJacobianMatrix;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
@@ -175,7 +175,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
     }
 
     public static boolean solve(double[] targetVectorArray,
-                                SquareJacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix,
+                                JacobianMatrix<DcVariableType, DcEquationType> jacobianMatrix,
                                 ReportNode reportNode) {
         try {
             jacobianMatrix.solveTransposed(targetVectorArray);
@@ -264,7 +264,7 @@ public class DcLoadFlowEngine implements LoadFlowEngine<DcVariableType, DcEquati
             }
         }
 
-        // we need to copy the target array because SquareJacobianMatrix.solveTransposed take as an input the second member
+        // we need to copy the target array because JacobianMatrix.solveTransposed take as an input the second member
         // and reuse the array to fill with the solution
         // so we need to copy to later the target as it is and reusable for next run
         var targetVectorArray = targetVector.getArray().clone();

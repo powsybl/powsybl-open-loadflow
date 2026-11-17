@@ -11,7 +11,7 @@ import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.equations.SquareJacobianMatrix;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.network.AbstractLfNetworkListener;
 import com.powsybl.openloadflow.network.LfLoad;
 import com.powsybl.openloadflow.network.LfNetwork;
@@ -22,7 +22,7 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public class AcJacobianMatrix extends SquareJacobianMatrix<AcVariableType, AcEquationType> {
+public class AcJacobianMatrix extends JacobianMatrix<AcVariableType, AcEquationType> {
 
     private final LfNetwork network;
 
