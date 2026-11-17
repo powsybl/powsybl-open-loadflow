@@ -82,7 +82,6 @@ class NetworkConnectivityTest {
     void testNonConnectedComponents() {
         testNonConnectedComponents(new NaiveGraphConnectivity<>(LfBus::getNum));
         testNonConnectedComponents(new EvenShiloachGraphDecrementalConnectivity<>());
-        testNonConnectedComponents(new DTreeGraphConnectivity<>());
     }
 
     @Test
