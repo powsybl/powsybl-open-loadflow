@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 /**
  * @author Gaël Macherel {@literal <gael.macherel@artelys.com>}
@@ -60,10 +61,13 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
            .setConnectableBus("b1")
            .setBus("b1")
            .setTargetP(102.56)
-           .setTargetV(390)
            .setMinP(0)
            .setMaxP(500)
-           .setVoltageRegulatorOn(true)
+           .setLocalTargetV(390)
+           .newVoltageRegulation()
+                .withRegulating(true)
+                .withMode(RegulationMode.VOLTAGE)
+                .add()
             .add();
 
         Substation s2 = network.newSubstation()
@@ -88,9 +92,12 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
            .setId("cs2")
            .setConnectableBus("b2")
            .setBus("b2")
-           .setVoltageRegulatorOn(true)
-           .setVoltageSetpoint(385)
-           .setReactivePowerSetpoint(100)
+           .setLocalTargetV(385)
+           .setLocalTargetQ(100)
+           .newVoltageRegulation()
+                .withRegulating(true)
+                .withMode(RegulationMode.VOLTAGE)
+                .add()
            .setLossFactor(1.1f)
             .add();
 
@@ -121,17 +128,22 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                     .setTargetP(0.3)
                     .setMinP(0)
                     .setMaxP(1)
-                    .setTargetQ(0)
-                    .setVoltageRegulatorOn(false)
+                    .setLocalTargetQ(0)
+                    .newVoltageRegulation()
+                        .withRegulating(false)
+                        .add()
                     .add();
         }
         vl3.newVscConverterStation()
            .setId("cs3")
            .setConnectableBus("b3")
            .setBus("b3")
-           .setVoltageRegulatorOn(true)
-           .setVoltageSetpoint(383)
-           .setReactivePowerSetpoint(100)
+           .setLocalTargetV(383)
+           .setLocalTargetQ(100)
+           .newVoltageRegulation()
+                .withRegulating(true)
+                .withMode(RegulationMode.VOLTAGE)
+                .add()
            .setLossFactor(0.2f)
             .add();
 
@@ -189,10 +201,13 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
            .setConnectableBus("b1")
            .setBus("b1")
            .setTargetP(102.56)
-           .setTargetV(390)
+           .setLocalTargetV(390)
+           .newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .add()
            .setMinP(0)
            .setMaxP(500)
-           .setVoltageRegulatorOn(true)
             .add();
 
         Substation s2 = network.newSubstation()
@@ -251,10 +266,13 @@ public class HvdcNetworkFactory extends AbstractLoadFlowNetworkFactory {
            .setConnectableBus("b3")
            .setBus("b3")
            .setTargetP(102.56)
-           .setTargetV(380)
+           .setLocalTargetV(380)
+                .newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .add()
            .setMinP(0)
            .setMaxP(500)
-           .setVoltageRegulatorOn(true)
             .add();
 
         network.newLine()

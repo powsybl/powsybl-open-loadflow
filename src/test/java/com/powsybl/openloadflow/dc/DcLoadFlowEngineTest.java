@@ -13,16 +13,15 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ServiceParameterResolver;
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.EurostagFactory;
-import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -44,7 +43,7 @@ class DcLoadFlowEngineTest {
         DcLoadFlowParameters dcParameters = OpenLoadFlowParameters.createDcParameters(parameters,
                                                                                       olfParameters,
                                                                                       commonTestConfig.matrixFactory(),
-                                                                                      new NaiveGraphConnectivityFactory<>(LfElement::getNum),
+                                                                                      new DTreeGraphConnectivityFactory<>(),
                                                                                       false);
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LfNetworkParameters()).get(0);
         try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {

@@ -13,31 +13,35 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.SwitchContingency;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
+import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.action.LfAction;
+import com.powsybl.openloadflow.network.action.LfActionUtils;
 import com.powsybl.openloadflow.network.action.LfPhaseTapChangerAction;
 import com.powsybl.openloadflow.network.action.LfSwitchAction;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -104,7 +108,7 @@ class WoodburyEngineTest {
         try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
             new DcLoadFlowEngine(context)
                     .run();
-            List<ComputedBranchContingencyElement> contingencyElements = List.of(new ComputedBranchContingencyElement(new BranchContingency("l23"), lfNetwork, context.getEquationSystem()));
+            List<ComputedContingencyElement> contingencyElements = List.of(new ComputedContingencyElement(new BranchContingency("l23"), lfNetwork, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(contingencyElements);
 
             DenseMatrix contingenciesStates = ComputedElement.calculateElementsStates(context, contingencyElements);
@@ -127,7 +131,7 @@ class WoodburyEngineTest {
         try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
             new DcLoadFlowEngine(context)
                     .run();
-            List<ComputedBranchContingencyElement> contingencyElements = List.of(new ComputedBranchContingencyElement(new BranchContingency("l23"), lfNetwork, context.getEquationSystem()));
+            List<ComputedContingencyElement> contingencyElements = List.of(new ComputedContingencyElement(new BranchContingency("l23"), lfNetwork, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(contingencyElements);
 
             List<ComputedElement> actionElements = List.of(ComputedSwitchBranchElement.create(lfNetwork.getBranchById("l14"), false, context.getEquationSystem()));
@@ -152,7 +156,7 @@ class WoodburyEngineTest {
         try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
             new DcLoadFlowEngine(context)
                     .run();
-            List<ComputedBranchContingencyElement> contingencyElements = List.of(new ComputedBranchContingencyElement(new BranchContingency("l23"), lfNetwork, context.getEquationSystem()));
+            List<ComputedContingencyElement> contingencyElements = List.of(new ComputedContingencyElement(new BranchContingency("l23"), lfNetwork, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(contingencyElements);
 
             List<ComputedElement> actionElements = List.of(ComputedSwitchBranchElement.create(lfNetwork.getBranchById("l23"), true, context.getEquationSystem()));
@@ -185,7 +189,7 @@ class WoodburyEngineTest {
             new DcLoadFlowEngine(context)
                     .run();
 
-            List<ComputedBranchContingencyElement> contingencyElements = List.of(new ComputedBranchContingencyElement(new BranchContingency("L1"), lfNetwork, context.getEquationSystem()));
+            List<ComputedContingencyElement> contingencyElements = List.of(new ComputedContingencyElement(new BranchContingency("L1"), lfNetwork, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(contingencyElements);
 
             List<LfAction> actions = List.of(new LfPhaseTapChangerAction(new PhaseTapChangerTapPositionAction("PS1", "PS1", false, newTapPosition), lfNetwork));
@@ -222,7 +226,7 @@ class WoodburyEngineTest {
             new DcLoadFlowEngine(context)
                     .run();
 
-            List<ComputedBranchContingencyElement> contingencyElements = List.of(new ComputedBranchContingencyElement(new SwitchContingency("C"), lfNetwork, context.getEquationSystem()));
+            List<ComputedContingencyElement> contingencyElements = List.of(new ComputedContingencyElement(new SwitchContingency("C"), lfNetwork, context.getEquationSystem()));
             ComputedElement.setComputedElementIndexes(contingencyElements);
 
             List<LfAction> actions = List.of();
@@ -242,59 +246,48 @@ class WoodburyEngineTest {
     }
 
     /**
-     * Verifies that {@link ComputedHvdcAcEmulationElement} plugs correctly into the Woodbury engine.
-     * <p>
-     * The HVDC droop coupling k·(φ1 − φ2) is mathematically a virtual branch with susceptance k.
-     * Removing it via the Woodbury formula must yield the same AC-line flows as a reference DC load
-     * flow where the HVDC converter stations have been physically disconnected.
+     * The droop law of an HVDC line in AC emulation couples its two buses like a virtual branch of power k: removing it
+     * with the Woodbury formula must give the same flows as a DC load flow where the converter stations are disconnected.
      */
     @Test
-    void testHvdcAcEmulationContingency() {
-        // Reference: physically disconnect the HVDC converter stations and run a standard DC LF.
-        // Only the AC lines carry flow; there is no droop coupling between b3 and b4.
+    void testHvdcAcEmulationLoss() {
         Network hvdcNetworkRef = HvdcNetworkFactory.createWithHvdcInAcEmulation();
         hvdcNetworkRef.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
-                .withDroop(180).withP0(0f).withEnabled(true).add();
+                .withDroop(180).withP0(50f).withEnabled(true).add();
         hvdcNetworkRef.getHvdcLine("hvdc34").getConverterStation1().getTerminal().disconnect();
         hvdcNetworkRef.getHvdcLine("hvdc34").getConverterStation2().getTerminal().disconnect();
         double[] flowsRef = calculateFlows(hvdcNetworkRef);
 
-        // Main network: HVDC with AC emulation active (droop coupling in the B-matrix).
         Network hvdcNetwork = HvdcNetworkFactory.createWithHvdcInAcEmulation();
-        hvdcNetwork.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
-                .withDroop(180).withP0(0f).withEnabled(true).add();
+        hvdcNetwork.getHvdcLine("hvdc34").setMaxP(1000)
+                .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180).withP0(50f).withEnabled(true).add();
+        dcParameters.getNetworkParameters().setHvdcAcEmulation(true);
 
         LfNetwork lfNetwork = LfNetwork.load(hvdcNetwork, new LfNetworkLoaderImpl(), dcParameters.getNetworkParameters()).getFirst();
         try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
-            new DcLoadFlowEngine(context).run();
+            new DcLoadFlowEngine(context)
+                    .run();
 
-            // Build the HVDC contingency element: represents removing the virtual branch
-            // with susceptance k = droop * 180/π between bus3 and bus4.
             LfHvdc hvdc = lfNetwork.getHvdcById("hvdc34");
             ComputedHvdcAcEmulationElement hvdcElement = new ComputedHvdcAcEmulationElement(hvdc, context.getEquationSystem());
             List<ComputedHvdcAcEmulationElement> hvdcElements = List.of(hvdcElement);
             ComputedElement.setComputedElementIndexes(hvdcElements);
-
-            // the HVDC coupling behaves as a virtual branch between its two buses; it is not part of the AC graph
             assertEquals(hvdc, hvdcElement.getLfElement());
-            assertNotNull(hvdcElement.getEquation());
-            hvdcElement.setLocalIndex(0);
-            assertEquals(0, hvdcElement.getLocalIndex());
-            // tripping the HVDC does not modify AC connectivity, so this is a no-op
-            assertDoesNotThrow(() -> hvdcElement.applyToConnectivity(null));
+            assertEquals(hvdc.getBus1(), hvdcElement.getBus1());
+            assertEquals(hvdc.getBus2(), hvdcElement.getBus2());
+            assertEquals(180 * 180 / Math.PI / PerUnit.SB, hvdcElement.getPower(), 1e-12);
+            DenseMatrix hvdcStates = ComputedElement.calculateElementsStates(context, hvdcElements);
 
-            // Pre-compute the sensitivity of all angles to injecting ±1 at the HVDC buses.
-            DenseMatrix hvdcContingencyStates = ComputedElement.calculateElementsStates(context, hvdcElements);
+            WoodburyEngine engine = new WoodburyEngine(dcParameters.getEquationSystemCreationParameters(), hvdcElements, DenseMatrix.EMPTY, hvdcStates,
+                    Collections.emptyList(), DenseMatrix.EMPTY);
 
-            // The Woodbury engine applies the rank-1 correction that removes the droop coupling.
-            WoodburyEngine engine = new WoodburyEngine(dcParameters.getEquationSystemCreationParameters(), hvdcElements, hvdcContingencyStates);
-
-            DisabledNetwork disabledNetwork = new DisabledNetwork();
+            // the constant term p0 of the droop law is removed from the target vector as the HVDC line is disabled
+            DisabledNetwork disabledNetwork = new DisabledNetwork(Collections.emptySet(), Collections.emptySet(), Set.of(hvdc));
             double[] dx = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, Collections.emptyList(), ReportNode.NO_OP);
             DenseMatrix flowStates = new DenseMatrix(dx.length, 1, dx);
             engine.toPostContingencyStates(flowStates);
 
-            // AC-line flows after Woodbury correction must match the reference (no HVDC coupling).
             assertArrayEquals(flowsRef, calculateFlows(lfNetwork, flowStates, Collections.emptySet()), LoadFlowAssert.DELTA_POWER);
         }
     }
@@ -313,7 +306,7 @@ class WoodburyEngineTest {
             new DcLoadFlowEngine(context)
                     .run();
 
-            List<ComputedBranchContingencyElement> contingencyElements = Collections.emptyList();
+            List<ComputedContingencyElement> contingencyElements = Collections.emptyList();
 
             List<LfAction> actions = List.of(new LfSwitchAction(new SwitchAction("open C", "C", true), lfNetwork));
             List<ComputedElement> actionElements = List.of(ComputedSwitchBranchElement.create(lfNetwork.getBranchById("C"), false, context.getEquationSystem()));
@@ -328,6 +321,66 @@ class WoodburyEngineTest {
             engine.toPostContingencyAndOperatorStrategyStates(flowStates);
             var flows = calculateFlows(lfNetwork, flowStates, Set.of("C", "B3"));
             assertArrayEquals(flowsRef, flows, LoadFlowAssert.DELTA_POWER);
+        }
+    }
+
+    /**
+     * A pure phase-shift tap change (only the phase angle alpha varies across taps; r, x and rho are constant) does not
+     * modify the branch power, so it must NOT produce a Woodbury {@link ComputedTapPositionChangeElement}: its diagonal
+     * term {@code 1 / (oldPower - newPower)} would be infinite and corrupt the alpha solve, which surfaced as NaN
+     * function references in DC sensitivity analysis. The phase shift is instead fully handled through the target vector.
+     * A tap change that does modify the branch impedance must still produce an element.
+     */
+    @Test
+    void testPurePhaseShiftTapActionProducesNoWoodburyElement() {
+        // PS1 steps have different reactances (x = 50, 100, 200): moving the tap changes the branch power, so the
+        // action must produce a Woodbury element
+        assertFalse(computedTapChangeElements(pstNetworkRef, 1, 0).isEmpty());
+
+        // derive a pure phase shifter from PS1 by giving every tap step the same impedance (only alpha keeps varying)
+        PhaseTapChanger ptc = pstNetwork.getTwoWindingsTransformer("PS1").getPhaseTapChanger();
+        ptc.getStep(0).setX(100);
+        ptc.getStep(2).setX(100);
+        assertTrue(computedTapChangeElements(pstNetwork, 1, 0).isEmpty(),
+                "a pure phase-shift tap action must not produce a Woodbury element");
+    }
+
+    @Test
+    void testResistanceOnlyTapActionDependsOnDcApproximationType() {
+        // Turn PS1 into a resistance-only tap changer: a non-zero base resistance, the same reactance and ratio on
+        // every step, and only the resistance varying from one tap to the next (effective R = 15 on tap 0, 10 on
+        // tap 1, while X = 100 and rho = 1 on both).
+        pstNetwork.getTwoWindingsTransformer("PS1").setR(10);
+        PhaseTapChanger ptc = pstNetwork.getTwoWindingsTransformer("PS1").getPhaseTapChanger();
+        ptc.getStep(0).setX(0).setR(50);
+        ptc.getStep(1).setX(0).setR(0);
+
+        // IGNORE_R (default): the DC power ignores the resistance, so a resistance-only tap change leaves the power
+        // unchanged. It must not produce a Woodbury element, otherwise its 1 / (oldPower - newPower) diagonal term
+        // would be infinite and corrupt the alpha solve.
+        dcParameters.getEquationSystemCreationParameters().setDcApproximationType(DcApproximationType.IGNORE_R);
+        assertTrue(computedTapChangeElements(pstNetwork, 1, 0).isEmpty(),
+                "a resistance-only tap action must not produce a Woodbury element when the resistance is ignored");
+
+        // IGNORE_G: the DC power depends on the resistance, so the same tap change now modifies the power and must
+        // produce a Woodbury element.
+        dcParameters.getEquationSystemCreationParameters().setDcApproximationType(DcApproximationType.IGNORE_G);
+        assertFalse(computedTapChangeElements(pstNetwork, 1, 0).isEmpty(),
+                "a resistance-only tap action must produce a Woodbury element when the resistance matters");
+    }
+
+    private Map<LfAction, List<ComputedElement>> computedTapChangeElements(Network network, int fromTap, int toTap) {
+        network.getTwoWindingsTransformer("PS1").getPhaseTapChanger().setTapPosition(fromTap);
+        LfTopoConfig topoConfig = new LfTopoConfig();
+        topoConfig.addBranchIdWithPtcToRetain("PS1");
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), topoConfig, dcParameters.getNetworkParameters(), ReportNode.NO_OP).getFirst();
+        try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
+            context.getParameters().getEquationSystemCreationParameters().setForcePhaseControlOffAndAddAngle1Var(true);
+            new DcLoadFlowEngine(context).run();
+            Map<String, LfAction> lfActions = LfActionUtils.createLfActions(lfNetwork,
+                    Set.of(new PhaseTapChangerTapPositionAction("pst", "PS1", false, toTap)), network);
+            return ComputedElement.createActionElementsIndexByLfAction(lfActions, context.getEquationSystem(),
+                    context.getParameters().getEquationSystemCreationParameters());
         }
     }
 }

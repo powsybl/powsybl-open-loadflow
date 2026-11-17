@@ -13,6 +13,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Substation;
 import com.powsybl.iidm.network.TopologyKind;
 import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -20,6 +21,7 @@ import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -72,8 +74,8 @@ class FictitiousGeneratorTest {
                 .setMinP(100)
                 .setMaxP(200)
                 .setTargetP(100)
-                .setTargetV(221)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(221)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         vl2 = s.newVoltageLevel()
                 .setId("vl2")
@@ -95,8 +97,8 @@ class FictitiousGeneratorTest {
                 .setMinP(100)
                 .setMaxP(200)
                 .setTargetP(0)
-                .setTargetV(224)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(224)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .setFictitious(true)
                 .add();
 
@@ -125,7 +127,7 @@ class FictitiousGeneratorTest {
 
     @Test
     void testFictitiousGeneratorWithDefaultParameters() {
-        assertEquals(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED, parametersExt.getFictitiousGeneratorVoltageControlCheckMode());
+        assertEquals(LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED, parametersExt.getFictitiousGeneratorVoltageControlCheckMode());
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
@@ -136,7 +138,7 @@ class FictitiousGeneratorTest {
 
     @Test
     void testFictitiousGeneratorNormalMode() {
-        parametersExt.setFictitiousGeneratorVoltageControlCheckMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.NORMAL);
+        parametersExt.setFictitiousGeneratorVoltageControlCheckMode(LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode.NORMAL);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
 
@@ -157,8 +159,8 @@ class FictitiousGeneratorTest {
                 .setMinP(0)
                 .setMaxP(0)
                 .setTargetP(0)
-                .setTargetV(224)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(224)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .setCondenser(true)
                 .add();
 
@@ -169,7 +171,7 @@ class FictitiousGeneratorTest {
         assertVoltageEquals(224, b2);
 
         // This parameter has no effect on condensers
-        parametersExt.setFictitiousGeneratorVoltageControlCheckMode(OpenLoadFlowParameters.FictitiousGeneratorVoltageControlCheckMode.NORMAL);
+        parametersExt.setFictitiousGeneratorVoltageControlCheckMode(LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode.NORMAL);
 
         result = loadFlowRunner.run(network, parameters);
 

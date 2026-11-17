@@ -10,7 +10,12 @@ package com.powsybl.openloadflow.network;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public interface LfDcBus extends LfElement {
+public interface LfDcBus extends LfElement, LfCopyable<LfDcBus, LfNetwork> {
+
+    /**
+     * @return The number of the DC component this DC bus belongs to.
+     */
+    int getNumDCC();
 
     /**
      * @return The DC bus voltage in per unit.

@@ -26,12 +26,6 @@ public class DcHvdcAcEmulationLimitsOuterLoop
         implements DcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DcHvdcAcEmulationLimitsOuterLoop.class);
-    public static final String NAME = "DcHvdcAcEmulationLimits";
-
-    @Override
-    public String getName() {
-        return NAME;
-    }
 
     @Override
     public OuterLoopResult check(DcOuterLoopContext context, ReportNode reportNode) {

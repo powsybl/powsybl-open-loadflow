@@ -16,30 +16,40 @@ import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.ElementType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfHvdc;
 
+import java.util.Objects;
+
 /**
- * A computed element representing the removal of an HVDC AC-emulation droop coupling in a contingency.
- * The droop coupling k*(φ1 − φ2) is structurally equivalent to a virtual branch with susceptance k,
- * so the Woodbury formula applies verbatim.
+ * Computed element modelling the loss of the droop coupling of an HVDC line in AC emulation (linear mode).
+ * The droop law {@code p1 = k (phi1 - phi2) + p0} couples the two buses of the HVDC line exactly like a DC branch of
+ * power {@code k}: removing the coupling (HVDC line lost, or one of its buses lost) is a rank one modification of the
+ * Jacobian matrix handled by the Woodbury formula like a branch contingency. The constant term {@code p0} is in the
+ * target vector and is handled by {@link WoodburyEngine#runDcLoadFlowWithModifiedTargetVector}.
  *
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public final class ComputedHvdcAcEmulationElement implements ComputedElement {
 
-    private int computedElementIndex = -1;
-    private int localIndex = -1;
+    private int computedElementIndex = -1; // index of the element in the rhs for +1-1
+    private int localIndex = -1; // local index of the element in the matrix used in the setAlphas method
     private double alphaForWoodburyComputation = Double.NaN;
 
     private final LfHvdc hvdc;
     private final HvdcAcEmulationSide1DCFlowEquationTerm p1;
 
     public ComputedHvdcAcEmulationElement(LfHvdc hvdc, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
-        this.hvdc = hvdc;
+        this.hvdc = Objects.requireNonNull(hvdc);
         this.p1 = equationSystem.getEquationTerm(ElementType.HVDC, hvdc.getNum(), HvdcAcEmulationSide1DCFlowEquationTerm.class);
     }
 
-    public LfHvdc getLfElement() {
+    public LfHvdc getHvdc() {
+        return hvdc;
+    }
+
+    @Override
+    public LfElement getLfElement() {
         return hvdc;
     }
 
@@ -68,7 +78,10 @@ public final class ComputedHvdcAcEmulationElement implements ComputedElement {
         return p1;
     }
 
-    public double getSusceptance() {
+    /**
+     * Power of the virtual branch equivalent to the droop coupling.
+     */
+    public double getPower() {
         return p1.getK();
     }
 
@@ -98,12 +111,12 @@ public final class ComputedHvdcAcEmulationElement implements ComputedElement {
     }
 
     @Override
-    public void setAlphaForWoodburyComputation(double alpha) {
-        this.alphaForWoodburyComputation = alpha;
+    public void setAlphaForWoodburyComputation(double alphaForPostContingencyStates) {
+        this.alphaForWoodburyComputation = alphaForPostContingencyStates;
     }
 
     @Override
     public void applyToConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity) {
-        // HVDC is not a graph branch — tripping it does not change AC connectivity
+        // an HVDC line is not an edge of the AC connectivity graph: losing it does not change the AC connectivity
     }
 }

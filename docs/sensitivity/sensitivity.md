@@ -2,7 +2,7 @@
 
 ## DC sensitivity analysis
 
-A DC sensitivity analysis starts from the DC flows computing described in the [load flow section](../loadflow/loadflow.md#dc-flows-computing). Simple sensitivity analyses are supported as:
+A DC sensitivity analysis starts from the DC flows computing described in the [load flow section](../detailed_models_description/equations.md#dc-flows-computing). Simple sensitivity analyses are supported as:
 - How an injection increase of 1 MW will impact the flow of a branch ;
 - How a phase shifting of 1° of a phase tap changer will impact the flow of a branch.
 
@@ -10,6 +10,12 @@ This could be done in a set of branches given by the user.
 
 *NOTE* DC sensitivity analysis can distribute the slack (if the loadflow parameter **distributedSlack** is set to True), but in case of slack distribution failure,
 is always in mode LEAVE_ON_SLACK bus.
+
+*NOTE* If the loadflow parameter **hvdcAcEmulation** is set to True, HVDC lines with an enabled angle droop active power control are modeled with
+their linear droop law $P = P_0 + k (\theta_1 - \theta_2)$, which couples their two buses like a virtual branch of susceptance $k$. The loss of such
+an HVDC line (or of one of its buses) in a contingency removes this coupling and the constant term $P_0$. As the DC sensitivity analysis has no outer loop,
+the saturation of the droop control at the HVDC active power limits is not handled: the linear law is kept (a warning is logged when it is exceeded in
+the pre-contingency state), so results may differ from a DC load flow where the HVDC line saturates.
 
 ### Sensitivities on the base network 
 
@@ -199,7 +205,7 @@ If an user asks for a sensitivity computation which is not possible to perform, 
 
 ## AC sensitivity analysis
 
-An AC sensitivity analysis starts from the AC flows computing described in the [load flow section](../loadflow/loadflow.md#ac-flows-computing). Simple sensitivity analyses are supported as:
+An AC sensitivity analysis starts from the AC flows computing described in the [load flow section](../detailed_models_description/equations.md#ac-flows-computing). Simple sensitivity analyses are supported as:
 - How an active injection increase of 1 MW will impact the flow of a branch ;
 - How an active injection increase of 1 MW will impact the current of a branch ;
 - How a phase shifting of 1° of a phase tap changer will impact the flow of a branch ;

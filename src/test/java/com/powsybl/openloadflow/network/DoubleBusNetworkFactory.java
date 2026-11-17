@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -111,9 +112,11 @@ public final class DoubleBusNetworkFactory {
                 .setTargetP(50)
                 .setMaxP(100)
                 .setMinP(10)
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(bbs1.getTerminal()) // Will be changed after transformer is created
-                .setTargetV(400)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(bbs1.getTerminal()) // Will be changed after transformer is created
+                    .withTargetValue(400)
+                    .add()
                 .setNode(node.incrementAndGet())
                 .add();
 
@@ -135,7 +138,7 @@ public final class DoubleBusNetworkFactory {
                 .setX(0.1)
                 .add();
 
-        g.setRegulatingTerminal(tw.getTerminal1());
+        g.getVoltageRegulation().setTerminal(tw.getTerminal1(), 400);
 
         vlGens.getNodeBreakerView().newInternalConnection()
                 .setNode1(tw.getTerminal(vlGens.getId()).getNodeBreakerView().getNode())
@@ -158,7 +161,7 @@ public final class DoubleBusNetworkFactory {
                     .setNode2(bbsgen.getTerminal().getNodeBreakerView().getNode())
                     .add();
 
-            g.setRegulatingTerminal(twBoundary.getTerminal1());
+            g.getVoltageRegulation().setTerminal(twBoundary.getTerminal1(), 400);
         }
 
         vl.getNodeBreakerView().newSwitch()

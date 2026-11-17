@@ -32,7 +32,7 @@ import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.outerloop.config.*;
 import com.powsybl.openloadflow.network.*;
@@ -133,18 +133,18 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     // False for loadflow by default. True for security analysis by default.
     public static final boolean START_WITH_FROZEN_AC_EMULATION_DEFAULT_VALUE = false;
 
-    public enum FictitiousGeneratorVoltageControlCheckMode {
-        FORCED,
-        NORMAL
-    }
+    private static final int NETWORK_VARIANT_POOL_SIZE_DEFAULT_VALUE = 20;
 
-    protected static final FictitiousGeneratorVoltageControlCheckMode FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE = FictitiousGeneratorVoltageControlCheckMode.FORCED;
+    public static final String NETWORK_CACHE_SCOPE_DEFAULT_VALUE = null;
 
-    public static final boolean AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE = false;
+    protected static final LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE =
+        LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode.FORCED;
+
+    public static final boolean AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE = LfNetworkParameters.AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
 
     public static final double AREA_INTERCHANGE_P_MAX_MISMATCH_DEFAULT_VALUE = 2.0;
 
-    public static final boolean FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE = false;
+    public static final boolean FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE = LfNetworkParameters.FORCE_TARGET_Q_IN_REACTIVE_LIMITS_DEFAULT_VALUE;
 
     public static final boolean AC_DC_NETWORK_DEFAULT_VALUE = false;
 
@@ -312,6 +312,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME = "allowNonLinearShuntZeroSection";
 
+    public static final String NETWORK_VARIANT_POOL_SIZE_PARAM_NAME = "networkVariantPoolSize";
+
+    public static final String NETWORK_CACHE_SCOPE_PARAM_NAME = "networkCacheScope";
+
     public static <E extends Enum<E>> List<Object> getEnumPossibleValues(Class<E> enumClass) {
         return EnumSet.allOf(enumClass).stream().map(Enum::name).collect(Collectors.toList());
     }
@@ -452,7 +456,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             AcLoadFlowParameters.DEFAULT_MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK, ParameterScope.FUNCTIONAL, VOLTAGE_CONTROLS_CATEGORY_KEY),
         new Parameter(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ParameterType.STRING,
             "Reactive range check mode",
-            LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(ReactiveRangeCheckMode.class),
+            LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(LfNetworkParameters.ReactiveRangeCheckMode.class),
             ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME, ParameterType.DOUBLE,
             "Low impedance threshold in per unit",
@@ -592,7 +596,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             OpenLoadFlowParameters.GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, TRANSFORMER_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, ParameterType.STRING,
             "Specifies fictitious generators active power checks exemption for voltage control",
-            OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(FictitiousGeneratorVoltageControlCheckMode.class),
+            OpenLoadFlowParameters.FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE.name(), getEnumPossibleValues(LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode.class),
             ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(AREA_INTERCHANGE_CONTROL_PARAM_NAME, ParameterType.BOOLEAN,
             "Area interchange control",
@@ -631,7 +635,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             AC_DC_NETWORK_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
         new Parameter(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME, ParameterType.BOOLEAN,
             "Allow Non-Linear Shunt Compensator zero section position",
-            LfNetworkParameters.ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY)
+            LfNetworkParameters.ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, MODEL_CATEGORY_KEY),
+        new Parameter(NETWORK_VARIANT_POOL_SIZE_PARAM_NAME, ParameterType.INTEGER,
+                "Network variant pool size",
+                NETWORK_VARIANT_POOL_SIZE_DEFAULT_VALUE, ParameterScope.TECHNICAL, FAST_RESTART_CATEGORY_KEY),
+        new Parameter(NETWORK_CACHE_SCOPE_PARAM_NAME, ParameterType.STRING,
+                "Network cache scope, to get several independent cache entries for a same network and variant (null means a single entry per network and variant)",
+                NETWORK_CACHE_SCOPE_DEFAULT_VALUE, null, ParameterScope.TECHNICAL, FAST_RESTART_CATEGORY_KEY)
     );
 
     public enum VoltageInitModeOverride {
@@ -732,13 +742,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double lowImpedanceThreshold = LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE;
 
-    public enum ReactiveRangeCheckMode {
-        MIN_MAX,
-        MAX,
-        TARGET_P
-    }
-
-    private ReactiveRangeCheckMode reactiveRangeCheckMode = LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
+    private LfNetworkParameters.ReactiveRangeCheckMode reactiveRangeCheckMode = LfNetworkParameters.REACTIVE_RANGE_CHECK_MODE_DEFAULT_VALUE;
 
     private boolean networkCacheEnabled = LfNetworkParameters.CACHE_ENABLED_DEFAULT_VALUE;
 
@@ -812,7 +816,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     private double generatorVoltageControlMinNominalVoltage = GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_DEFAULT_VALUE;
 
-    private FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode = FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE;
+    private LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode = FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE_DEFAULT_VALUE;
 
     private boolean areaInterchangeControl = AREA_INTERCHANGE_CONTROL_DEFAULT_VALUE;
 
@@ -837,6 +841,10 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean acDcNetwork = AC_DC_NETWORK_DEFAULT_VALUE;
 
     private boolean allowNonLinearShuntZeroSection = LfNetworkParameters.ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_DEFAULT_VALUE;
+
+    private int networkVariantPoolSize = NETWORK_VARIANT_POOL_SIZE_DEFAULT_VALUE;
+
+    private String networkCacheScope = NETWORK_CACHE_SCOPE_DEFAULT_VALUE;
 
     public static double checkParameterValue(double parameterValue, boolean condition, String parameterName) {
         if (!condition) {
@@ -1174,11 +1182,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
-    public ReactiveRangeCheckMode getReactiveRangeCheckMode() {
+    public LfNetworkParameters.ReactiveRangeCheckMode getReactiveRangeCheckMode() {
         return reactiveRangeCheckMode;
     }
 
-    public OpenLoadFlowParameters setReactiveRangeCheckMode(ReactiveRangeCheckMode reactiveRangeCheckMode) {
+    public OpenLoadFlowParameters setReactiveRangeCheckMode(LfNetworkParameters.ReactiveRangeCheckMode reactiveRangeCheckMode) {
         this.reactiveRangeCheckMode = reactiveRangeCheckMode;
         return this;
     }
@@ -1543,11 +1551,11 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return generatorVoltageControlMinNominalVoltage;
     }
 
-    public FictitiousGeneratorVoltageControlCheckMode getFictitiousGeneratorVoltageControlCheckMode() {
+    public LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode getFictitiousGeneratorVoltageControlCheckMode() {
         return fictitiousGeneratorVoltageControlCheckMode;
     }
 
-    public OpenLoadFlowParameters setFictitiousGeneratorVoltageControlCheckMode(FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode) {
+    public OpenLoadFlowParameters setFictitiousGeneratorVoltageControlCheckMode(LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode fictitiousGeneratorVoltageControlCheckMode) {
         this.fictitiousGeneratorVoltageControlCheckMode = Objects.requireNonNull(fictitiousGeneratorVoltageControlCheckMode);
         return this;
     }
@@ -1664,6 +1672,34 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public int getNetworkVariantPoolSize() {
+        return networkVariantPoolSize;
+    }
+
+    public OpenLoadFlowParameters setNetworkVariantPoolSize(int networkVariantPoolSize) {
+        if (networkVariantPoolSize < 1) {
+            throw new PowsyblException("Network variant pool size must be strictly positive");
+        }
+        this.networkVariantPoolSize = networkVariantPoolSize;
+        return this;
+    }
+
+    public String getNetworkCacheScope() {
+        return networkCacheScope;
+    }
+
+    /**
+     * Partitions the network cache: entries are looked up by network, working variant and scope. A null scope
+     * (the default) keeps the historical behaviour of a single entry per network and variant.
+     * <p>
+     * Callers running concurrent computations on a same network and variant must give each thread its own scope,
+     * otherwise they would share a single entry, hence a single mutable {@link com.powsybl.openloadflow.network.LfNetwork}.
+     */
+    public OpenLoadFlowParameters setNetworkCacheScope(String networkCacheScope) {
+        this.networkCacheScope = networkCacheScope;
+        return this;
+    }
+
     public static OpenLoadFlowParameters load() {
         return load(PlatformConfig.defaultConfig());
     }
@@ -1735,7 +1771,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         config.getOptionalDoubleProperty(MIN_REALISTIC_VOLTAGE_PARAM_NAME).ifPresent(this::setMinRealisticVoltage);
         config.getOptionalDoubleProperty(MAX_REALISTIC_VOLTAGE_PARAM_NAME).ifPresent(this::setMaxRealisticVoltage);
         config.getOptionalDoubleProperty(MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK_PARAM_NAME).ifPresent(this::setMinNominalVoltageRealisticVoltageCheck);
-        config.getOptionalEnumProperty(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, ReactiveRangeCheckMode.class)
+        config.getOptionalEnumProperty(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME, LfNetworkParameters.ReactiveRangeCheckMode.class)
             .ifPresent(this::setReactiveRangeCheckMode);
         config.getOptionalDoubleProperty(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME).ifPresent(this::setLowImpedanceThreshold);
         config.getOptionalBooleanProperty(NETWORK_CACHE_ENABLED_PARAM_NAME).ifPresent(this::setNetworkCacheEnabled);
@@ -1795,7 +1831,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         config.getOptionalDoubleProperty(AREA_INTERCHANGE_P_MAX_MISMATCH_PARAM_NAME).ifPresent(this::setAreaInterchangePMaxMismatch);
         config.getOptionalBooleanProperty(DISABLE_INCONSISTENT_VOLTAGE_CONTROLS_PARAM_NAME).ifPresent(this::setDisableInconsistentVoltageControls);
         config.getOptionalBooleanProperty(FORCE_TARGET_Q_IN_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setForceTargetQInReactiveLimits);
-        config.getOptionalEnumProperty(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, FictitiousGeneratorVoltageControlCheckMode.class)
+        config.getOptionalEnumProperty(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE, LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode.class)
             .ifPresent(this::setFictitiousGeneratorVoltageControlCheckMode);
         config.getOptionalBooleanProperty(VOLTAGE_REMOTE_CONTROL_ROBUST_MODE_PARAM_NAME).ifPresent(this::setVoltageRemoteControlRobustMode);
         config.getOptionalBooleanProperty(EXTRAPOLATE_REACTIVE_LIMITS_PARAM_NAME).ifPresent(this::setExtrapolateReactiveLimits);
@@ -1806,6 +1842,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         config.getOptionalBooleanProperty(FIX_VOLTAGE_TARGETS_PARAM_NAME).ifPresent(this::setFixVoltageTargets);
         config.getOptionalBooleanProperty(AC_DC_NETWORK_PARAM_NAME).ifPresent(this::setAcDcNetwork);
         config.getOptionalBooleanProperty(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME).ifPresent(this::setAllowNonLinearShuntZeroSection);
+        config.getOptionalIntProperty(NETWORK_VARIANT_POOL_SIZE_PARAM_NAME).ifPresent(this::setNetworkVariantPoolSize);
+        config.getOptionalStringProperty(NETWORK_CACHE_SCOPE_PARAM_NAME).ifPresent(this::setNetworkCacheScope);
     }
 
     public OpenLoadFlowParameters update(Map<String, String> properties) {
@@ -1868,7 +1906,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         Optional.ofNullable(properties.get(MIN_NOMINAL_VOLTAGE_REALISTIC_VOLTAGE_CHECK_PARAM_NAME))
                 .ifPresent(prop -> this.setMinNominalVoltageRealisticVoltageCheck(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(REACTIVE_RANGE_CHECK_MODE_PARAM_NAME))
-                .ifPresent(prop -> this.setReactiveRangeCheckMode(ReactiveRangeCheckMode.valueOf(prop)));
+                .ifPresent(prop -> this.setReactiveRangeCheckMode(LfNetworkParameters.ReactiveRangeCheckMode.valueOf(prop)));
         Optional.ofNullable(properties.get(LOW_IMPEDANCE_THRESHOLD_PARAM_NAME))
                 .ifPresent(prop -> this.setLowImpedanceThreshold(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(NETWORK_CACHE_ENABLED_PARAM_NAME))
@@ -1955,7 +1993,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         Optional.ofNullable(properties.get(GENERATOR_VOLTAGE_CONTROL_MIN_NOMINAL_VOLTAGE_PARAM_NAME))
                 .ifPresent(prop -> this.setGeneratorVoltageControlMinNominalVoltage(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(FICTITIOUS_GENERATOR_VOLTAGE_CONTROL_CHECK_MODE))
-                .ifPresent(prop -> this.setFictitiousGeneratorVoltageControlCheckMode(FictitiousGeneratorVoltageControlCheckMode.valueOf(prop)));
+                .ifPresent(prop -> this.setFictitiousGeneratorVoltageControlCheckMode(LfNetworkParameters.FictitiousGeneratorVoltageControlCheckMode.valueOf(prop)));
         Optional.ofNullable(properties.get(AREA_INTERCHANGE_CONTROL_PARAM_NAME))
                 .ifPresent(prop -> this.setAreaInterchangeControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(AREA_INTERCHANGE_CONTROL_AREA_TYPE_PARAM_NAME))
@@ -1982,6 +2020,12 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setAcDcNetwork(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME))
                 .ifPresent(prop -> this.setAllowNonLinearShuntZeroSection(Boolean.parseBoolean(prop)));
+        Optional.ofNullable(properties.get(NETWORK_VARIANT_POOL_SIZE_PARAM_NAME))
+                .ifPresent(prop -> this.setNetworkVariantPoolSize(Integer.parseInt(prop)));
+        // network cache scope is nullable
+        if (properties.containsKey(NETWORK_CACHE_SCOPE_PARAM_NAME)) {
+            setNetworkCacheScope(properties.get(NETWORK_CACHE_SCOPE_PARAM_NAME));
+        }
         return this;
     }
 
@@ -2069,6 +2113,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(FIX_VOLTAGE_TARGETS_PARAM_NAME, fixVoltageTargets);
         map.put(AC_DC_NETWORK_PARAM_NAME, acDcNetwork);
         map.put(ALLOW_NON_LINEAR_SHUNT_ZERO_SECTION_PARAM_NAME, allowNonLinearShuntZeroSection);
+        map.put(NETWORK_VARIANT_POOL_SIZE_PARAM_NAME, networkVariantPoolSize);
+        map.put(NETWORK_CACHE_SCOPE_PARAM_NAME, networkCacheScope);
         return map;
     }
 
@@ -2381,10 +2427,13 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     static GraphConnectivityFactory<LfBus, LfBranch> getConnectivityFactory(OpenLoadFlowParameters parametersExt,
                                                                             GraphConnectivityFactory<LfBus, LfBranch> defaultConnectivityFactory) {
-        return parametersExt.isNetworkCacheEnabled() && !parametersExt.getActionableSwitchesIds().isEmpty()
-                || parametersExt.isSimulateAutomationSystems()
-                ? new NaiveGraphConnectivityFactory<>(LfBus::getNum)
-                : defaultConnectivityFactory;
+        if ((parametersExt.isNetworkCacheEnabled() && !parametersExt.getActionableSwitchesIds().isEmpty()
+                || parametersExt.isSimulateAutomationSystems())
+                && !defaultConnectivityFactory.supportsIncremental()) {
+            return new DTreeGraphConnectivityFactory<>();
+        } else {
+            return defaultConnectivityFactory;
+        }
     }
 
     public static boolean equals(LoadFlowParameters parameters1, LoadFlowParameters parameters2) {
@@ -2503,7 +2552,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getIncrementalShuntControlOuterLoopMaxSectionShift() == extension2.getIncrementalShuntControlOuterLoopMaxSectionShift() &&
                 extension1.isFixVoltageTargets() == extension2.isFixVoltageTargets() &&
                 extension1.isAcDcNetwork() == extension2.isAcDcNetwork() &&
-                extension1.isAllowNonLinearShuntZeroSection() == extension2.isAllowNonLinearShuntZeroSection();
+                extension1.isAllowNonLinearShuntZeroSection() == extension2.isAllowNonLinearShuntZeroSection() &&
+                extension1.getNetworkVariantPoolSize() == extension2.getNetworkVariantPoolSize() &&
+                Objects.equals(extension1.getNetworkCacheScope(), extension2.getNetworkCacheScope());
     }
 
     public static OpenLoadFlowParameters clone(OpenLoadFlowParameters extension) {
@@ -2589,7 +2640,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setIncrementalShuntControlOuterLoopMaxSectionShift(extension.getIncrementalShuntControlOuterLoopMaxSectionShift())
                 .setFixVoltageTargets(extension.isFixVoltageTargets())
                 .setAcDcNetwork(extension.isAcDcNetwork())
-                .setAllowNonLinearShuntZeroSection(extension.isAllowNonLinearShuntZeroSection());
+                .setAllowNonLinearShuntZeroSection(extension.isAllowNonLinearShuntZeroSection())
+                .setNetworkVariantPoolSize(extension.getNetworkVariantPoolSize())
+                .setNetworkCacheScope(extension.getNetworkCacheScope());
     }
 
     public static LoadFlowParameters clone(LoadFlowParameters parameters) {

@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -88,8 +89,8 @@ class AcloadFlowReactiveLimitsTest {
                 .setConnectableBus("NGEN2")
                 .setMinP(-9999.99)
                 .setMaxP(9999.99)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(24.5)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(24.5)
                 .setTargetP(100)
                 .add();
         gen2.newMinMaxReactiveLimits()
@@ -226,7 +227,7 @@ class AcloadFlowReactiveLimitsTest {
         // Set reactive range check mode so that gen2 is not excluded from V control
         // Set reactive power tolerance smaller than the small gen2 reactive power capability.
         parametersExt
-            .setReactiveRangeCheckMode(OpenLoadFlowParameters.ReactiveRangeCheckMode.MAX)
+            .setReactiveRangeCheckMode(LfNetworkParameters.ReactiveRangeCheckMode.MAX)
             .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
             .setMaxReactivePowerMismatch(0.01);
 

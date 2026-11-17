@@ -14,11 +14,11 @@ import com.powsybl.contingency.Contingency;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.lf.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.LfContingency;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.SecurityAnalysisParameters;
 
 import java.util.Objects;
@@ -53,7 +53,7 @@ public class DefaultContingencyActivePowerLossDistribution implements Contingenc
             ActivePowerDistribution activePowerDistribution = ActivePowerDistribution.create(paramsOverride.getBalanceType(loadFlowParameters),
                 openLoadFlowParameters.isLoadPowerFactorConstant(), openLoadFlowParameters.isUseActiveLimits());
             ActivePowerDistribution.Result result = activePowerDistribution.run(network.getSynchronousNetworks().getFirst(), mismatch);
-            Reports.reportContingencyActivePowerLossDistribution(reportNode, mismatch * PerUnit.SB, result.remainingMismatch() * PerUnit.SB);
+            LfReports.reportContingencyActivePowerLossDistribution(reportNode, mismatch * PerUnit.SB, result.remainingMismatch() * PerUnit.SB);
             return mismatch - result.remainingMismatch();
         }
         return 0.0;

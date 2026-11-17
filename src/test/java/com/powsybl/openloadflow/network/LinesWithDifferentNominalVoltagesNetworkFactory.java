@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.EnergySource;
 import com.powsybl.iidm.network.Generator;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 /**
  * <p>test network with lines connecting buses with different nominal voltages
@@ -58,8 +59,8 @@ public class LinesWithDifferentNominalVoltagesNetworkFactory extends AbstractLoa
                 .setMinP(0)
                 .setMaxP(600)
                 .setTargetP(500)
-                .setTargetV(225)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(225)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         g1.newExtension(ActivePowerControlAdder.class)
                 .withParticipate(true)

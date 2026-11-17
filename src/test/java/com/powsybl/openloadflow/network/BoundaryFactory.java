@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
@@ -41,10 +42,10 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(101.3664)
-                .setTargetV(390)
+                .setLocalTargetV(390)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         VoltageLevel vl2 = s2.newVoltageLevel()
                 .setId("vl2")
@@ -161,10 +162,10 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(100)
-                .setTargetV(400)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         Substation s2 = network.newSubstation()
@@ -213,10 +214,10 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b4")
                 .setBus("b4")
                 .setTargetP(20)
-                .setTargetV(400)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         network.newLine()
@@ -276,10 +277,10 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(100)
-                .setTargetV(400)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         Substation s3 = network.newSubstation()
@@ -316,10 +317,10 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b4")
                 .setBus("b4")
                 .setTargetP(20)
-                .setTargetV(400)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         BoundaryLine bl1 = vl1.newBoundaryLine()
@@ -417,10 +418,10 @@ public class BoundaryFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(1E-6)
-                .setTargetV(224.18)
+                .setLocalTargetV(224.18)
                 .setMinP(0)
                 .setMaxP(245)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         g1.newMinMaxReactiveLimits().setMinQ(-80).setMaxQ(86).add();
 

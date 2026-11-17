@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 
 import java.util.List;
@@ -46,10 +47,10 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(100)
-                .setTargetV(400)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         vl1.newLoad()
                 .setId("load1")
@@ -155,11 +156,11 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("gen3")
                 .setBus("b3")
                 .setTargetP(40)
-                .setTargetQ(0)
-                .setTargetV(400)
+                .setLocalTargetQ(0)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         network.newArea()
                 .setId("a1")
@@ -365,11 +366,11 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b5")
                 .setBus("b5")
                 .setTargetP(5)
-                .setTargetQ(0)
-                .setTargetV(400)
+                .setLocalTargetQ(0)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(30)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         vl5.newBoundaryLine()
                 .setId("dlA1_2")
@@ -470,11 +471,10 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setId("G2")
                 .setBus("B2")
                 .setTargetP(40)
-                .setTargetQ(0)
-                .setTargetV(400)
+                .setLocalTargetQ(0)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(150)
-                .setVoltageRegulatorOn(false)
                 .add();
 
         vl1.newLoad()

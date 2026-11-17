@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 public final class BusBreakerNetworkFactory {
 
@@ -92,10 +93,10 @@ public final class BusBreakerNetworkFactory {
             .setBus(busId)
             .setMinP(-4999.99)
             .setMaxP(4999.99)
-            .setVoltageRegulatorOn(true)
-            .setTargetV(v)
+            .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+            .setLocalTargetV(v)
             .setTargetP(p)
-            .setTargetQ(q)
+            .setLocalTargetQ(q)
             .add();
     }
 

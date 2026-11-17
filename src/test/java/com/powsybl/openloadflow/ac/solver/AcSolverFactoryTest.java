@@ -26,7 +26,7 @@ import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -137,7 +137,7 @@ class AcSolverFactoryTest {
                 parameters,
                 parametersExt,
                 commonTestConfig.matrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>()
+                new DTreeGraphConnectivityFactory<>()
         );
         assertEquals("AcSolverMockParameters(maxIterations=12)", acLoadFlowParameters.getAcSolverParameters().toString());
 

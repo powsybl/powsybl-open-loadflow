@@ -307,14 +307,14 @@ class EquationsTest {
     }
 
     @Test
-    void dcLineTest() {
-        var dcLine = Mockito.mock(LfDcLine.class, new RuntimeExceptionAnswer());
-        Mockito.doReturn(0).when(dcLine).getNum();
-        Mockito.doReturn(false).when(dcLine).isDisabled();
-        Mockito.doReturn(1.0).when(dcLine).getR();
+    void detailedDcBranchTest() {
+        var dcBranch = Mockito.mock(LfDcBranch.class, new RuntimeExceptionAnswer());
+        Mockito.doReturn(0).when(dcBranch).getNum();
+        Mockito.doReturn(false).when(dcBranch).isDisabled();
+        Mockito.doReturn(1.0).when(dcBranch).getR();
 
-        Mockito.doReturn(dcBus1).when(dcLine).getDcBus1();
-        Mockito.doReturn(dcBus2).when(dcLine).getDcBus2();
+        Mockito.doReturn(dcBus1).when(dcBranch).getDcBus1();
+        Mockito.doReturn(dcBus2).when(dcBranch).getDcBus2();
         VariableSet<AcVariableType> variableSet = new VariableSet<>();
         var v1Var = variableSet.getVariable(0, AcVariableType.DC_BUS_V);
         var v2Var = variableSet.getVariable(1, AcVariableType.DC_BUS_V);
@@ -327,20 +327,20 @@ class EquationsTest {
 
         var sv = new StateVector(new double[]{V_1, V_2, 0});
 
-        // closed dcLine equations
-        assertEquals("dc_i_closed_1", new ClosedDcLineSide1CurrentEquationTerm(dcLine, dcBus1, dcBus2, variableSet).getName());
-        assertEquals("dc_i_closed_2", new ClosedDcLineSide2CurrentEquationTerm(dcLine, dcBus1, dcBus2, variableSet).getName());
-        assertEquals("dc_p_closed_1", new ClosedDcLineSide1PowerEquationTerm(dcLine, dcBus1, dcBus2, variableSet).getName());
-        assertEquals("dc_p_closed_2", new ClosedDcLineSide2PowerEquationTerm(dcLine, dcBus1, dcBus2, variableSet).getName());
+        // closed DcBranch equations
+        assertEquals("dc_i_closed_1", new ClosedDcBranchSide1CurrentEquationTerm(dcBranch, dcBus1, dcBus2, variableSet).getName());
+        assertEquals("dc_i_closed_2", new ClosedDcBranchSide2CurrentEquationTerm(dcBranch, dcBus1, dcBus2, variableSet).getName());
+        assertEquals("dc_p_closed_1", new ClosedDcBranchSide1PowerEquationTerm(dcBranch, dcBus1, dcBus2, variableSet).getName());
+        assertEquals("dc_p_closed_2", new ClosedDcBranchSide2PowerEquationTerm(dcBranch, dcBus1, dcBus2, variableSet).getName());
 
         assertArrayEquals(new double[]{-0.7035674405958758, 1600.0, -1600.0, Double.NaN, Double.NaN},
-                eval(new ClosedDcLineSide1CurrentEquationTerm(dcLine, dcBus1, dcBus2, variableSet), variables, sv));
+                eval(new ClosedDcBranchSide1CurrentEquationTerm(dcBranch, dcBus1, dcBus2, variableSet), variables, sv));
         assertArrayEquals(new double[]{0.7035674405958758, -1600.0, 1600.0, Double.NaN, Double.NaN},
-                eval(new ClosedDcLineSide2CurrentEquationTerm(dcLine, dcBus1, dcBus2, variableSet), variables, sv));
+                eval(new ClosedDcBranchSide2CurrentEquationTerm(dcBranch, dcBus1, dcBus2, variableSet), variables, sv));
         assertArrayEquals(new double[]{-0.7538300813508406, 1713.5999386168091, -1714.303506057405, Double.NaN, Double.NaN},
-                eval(new ClosedDcLineSide1PowerEquationTerm(dcLine, dcBus1, dcBus2, variableSet), variables, sv));
+                eval(new ClosedDcBranchSide1PowerEquationTerm(dcBranch, dcBus1, dcBus2, variableSet), variables, sv));
         assertArrayEquals(new double[]{0.7541394608155072, -1715.0070734980009, 1715.7106409385967, Double.NaN, Double.NaN},
-                eval(new ClosedDcLineSide2PowerEquationTerm(dcLine, dcBus1, dcBus2, variableSet), variables, sv));
+                eval(new ClosedDcBranchSide2PowerEquationTerm(dcBranch, dcBus1, dcBus2, variableSet), variables, sv));
     }
 
     @Test
@@ -395,5 +395,46 @@ class EquationsTest {
         assertEquals("dc_i", new ConverterDcCurrentEquationTerm(converter, dcBus1, dcBus2, dcBus1.getNominalV(), variableSet).getName());
         assertArrayEquals(new double[]{655.5332962269079, 222991.01420562976, -222991.01420562976, 340.16733473206085, Double.NaN, Double.NaN},
                 eval(new ConverterDcCurrentEquationTerm(converter, dcBus1, dcBus2, dcBus1.getNominalV(), variableSet), variables, sv));
+    }
+
+    @Test
+    void converterDroopEquationTermTest() {
+        // Droop equation: a*(P_AC - refP) - b*(U_dc - refVdc) = 0, with a = k (from the droop curve) and b = 1,
+        // i.e. U_dc = refVdc + k*(P_AC - refP): k is the slope of U_dc versus P_AC.
+        var converter = Mockito.mock(LfVoltageSourceConverter.class, new RuntimeExceptionAnswer());
+        Mockito.doReturn(0).when(converter).getNum();
+        Mockito.doReturn(false).when(converter).isDisabled();
+        Mockito.doReturn(400.0).when(converter).getDcVoltageBase();
+        double k = 2.0;
+        double refVdc = 0.125;
+        double refP = 0.5;
+        Mockito.doReturn(List.of(new LfVoltageSourceConverter.LfDroopReference(k, refVdc, refP)))
+                .when(converter).getDroopCurve();
+
+        VariableSet<AcVariableType> variableSet = new VariableSet<>();
+        Variable<AcVariableType> v1Var = variableSet.getVariable(0, AcVariableType.DC_BUS_V);
+        Variable<AcVariableType> v2Var = variableSet.getVariable(1, AcVariableType.DC_BUS_V);
+        Variable<AcVariableType> pAcVar = variableSet.getVariable(0, AcVariableType.CONV_P_AC);
+        Variable<AcVariableType> unknownVar = variableSet.getVariable(999, AcVariableType.DUMMY_P);
+
+        var variables = List.of(v1Var, v2Var, pAcVar, unknownVar);
+        v1Var.setRow(0);
+        v2Var.setRow(1);
+        pAcVar.setRow(2);
+        unknownVar.setRow(3);
+
+        ConverterDroopEquationTerm term = new ConverterDroopEquationTerm(converter, dcBus1, dcBus2, variableSet);
+        assertEquals("conv_p_droop", term.getName());
+
+        // U_dc = 1.0 - 0.75 = 0.25, P_AC = 0.25: an arbitrary (non-solution) point.
+        // eval = k*(P_AC - refP) - (U_dc - refVdc) = -0.625.
+        // der(pAc) = k = 2.0 ; der(v1) = -b = -1.0 ; der(v2) = +b = 1.0.
+        var sv = new StateVector(new double[]{1.0, 0.75, 0.25, 0});
+        assertArrayEquals(new double[]{-0.625, -1.0, 1.0, 2.0, Double.NaN, Double.NaN},
+                eval(term, variables, sv));
+
+        // At U_dc = refVdc (0.125) and P_AC = refP (0.5), the residual is exactly zero.
+        term.setStateVector(new StateVector(new double[]{1.0, 0.875, 0.5, 0}));
+        assertEquals(0.0, term.eval());
     }
 }

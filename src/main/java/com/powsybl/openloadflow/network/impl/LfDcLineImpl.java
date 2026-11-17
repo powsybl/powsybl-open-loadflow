@@ -16,21 +16,34 @@ import java.util.Objects;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public class LfDcLineImpl extends AbstractLfDcLine {
+public class LfDcLineImpl extends AbstractLfDcBranch {
 
     private final Ref<DcLine> dcLineRef;
 
-    public LfDcLineImpl(LfDcBus dcBus1, LfDcBus dcBus2, LfNetwork network, DcLine dcLine, LfNetworkParameters parameters) {
-        super(network, dcBus1, dcBus2, dcLine.getR());
+    public LfDcLineImpl(LfDcBus dcBus1, LfDcBus dcBus2, LfNetwork network, int numDCC, DcLine dcLine, LfNetworkParameters parameters) {
+        super(network, numDCC, dcBus1, dcBus2, dcLine.getR());
         this.dcLineRef = Ref.create(dcLine, parameters.isCacheEnabled());
     }
 
-    public static LfDcLineImpl create(DcLine dcLine, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2,
+    private LfDcLineImpl(LfDcLineImpl other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2) {
+        super(other, network, dcBus1, dcBus2);
+        this.dcLineRef = other.dcLineRef;
+    }
+
+    @Override
+    public LfDcBranch copy(LfNetwork copyNetwork) {
+        return new LfDcLineImpl(this,
+                copyNetwork,
+                copyNetwork.getDcBusById(dcBus1.getId()),
+                copyNetwork.getDcBusById(dcBus2.getId()));
+    }
+
+    public static LfDcLineImpl create(DcLine dcLine, LfNetwork network, int numDCC, LfDcBus dcBus1, LfDcBus dcBus2,
                                       LfNetworkParameters parameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(dcLine);
         Objects.requireNonNull(parameters);
-        return new LfDcLineImpl(dcBus1, dcBus2, network, dcLine, parameters);
+        return new LfDcLineImpl(dcBus1, dcBus2, network, numDCC, dcLine, parameters);
     }
 
     private DcLine getDcLine() {
@@ -43,18 +56,17 @@ public class LfDcLineImpl extends AbstractLfDcLine {
     }
 
     @Override
-    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
-        if (isDisabled()) {
-            updateFlows(Double.NaN, Double.NaN, Double.NaN, Double.NaN);
-        } else {
-            updateFlows(i1.eval(), i2.eval(), p1.eval(), p2.eval());
-        }
-    }
-
-    @Override
     public void updateFlows(double i1, double i2, double p1, double p2) {
         var dcLine = getDcLine();
 
+        if (dcBus1 == null || dcBus2 == null) {
+            // Current and power should be zero for both sides
+            dcLine.getDcTerminal1().setI(0);
+            dcLine.getDcTerminal2().setI(0);
+            dcLine.getDcTerminal1().setP(0);
+            dcLine.getDcTerminal2().setP(0);
+            return;
+        }
         // If a DC bus is grounded, its current and power variable are NaN.
         // However, we can infer them from the other DC bus (power should be zero)
         dcLine.getDcTerminal1().setI((dcBus1.isGrounded() ? -i2 : i1) * PerUnit.ibDc(dcBus1.getNominalV()));

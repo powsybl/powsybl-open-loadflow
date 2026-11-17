@@ -15,6 +15,7 @@ import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -2119,8 +2120,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setMinP(0.0)
                 .setMaxP(10)
                 .setTargetP(5)
-                .setTargetV(30)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(30)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         network.getTwoWindingsTransformer("T2wT").getTerminal1().disconnect();
 
@@ -2152,8 +2153,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setMinP(0.0)
                 .setMaxP(10)
                 .setTargetP(5)
-                .setTargetV(30)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(30)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         network.getTwoWindingsTransformer("T2wT").getTerminal1().disconnect();
 
@@ -2183,8 +2184,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setMinP(0.0)
                 .setMaxP(10)
                 .setTargetP(5)
-                .setTargetV(30)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(30)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         network.getTwoWindingsTransformer("T2wT").getTerminal1().disconnect();
 
@@ -2811,9 +2812,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                                                   new Contingency("bus", new BusContingency("b2")));
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l34", "l4"));
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1", true);
-        // AC emulation disabled: this test checks fixed-setpoint HVDC contingency behaviour.
-        // Supporting HVDC-line contingencies with AC emulation requires extending the Woodbury engine
-        // to treat the droop coupling as a virtual branch (separate TODO).
+        // the HVDC line has a droop control: this test checks the loss of a VSC station operated in set point mode
         sensiParameters.getLoadFlowParameters().setHvdcAcEmulation(false);
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
                 .setContingencies(contingencies)

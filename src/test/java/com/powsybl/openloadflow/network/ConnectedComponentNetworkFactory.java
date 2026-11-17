@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.HvdcLine;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 
 /**
  * @author Gael Macherel {@literal <gael.macherel at artelys.com>}
@@ -323,10 +324,12 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
             .endStep()
             .setTapPosition(0)
             .setLoadTapChangingCapabilities(true)
-            .setRegulating(true)
-            .setTargetV(2)
-            .setTargetDeadband(0)
-            .setRegulationTerminal(t2wt.getTerminal1())
+            .newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withTerminal(t2wt.getTerminal1())
+                .withTargetValue(2)
+                .withTargetDeadband(0)
+                .add()
             .add();
         return network;
     }
@@ -773,9 +776,9 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
                 .setId("cs1-12")
                 .setConnectableBus(b01.getId())
                 .setBus(b01.getId())
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(1.0)
-                .setReactivePowerSetpoint(0.0)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(1.0)
+                .setLocalTargetQ(0.0)
                 .setLossFactor(0.0f)
                 .add();
         b02.getVoltageLevel()
@@ -783,9 +786,9 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
                 .setId("cs2-12")
                 .setConnectableBus(b02.getId())
                 .setBus(b02.getId())
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(1.0)
-                .setReactivePowerSetpoint(0.0)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(1.0)
+                .setLocalTargetQ(0.0)
                 .setLossFactor(0.0f)
                 .add();
         network.newHvdcLine()
@@ -804,9 +807,9 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
                 .setId("cs1-23")
                 .setConnectableBus(b02.getId())
                 .setBus(b02.getId())
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(1.0)
-                .setReactivePowerSetpoint(0.0)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(1.0)
+                .setLocalTargetQ(0.0)
                 .setLossFactor(0.0f)
                 .add();
         b03.getVoltageLevel()
@@ -814,9 +817,9 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
                 .setId("cs2-23")
                 .setConnectableBus(b03.getId())
                 .setBus(b03.getId())
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(1.0)
-                .setReactivePowerSetpoint(0.0)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(1.0)
+                .setLocalTargetQ(0.0)
                 .setLossFactor(0.0f)
                 .add();
         network.newHvdcLine()
@@ -835,9 +838,9 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
                 .setId("cs1-34")
                 .setConnectableBus(b03.getId())
                 .setBus(b03.getId())
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(1.0)
-                .setReactivePowerSetpoint(0.0)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(1.0)
+                .setLocalTargetQ(0.0)
                 .setLossFactor(0.0f)
                 .add();
         b04.getVoltageLevel()
@@ -845,9 +848,9 @@ public class ConnectedComponentNetworkFactory extends AbstractLoadFlowNetworkFac
                 .setId("cs2-34")
                 .setConnectableBus(b04.getId())
                 .setBus(b04.getId())
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(1.0)
-                .setReactivePowerSetpoint(0.0)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(1.0)
+                .setLocalTargetQ(0.0)
                 .setLossFactor(0.0f)
                 .add();
         network.newHvdcLine()

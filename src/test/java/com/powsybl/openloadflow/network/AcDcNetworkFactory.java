@@ -8,12 +8,17 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.util.PerUnit;
 
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
 public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
+
+    public static final double VDC = 400.; // imposed DC voltage
+    public static final double NOMINAL_VDC = 400.; // nominal DC voltage
+    public static final double PAC = 50.;
 
     /**
      * A simple network with 3 AC buses and an asymmetrical monopole DC connection.
@@ -38,10 +43,10 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(102.56)
-                .setTargetV(390)
+                .setLocalTargetV(390)
                 .setMinP(0)
                 .setMaxP(500)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         Substation s2 = network.newSubstation()
@@ -65,19 +70,19 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newDcNode().
                 setId("dn3").
-                setNominalV(400.).
+                setNominalV(NOMINAL_VDC).
                 add();
         network.newDcNode().
                 setId("dn4").
-                setNominalV(400.).
+                setNominalV(NOMINAL_VDC).
                 add();
         network.newDcNode().
                 setId("dnDummy3").
-                setNominalV(400.).
+                setNominalV(NOMINAL_VDC).
                 add();
         network.newDcNode().
                 setId("dnDummy4").
-                setNominalV(400.).
+                setNominalV(NOMINAL_VDC).
                 add();
 
         Substation s5 = network.newSubstation()
@@ -158,10 +163,10 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(102.56)
-                .setTargetV(390)
+                .setLocalTargetV(390)
                 .setMinP(0)
                 .setMaxP(500)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         Substation s2 = network.newSubstation()
@@ -185,31 +190,31 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newDcNode()
                 .setId("dn3p")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn3n")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn3r")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4p")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4n")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4r")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnGr")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcGround()
                 .setId("Ground")
@@ -304,15 +309,14 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(0.001)
                 .setResistiveLoss(1)
                 .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(50.)
+                .setTargetP(PAC)
                 .setId("conv23")
                 .setBus1("b2")
                 .setDcNode1("dn3")
                 .setDcNode2("dnDummy3")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -327,8 +331,58 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dnDummy4")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
+                .add();
+        return network;
+    }
+
+    /**
+     * ACDC test case, same topology as {@link #createAcDcNetwork1()} but with both converters left in P_PCC
+     * control mode. The DC island formed by dn3/dn4 (joined by dl34) then has no element imposing the DC
+     * voltage (the DC grounds are on the separate dnDummy3/dnDummy4 buses, reached only through the converters
+     * themselves, not through DC lines), so one of the two converters must be automatically promoted to V_DC
+     * control for the load flow to converge.
+     *
+     * <pre>
+     * g1       ld2                                 ld5
+     * |         |                                   |
+     * b1 -------b2conv23-dn3--------------dn4conv45-b5
+     * l12       |        dl34                       |
+     *           |                                   |
+     *           |                                   |
+     *           |l25--------------------------------
+     * </pre>
+     *
+     */
+    public static Network createAcDcNetworkTwoPccConvertersWithoutVdcReference() {
+        Network network = createBaseNetwork();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
+
+        vl2.newVoltageSourceConverter()
+                .setIdleLoss(0.5)
+                .setSwitchingLoss(0.001)
+                .setResistiveLoss(1)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(50.)
+                .setId("conv23")
+                .setBus1("b2")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setLocalTargetQ(0.0)
+                .add();
+
+        vl5.newVoltageSourceConverter()
+                .setIdleLoss(0.5)
+                .setSwitchingLoss(0.001)
+                .setResistiveLoss(1)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(-50.)
+                .setId("conv45")
+                .setBus1("b5")
+                .setDcNode1("dn4")
+                .setDcNode2("dnDummy4")
+                .setLocalTargetQ(0.0)
                 .add();
         return network;
     }
@@ -362,8 +416,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dnDummy3")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -378,9 +431,46 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dnDummy4")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
+        return network;
+    }
+
+    /**
+     * ACDC test case.
+     * <pre>
+     * g1       ld2                                 ld5
+     * |         |                                   |
+     * b1 -------b2conv23-dn3============dn4-conv45-b5
+     * l12       |          dl34 & dl34_bis          |
+     *           |                                   |
+     *           |                                   |
+     *           |l25--------------------------------
+     * </pre>
+     */
+    public static Network createAcDcNetworkTwoParallelDcLines() {
+        Network network = AcDcNetworkFactory.createBaseNetwork();
+        network.getVoltageSourceConverters().forEach(vsc -> vsc.setIdleLoss(0).setSwitchingLoss(0).setResistiveLoss(0));
+
+        createVoltageSourceConverterPccQac(
+            network.getBusBreakerView().getBus("b2"),
+            network.getDcNode("dn3"),
+            network.getDcNode("dnDummy3"),
+            "conv23",
+            50,
+            0
+        );
+        createVoltageSourceConverterVdcQac(
+            network.getBusBreakerView().getBus("b5"),
+            network.getDcNode("dn4"),
+            network.getDcNode("dnDummy4"),
+            "conv45",
+            400,
+            0
+        );
+
+        double r = network.getDcLine("dl34").getR();  // 0.1
+        createDcLine(network, network.getDcNode("dn3"), network.getDcNode("dn4"), "dl34_bis", r);
         return network;
     }
 
@@ -415,10 +505,10 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(102.56)
-                .setTargetV(390)
+                .setLocalTargetV(390)
                 .setMinP(0)
                 .setMaxP(500)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         Substation s2 = network.newSubstation()
@@ -461,31 +551,31 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newDcNode()
                 .setId("dn3")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn7")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnMiddle")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnDummy3")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnDummy4")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnDummy7")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
 
         Substation s5 = network.newSubstation()
@@ -585,8 +675,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
             .setDcNode2("dnDummy3")
             .setDcConnected1(true)
             .setDcConnected2(true)
-            .setVoltageRegulatorOn(false)
-            .setReactivePowerSetpoint(0.0)
+            .setLocalTargetQ(0.0)
             .add();
 
         vl5.newVoltageSourceConverter()
@@ -601,8 +690,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
             .setDcNode2("dnDummy4")
             .setDcConnected1(true)
             .setDcConnected2(true)
-            .setVoltageRegulatorOn(false)
-            .setReactivePowerSetpoint(0.0)
+            .setLocalTargetQ(0.0)
             .add();
 
         vl6.newVoltageSourceConverter()
@@ -617,8 +705,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
             .setDcNode2("dnDummy7")
             .setDcConnected1(true)
             .setDcConnected2(true)
-            .setVoltageRegulatorOn(false)
-            .setReactivePowerSetpoint(0.0)
+            .setLocalTargetQ(0.0)
             .add();
     }
 
@@ -644,14 +731,13 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(0)
                 .setResistiveLoss(0)
                 .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(50.)
+                .setTargetP(PAC)
                 .setId("conv23")
                 .setBus1("b2")
                 .setDcNode1("dn3")
                 .setDcNode2("dnDummy3")
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0)
+                .setLocalTargetQ(0)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -666,8 +752,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dnDummy4")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(400.0)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(400.0)
                 .add();
         return network;
     }
@@ -692,11 +778,10 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b5")
                 .setBus("b5")
                 .setTargetP(50.)
-                .setTargetV(390)
+                .setLocalTargetV(390)
                 .setMinP(0)
                 .setMaxP(500)
-                .setVoltageRegulatorOn(false)
-                .setTargetQ(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl2.newVoltageSourceConverter()
@@ -704,15 +789,15 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setSwitchingLoss(0)
                 .setResistiveLoss(0)
                 .setControlMode(AcDcConverter.ControlMode.P_PCC)
-                .setTargetP(-50.)
+                .setTargetP(-PAC)
                 .setId("conv23")
                 .setBus1("b2")
                 .setDcNode1("dn3")
                 .setDcNode2("dnDummy3")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(400.)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(400.)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -727,8 +812,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dnDummy4")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(400.)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(400.)
                 .add();
         return network;
     }
@@ -881,8 +966,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn3r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl2.newVoltageSourceConverter()
@@ -893,12 +977,11 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setTargetP(25)
                 .setId("conv23n")
                 .setBus1("b2")
-                .setDcNode1("dn3n")
-                .setDcNode2("dn3r")
+                .setDcNode1("dn3r")
+                .setDcNode2("dn3n")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -913,8 +996,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn4r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -929,8 +1011,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn4r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
         return network;
     }
@@ -968,8 +1049,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn3r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(400.0)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(400.0)
                 .add();
 
         vl2.newVoltageSourceConverter()
@@ -984,8 +1065,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn3r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -1000,8 +1080,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn4r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(400.0)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(400.0)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -1016,8 +1096,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn4r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
         return network;
     }
@@ -1047,10 +1126,10 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b5")
                 .setBus("b5")
                 .setTargetP(102.56)
-                .setTargetV(390)
+                .setLocalTargetV(390)
                 .setMinP(0)
                 .setMaxP(500)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         network.getLine("l25").remove();
 
@@ -1066,8 +1145,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn3r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl2.newVoltageSourceConverter()
@@ -1082,8 +1160,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn3r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -1098,8 +1175,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn4r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -1114,8 +1190,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn4r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
         return network;
     }
@@ -1153,8 +1228,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn3r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl2.newVoltageSourceConverter()
@@ -1169,8 +1243,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn3r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -1185,8 +1258,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn4r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -1201,8 +1273,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn4r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
         return network;
     }
@@ -1249,10 +1320,10 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(102.56)
-                .setTargetV(390)
+                .setLocalTargetV(390)
                 .setMinP(0)
                 .setMaxP(500)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         Substation s2 = network.newSubstation()
@@ -1314,51 +1385,51 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newDcNode()
                 .setId("dn3p")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn3n")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn3r")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4p")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4n")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4r")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn6p")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn6n")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn6r")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnMp")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnMn")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnMr")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcGround()
                 .setId("Ground")
@@ -1465,8 +1536,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
             .setDcNode2("dn3r")
             .setDcConnected1(true)
             .setDcConnected2(true)
-            .setVoltageRegulatorOn(false)
-            .setReactivePowerSetpoint(0.0)
+            .setLocalTargetQ(0.0)
             .add();
 
         vl2.newVoltageSourceConverter()
@@ -1481,8 +1551,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
             .setDcNode2("dn3r")
             .setDcConnected1(true)
             .setDcConnected2(true)
-            .setVoltageRegulatorOn(false)
-            .setReactivePowerSetpoint(0.0)
+            .setLocalTargetQ(0.0)
             .add();
 
         vl5.newVoltageSourceConverter()
@@ -1497,8 +1566,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
             .setDcNode2("dn4r")
             .setDcConnected1(true)
             .setDcConnected2(true)
-            .setVoltageRegulatorOn(true)
-            .setVoltageSetpoint(400)
+            .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+            .setLocalTargetV(400)
             .add();
 
         vl5.newVoltageSourceConverter()
@@ -1513,8 +1582,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
             .setDcNode2("dn4r")
             .setDcConnected1(true)
             .setDcConnected2(true)
-            .setVoltageRegulatorOn(false)
-            .setReactivePowerSetpoint(0.0)
+            .setLocalTargetQ(0.0)
             .add();
 
         vl6.newVoltageSourceConverter()
@@ -1529,8 +1597,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
             .setDcNode2("dn6r")
             .setDcConnected1(true)
             .setDcConnected2(true)
-            .setVoltageRegulatorOn(false)
-            .setReactivePowerSetpoint(0.0)
+            .setLocalTargetQ(0.0)
             .add();
 
         vl6.newVoltageSourceConverter()
@@ -1545,8 +1612,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
             .setDcNode2("dn6r")
             .setDcConnected1(true)
             .setDcConnected2(true)
-            .setVoltageRegulatorOn(true)
-            .setVoltageSetpoint(400)
+            .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+            .setLocalTargetV(400)
             .add();
     }
 
@@ -1583,8 +1650,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn3r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl2.newVoltageSourceConverter()
@@ -1599,8 +1665,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn3r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -1615,8 +1680,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn4r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(400)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(400)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -1631,8 +1696,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn4r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
         return network;
     }
@@ -1671,8 +1735,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn3r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl2.newVoltageSourceConverter()
@@ -1687,8 +1750,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn3r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(389.7)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(389.7)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -1703,8 +1766,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn4r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(400)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(400)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -1719,8 +1782,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn4r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
         return network;
     }
@@ -1775,10 +1837,10 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b6")
                 .setBus("b6")
                 .setTargetP(300)
-                .setTargetV(400)
+                .setLocalTargetV(400)
                 .setMinP(0)
                 .setMaxP(1000)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         // Connect the buses through an AC line to ensure there is only one synchronous component
@@ -1838,8 +1900,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn2Gr")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl6.newVoltageSourceConverter()
@@ -1854,8 +1915,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn3Gr")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         // Create a second DC network
@@ -1904,8 +1964,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn4Gr")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl6.newVoltageSourceConverter()
@@ -1920,8 +1979,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn5Gr")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         return network;
@@ -1999,10 +2057,10 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b5")
                 .setBus("b5")
                 .setTargetP(102.56)
-                .setTargetV(390)
+                .setLocalTargetV(390)
                 .setMinP(0)
                 .setMaxP(500)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         Substation s9 = network.newSubstation()
@@ -2026,23 +2084,23 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
 
         network.newDcNode()
                 .setId("dn2")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn3")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn7")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn8")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dnGround")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
 
         network.newLine()
@@ -2092,8 +2150,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dnGround")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(400.)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(400.)
                 .add();
 
         vl4.newVoltageSourceConverter()
@@ -2108,8 +2166,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dnGround")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl6.newVoltageSourceConverter()
@@ -2124,8 +2181,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dnGround")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl9.newVoltageSourceConverter()
@@ -2140,8 +2196,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dnGround")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(true)
-                .setVoltageSetpoint(400.)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .setLocalTargetV(400.)
                 .add();
         return network;
     }
@@ -2181,10 +2237,10 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(102.56)
-                .setTargetV(390)
+                .setLocalTargetV(390)
                 .setMinP(0)
                 .setMaxP(500)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         Substation s2 = network.newSubstation()
@@ -2244,27 +2300,27 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         // Create the DC network
         network.newDcNode()
                 .setId("dn3p")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn3n")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn3r")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4p")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4n")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcNode()
                 .setId("dn4r")
-                .setNominalV(400.)
+                .setNominalV(NOMINAL_VDC)
                 .add();
         network.newDcGround()
                 .setId("Ground3")
@@ -2301,8 +2357,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn3r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl2.newVoltageSourceConverter()
@@ -2317,8 +2372,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn3r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -2333,8 +2387,7 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn4r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
 
         vl5.newVoltageSourceConverter()
@@ -2349,10 +2402,238 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
                 .setDcNode2("dn4r")
                 .setDcConnected1(true)
                 .setDcConnected2(true)
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(0.0)
+                .setLocalTargetQ(0.0)
                 .add();
         return network;
+    }
+
+    /**
+     * Network with a DC switch (resistance {@code rSwitch}) replacing the DC line between dn3 and dn4.
+     * When {@code rSwitch == 0}, PowSyBl Core topology merges dn3 and dn4 into the same DC bus,
+     * so the switch contributes no resistance.
+     * <pre>
+     * g1    ld2-┬------------l25------------------------┐
+     * |         |                                       |
+     * b1 --l12-b2-conv23-dn3--sw34(rSwitch)--dn4-conv45-b5--ld5
+     *              |                               |
+     *        (dnDummy3,dg3)                (dnDummy4,dg4)
+     * </pre>
+     */
+    public static Network createAcDcNetworkWithDcSwitchOnly(double rSwitch) {
+        Network network = createBaseNetwork();
+        network.getDcLine("dl34").remove();
+        network.newDcSwitch()
+                .setId("sw34")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn3")
+                .setDcNode2("dn4")
+                .setOpen(false)
+                .setR(rSwitch)
+                .add();
+        addStandardConverters(network);
+        return network;
+    }
+
+    /**
+     * Network with a DC switch (resistance {@code rSwitch}) in series with a DC line (resistance {@code rLine}).
+     * When {@code rSwitch == 0}, PowSyBl Core topology merges dn3 and dn3b, so only {@code rLine} remains.
+     * <pre>
+     * g1    ld2-┬------------l25--------------------------------------------┐
+     * |         |                                                           |
+     * b1 --l12-b2-conv23-dn3--sw34(rSwitch)--dn3b--dl3b4(rLine)--dn4-conv45-b5--ld5
+     *              |                                                   |
+     *        (dnDummy3,dg3)                                    (dnDummy4,dg4)
+     * </pre>
+     */
+    public static Network createAcDcNetworkWithDcSwitchAndDcLine(double rSwitch, double rLine) {
+        Network network = createBaseNetwork();
+        network.getDcLine("dl34").remove();
+        network.newDcNode()
+                .setId("dn3b")
+                .setNominalV(NOMINAL_VDC)
+                .add();
+        network.newDcSwitch()
+                .setId("sw3b")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn3")
+                .setDcNode2("dn3b")
+                .setOpen(false)
+                .setR(rSwitch)
+                .add();
+        network.newDcLine()
+                .setId("dl3b4")
+                .setDcNode1("dn3b")
+                .setDcNode2("dn4")
+                .setR(rLine)
+                .add();
+        addStandardConverters(network);
+        return network;
+    }
+
+    /**
+     * Meshed network: DC line dl34 (from the base network) and an open DC switch sw34 both connect
+     * dn3 to dn4. Because dl34 keeps the component connected, both nodes resolve to distinct but
+     * non-null LfDcBuses — the open switch must still be discarded.
+     */
+    public static Network createAcDcNetworkWithParallelOpenDcSwitch() {
+        Network network = createBaseNetwork();
+        network.newDcSwitch()
+                .setId("sw34")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn3")
+                .setDcNode2("dn4")
+                .setOpen(true)
+                .setR(0.5)
+                .add();
+        addStandardConverters(network);
+        return network;
+    }
+
+    /**
+     * Network with 3 DC switches (resistance {@code rSwitch}) in series replacing the DC line
+     * between dn3 and dn4.
+     *
+     * This checks that DC buses of DcSwitch are handled correctly.
+     * When {@code rSwitch == 0}, PowSyBl Core topology merges dn3 and dn4 into the same DC bus,
+     * so the switch contributes no resistance.
+     * <pre>
+     * g1
+     * |
+     * b1 --l12-b2-conv23-dn3-sw35-dn5-sw56-dn6-sw64-dn4-conv45-b5--ld5
+     *              |                                     |
+     *        (dnDummy3,dg3)                      (dnDummy4,dg4)
+     * </pre>
+     */
+    public static Network createAcDcNetworkWithSeriesDcSwitch(double rSwitch) {
+        Network network = createBaseNetwork();
+        network.getDcLine("dl34").remove();
+        network.newDcNode().setId("dn5").setNominalV(NOMINAL_VDC).add();
+        network.newDcNode().setId("dn6").setNominalV(NOMINAL_VDC).add();
+        network.newDcSwitch()
+                .setId("sw35")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn3")
+                .setDcNode2("dn5")
+                .setOpen(false)
+                .setR(rSwitch)
+                .add();
+        network.newDcSwitch()
+                .setId("sw56")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn5")
+                .setDcNode2("dn6")
+                .setOpen(false)
+                .setR(rSwitch)
+                .add();
+        network.newDcSwitch()
+                .setId("sw64")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn6")
+                .setDcNode2("dn4")
+                .setOpen(false)
+                .setR(rSwitch)
+                .add();
+        addStandardConverters(network);
+        return network;
+    }
+
+    /**
+     * Two independent DC links between b2 and b5, each one made of a single DC switch (resistance {@code rSwitch}).
+     * The two links are two distinct DC components belonging to the same connected component, hence loaded in the
+     * same LfNetwork. Both links are identical, so they share the same analytical solution.
+     * <pre>
+     * g1    ld2-┬------------l25----------------------------┐
+     * |         |                                           |
+     * b1 --l12-b2-conv23-dn3--sw34(rSwitch)--dn4-conv45-----b5--ld5
+     *           |    |                           |          |
+     *           | (dnDummy3,dg3)          (dnDummy4,dg4)    |
+     *           |                                           |
+     *           └-conv23x-dn3x--sw34x(rSwitch)--dn4x-conv45x┘
+     *                |                               |
+     *         (dnDummy3x,dg3x)              (dnDummy4x,dg4x)
+     * </pre>
+     */
+    public static Network createAcDcNetworkWithTwoDcComponentsWithDcSwitch(double rSwitch) {
+        Network network = createAcDcNetworkWithDcSwitchOnly(rSwitch);
+        network.newDcNode().setId("dn3x").setNominalV(NOMINAL_VDC).add();
+        network.newDcNode().setId("dn4x").setNominalV(NOMINAL_VDC).add();
+        network.newDcNode().setId("dnDummy3x").setNominalV(NOMINAL_VDC).add();
+        network.newDcNode().setId("dnDummy4x").setNominalV(NOMINAL_VDC).add();
+        network.newDcGround().setId("dg3x").setDcNode("dnDummy3x").add();
+        network.newDcGround().setId("dg4x").setDcNode("dnDummy4x").add();
+        network.newDcSwitch()
+                .setId("sw34x")
+                .setKind(DcSwitchKind.BREAKER)
+                .setDcNode1("dn3x")
+                .setDcNode2("dn4x")
+                .setOpen(false)
+                .setR(rSwitch)
+                .add();
+        network.getVoltageLevel("vl2").newVoltageSourceConverter()
+                .setIdleLoss(0.0)
+                .setSwitchingLoss(0.0)
+                .setResistiveLoss(0.0)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(PAC)
+                .setId("conv23x")
+                .setBus1("b2")
+                .setDcNode1("dn3x")
+                .setDcNode2("dnDummy3x")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setLocalTargetQ(0.0)
+                .add();
+        network.getVoltageLevel("vl5").newVoltageSourceConverter()
+                .setIdleLoss(0.0)
+                .setSwitchingLoss(0.0)
+                .setResistiveLoss(0.0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(VDC)
+                .setId("conv45x")
+                .setBus1("b5")
+                .setDcNode1("dn4x")
+                .setDcNode2("dnDummy4x")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setLocalTargetQ(0.0)
+                .add();
+        return network;
+    }
+
+    private static void addStandardConverters(Network network) {
+        // Ideal converters (zero losses) to simplify analytical solutions.
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
+        // Rectifier (target P > 0)
+        vl2.newVoltageSourceConverter()
+                .setIdleLoss(0.0)
+                .setSwitchingLoss(0.0)
+                .setResistiveLoss(0.0)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(PAC)
+                .setId("conv23")
+                .setBus1("b2")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setLocalTargetQ(0.0)
+                .add();
+        // Inverter (by power balance law)
+        vl5.newVoltageSourceConverter()
+                .setIdleLoss(0.0)
+                .setSwitchingLoss(0.0)
+                .setResistiveLoss(0.0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(VDC)
+                .setId("conv45")
+                .setBus1("b5")
+                .setDcNode1("dn4")
+                .setDcNode2("dnDummy4")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setLocalTargetQ(0.0)
+                .add();
     }
 
     /**
@@ -2366,7 +2647,8 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
      *  |                                                    |
      *  |--------------l12-----------------------------------|
      * </pre>
-     * @param id: Name of the network test case
+     *
+     * @param id:        Name of the network test case
      * @param swapOrder1 : Whether converter conv1 DC nodes should be DC1 and DC2 or DC2 and DC1
      * @param swapOrder2 : Whether converter conv2 DC nodes should be DC2 and DC3 or DC3 and DC2
      * @param swapOrder3 : Whether converter conv3 DC nodes should be DC1 and DC2 or DC2 and DC1
@@ -2430,5 +2712,104 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
         createVoltageSourceConverterPccQac(b2, dc9, dc8, "conv8", 20, 0);
 
         return net;
+    }
+
+    /**
+     * ACDC droop-control test case.
+     *
+     * This is a back-to-back case between 2 VSC which are directly connected in the DC part.
+     * On the AC side they are also connected by a resistive AC line in parallel, and we have
+     * a generator on one side and a load on the other side. This configuration gives a full control
+     * on the DC side and makes it possible for power transfer to be always balanced.
+     *
+     * convVdc (V_DC) pins the DC voltage; convDroop (DC_DROOP) enforces
+     * {@code P = refP + (U_dc - refVdc)/k} with a 3-band droop curve. Sweeping convVdc's
+     * {@code targetVdc} walks convDroop's solved {@code U_dc} through each band of the curve and past
+     * the extremes (clamping). convDroop has no losses so the droop law applies directly to its AC power.
+     */
+    public static Network createAcDcNetworkWithDroopControl() {
+
+        Network network = Network.create("vsc", "test");
+
+        // AC network: a generator and a load connected by an AC line.
+        Bus b1 = createBus(network, "b1", 400);
+        createGenerator(b1, "g1", 100., 400).setVoltageRegulatorOn(true);
+
+        Bus b2 = createBus(network, "b2", 400);
+        createLoad(b2, "ld2", 100, 0);
+
+        network.newLine()
+                .setId("l12")
+                .setBus1("b1")
+                .setBus2("b2")
+                .setR(1)
+                .setX(3)
+                .add();
+
+        // DC network: back-to-back converters with a ground.
+        // One of converters is in DC voltage control mode, while the other is in droop control.
+        network.newDcNode().
+                setId("dn1").
+                setNominalV(400.).
+                add();
+        network.newDcNode().
+                setId("dnGround").
+                setNominalV(400.).
+                add();
+        network.newDcGround()
+                .setId("dcGround")
+                .setDcNode("dnGround")
+                .add();
+
+        VoltageLevel vl1 = b1.getVoltageLevel();
+        vl1.newVoltageSourceConverter()
+                .setIdleLoss(0)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(400.)
+                .setId("convVdc")
+                .setBus1("b1")
+                .setDcNode1("dn1")
+                .setDcNode2("dnGround")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+
+        // Droop-controlled converter (no losses so the law applies directly to AC power).
+        VoltageLevel vl2 = b2.getVoltageLevel();
+        VoltageSourceConverter droopConverter = vl2.newVoltageSourceConverter()
+                .setIdleLoss(0)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.DC_DROOP)
+                .setTargetP(50.)
+                .setTargetVdc(400.)
+                .setId("convDroop")
+                .setBus1("b2")
+                .setDcNode1("dn1")
+                .setDcNode2("dnGround")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setVoltageRegulatorOn(false)
+                .setReactivePowerSetpoint(0.0)
+                .add();
+
+        // 3-band droop curve: coefficient k (kV/MW) piecewise-constant over DC-voltage bands (kV).
+        // Note that the droop curve has the following reference points because it is anchored
+        // at targetVdc = 400 kV, targetP = 50 MW
+        // V = 380 kV => P = 20 MW
+        // V = 390 kV => P = 40 MW
+        // V = 410 kV => P = 60 MW
+        // V = 420 kV => P = 65 MW
+        droopConverter.newDroopCurve()
+                .beginSegment().setK(0.5).setMinV(380.).setMaxV(390.).endSegment()
+                .beginSegment().setK(1.0).setMinV(390.).setMaxV(410.).endSegment()
+                .beginSegment().setK(2.0).setMinV(410.).setMaxV(420.).endSegment()
+                .add();
+
+        return network;
     }
 }

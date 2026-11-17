@@ -16,6 +16,9 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
+import com.powsybl.openloadflow.dc.equations.AbstractClosedBranchDcFlowEquationTerm;
+import com.powsybl.openloadflow.dc.equations.DcApproximationType;
+import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.Equation;
@@ -25,6 +28,8 @@ import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
+import com.powsybl.openloadflow.network.PiModel;
+import com.powsybl.openloadflow.network.TapPositionChange;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.action.AbstractLfTapChangerAction;
 import com.powsybl.openloadflow.network.action.LfAction;
@@ -44,12 +49,6 @@ public interface ComputedElement {
 
     Logger LOGGER = LoggerFactory.getLogger(ComputedElement.class);
 
-    LfBus getBus1();
-
-    LfBus getBus2();
-
-    LfElement getLfElement();
-
     int getComputedElementIndex();
 
     void setComputedElementIndex(int index);
@@ -62,11 +61,25 @@ public interface ComputedElement {
 
     void setAlphaForWoodburyComputation(double alphaForPostContingencyStates);
 
-    EquationTerm<DcVariableType, DcEquationType> getEquation();
+    /**
+     * The network element whose coupling between {@link #getBus1()} and {@link #getBus2()} is modified: a branch, or an
+     * HVDC line in AC emulation whose droop law couples its two buses like a virtual branch. Elements sharing the same
+     * network element share the same +1/-1 right-hand side column.
+     */
+    LfElement getLfElement();
+
+    LfBus getBus1();
+
+    LfBus getBus2();
 
     int getPh1VarRow();
 
     int getPh2VarRow();
+
+    /**
+     * The side 1 active power flow equation term of the coupling, used to evaluate the flow through the element.
+     */
+    EquationTerm<DcVariableType, DcEquationType> getEquation();
 
     void applyToConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity);
 
@@ -77,9 +90,9 @@ public interface ComputedElement {
      */
     static void setComputedElementIndexes(Collection<? extends ComputedElement> elements) {
         AtomicInteger index = new AtomicInteger(0);
-        Map<LfElement, Integer> keyToRhsIndex = new HashMap<>();
+        Map<LfElement, Integer> elementsToRhsIndex = new HashMap<>();
         for (ComputedElement element : elements) {
-            Integer elementIndex = keyToRhsIndex.computeIfAbsent(element.getLfElement(), k -> index.getAndIncrement());
+            Integer elementIndex = elementsToRhsIndex.computeIfAbsent(element.getLfElement(), lfElement -> index.getAndIncrement());
             element.setComputedElementIndex(elementIndex);
         }
     }
@@ -92,7 +105,7 @@ public interface ComputedElement {
     }
 
     /**
-     * Fills the right hand side with +1/-1 to model a branch/HVDC contingency or action.
+     * Fills the right hand side with +1/-1 to model a branch (or HVDC AC emulation coupling) contingency or action.
      */
     private static void fillRhs(EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<? extends ComputedElement> computedElements, Matrix rhs) {
         for (ComputedElement element : computedElements) {
@@ -117,11 +130,9 @@ public interface ComputedElement {
     }
 
     static DenseMatrix initRhs(EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<? extends ComputedElement> elements) {
-        // the number of columns equals the number of distinct elements: branch elements that affect the same
-        // branch share a column; HVDC elements each get their own column (getLfBranch() is null for them)
-        int columnCount = (int) elements.stream()
-                .map(ComputedElement::getLfElement)
-                .distinct().count();
+        // the number of columns of the rhs equals the number of distinct network elements affected by the computed elements
+        // those affecting the same network element share the same column
+        int columnCount = (int) elements.stream().map(ComputedElement::getLfElement).filter(Objects::nonNull).distinct().count();
         // otherwise, defining the rhs matrix will result in integer overflow
         int equationCount = equationSystem.getIndex().getColumnCount();
         int maxElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);
@@ -140,9 +151,10 @@ public interface ComputedElement {
         return elementsStates;
     }
 
-    static Map<LfAction, List<ComputedElement>> createActionElementsIndexByLfAction(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+    static Map<LfAction, List<ComputedElement>> createActionElementsIndexByLfAction(Map<String, LfAction> lfActionById, EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                                                                    DcEquationSystemCreationParameters creationParameters) {
         Map<LfAction, List<ComputedElement>> computedElements = lfActionById.values().stream()
-            .flatMap(lfAction -> computeActionElementsIndexByLfAction(lfAction, equationSystem))
+            .flatMap(lfAction -> computeActionElementsIndexByLfAction(lfAction, equationSystem, creationParameters))
             .filter(e -> e.getValue().stream().filter(b -> b.getEquation() == null).findAny().isEmpty())
             .collect(Collectors.toMap(
                 Map.Entry::getKey,
@@ -155,7 +167,8 @@ public interface ComputedElement {
     }
 
     private static Stream<Map.Entry<LfAction, List<ComputedElement>>> computeActionElementsIndexByLfAction(LfAction lfAction,
-                                                                                                    EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+                                                                                                    EquationSystem<DcVariableType, DcEquationType> equationSystem,
+                                                                                                    DcEquationSystemCreationParameters creationParameters) {
         List<ComputedElement> elements = new ArrayList<>();
         switch (lfAction.getType()) {
             case SwitchAction.NAME, TerminalsConnectionAction.NAME -> {
@@ -166,8 +179,15 @@ public interface ComputedElement {
                     elements.addAll(lfBranchAction.getDisabledBranches().stream().map(b -> ComputedSwitchBranchElement.create(b, false, equationSystem)).toList());
                 }
             }
-            case PhaseTapChangerTapPositionAction.NAME ->
-                elements.add(new ComputedTapPositionChangeElement(((AbstractLfTapChangerAction<?>) lfAction).getChange(), equationSystem));
+            case PhaseTapChangerTapPositionAction.NAME -> {
+                TapPositionChange change = ((AbstractLfTapChangerAction<?>) lfAction).getChange();
+                // a pure phase shift (no impedance/ratio change) does not modify the branch power and is fully
+                // handled through the target vector: it must not produce a Woodbury element, otherwise its
+                // diagonal term (1 / (oldPower - newPower)) would be infinite and corrupt the alpha solve
+                if (changesBranchPower(change, creationParameters)) {
+                    elements.add(new ComputedTapPositionChangeElement(change, equationSystem));
+                }
+            }
             case GeneratorAction.NAME -> { /* generator actions modify the target vector, they produce no Woodbury elements */ }
             case LoadAction.NAME -> { /* load actions modify the target vector, they produce no Woodbury elements */ }
             default -> throw new IllegalStateException("Only tap position change and branch enabling/disabling are supported in WoodburyDcSecurityAnalysis");
@@ -176,5 +196,25 @@ public interface ComputedElement {
             return Stream.empty();
         }
         return Stream.of(Map.entry(lfAction, elements));
+    }
+
+    /**
+     * Returns true if the tap position change modifies the branch power. The Woodbury element built for such a change
+     * has a diagonal term {@code 1 / (oldPower - newPower)} (see {@link WoodburyEngine}), so it must only be created
+     * when the power actually changes, otherwise that term is infinite and corrupts the alpha solve. The power is
+     * evaluated with the exact same inputs as the diagonal, i.e. through
+     * {@link AbstractClosedBranchDcFlowEquationTerm#computePower} with the configured DC approximation type and
+     * transformer ratio usage: depending on those, the power ignores the resistance (IGNORE_R) or the first side ratio
+     * (transformer ratio not used), so comparing the pi model resistance, reactance and ratio directly would wrongly
+     * flag as power changes some tap changes that leave the power unchanged (e.g. a pure phase shift, but also a
+     * resistance-only change in IGNORE_R).
+     */
+    private static boolean changesBranchPower(TapPositionChange change, DcEquationSystemCreationParameters creationParameters) {
+        PiModel oldPiModel = change.getBranch().getPiModel();
+        PiModel newPiModel = change.getNewPiModel();
+        boolean useTransformerRatio = creationParameters.isUseTransformerRatio();
+        DcApproximationType dcApproximationType = creationParameters.getDcApproximationType();
+        return AbstractClosedBranchDcFlowEquationTerm.computePower(useTransformerRatio, dcApproximationType, oldPiModel)
+                != AbstractClosedBranchDcFlowEquationTerm.computePower(useTransformerRatio, dcApproximationType, newPiModel);
     }
 }

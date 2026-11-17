@@ -29,12 +29,6 @@ public class AcHvdcAcEmulationLimitsOuterLoop
         implements AcOuterLoop {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AcHvdcAcEmulationLimitsOuterLoop.class);
-    public static final String NAME = "AcHvdcAcEmulationLimits";
-
-    @Override
-    public String getName() {
-        return NAME;
-    }
 
     @Override
     public OuterLoopResult check(AcOuterLoopContext context, ReportNode reportNode) {
