@@ -19,6 +19,7 @@ import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
@@ -2407,7 +2408,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
 
         assertEquals(0.0, result.getBranchFlow1SensitivityValue("l34+l12", "g3", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("l34+l12", "l12"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency("l34+l12")));
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(SensitivityState.postContingency("l34+l12")).getFirst().status());
     }
 
     @Test
@@ -2431,7 +2432,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-        assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency("hvdc34")));
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(SensitivityState.postContingency("hvdc34")).getFirst().status());
 
         network.getHvdcLine("hvdc34").getConverterStation1().getTerminal().disconnect();
         network.getHvdcLine("hvdc34").getConverterStation2().getTerminal().disconnect();
@@ -2526,7 +2527,7 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-        assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency("C")));
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(SensitivityState.postContingency("C")).getFirst().status());
     }
 
     @Test
@@ -2783,12 +2784,12 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         // Isolated slack bus, supported in DC.
         assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("NHV1", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER); // isolated slack bus, supported.
         assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("NHV1", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
-        assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency("NHV1")));
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(SensitivityState.postContingency("NHV1")).getFirst().status());
         assertEquals(0.0, result.getBranchFlow1FunctionReferenceValue("NHV2", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
         // FIXME
         // Contingency 'NGEN' leads to the loss of a slack bus: slack bus kept
         // we clean the contingency in order to keep the slack bus in the network, leading to a wrong computation.
-        assertEquals(SensitivityAnalysisResult.Status.NO_IMPACT, result.getStateStatus(SensitivityState.postContingency("NGEN")));
+        assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getStateComponentStatuses(SensitivityState.postContingency("NGEN")).getFirst().status());
         assertEquals(300.0, result.getBranchFlow1FunctionReferenceValue("NGEN", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(600.0, result.getBranchFlow1FunctionReferenceValue("NGEN", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
     }
