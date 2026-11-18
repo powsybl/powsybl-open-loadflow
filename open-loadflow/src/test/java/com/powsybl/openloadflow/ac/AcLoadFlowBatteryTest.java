@@ -1,0 +1,120 @@
+/**
+ * Copyright (c) 2019, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package com.powsybl.openloadflow.ac;
+
+import com.powsybl.iidm.network.Battery;
+import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Generator;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.regulation.RegulationMode;
+import com.powsybl.iidm.network.test.BatteryNetworkFactory;
+import com.powsybl.loadflow.LoadFlow;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.na.network.SlackBusSelectionMode;
+import com.powsybl.na.test.CommonTestConfig;
+import com.powsybl.na.test.LoadFlowAssert;
+import com.powsybl.na.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import static com.powsybl.na.test.LoadFlowAssert.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@ExtendWith(ServiceParameterResolver.class)
+class AcLoadFlowBatteryTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlowBatteryTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
+
+    private Network network;
+    private Bus genBus;
+    private Bus batBus;
+    private Generator generator;
+    private Battery battery1;
+    private Battery battery2;
+    private LoadFlow.Runner loadFlowRunner;
+    private LoadFlowParameters parameters;
+
+    @BeforeEach
+    void setUp() {
+        network = BatteryNetworkFactory.create();
+        genBus = network.getBusBreakerView().getBus("NGEN");
+        batBus = network.getBusBreakerView().getBus("NBAT");
+        generator = network.getGenerator("GEN");
+        generator.setMinP(0).setMaxP(1000).setLocalTargetV(401.);
+        battery1 = network.getBattery("BAT");
+        battery1.setMinP(-1000).setMaxP(1000).setLocalTargetQ(0).setTargetP(0);
+        battery2 = network.getBattery("BAT2");
+        battery2.setMinP(-1000).setTargetP(-1000).setMaxP(1000);
+
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
+        parameters = new LoadFlowParameters().setUseReactiveLimits(true)
+                .setDistributedSlack(true);
+        OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
+    }
+
+    @Test
+    void test() {
+        battery2.newVoltageRegulation()
+            .withTerminal(battery2.getTerminal())
+            .withTargetValue(401)
+            .withMode(RegulationMode.VOLTAGE)
+            .withRegulating(false)
+            .build();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertVoltageEquals(401, genBus);
+        LoadFlowAssert.assertAngleEquals(5.916586, genBus);
+        assertVoltageEquals(397.660, batBus);
+        LoadFlowAssert.assertAngleEquals(0.0, batBus);
+    }
+
+    @Test
+    void testWithVoltageControl() {
+        generator.getVoltageRegulation().setRegulating(false);
+        battery2.setLocalTargetV(401);
+        battery2.newVoltageRegulation().withMode(RegulationMode.VOLTAGE).build();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertVoltageEquals(417.328, genBus);
+        LoadFlowAssert.assertAngleEquals(5.468361, genBus);
+        assertVoltageEquals(401.0, batBus);
+        LoadFlowAssert.assertAngleEquals(0.0, batBus);
+        assertActivePowerEquals(390.22, battery2.getTerminal());
+        assertReactivePowerEquals(122.711, battery2.getTerminal());
+    }
+
+    @Test
+    void testNotRegulatingLocalReactivePowerRegulation() {
+        battery1.setLocalTargetQ(10)
+                .newVoltageRegulation() // local reactive injection target defined by VoltageRegulation
+                    .withRegulating(true)
+                    .withMode(RegulationMode.REACTIVE_POWER)
+                    .withTerminal(battery1.getTerminal())
+                    .withTargetValue(100)
+                    .build();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(100, battery1.getTerminal());
+
+        battery1.getVoltageRegulation().setRegulating(false); // local reactive injection target defined by localTargetQ
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertReactivePowerEquals(-10, battery1.getTerminal());
+    }
+}

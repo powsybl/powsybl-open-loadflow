@@ -1,0 +1,79 @@
+/**
+ * Copyright (c) 2022, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package com.powsybl.na.equations.ac;
+
+import com.powsybl.na.equations.AbstractElementEquationTerm;
+import com.powsybl.na.equations.Variable;
+import com.powsybl.na.equations.VariableSet;
+import com.powsybl.na.network.LfBus;
+import com.powsybl.na.network.LfHvdc;
+
+import java.util.List;
+
+/**
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
+ */
+public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractElementEquationTerm<LfHvdc, AcVariableType, AcEquationType> {
+
+    protected final Variable<AcVariableType> ph1Var;
+
+    protected final Variable<AcVariableType> ph2Var;
+
+    protected final List<Variable<AcVariableType>> variables;
+
+    protected final double k;
+
+    protected final double p0;
+
+    protected final double r;
+
+    protected final double lossFactor1;
+
+    protected final double lossFactor2;
+
+    protected AbstractHvdcAcEmulationFlowEquationTerm(LfHvdc hvdc, LfBus bus1, LfBus bus2, VariableSet<AcVariableType> variableSet) {
+        super(hvdc);
+        ph1Var = variableSet.getVariable(bus1.getNum(), AcVariableType.BUS_PHI);
+        ph2Var = variableSet.getVariable(bus2.getNum(), AcVariableType.BUS_PHI);
+        variables = List.of(ph1Var, ph2Var);
+        k = hvdc.getAcEmulationControl().getDroop() * 180 / Math.PI;
+        p0 = hvdc.getAcEmulationControl().getP0();
+        r = hvdc.getR();
+        lossFactor1 = hvdc.getConverterStation1().getLossFactor() / 100;
+        lossFactor2 = hvdc.getConverterStation2().getLossFactor() / 100;
+    }
+
+    protected static double rawP(double p0, double k, double ph1, double ph2) {
+        return p0 + k * (ph1 - ph2);
+        // Since open-loadflow v2.2.0, saturation support is removed from this equation term (it is now managed by the HVDC AC emulation limits outer loop)
+        // This change enables the possibility to have a very high active power flow through the HVDC in the Newton Raphson (before the outer loop applies saturation)
+        // The risk of having this high active power flow causing Newton Raphson divergence is negligible
+    }
+
+    protected double ph1() {
+        return sv.get(ph1Var.getRow());
+    }
+
+    protected double ph2() {
+        return sv.get(ph2Var.getRow());
+    }
+
+    protected static double getVscLossMultiplier(double lossFactor1, double lossFactor2) {
+        return (1 - lossFactor1) * (1 - lossFactor2);
+    }
+
+    @Override
+    public List<Variable<AcVariableType>> getVariables() {
+        return variables;
+    }
+
+    @Override
+    public boolean hasRhs() {
+        return false;
+    }
+}

@@ -1,0 +1,1633 @@
+/*
+ * Copyright (c) 2020-2025, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package com.powsybl.openloadflow.sensi;
+
+import com.powsybl.action.Action;
+import com.powsybl.action.SwitchAction;
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.computation.local.LocalComputationManager;
+import com.powsybl.contingency.*;
+import com.powsybl.contingency.strategy.OperatorStrategy;
+import com.powsybl.contingency.strategy.condition.TrueCondition;
+import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.math.matrix.SparseMatrixFactory;
+import com.powsybl.na.equations.EquationSystem;
+import com.powsybl.na.equations.EquationSystemIndex;
+import com.powsybl.na.equations.dc.DcEquationType;
+import com.powsybl.na.equations.dc.DcVariableType;
+import com.powsybl.na.graph.dtree.DTreeGraphConnectivityFactory;
+import com.powsybl.na.network.*;
+import com.powsybl.na.network.impl.PropagatedContingency;
+import com.powsybl.na.network.impl.PropagatedContingencyCreationParameters;
+import com.powsybl.na.test.CommonTestConfig;
+import com.powsybl.na.test.LoadFlowAssert;
+import com.powsybl.na.test.networks.*;
+import com.powsybl.openloadflow.NetworkCache;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
+import com.powsybl.openloadflow.dc.fastdc.ComputedElement;
+import com.powsybl.sensitivity.*;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinTask;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ */
+class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DcSensitivityAnalysisTest.class);
+
+    DcSensitivityAnalysisTest(CommonTestConfig commonTestConfig) {
+        super(commonTestConfig);
+    }
+
+    @Test
+    void testEsgTuto() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                                                             network.getLineStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(2, result.getValues().size());
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testUnsupportedParameters() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        // These are all unsupported parameters that should be overriden
+        sensiParameters.getLoadFlowParameters()
+                .setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED)
+                .setPhaseShifterRegulationOn(true)
+                .getExtension(OpenLoadFlowParameters.class)
+                    .setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE)
+                    .setNetworkCacheEnabled(true)
+                    .setReferenceBusSelectionMode(ReferenceBusSelectionMode.GENERATOR_REFERENCE_PRIORITY);
+
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        runAcLf(network);
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                network.getLineStream().collect(Collectors.toList()));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+        assertEquals(2, result.getValues().size());
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void test4buses() {
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+
+        Map<String, Double> functionReferenceByLine = new HashMap<>();
+        for (Line line : network.getLines()) {
+            functionReferenceByLine.put(line.getId(), line.getTerminal1().getP());
+        }
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0");
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                                                             network.getBranchStream().collect(Collectors.toList()), TwoSides.ONE);
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(15, result.getValues().size());
+
+        //Check sensitivity values for side one
+        assertEquals(0.25d, result.getBranchFlow1SensitivityValue("g1", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, result.getBranchFlow1SensitivityValue("g1", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, result.getBranchFlow1SensitivityValue("g1", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.25d, result.getBranchFlow1SensitivityValue("g1", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("g1", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0.125d, result.getBranchFlow1SensitivityValue("g2", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.375d, result.getBranchFlow1SensitivityValue("g2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.625d, result.getBranchFlow1SensitivityValue("g2", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.125d, result.getBranchFlow1SensitivityValue("g2", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, result.getBranchFlow1SensitivityValue("g2", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-0.375d, result.getBranchFlow1SensitivityValue("g4", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.125d, result.getBranchFlow1SensitivityValue("g4", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.125d, result.getBranchFlow1SensitivityValue("g4", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.625d, result.getBranchFlow1SensitivityValue("g4", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, result.getBranchFlow1SensitivityValue("g4", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        for (Line line : network.getLines()) {
+            assertEquals(functionReferenceByLine.get(line.getId()), result.getBranchFlow1FunctionReferenceValue(line.getId()), LoadFlowAssert.DELTA_POWER);
+        }
+    }
+
+    @Test
+    void test4busesSlackDistributionFails() {
+        Network network = FourBusNetworkFactory.create();
+
+        // More load than production
+        network.getLoad("d2").setP0(10);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0");
+        sensiParameters.getLoadFlowParameters().setDistributedSlack(true);
+        // fails with default parameters
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class)
+                        .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        assertThrows(PowsyblException.class, () -> runLf(network, sensiParameters.getLoadFlowParameters()));
+
+        // Run with LEAVE_ON_SLACK_BUS to get a reference result
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        assertDoesNotThrow(() -> runLf(network, sensiParameters.getLoadFlowParameters()));
+
+        Map<String, Double> functionReferenceByLine = new HashMap<>();
+        for (Line line : network.getLines()) {
+            functionReferenceByLine.put(line.getId(), line.getTerminal1().getP());
+        }
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                network.getBranchStream().collect(Collectors.toList()), TwoSides.ONE);
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(15, result.getValues().size());
+
+        for (Line line : network.getLines()) {
+            assertEquals(functionReferenceByLine.get(line.getId()), result.getBranchFlow1FunctionReferenceValue(line.getId()), LoadFlowAssert.DELTA_POWER);
+        }
+
+        // Note that slack distribution failure behaviour parameter is ignored
+        sensiParameters.getLoadFlowParameters().getExtension(OpenLoadFlowParameters.class)
+                .setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.FAIL);
+        assertDoesNotThrow(() -> sensiRunner.run(network, factors, runParameters));
+    }
+
+    @Test
+    void test4busesSide2() {
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+
+        Map<String, Double> functionReferenceByLine = new HashMap<>();
+        for (Line line : network.getLines()) {
+            functionReferenceByLine.put(line.getId(), line.getTerminal2().getP());
+        }
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0");
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                network.getBranchStream().collect(Collectors.toList()), TwoSides.TWO);
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(15, result.getValues().size());
+
+        //Check sensitivity values for side two
+        assertEquals(-0.25d, result.getBranchFlow2SensitivityValue("g1", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.25d, result.getBranchFlow2SensitivityValue("g1", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.25d, result.getBranchFlow2SensitivityValue("g1", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, result.getBranchFlow2SensitivityValue("g1", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.5d, result.getBranchFlow2SensitivityValue("g1", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-0.125d, result.getBranchFlow2SensitivityValue("g2", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.375d, result.getBranchFlow2SensitivityValue("g2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.625d, result.getBranchFlow2SensitivityValue("g2", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.125d, result.getBranchFlow2SensitivityValue("g2", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.25d, result.getBranchFlow2SensitivityValue("g2", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0.375d, result.getBranchFlow2SensitivityValue("g4", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.125d, result.getBranchFlow2SensitivityValue("g4", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.125d, result.getBranchFlow2SensitivityValue("g4", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.625d, result.getBranchFlow2SensitivityValue("g4", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.25d, result.getBranchFlow2SensitivityValue("g4", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        for (Line line : network.getLines()) {
+            assertEquals(functionReferenceByLine.get(line.getId()), result.getBranchFlow2FunctionReferenceValue(line.getId()), LoadFlowAssert.DELTA_POWER);
+        }
+    }
+
+    @Test
+    void testGeneratorInjection4busesDistributed() {
+        // The factors are generators injections
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                                                             network.getBranchStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(0.175, result.getBranchFlow1SensitivityValue("g1", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.275, result.getBranchFlow1SensitivityValue("g1", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.125, result.getBranchFlow1SensitivityValue("g1", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0245, result.getBranchFlow1SensitivityValue("g1", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.150, result.getBranchFlow1SensitivityValue("g1", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0.050, result.getBranchFlow1SensitivityValue("g2", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.350, result.getBranchFlow1SensitivityValue("g2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.250, result.getBranchFlow1SensitivityValue("g2", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.150, result.getBranchFlow1SensitivityValue("g2", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.100, result.getBranchFlow1SensitivityValue("g2", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-0.450, result.getBranchFlow1SensitivityValue("g4", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.150, result.getBranchFlow1SensitivityValue("g4", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.250, result.getBranchFlow1SensitivityValue("g4", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.350, result.getBranchFlow1SensitivityValue("g4", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.100, result.getBranchFlow1SensitivityValue("g4", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testGeneratorInjection4busesDistributed2() {
+        // The factors are generators injections
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P);
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                                                             network.getBranchStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(15, result.getValues().size());
+        assertEquals(0.175d, result.getBranchFlow1SensitivityValue("g1", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.275d, result.getBranchFlow1SensitivityValue("g1", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.125d, result.getBranchFlow1SensitivityValue("g1", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.025d, result.getBranchFlow1SensitivityValue("g1", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.15d, result.getBranchFlow1SensitivityValue("g1", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0.05d, result.getBranchFlow1SensitivityValue("g2", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.35d, result.getBranchFlow1SensitivityValue("g2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, result.getBranchFlow1SensitivityValue("g2", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.15d, result.getBranchFlow1SensitivityValue("g2", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.1d, result.getBranchFlow1SensitivityValue("g2", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-0.450d, result.getBranchFlow1SensitivityValue("g4", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.15d, result.getBranchFlow1SensitivityValue("g4", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.25d, result.getBranchFlow1SensitivityValue("g4", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.35d, result.getBranchFlow1SensitivityValue("g4", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.1d, result.getBranchFlow1SensitivityValue("g4", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testLoadInjection4busesDistributed() {
+        // test injection increase on loads
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
+                                                             network.getBranchStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(10, result.getValues().size());
+        assertEquals(0.05d, result.getBranchFlow1SensitivityValue("d2", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.35d, result.getBranchFlow1SensitivityValue("d2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, result.getBranchFlow1SensitivityValue("d2", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.15d, result.getBranchFlow1SensitivityValue("d2", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.1d, result.getBranchFlow1SensitivityValue("d2", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-0.075d, result.getBranchFlow1SensitivityValue("d3", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.025d, result.getBranchFlow1SensitivityValue("d3", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.375d, result.getBranchFlow1SensitivityValue("d3", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.275d, result.getBranchFlow1SensitivityValue("d3", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.35d, result.getBranchFlow1SensitivityValue("d3", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testSeveralGeneratorsConnectedToTheSameBus() {
+        // test injection increase on loads
+        Network network = FourBusNetworkFactory.createWithTwoGeneratorsAtBus2();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
+                                                             network.getBranchStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(10, result.getValues().size());
+        assertEquals(0.045d, result.getBranchFlow1SensitivityValue("d2", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.318d, result.getBranchFlow1SensitivityValue("d2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.227d, result.getBranchFlow1SensitivityValue("d2", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.136d, result.getBranchFlow1SensitivityValue("d2", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.09d, result.getBranchFlow1SensitivityValue("d2", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testGeneratorInjection4busesDistributedOnLoad() {
+        // test injection increase on loads
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                                                             network.getBranchStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(15, result.getValues().size());
+        assertEquals(0.225d, result.getBranchFlow1SensitivityValue("g1", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.325d, result.getBranchFlow1SensitivityValue("g1", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.125d, result.getBranchFlow1SensitivityValue("g1", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.225d, result.getBranchFlow1SensitivityValue("g1", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.45d, result.getBranchFlow1SensitivityValue("g1", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0.1d, result.getBranchFlow1SensitivityValue("g2", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.3d, result.getBranchFlow1SensitivityValue("g2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("g2", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.1d, result.getBranchFlow1SensitivityValue("g2", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.2d, result.getBranchFlow1SensitivityValue("g2", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-0.4d, result.getBranchFlow1SensitivityValue("g4", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.2d, result.getBranchFlow1SensitivityValue("g4", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, result.getBranchFlow1SensitivityValue("g4", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.6d, result.getBranchFlow1SensitivityValue("g4", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.2d, result.getBranchFlow1SensitivityValue("g4", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testLoadInjection4busesDistributedOnLoad() {
+        // test injection increase on loads
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+        List<SensitivityFactor> factors = createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
+                network.getBranchStream().collect(Collectors.toList()));
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(10, result.getValues().size());
+        assertEquals(0.1d, result.getBranchFlow1SensitivityValue("d2", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.3d, result.getBranchFlow1SensitivityValue("d2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("d2", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.1d, result.getBranchFlow1SensitivityValue("d2", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.2d, result.getBranchFlow1SensitivityValue("d2", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-0.025d, result.getBranchFlow1SensitivityValue("d3", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.075d, result.getBranchFlow1SensitivityValue("d3", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.125d, result.getBranchFlow1SensitivityValue("d3", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.025d, result.getBranchFlow1SensitivityValue("d3", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.05d, result.getBranchFlow1SensitivityValue("d3", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void test4busesDistributedPartialFactors() {
+        // test that the sensitivity computation does not make assumption about the presence of all factors
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().filter(gen -> gen.getId().equals("g1")).collect(Collectors.toList()),
+                                                             network.getBranchStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(5, result.getValues().size());
+        assertEquals(0.175d, result.getBranchFlow1SensitivityValue("g1", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.275d, result.getBranchFlow1SensitivityValue("g1", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.125d, result.getBranchFlow1SensitivityValue("g1", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.025d, result.getBranchFlow1SensitivityValue("g1", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.15d, result.getBranchFlow1SensitivityValue("g1", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testLoadInjectionWithoutGenerator() {
+        // test injection increase on loads
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
+                                                             network.getBranchStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(10, result.getValues().size());
+        assertEquals(0.083d, result.getBranchFlow1SensitivityValue("d2", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.583d, result.getBranchFlow1SensitivityValue("d2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.417d, result.getBranchFlow1SensitivityValue("d2", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, result.getBranchFlow1SensitivityValue("d2", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.167d, result.getBranchFlow1SensitivityValue("d2", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-0.0416d, result.getBranchFlow1SensitivityValue("d3", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.2083d, result.getBranchFlow1SensitivityValue("d3", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.2083d, result.getBranchFlow1SensitivityValue("d3", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.375d, result.getBranchFlow1SensitivityValue("d3", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.416d, result.getBranchFlow1SensitivityValue("d3", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testLoadInjectionOnSlackBusDistributed() {
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().collect(Collectors.toList()),
+                                                             network.getBranchStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(15, result.getValues().size());
+        assertEquals(0.175d, result.getBranchFlow1SensitivityValue("g1", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.275d, result.getBranchFlow1SensitivityValue("g1", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.125d, result.getBranchFlow1SensitivityValue("g1", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.025d, result.getBranchFlow1SensitivityValue("g1", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.15d, result.getBranchFlow1SensitivityValue("g1", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(0.05d, result.getBranchFlow1SensitivityValue("g2", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.35d, result.getBranchFlow1SensitivityValue("g2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.25d, result.getBranchFlow1SensitivityValue("g2", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.15d, result.getBranchFlow1SensitivityValue("g2", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.1d, result.getBranchFlow1SensitivityValue("g2", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-0.450d, result.getBranchFlow1SensitivityValue("g4", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.15d, result.getBranchFlow1SensitivityValue("g4", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.25d, result.getBranchFlow1SensitivityValue("g4", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.35d, result.getBranchFlow1SensitivityValue("g4", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.1d, result.getBranchFlow1SensitivityValue("g4", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testGLSK() {
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", false);
+
+        List<WeightedSensitivityVariable> variables = List.of(new WeightedSensitivityVariable("d2", 30f),
+                                                              new WeightedSensitivityVariable("g2", 10f),
+                                                              new WeightedSensitivityVariable("d3", 50f),
+                                                              new WeightedSensitivityVariable("g1", 10f));
+        List<SensitivityVariableSet> variableSets = Collections.singletonList(new SensitivityVariableSet("glsk", variables));
+
+        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk")).collect(Collectors.toList());
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setVariableSets(variableSets)
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(5, result.getValues().size());
+        assertEquals(-7d / 40d, result.getBranchFlow1SensitivityValue("glsk", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-3d / 8d, result.getBranchFlow1SensitivityValue("glsk", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 40d, result.getBranchFlow1SensitivityValue("glsk", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(7d / 40d, result.getBranchFlow1SensitivityValue("glsk", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-7d / 20d, result.getBranchFlow1SensitivityValue("glsk", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testGlskOnSlackBusDistributed() {
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        List<WeightedSensitivityVariable> variables = List.of(new WeightedSensitivityVariable("d2", 30f),
+                                                              new WeightedSensitivityVariable("g2", 10f),
+                                                              new WeightedSensitivityVariable("d3", 50f),
+                                                              new WeightedSensitivityVariable("g1", 10f));
+        List<SensitivityVariableSet> variableSets = Collections.singletonList(new SensitivityVariableSet("glsk", variables));
+
+        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchFlowPerLinearGlsk(branch.getId(), "glsk")).collect(Collectors.toList());
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setVariableSets(variableSets)
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+        assertEquals(5, result.getValues().size());
+        assertEquals(0d, result.getBranchFlow1SensitivityValue("glsk", "l14", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 10d, result.getBranchFlow1SensitivityValue("glsk", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 10d, result.getBranchFlow1SensitivityValue("glsk", "l23", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1d / 5d, result.getBranchFlow1SensitivityValue("glsk", "l34", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-1d / 5d, result.getBranchFlow1SensitivityValue("glsk", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testLoadInjectionOnSlackBus() {
+        // test injection increase on loads
+        Network network = FourBusNetworkFactory.createBaseNetwork();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b2_vl_0", false);
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
+                                                             network.getBranchStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(0.0d, result.getBranchFlow1SensitivityValue("d2", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testVscInjection() {
+        // test injection increase on loads
+        Network network = HvdcNetworkFactory.createVsc();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0", false);
+
+        List<SensitivityFactor> factors = network.getBranchStream()
+                .map(branch -> createBranchFlowPerInjectionIncrease(branch.getId(), network.getVscConverterStation("cs2").getId()))
+                .collect(Collectors.toList());
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(-1d, result.getBranchFlow1SensitivityValue("cs2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testLccInjection() {
+        // test injection increase on loads
+        Network network = HvdcNetworkFactory.createLcc();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0", false);
+
+        List<SensitivityFactor> factors = network.getBranchStream()
+                .map(branch -> createBranchFlowPerInjectionIncrease(branch.getId(), network.getLccConverterStation("cs2").getId()))
+                .collect(Collectors.toList());
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(-1d, result.getBranchFlow1SensitivityValue("cs2", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testHvdcSensi() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, List.of("b1_vl_0", "b4_vl_0"), false);
+
+        // test injection increase on loads
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        Network network1 = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
+        network1.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + SENSI_CHANGE);
+        runLf(network1, sensiParameters.getLoadFlowParameters());
+        Map<String, Double> loadFlowDiff = network.getLineStream().map(Identifiable::getId)
+            .collect(Collectors.toMap(
+                lineId -> lineId,
+                line -> (network1.getLine(line).getTerminal1().getP() - network.getLine(line).getTerminal1().getP()) / SENSI_CHANGE
+            ));
+
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, List.of("l12", "l13", "l23"),
+                                                                         SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
+                                                                         false, ContingencyContext.all());
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(loadFlowDiff.get("l12"), result.getBranchFlow1SensitivityValue("hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l13"), result.getBranchFlow1SensitivityValue("hvdc34", "l13", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l23"), result.getBranchFlow1SensitivityValue("hvdc34", "l23", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testHvdcSensiWithBothSides() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", false);
+
+        // test injection increase on loads
+        Network network = HvdcNetworkFactory.createNetworkWithGenerators();
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        Network network1 = HvdcNetworkFactory.createNetworkWithGenerators();
+        network1.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + SENSI_CHANGE);
+        runLf(network1, sensiParameters.getLoadFlowParameters());
+        Map<String, Double> loadFlowDiff = network.getLineStream().map(Identifiable::getId)
+            .collect(Collectors.toMap(
+                lineId -> lineId,
+                line -> (network1.getLine(line).getTerminal1().getP() - network.getLine(line).getTerminal1().getP()) / SENSI_CHANGE
+            ));
+
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, List.of("l12", "l13", "l23", "l25", "l45", "l46", "l56"),
+                                                                         SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
+                                                                         false, ContingencyContext.all());
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(loadFlowDiff.get("l12"), result.getBranchFlow1SensitivityValue("hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l13"), result.getBranchFlow1SensitivityValue("hvdc34", "l13", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l23"), result.getBranchFlow1SensitivityValue("hvdc34", "l23", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l25"), result.getBranchFlow1SensitivityValue("hvdc34", "l25", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l45"), result.getBranchFlow1SensitivityValue("hvdc34", "l45", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l46"), result.getBranchFlow1SensitivityValue("hvdc34", "l46", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l56"), result.getBranchFlow1SensitivityValue("hvdc34", "l56", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testHvdcSensiWithBothSidesDistributed() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+
+        // test injection increase on loads
+        Network network = HvdcNetworkFactory.createNetworkWithGenerators();
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        Network network1 = HvdcNetworkFactory.createNetworkWithGenerators();
+        network1.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + SENSI_CHANGE);
+        runLf(network1, sensiParameters.getLoadFlowParameters());
+        Map<String, Double> loadFlowDiff = network.getLineStream().map(Identifiable::getId)
+            .collect(Collectors.toMap(
+                lineId -> lineId,
+                line -> (network1.getLine(line).getTerminal1().getP() - network.getLine(line).getTerminal1().getP()) / SENSI_CHANGE
+            ));
+
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, List.of("l12", "l13", "l23", "l25", "l45", "l46", "l56"),
+                                                                         SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
+                                                                         false, ContingencyContext.all());
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(loadFlowDiff.get("l12"), result.getBranchFlow1SensitivityValue("hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l13"), result.getBranchFlow1SensitivityValue("hvdc34", "l13", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l23"), result.getBranchFlow1SensitivityValue("hvdc34", "l23", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l25"), result.getBranchFlow1SensitivityValue("hvdc34", "l25", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l45"), result.getBranchFlow1SensitivityValue("hvdc34", "l45", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l46"), result.getBranchFlow1SensitivityValue("hvdc34", "l46", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l56"), result.getBranchFlow1SensitivityValue("hvdc34", "l56", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testHvdcSensiVsc() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, List.of("b1_vl_0", "b4_vl_0"), true);
+
+        // test injection increase on loads
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        Network network1 = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
+        network1.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + SENSI_CHANGE);
+        runLf(network1, sensiParameters.getLoadFlowParameters());
+        Map<String, Double> loadFlowDiff = network.getLineStream().map(Identifiable::getId)
+            .collect(Collectors.toMap(
+                lineId -> lineId,
+                line -> (network1.getLine(line).getTerminal1().getP() - network.getLine(line).getTerminal1().getP()) / SENSI_CHANGE
+            ));
+
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, List.of("l12", "l13", "l23"),
+                                                                         SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
+                                                                         false, ContingencyContext.all());
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(loadFlowDiff.get("l12"), result.getBranchFlow1SensitivityValue("hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l13"), result.getBranchFlow1SensitivityValue("hvdc34", "l13", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l23"), result.getBranchFlow1SensitivityValue("hvdc34", "l23", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testHvdcSensiVsc2() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, List.of("b1_vl_0", "b4_vl_0"), true);
+
+        // test injection increase on loads
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
+        network.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
+        runLf(network, sensiParameters.getLoadFlowParameters());
+
+        Network network1 = HvdcNetworkFactory.createTwoCcLinkedByAHvdcVscWithGenerators();
+        network1.getHvdcLine("hvdc34").setActivePowerSetpoint(network1.getHvdcLine("hvdc34").getActivePowerSetpoint() + SENSI_CHANGE);
+        network1.getGeneratorStream().forEach(gen -> gen.setMaxP(2 * gen.getMaxP()));
+        runLf(network1, sensiParameters.getLoadFlowParameters());
+        Map<String, Double> loadFlowDiff = network.getLineStream().map(Identifiable::getId)
+            .collect(Collectors.toMap(
+                lineId -> lineId,
+                line -> (network1.getLine(line).getTerminal1().getP() - network.getLine(line).getTerminal1().getP()) / SENSI_CHANGE
+            ));
+
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, List.of("l12", "l13", "l23"),
+                SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
+                false, ContingencyContext.all());
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(loadFlowDiff.get("l12"), result.getBranchFlow1SensitivityValue("hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l13"), result.getBranchFlow1SensitivityValue("hvdc34", "l13", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(loadFlowDiff.get("l23"), result.getBranchFlow1SensitivityValue("hvdc34", "l23", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testHvdcInjectionNotFound() {
+        testHvdcInjectionNotFound(true);
+    }
+
+    @Test
+    void testHvdcSensiDisconnected() {
+        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
+        HvdcLine hvdc34 = network.getHvdcLine("hvdc34");
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, List.of("b1_vl_0", "b4_vl_0"), false);
+
+        SensitivityFactor factor = new SensitivityFactor(
+                SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, "l12",
+                SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, "hvdc34",
+                false, ContingencyContext.all());
+
+        // disconnected both sides
+        hvdc34.getConverterStation1().getTerminal().disconnect();
+        hvdc34.getConverterStation2().getTerminal().disconnect();
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, List.of(factor), runParameters);
+        assertEquals(0, result.getBranchFlow1SensitivityValue("hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        // disconnected other side
+        hvdc34.getConverterStation1().getTerminal().connect();
+        result = sensiRunner.run(network, List.of(factor), runParameters);
+        assertEquals(-0.325, result.getBranchFlow1SensitivityValue("hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        // disconnected network side
+        hvdc34.getConverterStation1().getTerminal().disconnect();
+        hvdc34.getConverterStation2().getTerminal().connect();
+        result = sensiRunner.run(network, List.of(factor), runParameters);
+        assertEquals(0, result.getBranchFlow1SensitivityValue("hvdc34", "l12", SensitivityVariableType.HVDC_LINE_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testBalanceTypeNotSupported() {
+        // test injection increase on loads
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD);
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getLoadStream().collect(Collectors.toList()),
+                                                             network.getBranchStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        CompletionException exception = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
+        assertTrue(exception.getCause() instanceof UnsupportedOperationException);
+        assertEquals("Unsupported balance type mode: PROPORTIONAL_TO_CONFORM_LOAD", exception.getCause().getMessage());
+    }
+
+    @Test
+    void testPhaseShifter() {
+        Network network = PhaseShifterTestCaseFactory.create();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL2_0");
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerPSTAngle("L1", "PS1"));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(-6.3d, result.getBranchFlow1SensitivityValue("PS1", "L1", SensitivityVariableType.TRANSFORMER_PHASE), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testAdditionalFactors() {
+        // test injection increase on loads
+        Network network = FourBusNetworkFactory.create();
+        runDcLf(network);
+
+        Map<String, Double> functionReferenceByLine = new HashMap<>();
+        for (Line line : network.getLines()) {
+            functionReferenceByLine.put(line.getId(), line.getTerminal1().getP());
+        }
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b3_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l12", "g1"),
+                                                  createBranchFlowPerInjectionIncrease("l13", "g2"));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(2, result.getValues().size());
+        assertEquals(0.325d, result.getBranchFlow1SensitivityValue("g1", "l12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.2d, result.getBranchFlow1SensitivityValue("g2", "l13", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(functionReferenceByLine.get("l12"), result.getBranchFlow1FunctionReferenceValue("l12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(functionReferenceByLine.get("l13"), result.getBranchFlow1FunctionReferenceValue("l13"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testInjectionNotFoundAdditionalFactor() {
+        testInjectionNotFoundAdditionalFactor(true);
+    }
+
+    @Test
+    void testIntensityCrash() {
+        Network network = FourBusNetworkFactory.createWithPhaseTapChangerAndGeneratorAtBus2();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        List<SensitivityFactor> factors = network.getBranchStream().map(branch -> createBranchIntensityPerPSTAngle(branch.getId(), "l23")).collect(Collectors.toList());
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Only variables of type TRANSFORMER_PHASE, TRANSFORMER_PHASE_1, TRANSFORMER_PHASE_2, TRANSFORMER_PHASE_3, " +
+            "INJECTION_ACTIVE_POWER and HVDC_LINE_ACTIVE_POWER, and functions of type BRANCH_ACTIVE_POWER_1, BRANCH_ACTIVE_POWER_2 " +
+            "and BRANCH_ACTIVE_POWER_3 are yet supported in DC", e.getCause().getMessage());
+    }
+
+    @Test
+    void testBranchFunctionOutsideMainComponent() {
+        testBranchFunctionOutsideMainComponent(true);
+    }
+
+    @Test
+    void testInjectionOutsideMainComponent() {
+        testInjectionOutsideMainComponent(true);
+    }
+
+    @Test
+    void testPhaseShifterOutsideMainComponent() {
+        testPhaseShifterOutsideMainComponent(true);
+    }
+
+    @Test
+    void testGlskOutsideMainComponent() {
+        testGlskOutsideMainComponent(true);
+    }
+
+    @Test
+    void testGlskAndLineOutsideMainComponent() {
+        testGlskAndLineOutsideMainComponent(true);
+    }
+
+    @Test
+    void testGlskPartiallyOutsideMainComponent() {
+        testGlskPartiallyOutsideMainComponent(true);
+    }
+
+    @Test
+    void testInjectionNotFound() {
+        testInjectionNotFound(true);
+    }
+
+    @Test
+    void testBranchNotFound() {
+        testBranchNotFound(true);
+    }
+
+    @Test
+    void testEmptyFactors() {
+        testEmptyFactors(true);
+    }
+
+    @Test
+    void testGlskNotFound() {
+        testGlskInjectionNotFound(true);
+    }
+
+    @Test
+    void testBoundaryLineSensi() {
+        Network network = BoundaryFactory.createWithLoad();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0");
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "bl1"),
+                createBranchFlowPerInjectionIncrease("bl1", "load3"));
+
+        // boundary line is connected
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+        assertEquals(-0.812d, result.getBranchFlow1SensitivityValue("bl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(91.0, result.getBranchFlow1FunctionReferenceValue("bl1"), LoadFlowAssert.DELTA_POWER);
+
+        // boundary line is connected on base case but will be disconnected by a contingency => 0
+        List<Contingency> contingencies = List.of(new Contingency("c", new BoundaryLineContingency("bl1")));
+        runParameters.setContingencies(contingencies);
+        result = sensiRunner.run(network, factors, runParameters);
+        assertEquals(-0.812d, result.getBranchFlow1SensitivityValue("bl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0d, result.getBranchFlow1SensitivityValue("c", "bl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        // boundary line is disconnected on base case => 0
+        network.getBoundaryLine("bl1").getTerminal().disconnect();
+        runParameters.setContingencies(Collections.emptyList());
+        result = sensiRunner.run(network, factors, runParameters);
+        assertEquals(0d, result.getBranchFlow1SensitivityValue("bl1", "l1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testContingencyOnOpenLine() {
+        Network network = NodeBreakerNetworkFactory.create();
+        List<Contingency> contingencies = List.of(new Contingency("c1", new BranchContingency("L1")));
+
+        List<PropagatedContingency> propagatedContingencies = PropagatedContingency.createList(network, contingencies, new LfTopoConfig(), new PropagatedContingencyCreationParameters());
+        assertEquals(1, propagatedContingencies.size());
+    }
+
+    @Test
+    void testOpenMonitoredBranch() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        runDcLf(network);
+        network.getLine("NHV1_NHV2_1").getTerminal2().disconnect();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+
+        List<WeightedSensitivityVariable> variables = List.of(new WeightedSensitivityVariable("LOAD", 10f));
+        List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk", variables));
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerLinearGlsk("NHV1_NHV2_1", "glsk"));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setVariableSets(variableSets)
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+        assertEquals(0., result.getBranchFlow1SensitivityValue("glsk", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testOpenMonitoredBranch2() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        runDcLf(network);
+        network.getLine("NHV1_NHV2_1").getTerminal1().disconnect();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+
+        List<WeightedSensitivityVariable> variables = List.of(new WeightedSensitivityVariable("LOAD", 10f));
+        List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk", variables));
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerLinearGlsk("NHV1_NHV2_1", "glsk"));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setVariableSets(variableSets)
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+        assertEquals(0., result.getBranchFlow1SensitivityValue("glsk", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void nonImpedantBranchTest() {
+        Network network = PhaseShifterTestCaseFactory.create();
+        network.getLine("L2").setX(0).setR(0);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true);
+
+        List<SensitivityVariableSet> variableSets = List.of(new SensitivityVariableSet("glsk", List.of(new WeightedSensitivityVariable("LD2", 10f))));
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerLinearGlsk("L2", "glsk"));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setVariableSets(variableSets)
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+        assertEquals(-0.6666666, result.getBranchFlow1SensitivityValue("glsk", "L2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(66.6666, result.getBranchFlow1FunctionReferenceValue("L2"), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testConfiguredBusFactor() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("NHV1_NHV2_1", "GEN"),
+                                                  new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1,
+                                                                        "NHV1_NHV2_1",
+                                                                        SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                                                                        "NGEN",
+                                                                        false,
+                                                                        ContingencyContext.all()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(2, result.getValues().size());
+        assertEquals(result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                     result.getBranchFlow1SensitivityValue("NGEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                     LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testConfiguredBusInvalidFactor() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        network.getVoltageLevel("VLGEN").getBusBreakerView().newBus()
+                .setId("X")
+                .add();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+
+        List<SensitivityFactor> factors = List.of(new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1,
+                                                                        "NHV1_NHV2_1",
+                                                                        SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                                                                        "X",
+                                                                        false,
+                                                                        ContingencyContext.all()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(1, result.getValues().size());
+        assertEquals(0, result.getBranchFlow1SensitivityValue("X", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testBusbarSectionFactor() {
+        Network network = NodeBreakerNetworkFactory.create();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL2_0");
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("L1", "G"),
+                                                  new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1,
+                                                                        "L1",
+                                                                        SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                                                                        "BBS2",
+                                                                        false,
+                                                                        ContingencyContext.all()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(2, result.getValues().size());
+        assertEquals(result.getBranchFlow1SensitivityValue("G", "L1", SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                     result.getBranchFlow1SensitivityValue("BBS2", "L1", SensitivityVariableType.INJECTION_ACTIVE_POWER),
+                     LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testBusbarSectionInvalidFactor() {
+        Network network = NodeBreakerNetworkFactory.create();
+        network.getVoltageLevel("VL1").getNodeBreakerView().newBusbarSection()
+                .setId("X")
+                .setNode(100)
+                .add();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL2_0");
+
+        List<SensitivityFactor> factors = List.of(new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1,
+                                                                        "L1",
+                                                                        SensitivityVariableType.INJECTION_ACTIVE_POWER,
+                                                                        "X",
+                                                                        false,
+                                                                        ContingencyContext.all()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        assertEquals(1, result.getValues().size());
+        assertEquals(0, result.getBranchFlow1SensitivityValue("X", "L1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testWithTieLines() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        Network network = BoundaryFactory.createWithTieLine();
+        List<SensitivityFactor> factors = network.getTieLineStream().map(line -> createBranchFlowPerInjectionIncrease(line.getId(), "h1")).collect(Collectors.toList());
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("The boundary line h1 is paired: it cannot be a sensitivity variable", e.getCause().getMessage());
+    }
+
+    @Test
+    void testWithTieLinesWrongBoundaryLine() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        Network network = BoundaryFactory.createWithTieLine();
+        // Specifying side 2 of boundary line as sensitivity function, which is not possible because the boundary line is paired (boundary side is not accessible)
+        List<SensitivityFactor> factors = network.getBoundaryLineStream().map(line -> createBranchFlowPerInjectionIncrease(line.getId(), "g1", null, TwoSides.TWO)).collect(Collectors.toList());
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
+        assertTrue(e.getCause() instanceof PowsyblException);
+        assertEquals("Boundary line h1 is paired. Sensitivity function can only be computed on its side 1 (given type BRANCH_ACTIVE_POWER_2)", e.getCause().getMessage());
+    }
+
+    @Test
+    void testWithTieLinesSpecifiedByBoundaryLines() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        Network network = BoundaryFactory.createWithTieLine();
+        List<SensitivityFactor> factors = network.getBoundaryLineStream().map(line -> createBranchFlowPerInjectionIncrease(line.getId(), "g1")).collect(Collectors.toList());
+        factors.add(createBranchFlowPerInjectionIncrease("t12", "g1", TwoSides.ONE)); // Adding tie line BRANCH_ACTIVE_POWER_1
+        factors.add(createBranchFlowPerInjectionIncrease("t12", "g1", TwoSides.TWO)); // Adding tie line BRANCH_ACTIVE_POWER_2
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+        assertEquals(4, result.getValues().size());
+
+        // Boundary line h1 side 1 and Tie line t12 side 1 should represent the same sensitivity values
+        assertEquals(35.0, result.getBranchFlow1FunctionReferenceValue("h1"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(35.0, result.getBranchFlow1FunctionReferenceValue("t12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.5, result.getBranchFlow1SensitivityValue("g1", "h1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.5, result.getBranchFlow1SensitivityValue("g1", "t12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        // Boundary line h2 side 1 and Tie line t12 side 2 should represent the same sensitivity values
+        assertEquals(-35.0, result.getBranchFlow1FunctionReferenceValue("h2"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-35.0, result.getBranchFlow2FunctionReferenceValue("t12"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.5, result.getBranchFlow1SensitivityValue("g1", "h2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-0.5, result.getBranchFlow2SensitivityValue("g1", "t12", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testTooManyFactorsAndContingencies() {
+        EquationSystem<DcVariableType, DcEquationType> equationSystem = Mockito.mock(EquationSystem.class);
+        EquationSystemIndex<DcVariableType, DcEquationType> equationSystemIndex = Mockito.mock(EquationSystemIndex.class);
+        Mockito.when(equationSystem.getIndex()).thenReturn(equationSystemIndex);
+        Mockito.when(equationSystemIndex.getColumnCount()).thenReturn(100000);
+        AbstractSensitivityAnalysis.SensitivityFactorGroupList<DcVariableType, DcEquationType> factorsGroups = Mockito.mock(AbstractSensitivityAnalysis.SensitivityFactorGroupList.class);
+        List<AbstractSensitivityAnalysis.SensitivityFactorGroup<DcVariableType, DcEquationType>> factorGroupList = Mockito.mock(List.class);
+        Mockito.when(factorGroupList.size()).thenReturn(3333333);
+        Mockito.when(factorsGroups.getList()).thenReturn(factorGroupList);
+        Map<LfBus, Double> participationByBus = Collections.emptyMap();
+        PowsyblException e = assertThrows(PowsyblException.class, () -> AbstractSensitivityAnalysis.initFactorsRhs(equationSystem, factorsGroups, participationByBus));
+        assertEquals("Too many factors groups 3333333, maximum is 2684 for a system with 100000 equations", e.getMessage());
+
+        List<ComputedContingencyElement> contingencyElements = new ArrayList<>(3000);
+        for (int i = 0; i < 3000; i++) {
+            LfBranch branch = Mockito.mock(LfBranch.class);
+            ComputedContingencyElement contingencyElement = Mockito.mock(ComputedContingencyElement.class);
+            Mockito.when(contingencyElement.getLfBranch()).thenReturn(branch);
+            contingencyElements.add(contingencyElement);
+        }
+        e = assertThrows(PowsyblException.class, () -> ComputedElement.initRhs(equationSystem, contingencyElements));
+        assertEquals("Too many elements 3000, maximum is 2684 for a system with 100000 equations", e.getMessage());
+    }
+
+    @Test
+    void testThreeWindingsTransformerAsFunction() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+
+        Network network = VoltageControlNetworkFactory.createNetworkWithT3wt();
+
+        SensitivityFactor factorActivePower1Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_3", ThreeSides.ONE);
+        SensitivityFactor factorActivePower2Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_3", ThreeSides.TWO);
+        SensitivityFactor factorActivePower3Twt = createTransformerLegFlowPerInjectionIncrease("T3wT", "LOAD_3", ThreeSides.THREE);
+
+        List<SensitivityFactor> factors = List.of(factorActivePower1Twt, factorActivePower2Twt, factorActivePower3Twt);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+        assertEquals(3, result.getValues().size());
+
+        assertEquals(10.0, result.getBranchFlow1FunctionReferenceValue("T3wT"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-5.0, result.getBranchFlow2FunctionReferenceValue("T3wT"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(-5.0, result.getBranchFlow3FunctionReferenceValue("T3wT"), LoadFlowAssert.DELTA_POWER);
+
+        assertEquals(-1.0, result.getBranchFlow1SensitivityValue("LOAD_3", "T3wT", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(1.0, result.getBranchFlow2SensitivityValue("LOAD_3", "T3wT", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertEquals(0.0, result.getBranchFlow3SensitivityValue("LOAD_3", "T3wT", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
+    void testThreeWindingsTransformerAsVariable() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", true);
+
+        sensiParameters.getLoadFlowParameters()
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX)
+                .getExtension(OpenLoadFlowParameters.class)
+                    .setSlackBusPMaxMismatch(0.001)
+                    .setNewtonRaphsonConvEpsPerEq(0.0001);
+        sensiParameters.setAngleFlowSensitivityValueThreshold(0.1);
+        Network network = PhaseControlFactory.createNetworkWithT3wt();
+
+        //Add phase tap changer to leg1 and leg3 of the twt for testing purpose
+        ThreeWindingsTransformer twt = network.getThreeWindingsTransformer("PS1");
+        twt.getLeg1().newPhaseTapChanger()
+                .setTapPosition(1)
+                .setRegulationTerminal(twt.getLeg1().getTerminal())
+                .setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
+                .setRegulating(false)
+                .setRegulationValue(200)
+                .beginStep()
+                .setAlpha(-5.0)
+                .endStep()
+                .beginStep()
+                .setAlpha(0.0)
+                .endStep()
+                .beginStep()
+                .setAlpha(5)
+                .endStep()
+                .add();
+        twt.getLeg3().newPhaseTapChanger()
+                .setTapPosition(1)
+                .setRegulationTerminal(twt.getLeg3().getTerminal())
+                .setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
+                .setRegulating(false)
+                .setRegulationValue(200)
+                .beginStep()
+                .setAlpha(-5.0)
+                .endStep()
+                .beginStep()
+                .setAlpha(0.0)
+                .endStep()
+                .beginStep()
+                .setAlpha(5)
+                .endStep()
+                .add();
+
+        SensitivityFactor factorPhase1 = createBranchFlowPerTransformerLegPSTAngle("L1", "PS1", ThreeSides.ONE);
+        SensitivityFactor factorPhase2 = createBranchFlowPerTransformerLegPSTAngle("L1", "PS1", ThreeSides.TWO);
+        SensitivityFactor factorPhase3 = createBranchFlowPerTransformerLegPSTAngle("L1", "PS1", ThreeSides.THREE);
+        List<SensitivityFactor> factors = List.of(factorPhase1, factorPhase2, factorPhase3);
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+        assertEquals(2, result.getValues().size());
+
+        // Numerically computing sensi of L1 active power flow with respect to PS1 transformer phase 1
+        loadFlowRunner.run(network, sensiParameters.getLoadFlowParameters());
+        double p0 = network.getBranch("L1").getTerminal1().getP();
+        network.getThreeWindingsTransformer("PS1").getLeg1().getPhaseTapChanger().setTapPosition(2); // A phase shift of 5.0 is applied
+        loadFlowRunner.run(network, sensiParameters.getLoadFlowParameters());
+        double p1 = network.getBranch("L1").getTerminal1().getP();
+        double sensiL1 = (p1 - p0) / 5.0;
+
+        assertEquals(-5.245, sensiL1, LoadFlowAssert.DELTA_POWER);
+        assertEquals(-5.245, result.getBranchFlow1SensitivityValue("PS1", "L1", SensitivityVariableType.TRANSFORMER_PHASE_1), LoadFlowAssert.DELTA_POWER);
+        assertEquals(5.245, result.getBranchFlow1SensitivityValue("PS1", "L1", SensitivityVariableType.TRANSFORMER_PHASE_2), LoadFlowAssert.DELTA_POWER);
+        //Sensitivity value at phase 3 is filtered because it is 0
+    }
+
+    @Test
+    void testHvdcSensiAcEmulationNotSupported() {
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1_vl_0", false);
+        sensiParameters.getLoadFlowParameters()
+                .setHvdcAcEmulation(true);
+
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+
+        List<SensitivityFactor> factors = SensitivityFactor.createMatrix(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, List.of("l12", "l13", "l23"),
+                SensitivityVariableType.HVDC_LINE_ACTIVE_POWER, List.of("hvdc34"),
+                false, ContingencyContext.all());
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+        CompletionException exception = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, runParameters));
+        assertEquals("HVDC line hvdc34 has AC emulation enabled, HVDC_LINE_ACTIVE_POWER sensitivity is not supported", exception.getCause().getMessage());
+    }
+
+    @Test
+    void testComputationInterrupted() {
+        Network network = BoundaryFactory.createWithLoad();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "vl1_0");
+
+        List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l1", "bl1"),
+            createBranchFlowPerInjectionIncrease("bl1", "load3"));
+
+        List<Contingency> contingencies = List.of(new Contingency("c", new BoundaryLineContingency("bl1")));
+        DcSensitivityAnalysis analysis = new DcSensitivityAnalysis(new SparseMatrixFactory(),
+            new DTreeGraphConnectivityFactory<>(),
+            sensiParameters);
+        SensitivityFactorReader factorReader = new SensitivityFactorModelReader(factors, network);
+        SensitivityResultModelWriter resultWriter = new SensitivityResultModelWriter(contingencies, Collections.emptyList());
+
+        LoadFlowParameters loadFlowParameters = sensiParameters.getLoadFlowParameters();
+        PropagatedContingencyCreationParameters creationParameters = new PropagatedContingencyCreationParameters()
+            .setContingencyPropagation(false)
+            .setShuntCompensatorVoltageControlOn(!loadFlowParameters.isDc() && loadFlowParameters.isShuntCompensatorVoltageControlOn())
+            .setSlackDistributionOnConformLoad(loadFlowParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+            .setHvdcAcEmulation(!loadFlowParameters.isDc() && loadFlowParameters.isHvdcAcEmulation());
+
+        // with connectivity break
+        Thread.currentThread().interrupt();
+        String variantId = network.getVariantManager().getWorkingVariantId();
+        OpenSensitivityAnalysisParameters openSensitivityAnalysisParameters = OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters);
+        Executor executor = LocalComputationManager.getDefault().getExecutor();
+        List<SensitivityVariableSet> noVar = Collections.emptyList();
+        List<OperatorStrategy> operatorStrategies = Collections.emptyList();
+        List<Action> actions = Collections.emptyList();
+        assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies, operatorStrategies, actions,
+                creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP, openSensitivityAnalysisParameters,
+                executor));
+
+        // without connectivity break
+        List<Contingency> contingencies2 = List.of(new Contingency("c", new GeneratorContingency("g1")));
+        Thread.currentThread().interrupt();
+        assertThrows(PowsyblException.class, () -> analysis.analyse(network, variantId, contingencies2, operatorStrategies, actions,
+                creationParameters, noVar, factorReader, resultWriter, ReportNode.NO_OP, openSensitivityAnalysisParameters,
+                executor));
+    }
+
+    @Test
+    void testFastRestart() {
+        NetworkCache.DC_SENSI_INSTANCE.clear();
+
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+        OpenLoadFlowParameters.get(sensiParameters.getLoadFlowParameters())
+                .setNetworkCacheEnabled(true);
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().toList(),
+                network.getLineStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+
+        assertEquals(0, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors.subList(0, 1), runParameters);
+        assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertEquals(1, result.getValues().size());
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        result = sensiRunner.run(network, factors.subList(1, 2), runParameters);
+        assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertEquals(1, result.getValues().size());
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        // change a parameter so that the cache input has changed: the previous entry must be evicted and a new one created
+        OpenLoadFlowParameters.get(sensiParameters.getLoadFlowParameters())
+                .setNetworkVariantPoolSize(30);
+        result = sensiRunner.run(network, factors.subList(0, 1), runParameters);
+        assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertEquals(1, result.getValues().size());
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        NetworkCache.DcSensiValue value = NetworkCache.DC_SENSI_INSTANCE.findEntry(network).orElseThrow().getValues().getFirst();
+        assertNotNull(value.getNetworkParameters());
+        assertNotNull(value.getNetwork());
+    }
+
+    @Test
+    void testFastRestartWithCacheScope() {
+        NetworkCache.DC_SENSI_INSTANCE.clear();
+
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VLLOAD_0");
+        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(sensiParameters.getLoadFlowParameters())
+                .setNetworkCacheEnabled(true);
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().toList(),
+                network.getLineStream().collect(Collectors.toList()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters);
+
+        // no scope: historical behaviour, a single entry for the network and its working variant
+        assertEquals(0, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors.subList(0, 1), runParameters);
+        assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+        assertTrue(NetworkCache.DC_SENSI_INSTANCE.findEntry(network).isPresent());
+
+        // a scope gives its own entry, on the very same network and working variant, without evicting the unscoped one
+        parametersExt.setNetworkCacheScope("worker-0");
+        result = sensiRunner.run(network, factors.subList(0, 1), runParameters);
+        assertEquals(2, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        // another scope, another entry
+        parametersExt.setNetworkCacheScope("worker-1");
+        result = sensiRunner.run(network, factors.subList(0, 1), runParameters);
+        assertEquals(3, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_1", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        // re-running on an already known scope reuses its entry instead of creating a new one
+        parametersExt.setNetworkCacheScope("worker-0");
+        result = sensiRunner.run(network, factors.subList(1, 2), runParameters);
+        assertEquals(3, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertEquals(0.5d, result.getBranchFlow1SensitivityValue("GEN", "NHV1_NHV2_2", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+
+        // entries are looked up by scope
+        assertEquals("worker-0", NetworkCache.DC_SENSI_INSTANCE.findEntry(network, "worker-0").orElseThrow().getCacheScope());
+        assertEquals("worker-1", NetworkCache.DC_SENSI_INSTANCE.findEntry(network, "worker-1").orElseThrow().getCacheScope());
+        assertNull(NetworkCache.DC_SENSI_INSTANCE.findEntry(network).orElseThrow().getCacheScope());
+        assertTrue(NetworkCache.DC_SENSI_INSTANCE.findEntry(network, "unknown").isEmpty());
+
+        // a scope is not a model parameter: it must never evict the entry of another scope
+        parametersExt.setNetworkCacheScope("worker-1");
+        sensiRunner.run(network, factors.subList(0, 1), runParameters);
+        assertEquals(3, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+    }
+
+    @Test
+    void testDcSensiInput() {
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        NetworkCache.DcSensiInput input = new NetworkCache.DcSensiInput(parameters, Set.of("a"));
+        assertSame(parameters, input.getLoadFlowParameters());
+
+        // same parameters and same actions: nothing has changed
+        assertNull(input.hasChanged(new NetworkCache.DcSensiInput(parameters, Set.of("a"))));
+
+        // topo config differs
+        assertEquals("topology configuration", input.hasChanged(new NetworkCache.DcSensiInput(parameters, Set.of("b"))));
+
+        // parameters differ
+        LoadFlowParameters otherParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(otherParameters).setNetworkVariantPoolSize(42);
+        assertEquals("parameters", input.hasChanged(new NetworkCache.DcSensiInput(otherParameters, Set.of("a"))));
+    }
+
+    @Test
+    void testFastRestartWithActions() {
+        NetworkCache.DC_SENSI_INSTANCE.clear();
+
+        Network network = NodeBreakerNetworkFactory.create();
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL1_0", true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+        OpenLoadFlowParameters.get(sensiParameters.getLoadFlowParameters())
+                .setNetworkCacheEnabled(true);
+
+        List<Contingency> contingencies = network.getLineStream().map(l -> Contingency.line(l.getId())).toList();
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().toList(),
+                network.getLineStream().collect(Collectors.toList()));
+        // a switch action forces the fast restart path to build a temporary variant (pool acquire/release)
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("open C",
+                ContingencyContext.none(), new TrueCondition(), List.of("open C")));
+        List<Action> actions = List.of(new SwitchAction("open C", "C", true));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setContingencies(contingencies)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions);
+
+        assertEquals(0, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        SensitivityAnalysisResult result1 = sensiRunner.run(network, factors, runParameters);
+        assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+
+        // second run reuses the cached context (fast restart) and must give the exact same results
+        SensitivityAnalysisResult result2 = sensiRunner.run(network, factors, runParameters);
+        assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
+        assertEquals(result1.getValues().size(), result2.getValues().size());
+        assertEquals(result1.getStateStatuses().size(), result2.getStateStatuses().size());
+        for (SensitivityValue v1 : result1.getValues()) {
+            SensitivityValue v2 = result2.getValues().get(result1.getValues().indexOf(v1));
+            assertEquals(v1.getValue(), v2.getValue(), LoadFlowAssert.DELTA_POWER);
+            assertEquals(v1.getFunctionReference(), v2.getFunctionReference(), LoadFlowAssert.DELTA_POWER);
+        }
+    }
+
+    @Disabled("Only for stress testing of fast restart with multiple threads")
+    @Test
+    void testFastRestartMultiThreaded() {
+        NetworkCache.DC_SENSI_INSTANCE.clear();
+
+        Network network = NodeBreakerNetworkFactory.create();
+        network.getVariantManager().allowVariantMultiThreadAccess(true);
+        runAcLf(network);
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(true, "VL1_0", true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+        OpenLoadFlowParameters.get(sensiParameters.getLoadFlowParameters())
+                .setNetworkCacheEnabled(true)
+                .setNetworkVariantPoolSize(50);
+
+        List<Contingency> contingencies = network.getLineStream().map(l -> Contingency.line(l.getId())).toList();
+
+        List<SensitivityFactor> factors = createFactorMatrix(network.getGeneratorStream().toList(),
+                network.getLineStream().collect(Collectors.toList()));
+
+        OperatorStrategy osOpenC = new OperatorStrategy("open C",
+                ContingencyContext.none(),
+                new TrueCondition(), List.of("open C"));
+        List<OperatorStrategy> operatorStrategies = List.of(osOpenC);
+        List<Action> actions = List.of(new SwitchAction("open C", "C", true));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setContingencies(contingencies);
+
+        SensitivityAnalysisRunParameters runParametersWithActions = new SensitivityAnalysisRunParameters()
+                .setParameters(sensiParameters)
+                .setContingencies(contingencies)
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions);
+
+        int n = 40;
+        boolean[] error = new boolean[n];
+        Arrays.fill(error, false);
+        String initialVariantId = network.getVariantManager().getWorkingVariantId();
+        List<ForkJoinTask<?>> results = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            network.getVariantManager().cloneVariant(initialVariantId, "v" + i);
+        }
+        try (ForkJoinPool forkJoinPool = new ForkJoinPool(n)) {
+            for (int i = 0; i < n; i++) {
+                int finalI = i;
+                results.add(forkJoinPool.submit(() -> {
+                    // fast restart cached context is bound to a variant so let's associate each working thread to its own variant
+                    network.getVariantManager().setWorkingVariant("v" + finalI);
+                    try {
+                        for (int j = 0; j < 1000; j++) {
+                            SensitivityAnalysisResult result = sensiRunner.run(network, factors, j % 2 == 0 ? runParametersWithActions : runParameters);
+                            assertEquals(j % 2 == 0 ? 3 : 2, result.getStateStatuses().size());
+                        }
+                    } catch (Throwable t) {
+                        error[finalI] = true;
+                        LOGGER.error(t.toString(), t);
+                    }
+                }));
+            }
+            for (ForkJoinTask<?> task : results) {
+                task.join();
+            }
+            forkJoinPool.shutdown();
+            assertTrue(IntStream.range(0, n).noneMatch(i -> error[i]));
+        }
+    }
+}

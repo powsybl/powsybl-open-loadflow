@@ -1,0 +1,1555 @@
+/**
+ * Copyright (c) 2025, SuperGrid Institute (http://www.supergrid-institute.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package com.powsybl.openloadflow.acdc;
+
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.AcDcConverter.ControlMode;
+import com.powsybl.iidm.network.test.DcDetailedNetworkFactory;
+import com.powsybl.loadflow.LoadFlow;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.na.network.*;
+import com.powsybl.na.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.na.test.CommonTestConfig;
+import com.powsybl.na.test.ServiceParameterResolver;
+import com.powsybl.na.test.networks.AcDcNetworkFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.List;
+import java.util.concurrent.CompletionException;
+import java.util.stream.Stream;
+
+import static com.powsybl.na.test.LoadFlowAssert.*;
+import static com.powsybl.na.test.networks.AcDcNetworkFactory.createBaseNetwork;
+import static java.lang.Math.sqrt;
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
+ */
+@ExtendWith(ServiceParameterResolver.class)
+class AcDcLoadFlowTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcDcLoadFlowTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
+
+    private LoadFlow.Runner loadFlowRunner;
+    private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
+
+    @BeforeEach
+    void setUp() {
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
+        parameters = new LoadFlowParameters();
+        parametersExt = OpenLoadFlowParameters.create(parameters).setAcDcNetwork(true);
+    }
+
+    @Test
+    void testConverterIdleLoss() {
+        Network network = createBaseNetwork();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
+
+        // Converter with only idle loss
+        vl2.newVoltageSourceConverter()
+                .setIdleLoss(2)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(50.)
+                .setId("conv23")
+                .setBus1("b2")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setLocalTargetQ(0.0)
+                .add();
+
+        // Converter without losses
+        vl5.newVoltageSourceConverter()
+                .setIdleLoss(0)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(400.)
+                .setId("conv45")
+                .setBus1("b5")
+                .setDcNode1("dn4")
+                .setDcNode2("dnDummy4")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setLocalTargetQ(0.0)
+                .add();
+
+        parametersExt
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
+        assertActivePowerEquals(50.000000, conv23.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv23.getTerminal1());
+        assertDcPowerEquals(-48.0, conv23.getDcTerminal1());
+        assertDcPowerEquals(0.000000, conv23.getDcTerminal2());
+    }
+
+    @Test
+    void testConverterSwitchingLoss() {
+        Network network = createBaseNetwork();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
+
+        // Converter with only switching losses
+        vl2.newVoltageSourceConverter()
+                .setIdleLoss(0)
+                .setSwitchingLoss(0.01)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(50.)
+                .setId("conv23")
+                .setBus1("b2")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setLocalTargetQ(0.0)
+                .add();
+
+        // Converter without losses
+        vl5.newVoltageSourceConverter()
+                .setIdleLoss(0)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(400.)
+                .setId("conv45")
+                .setBus1("b5")
+                .setDcNode1("dn4")
+                .setDcNode2("dnDummy4")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setLocalTargetQ(0.0)
+                .add();
+
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
+        assertActivePowerEquals(50.000000, conv23.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv23.getTerminal1());
+        assertDcCurrentEquals(-121.947592, conv23.getDcTerminal1());
+        assertDcPowerEquals(-(50 - 121.947592 * 0.01), conv23.getDcTerminal1());
+        assertDcPowerEquals(0.000000, conv23.getDcTerminal2());
+    }
+
+    @Test
+    void testConverterResistiveLoss() {
+        Network network = createBaseNetwork();
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        VoltageLevel vl5 = network.getVoltageLevel("vl5");
+
+        // Converter with only resistive losses
+        vl2.newVoltageSourceConverter()
+                .setIdleLoss(0)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(5)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(50.)
+                .setId("conv23")
+                .setBus1("b2")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setLocalTargetQ(0.0)
+                .add();
+
+        // Converter without losses
+        vl5.newVoltageSourceConverter()
+                .setIdleLoss(0)
+                .setSwitchingLoss(0)
+                .setResistiveLoss(0)
+                .setControlMode(AcDcConverter.ControlMode.V_DC)
+                .setTargetVdc(400.)
+                .setId("conv45")
+                .setBus1("b5")
+                .setDcNode1("dn4")
+                .setDcNode2("dnDummy4")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setLocalTargetQ(0.0)
+                .add();
+
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
+        assertActivePowerEquals(50.000000, conv23.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv23.getTerminal1());
+        assertDcCurrentEquals(-124.801413, conv23.getDcTerminal1());
+        assertDcPowerEquals(-(50 - Math.pow(124.801413 / 1000, 2) * 5), conv23.getDcTerminal1());
+        assertDcPowerEquals(0.000000, conv23.getDcTerminal2());
+    }
+
+    @Test
+    void testVscAsymmetricalMonopole() {
+        Network network = DcDetailedNetworkFactory.createVscAsymmetricalMonopole();
+        // Set the same nominal voltage to nodes connected to the ground. Ground equation will set their voltage to zero
+        network.getDcNode("dcNodeFrNeg").setNominalV(500.0F);
+        network.getDcNode("dcNodeGbNeg").setNominalV(500.0F);
+
+        // We add an AC line to connect the two synchronous components
+        network.newLine()
+                .setId("acLine")
+                .setBus1("BUS-FR")
+                .setConnectableBus1("BUS-FR")
+                .setBus2("BUS-GB")
+                .setConnectableBus2("BUS-GB")
+                .setR(1)
+                .setX(5)
+                .add();
+
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId("BUS-FR");
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        Bus busGb150 = network.getBusBreakerView().getBus("BUSDC-GB-xNodeDc1gb-150");
+        assertVoltageEquals(150.043375, busGb150);
+        assertAngleEquals(2.977430, busGb150);
+
+        Bus busFr400 = network.getBusBreakerView().getBus("BUSDC-FR-xNodeDc1fr-400");
+        assertVoltageEquals(399.551518, busFr400);
+        assertAngleEquals(-0.430388, busFr400);
+
+        Bus busFr = network.getBusBreakerView().getBus("BUS-FR");
+        assertVoltageEquals(400.000000, busFr);
+        assertAngleEquals(0.0, busFr);
+
+        Bus busGb = network.getBusBreakerView().getBus("BUS-GB");
+        assertVoltageEquals(400.000000, busGb);
+        assertAngleEquals(0.000754, busGb);
+
+        DcNode dcNodeGbNeg = network.getDcNode("dcNodeGbNeg");
+        assertVoltageEquals(0.000000, dcNodeGbNeg);
+
+        DcNode dcNodeGbPos = network.getDcNode("dcNodeGbPos");
+        assertVoltageEquals(-497.991935, dcNodeGbPos);
+
+        DcNode dcNodeFrNeg = network.getDcNode("dcNodeFrNeg");
+        assertVoltageEquals(0.000000, dcNodeFrNeg);
+
+        DcNode dcNodeFrPos = network.getDcNode("dcNodeFrPos");
+        assertVoltageEquals(-500.000000, dcNodeFrPos);
+
+        Generator genFr = network.getGenerator("GEN-FR");
+        assertActivePowerEquals(-2000.732810, genFr.getTerminal());
+        assertReactivePowerEquals(-10.617409, genFr.getTerminal());
+
+        VoltageSourceConverter vscFr = network.getVoltageSourceConverter("VscFr");
+        assertActivePowerEquals(200.806464, vscFr.getTerminal1());
+        assertReactivePowerEquals(0.000000, vscFr.getTerminal1());
+        assertDcPowerEquals(0.000000, vscFr.getDcTerminal1());
+        assertDcPowerEquals(-200.806464, vscFr.getDcTerminal2());
+
+        VoltageSourceConverter vscGb = network.getVoltageSourceConverter("VscGb");
+        assertActivePowerEquals(-200.000000, vscGb.getTerminal1());
+        assertReactivePowerEquals(0.000000, vscGb.getTerminal1());
+        assertDcPowerEquals(0.000000, vscGb.getDcTerminal1());
+        assertDcPowerEquals(200.000000, vscGb.getDcTerminal2());
+
+        DcLine dcLinePos = network.getDcLine("dcLinePos");
+        assertDcPowerEquals(200.806464, dcLinePos.getDcTerminal1());
+        assertDcPowerEquals(-200.000000, dcLinePos.getDcTerminal2());
+
+        Line acLine = network.getLine("acLine");
+        assertActivePowerEquals(-0.405145, acLine.getTerminal1());
+        assertActivePowerEquals(0.405145, acLine.getTerminal2());
+        assertReactivePowerEquals(0.081032, acLine.getTerminal1());
+        assertReactivePowerEquals(-0.081032, acLine.getTerminal2());
+    }
+
+    @Test
+    void testVscSymmetricalMonopole() {
+        Network network = DcDetailedNetworkFactory.createVscSymmetricalMonopole();
+        Network subnetwork = network.getSubnetwork("VscSymmetricalMonopole");
+        // A DcGround is needed in the network to set voltage reference
+        // This is a workaround to simulate symmetrical configuration
+        subnetwork.newDcNode().setId("dnGround").setNominalV(250.0).add();
+        subnetwork.newDcLine().setId("dlGroundNeg").setR(1e10).setDcNode1("dcNodeGbNeg").setDcNode2("dnGround").add();
+        subnetwork.newDcLine().setId("dlGroundPos").setR(1e10).setDcNode1("dcNodeGbPos").setDcNode2("dnGround").add();
+        subnetwork.newDcGround().setDcNode("dnGround").setId("dcGround").add();
+
+        // We add an AC line to connect the two synchronous components
+        network.newLine()
+                .setId("acLine")
+                .setBus1("BUS-FR")
+                .setConnectableBus1("BUS-FR")
+                .setBus2("BUS-GB")
+                .setConnectableBus2("BUS-GB")
+                .setR(1)
+                .setX(5)
+                .add();
+
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId("BUS-FR");
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+
+        assertTrue(result.isFullyConverged());
+
+        Bus busGb150 = network.getBusBreakerView().getBus("BUSDC-GB-xNodeDc1gb-150");
+        assertVoltageEquals(150.043375, busGb150);
+        assertAngleEquals(2.978183, busGb150);
+
+        Bus busFr400 = network.getBusBreakerView().getBus("BUSDC-FR-xNodeDc1fr-400");
+        assertVoltageEquals(399.557158, busFr400);
+        assertAngleEquals(-0.432141, busFr400);
+
+        Bus busFr = network.getBusBreakerView().getBus("BUS-FR");
+        assertVoltageEquals(400.000000, busFr);
+        assertAngleEquals(0.00000, busFr);
+
+        DcNode dcNodeFrNeg = network.getDcNode("dcNodeFrNeg");
+        assertVoltageEquals(250.000000, dcNodeFrNeg);
+
+        DcNode dcNodeFrPos = network.getDcNode("dcNodeFrPos");
+        assertVoltageEquals(-250.000000, dcNodeFrPos);
+
+        Generator genGb = network.getGenerator("GEN-GB");
+        assertActivePowerEquals(-2001.137135, genGb.getTerminal());
+        assertReactivePowerEquals(-10.220984, genGb.getTerminal());
+
+        VoltageSourceConverter vscFr = network.getVoltageSourceConverter("VscFr");
+        assertActivePowerEquals(201.626136, vscFr.getTerminal1());
+        assertReactivePowerEquals(0.000000, vscFr.getTerminal1());
+        assertDcPowerEquals(-100.813068, vscFr.getDcTerminal1());
+        assertDcPowerEquals(-100.813068, vscFr.getDcTerminal2());
+
+        VoltageSourceConverter vscGb = network.getVoltageSourceConverter("VscGb");
+        assertActivePowerEquals(-200.000000, vscGb.getTerminal1());
+        assertReactivePowerEquals(0.000000, vscGb.getTerminal1());
+        assertDcPowerEquals(100.000000, vscGb.getDcTerminal1());
+        assertDcPowerEquals(100.000000, vscGb.getDcTerminal2());
+
+        DcLine dcLineNeg = network.getDcLine("dcLineNeg");
+        assertDcPowerEquals(100.813068, dcLineNeg.getDcTerminal1());
+        assertDcPowerEquals(-100.000000, dcLineNeg.getDcTerminal2());
+
+        DcLine dcLinePos = network.getDcLine("dcLinePos");
+        assertDcPowerEquals(100.813068, dcLinePos.getDcTerminal1());
+        assertDcPowerEquals(-100.000000, dcLinePos.getDcTerminal2());
+
+        DcLine dlGroundNeg = network.getDcLine("dlGroundNeg");
+        assertDcPowerEquals(0.000013, dlGroundNeg.getDcTerminal1());
+
+        DcLine dlGroundPos = network.getDcLine("dlGroundPos");
+        assertDcPowerEquals(0.000013, dlGroundPos.getDcTerminal1());
+
+        Line acLine = network.getLine("acLine");
+        assertActivePowerEquals(-0.809547, acLine.getTerminal1());
+        assertActivePowerEquals(0.809547, acLine.getTerminal2());
+        assertReactivePowerEquals(0.161920, acLine.getTerminal1());
+        assertReactivePowerEquals(-0.161920, acLine.getTerminal2());
+    }
+
+    @Test
+    void testAcDcExample() {
+        //2 converters, 1 AC Network, the first converter controls Pac, and the second one Vdc
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        Bus b5 = network.getBusBreakerView().getBus("b5");
+        assertVoltageEquals(389.505640, b5);
+        assertAngleEquals(-0.104707, b5);
+
+        DcNode dn3 = network.getDcNode("dn3");
+        assertVoltageEquals(400.012374, dn3);
+
+        DcNode dn4 = network.getDcNode("dn4");
+        assertVoltageEquals(400.000000, dn4);
+
+        Generator g1 = network.getGenerator("g1");
+        assertActivePowerEquals(-101.349420, g1.getTerminal());
+        assertReactivePowerEquals(-20.212180, g1.getTerminal());
+
+        VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
+        assertActivePowerEquals(50.000000, conv23.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv23.getTerminal1());
+        assertDcPowerEquals(-49.361373, conv23.getDcTerminal1());
+        assertDcPowerEquals(0.000000, conv23.getDcTerminal2());
+
+        VoltageSourceConverter conv45 = network.getVoltageSourceConverter("conv45");
+        assertActivePowerEquals(-48.721223, conv45.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv45.getTerminal1());
+        assertDcPowerEquals(49.359850, conv45.getDcTerminal1());
+        assertDcPowerEquals(0.000000, conv45.getDcTerminal2());
+
+        Line l12 = network.getLine("l12");
+        assertActivePowerEquals(101.349665, l12.getTerminal1());
+        assertReactivePowerEquals(20.212180, l12.getTerminal1());
+        assertActivePowerEquals(-101.2794467, l12.getTerminal2());
+        assertReactivePowerEquals(-20.002003, l12.getTerminal2());
+
+        DcLine dl34 = network.getDcLine("dl34");
+        assertDcPowerEquals(49.361372, dl34.getDcTerminal1());
+        assertDcPowerEquals(-49.359850, dl34.getDcTerminal2());
+    }
+
+    @Test
+    void testAcDcExampleOtherSlack() {
+        // 2 converters, 1 AC Network, the first converter controls Pac, and the second one Vdc
+        // The slack bus is located to another AC bus
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId("vl2_0");
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        DcNode dn3 = network.getDcNode("dn3");
+        assertVoltageEquals(400.012374, dn3);
+
+        DcNode dn4 = network.getDcNode("dn4");
+        assertVoltageEquals(400.000000, dn4);
+
+        Generator g1 = network.getGenerator("g1");
+        assertActivePowerEquals(-101.35133, g1.getTerminal());
+        assertReactivePowerEquals(-20.212180, g1.getTerminal());
+
+        VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
+        assertActivePowerEquals(50.000000, conv23.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv23.getTerminal1());
+        assertDcPowerEquals(-49.361373, conv23.getDcTerminal1());
+        assertDcPowerEquals(0.000000, conv23.getDcTerminal2());
+
+        VoltageSourceConverter conv45 = network.getVoltageSourceConverter("conv45");
+        assertActivePowerEquals(-48.721223, conv45.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv45.getTerminal1());
+        assertDcPowerEquals(49.359850, conv45.getDcTerminal1());
+        assertDcPowerEquals(0.000000, conv45.getDcTerminal2());
+
+        Line l12 = network.getLine("l12");
+        assertActivePowerEquals(101.35133, l12.getTerminal1());
+        assertReactivePowerEquals(20.212180, l12.getTerminal1());
+        assertActivePowerEquals(-101.28111, l12.getTerminal2());
+        assertReactivePowerEquals(-20.002003, l12.getTerminal2());
+
+        DcLine dl34 = network.getDcLine("dl34");
+        assertDcPowerEquals(49.361372, dl34.getDcTerminal1());
+        assertDcPowerEquals(-49.359850, dl34.getDcTerminal2());
+    }
+
+    @Test
+    void testAcDcExampleWithOtherControl() {
+        //2 converters, 1 AC Network, the first converter controls Vdc, and the second one Pac
+        Network network = AcDcNetworkFactory.createAcDcNetwork2();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        Bus b5 = network.getBusBreakerView().getBus("b5");
+        assertVoltageEquals(389.50603, b5);
+        assertAngleEquals(-0.104397, b5);
+
+        DcNode dn3 = network.getDcNode("dn3");
+        assertVoltageEquals(400.012374, dn3);
+
+        DcNode dn4 = network.getDcNode("dn4");
+        assertVoltageEquals(400.000000, dn4);
+
+        Generator g1 = network.getGenerator("g1");
+        assertActivePowerEquals(-101.351158, g1.getTerminal());
+        assertReactivePowerEquals(-20.212175, g1.getTerminal());
+
+        VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
+        assertActivePowerEquals(50.276937, conv23.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv23.getTerminal1());
+        assertDcPowerEquals(-49.637449, conv23.getDcTerminal1());
+        assertDcPowerEquals(-0.000000, conv23.getDcTerminal2());
+
+        VoltageSourceConverter conv45 = network.getVoltageSourceConverter("conv45");
+        assertActivePowerEquals(-48.996421, conv45.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv45.getTerminal1());
+        assertDcPowerEquals(49.635910, conv45.getDcTerminal1());
+        assertDcPowerEquals(0.000000, conv45.getDcTerminal2());
+
+        Line l12 = network.getLine("l12");
+        assertActivePowerEquals(101.351403, l12.getTerminal1());
+        assertReactivePowerEquals(20.212175, l12.getTerminal1());
+        assertActivePowerEquals(-101.281182, l12.getTerminal2());
+        assertReactivePowerEquals(-20.001997, l12.getTerminal2());
+
+        DcLine dl34 = network.getDcLine("dl34");
+        assertDcPowerEquals(49.637449, dl34.getDcTerminal1());
+        assertDcPowerEquals(-49.635910, dl34.getDcTerminal2());
+    }
+
+    @Test
+    void testThreeConverters() {
+        //3 converters, 1 AC Network, conv23 controls Vdc, conv45 and conv67 control Pac
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithThreeConverters();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        Bus b1 = network.getBusBreakerView().getBus("b1");
+        assertVoltageEquals(390.000000, b1);
+        assertAngleEquals(-0.000000, b1);
+
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        assertVoltageEquals(389.687398, b2);
+        assertAngleEquals(-0.081186, b2);
+
+        Bus b6 = network.getBusBreakerView().getBus("b6");
+        assertVoltageEquals(389.648901, b6);
+        assertAngleEquals(-0.0792996, b6);
+
+        Bus b5 = network.getBusBreakerView().getBus("b5");
+        assertVoltageEquals(389.648901, b5);
+        assertAngleEquals(-0.079300, b5);
+
+        VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
+        assertActivePowerEquals(51.782661, conv23.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv23.getTerminal1());
+        assertDcPowerEquals(-51.138470, conv23.getDcTerminal1());
+        assertDcPowerEquals(-0.000000, conv23.getDcTerminal2());
+
+        VoltageSourceConverter conv45 = network.getVoltageSourceConverter("conv45");
+        assertActivePowerEquals(-25.000000, conv45.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv45.getTerminal1());
+        assertDcPowerEquals(25.568009, conv45.getDcTerminal1());
+        assertDcPowerEquals(0.000000, conv45.getDcTerminal2());
+
+        VoltageSourceConverter conv56 = network.getVoltageSourceConverter("conv67");
+        assertActivePowerEquals(-25.000000, conv56.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv56.getTerminal1());
+        assertDcPowerEquals(25.568009, conv56.getDcTerminal1());
+        assertDcPowerEquals(0.000000, conv56.getDcTerminal2());
+
+        DcLine dl3 = network.getDcLine("dl3");
+        assertDcPowerEquals(51.138470, dl3.getDcTerminal1());
+        assertDcPowerEquals(-51.136836, dl3.getDcTerminal2());
+
+        DcLine dl4 = network.getDcLine("dl4");
+        assertDcPowerEquals(25.568418, dl4.getDcTerminal1());
+        assertDcPowerEquals(-25.568009, dl4.getDcTerminal2());
+    }
+
+    @Test
+    void testAcVoltageControl() {
+        //2 converters, 1 AC Network, conv23 controls Pac, conv45 controls Vdc and Vac
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithAcVoltageControl();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        Bus b1 = network.getBusBreakerView().getBus("b1");
+        assertVoltageEquals(390.000000, b1);
+        assertAngleEquals(-0.000000, b1);
+
+        Bus b2 = network.getBusBreakerView().getBus("b2");
+        assertVoltageEquals(394.829460, b2);
+        assertAngleEquals(-0.365860, b2);
+
+        Bus b5 = network.getBusBreakerView().getBus("b5");
+        assertVoltageEquals(400.000000, b5);
+        assertAngleEquals(-0.617363, b5);
+
+        Generator g1 = network.getGenerator("g1");
+        assertActivePowerEquals(-106.938695, g1.getTerminal());
+        assertReactivePowerEquals(662.431138, g1.getTerminal());
+
+        Line l12 = network.getLine("l12");
+        assertActivePowerEquals(106.939507, l12.getTerminal1());
+        assertReactivePowerEquals(-662.431138, l12.getTerminal1());
+        assertActivePowerEquals(-103.979276, l12.getTerminal2());
+        assertReactivePowerEquals(671.311829, l12.getTerminal2());
+
+        Line l25 = network.getLine("l25");
+        assertActivePowerEquals(3.979276, l25.getTerminal1());
+        assertReactivePowerEquals(-681.311829, l25.getTerminal1());
+        assertActivePowerEquals(-1.001531, l25.getTerminal2());
+        assertReactivePowerEquals(690.245065, l25.getTerminal2());
+
+        DcLine dl34 = network.getDcLine("dl34");
+        assertDcPowerEquals(49.5, dl34.getDcTerminal1());
+        assertDcPowerEquals(-49.498468, dl34.getDcTerminal2());
+    }
+
+    @Test
+    void testTwoAcZones() {
+        // A network with 2 synchronous components. The active power mismatch at the slack bus of each synchronous
+        // component is compensated by each synchronous component individually.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithTwoAcZones();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check loads, generators and voltage source converter have expected power
+        // Synchronous component 1
+        Load ld1 = network.getLoad("ld1");
+        Generator g1 = network.getGenerator("g1");
+        VoltageSourceConverter conv13 = network.getVoltageSourceConverter("conv13");
+
+        assertEquals(0, ld1.getTerminal().getP() + g1.getTerminal().getP() + conv13.getTerminal1().getP(), 1e-2);
+        assertActivePowerEquals(20, ld1.getTerminal());
+        assertActivePowerEquals(-90, g1.getTerminal());  // TargetP was initially set to 50
+        assertActivePowerEquals(70, conv13.getTerminal1());
+
+        // Synchronous component 2
+        Load ld2 = network.getLoad("ld2");
+        Generator g2 = network.getGenerator("g2");
+        VoltageSourceConverter conv24 = network.getVoltageSourceConverter("conv24");
+
+        assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv24.getTerminal1().getP(), 1e-2);
+        double dcLineLosses = network.getDcLine("dl34").getR() * Math.pow(network.getDcLine("dl34").getDcTerminal1().getI() / 1000, 2);
+        assertActivePowerEquals(100, ld2.getTerminal());
+        assertActivePowerEquals(-(30 + dcLineLosses), g2.getTerminal());  // TargetP was initially set to 50
+        assertActivePowerEquals(-(70 - dcLineLosses), conv24.getTerminal1());  // A bit less than 70 due to losses in DC lines
+    }
+
+    @Test
+    void testTwoAcZonesNoGeneratorNorVscVoltageControl() {
+        // A network with 2 synchronous components. The second zone has no generator to compensate slack mismatch
+        // As the Voltage Source Converter conv24 does not control AC voltage, this AC zone is not valid.
+        // No calculation should be performed.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithTwoAcZones();
+        network.getGenerator("g2").remove();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFailed());
+        assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().getFirst().getStatus());
+    }
+
+    @Test
+    void testTwoAcZonesNoGeneratorButVscVoltageControl() {
+        // A network with 2 synchronous components. The second zone has no generator to compensate slack mismatch
+        // The Voltage Source Converter conv24 controls AC voltage, so the AC zone is still valid.
+        // However, as a VSC cannot modify its target active power, the DistributedSlacOuterLoop cannot converge (if
+        // generators are used to compensate the mismatch, which is the default behavior).
+        // Therefore, we are testing that the load flow does not converge because of the DistributedSlackOuterLoop.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithTwoAcZones();
+        network.getGenerator("g2").remove();
+        network.getVoltageSourceConverter("conv24").setLocalTargetV(400).getVoltageRegulation().setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFailed());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().getFirst().getStatus());
+        assertEquals("Outer loop 'DistributedSlack' failed: Failed to distribute slack bus active power mismatch, 30.00 MW remains",
+                result.getComponentResults().getFirst().getStatusText());
+    }
+
+    @Test
+    void testThreeAcZones() {
+        // A network with 3 synchronous components. The purpose is to validate the extension of slack mismatch
+        // distribution to larger networks
+        Network network = AcDcNetworkFactory.createMtDcNetworkWithThreeAcZones();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check loads, generators and voltage source converter have expected power
+        // Synchronous component 1
+        Load ld1 = network.getLoad("ld1");
+        Generator g1 = network.getGenerator("g1");
+        VoltageSourceConverter conv14 = network.getVoltageSourceConverter("conv14");
+
+        assertEquals(0, ld1.getTerminal().getP() + g1.getTerminal().getP() + conv14.getTerminal1().getP(), 1e-2);
+        assertActivePowerEquals(20, ld1.getTerminal());
+        assertActivePowerEquals(-90, g1.getTerminal());  // TargetP was initially set to 50
+        assertActivePowerEquals(70, conv14.getTerminal1());
+
+        // Synchronous component 2
+        Load ld2 = network.getLoad("ld2");
+        Generator g2 = network.getGenerator("g2");
+        VoltageSourceConverter conv25 = network.getVoltageSourceConverter("conv25");
+
+        assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv25.getTerminal1().getP(), 1e-2);
+        double dcLineLosses = network.getDcLineStream().map(
+                dcLine -> dcLine.getR() * Math.pow(dcLine.getDcTerminal1().getI() / 1000, 2)).mapToDouble(Double::doubleValue).sum();
+        assertActivePowerEquals(100, ld2.getTerminal());
+        assertActivePowerEquals(-50, g2.getTerminal());  // TargetP was initially set to 50
+        assertActivePowerEquals(-(50 - dcLineLosses), conv25.getTerminal1());  // A bit less than 50 due to losses in DC lines
+
+        // Synchronous component 3
+        Load ld3 = network.getLoad("ld3");
+        Generator g3 = network.getGenerator("g3");
+        VoltageSourceConverter conv36 = network.getVoltageSourceConverter("conv36");
+
+        assertEquals(0, ld3.getTerminal().getP() + g3.getTerminal().getP() + conv36.getTerminal1().getP(), 1e-2);
+        assertActivePowerEquals(50, ld3.getTerminal());
+        assertActivePowerEquals(-30, g3.getTerminal());  // TargetP was initially set to 50
+        assertActivePowerEquals(-20, conv36.getTerminal1());
+    }
+
+    @Test
+    void testMtDcTwoAcZones() {
+        // A network with 2 synchronous components and 3 converters. 2 converters in P_PCC mode are in the same synchronous component.
+        // Slack distribution should behave similarly to the case with two AC zones and a simple DC link.
+        // Indeed, slack mismatch distribution should be agnostic to the DC network topology.
+        Network network = AcDcNetworkFactory.createMtDcNetworkWithTwoAcZones();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check loads, generators and voltage source converter have expected power
+        // Synchronous component 1
+        Load ld1 = network.getLoad("ld1");
+        Generator g1 = network.getGenerator("g1");
+        VoltageSourceConverter conv14 = network.getVoltageSourceConverter("conv14");
+        Load ld3 = network.getLoad("ld3");
+        Generator g3 = network.getGenerator("g3");
+        VoltageSourceConverter conv36 = network.getVoltageSourceConverter("conv36");
+
+        assertEquals(0, ld1.getTerminal().getP() + g1.getTerminal().getP() + conv14.getTerminal1().getP()
+                + ld3.getTerminal().getP() + g3.getTerminal().getP() + conv36.getTerminal1().getP(), 1e-2);
+        assertActivePowerEquals(20, ld1.getTerminal());
+        assertActivePowerEquals(-60.000, g1.getTerminal());  // TargetP was initially set to 50
+        assertActivePowerEquals(70, conv14.getTerminal1());
+        assertActivePowerEquals(50, ld3.getTerminal());
+        assertActivePowerEquals(-60.000, g3.getTerminal());  // TargetP was initially set to 50
+        assertActivePowerEquals(-20, conv36.getTerminal1());
+
+        // Synchronous component 2
+        Load ld2 = network.getLoad("ld2");
+        Generator g2 = network.getGenerator("g2");
+        VoltageSourceConverter conv25 = network.getVoltageSourceConverter("conv25");
+
+        assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv25.getTerminal1().getP(), 1e-2);
+        double dcLineLosses = network.getDcLineStream().map(
+                dcLine -> dcLine.getR() * Math.pow(dcLine.getDcTerminal1().getI() / 1000, 2)).mapToDouble(Double::doubleValue).sum();
+        assertActivePowerEquals(100, ld2.getTerminal());
+        assertActivePowerEquals(-50, g2.getTerminal());  // TargetP was initially set to 50
+        assertActivePowerEquals(-(50 - dcLineLosses), conv25.getTerminal1());  // A bit less than 50 due to losses in DC lines
+    }
+
+    @Test
+    void testMtDcTwoAcZones2() {
+        // A network with 2 synchronous components but 2 converters (one P_PCC and one V_DC) are in the same synchronous component.
+        // Slack distribution should behave similarly to the test `testMtDcTwoAcZones`.
+        // Indeed, slack mismatch distribution should be agnostic to the AC-DC converter control mode.
+        Network network = AcDcNetworkFactory.createMtDcNetworkWithTwoAcZonesV2();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check loads, generators and voltage source converter have expected power
+        // Synchronous component 1
+        Load ld1 = network.getLoad("ld1");
+        Generator g1 = network.getGenerator("g1");
+        VoltageSourceConverter conv14 = network.getVoltageSourceConverter("conv14");
+
+        assertEquals(0, ld1.getTerminal().getP() + g1.getTerminal().getP() + conv14.getTerminal1().getP(), 1e-2);
+        assertActivePowerEquals(20, ld1.getTerminal());
+        assertActivePowerEquals(-90, g1.getTerminal());  // TargetP was initially set to 50
+        assertActivePowerEquals(70, conv14.getTerminal1());
+
+        // Synchronous component 2
+        Load ld2 = network.getLoad("ld2");
+        Generator g2 = network.getGenerator("g2");
+        VoltageSourceConverter conv25 = network.getVoltageSourceConverter("conv25");
+        Load ld3 = network.getLoad("ld3");
+        Generator g3 = network.getGenerator("g3");
+        VoltageSourceConverter conv36 = network.getVoltageSourceConverter("conv36");
+
+        assertEquals(0, ld2.getTerminal().getP() + g2.getTerminal().getP() + conv25.getTerminal1().getP()
+                + ld3.getTerminal().getP() + g3.getTerminal().getP() + conv36.getTerminal1().getP(), 1e-2);
+        double dcLineLosses = network.getDcLineStream().map(
+                dcLine -> dcLine.getR() * Math.pow(dcLine.getDcTerminal1().getI() / 1000, 2)).mapToDouble(Double::doubleValue).sum();
+        assertActivePowerEquals(100, ld2.getTerminal());
+        assertActivePowerEquals(-(40 + dcLineLosses / 2), g2.getTerminal());  // TargetP was initially set to 50
+        assertActivePowerEquals(-(50 - dcLineLosses), conv25.getTerminal1());  // A bit less than 50 due to losses in DC lines
+        assertActivePowerEquals(50, ld3.getTerminal());
+        assertActivePowerEquals(-(40 + dcLineLosses / 2), g3.getTerminal());  // TargetP was initially set to 50
+        assertActivePowerEquals(-20, conv36.getTerminal1());
+    }
+
+    @Test
+    void testDcSubNetworks() {
+        // 1 AC Network, 2 DC Networks
+        Network network = AcDcNetworkFactory.createAcDcNetworkTwoDcSubNetworks();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.LARGEST_GENERATOR);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        Bus b1 = network.getBusBreakerView().getBus("b1");
+        assertVoltageEquals(399.248274, b1);
+        assertAngleEquals(-0.071754, b1);
+
+        Bus b6 = network.getBusBreakerView().getBus("b6");
+        assertVoltageEquals(400.000000, b6);
+        assertAngleEquals(0.000000, b6);
+
+        DcNode dn2 = network.getDcNode("dn2");
+        assertVoltageEquals(499.498496, dn2);
+
+        DcNode dn3 = network.getDcNode("dn3");
+        assertVoltageEquals(500.000000, dn3);
+
+        DcNode dn4 = network.getDcNode("dn4");
+        assertVoltageEquals(299.330171, dn4);
+
+        DcNode dn5 = network.getDcNode("dn5");
+        assertVoltageEquals(300.000000, dn5);
+
+        VoltageSourceConverter conv12 = network.getVoltageSourceConverter("conv12");
+        assertActivePowerEquals(-250.000, conv12.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv12.getTerminal1());
+        assertDcPowerEquals(250.50000, conv12.getDcTerminal1());
+        assertDcPowerEquals(0.000000, conv12.getDcTerminal2());
+
+        VoltageSourceConverter conv36 = network.getVoltageSourceConverter("conv36");
+        assertActivePowerEquals(251.251505, conv36.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv36.getTerminal1());
+        assertDcPowerEquals(-250.751505, conv36.getDcTerminal1());
+        assertDcPowerEquals(0.000000, conv36.getDcTerminal2());
+
+        VoltageSourceConverter conv14 = network.getVoltageSourceConverter("conv14");
+        assertActivePowerEquals(-200.000000, conv14.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv14.getTerminal1());
+        assertDcPowerEquals(200.50000, conv14.getDcTerminal1());
+        assertDcPowerEquals(0.000000, conv14.getDcTerminal2());
+
+        VoltageSourceConverter conv56 = network.getVoltageSourceConverter("conv56");
+        assertActivePowerEquals(201.448670, conv56.getTerminal1());
+        assertReactivePowerEquals(0.000000, conv56.getTerminal1());
+        assertDcPowerEquals(-200.948670, conv56.getDcTerminal1());
+        assertDcPowerEquals(0.000000, conv56.getDcTerminal2());
+
+        DcLine dl23 = network.getDcLine("dl23");
+        assertDcPowerEquals(-250.50000, dl23.getDcTerminal1());
+        assertDcPowerEquals(250.751505, dl23.getDcTerminal2());
+
+        DcLine dl45 = network.getDcLine("dl45");
+        assertDcPowerEquals(-200.50000, dl45.getDcTerminal1());
+        assertDcPowerEquals(200.948670, dl45.getDcTerminal2());
+
+        Line l16 = network.getLine("l16");
+        assertActivePowerEquals(-50.000000, l16.getTerminal1());
+        assertReactivePowerEquals(-50.00000, l16.getTerminal1());
+        assertActivePowerEquals(50.031367, l16.getTerminal2());
+        assertReactivePowerEquals(50.156838, l16.getTerminal2());
+    }
+
+    @Test
+    void testVoltageInitializer() {
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+
+        // Uniform values initializer
+        LoadFlowParameters parameters1 = new LoadFlowParameters()
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES);
+        OpenLoadFlowParameters.create(parameters1)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcDcNetwork(true);
+
+        LoadFlowResult result1 = loadFlowRunner.run(network, parameters1);
+        assertTrue(result1.isFullyConverged());
+
+        // Previous values initializer
+        LoadFlowParameters parameters2 = new LoadFlowParameters()
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+        OpenLoadFlowParameters.create(parameters2)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcDcNetwork(true);
+
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters2);
+        assertTrue(result2.isFullyConverged());
+
+        // DC initializer (should throw exception)
+        LoadFlowParameters parameters3 = new LoadFlowParameters()
+                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
+        OpenLoadFlowParameters.create(parameters3)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcDcNetwork(true);
+
+        CompletionException e3 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters3));
+        assertEquals("DC initialization is not yet supported with AcDcNetwork", e3.getCause().getMessage());
+
+        // Voltage magnitude override (should throw exception)
+        LoadFlowParameters parameters4 = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters4)
+                .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.VOLTAGE_MAGNITUDE)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcDcNetwork(true);
+
+        CompletionException e4 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters4));
+        assertEquals("Voltage magnitude initialization is not yet supported with AcDcNetwork", e4.getCause().getMessage());
+
+        // Full voltage override (should throw exception)
+        LoadFlowParameters parameters5 = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters5)
+                .setVoltageInitModeOverride(OpenLoadFlowParameters.VoltageInitModeOverride.FULL_VOLTAGE)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST)
+                .setAcDcNetwork(true);
+
+        CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters5));
+        assertEquals("Full voltage initialization is not yet supported with AcDcNetwork", e5.getCause().getMessage());
+    }
+
+    @Test
+    void testConverterWithTwoAcTerminals() {
+        // AC/DC converters with two AC terminals are not supported. This should trigger an Exception
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+        vl2.getBusBreakerView().newBus()
+                .setId("b2bis")
+                .add();
+        network.newLine()
+                .setId("l12bis")
+                .setBus1("b1")
+                .setBus2("b2bis")
+                .setR(1)
+                .setX(3)
+                .add();
+
+        network.getVoltageSourceConverter("conv23").remove();
+        vl2.newVoltageSourceConverter()
+                .setIdleLoss(0.5)
+                .setSwitchingLoss(0.001)
+                .setResistiveLoss(1)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(-50.)
+                .setId("conv23")
+                .setBus1("b2")
+                .setBus2("b2bis")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setLocalTargetQ(0.0)
+                .add();
+
+        // Run load flow
+        CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("Open Load Flow does not support AC/DC converters with two AC terminals", e5.getCause().getMessage());
+    }
+
+    @Test
+    void testLineCommutatedConverter() {
+        // LCC is not supported. This should trigger an Exception
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+
+        VoltageLevel vl2 = network.getVoltageLevel("vl2");
+
+        network.getVoltageSourceConverter("conv23").remove();
+        vl2.newLineCommutatedConverter()
+                .setIdleLoss(0.5)
+                .setSwitchingLoss(0.001)
+                .setResistiveLoss(1)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC)
+                .setTargetP(-50.)
+                .setId("conv23")
+                .setBus1("b2")
+                .setDcNode1("dn3")
+                .setDcNode2("dnDummy3")
+                .setDcConnected1(true)
+                .setDcConnected2(true)
+                .setReactiveModel(LineCommutatedConverter.ReactiveModel.FIXED_POWER_FACTOR)
+                .setPowerFactor(0.89443)
+                .add();
+
+        // Run load flow
+        CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("Open Load Flow does not currently support LCC converters", e5.getCause().getMessage());
+    }
+
+    @Test
+    void testNoVdcControlIsAutomaticallyResolved() {
+        Network network = AcDcNetworkFactory.createAcDcNetworkTwoDcSubNetworks();
+
+        // Changing conv56's control mode leaves the second DC component with only P_PCC converters (conv14, conv56).
+        // Since both are still individually grounded, Open Load Flow automatically promotes both of the to V_DC control
+        // internally instead of failing.
+        network.getVoltageSourceConverter("conv56")
+                .setTargetP(50)
+                .setControlMode(AcDcConverter.ControlMode.P_PCC);
+
+        // Run load flow
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        // The automatic promotion is purely internal: both converters' IIDM control mode are left untouched
+        assertEquals(AcDcConverter.ControlMode.P_PCC, network.getVoltageSourceConverter("conv14").getControlMode());
+        assertEquals(AcDcConverter.ControlMode.P_PCC, network.getVoltageSourceConverter("conv56").getControlMode());
+
+        // Both converters have been set in V_DC mode with the same voltage setpoint. No current passes through the line
+        assertEquals(0., network.getDcLine("dl45").getDcTerminal1().getI());
+    }
+
+    static Stream<Arguments> dcSwitchResistanceCases() {
+        return Stream.of(
+            // 3 different distributions of the resistance between the DcSwitch and DcLine, including a case
+            // with zero-resistance switch.
+            Arguments.of(0.0, 1.0),
+            Arguments.of(0.5, 0.5),
+            Arguments.of(0.25, 0.75)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("dcSwitchResistanceCases")
+    void testDcSwitchResistanceLineEquivalence(double rSwitch, double rLine) {
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDcSwitchAndDcLine(rSwitch, rLine);
+
+        double targetP = network.getVoltageSourceConverter("conv23").getTargetP(); // MW
+        double targetVdc = network.getVoltageSourceConverter("conv45").getTargetVdc(); // kV
+        double rSw = network.getDcSwitch("sw3b").getR(); // Ohm
+        double rLi = network.getDcLine("dl3b4").getR(); // Ohm
+        double rTotal = rSw + rLi;
+
+        // Expected values derived analytically:
+        // Assumption: converter losses = 0 so DC power at conv23 = targetP
+        //   V_dn4 = targetVdc (imposed by inverter conv45)
+        //   V_dn3 = V_dn4 + I * rTotal  (Ohm's law across the full path)
+        //   P = V_dn3 * I quadratic equation, solved here for V_dn3
+        //   V_dn3b computed through the voltage divider formula.
+        double sqrtdelta = sqrt(targetVdc * targetVdc + 4 * rTotal * targetP);
+        double expectedVdn3 = 0.5 * (targetVdc + sqrtdelta);  // voltage at dn3 (kV)
+        double expectedIdc = (expectedVdn3 - targetVdc) / rTotal * 1000;  // DC current through the path (A)
+        double expectedVdn4 = targetVdc;
+        double expectedVdn3b = expectedVdn4 + rLi / (rLi + rSw) * (expectedVdn3 - expectedVdn4);  // voltage at dn3b (kV)
+
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertVoltageEquals(expectedVdn4, network.getDcNode("dn4"));
+        assertVoltageEquals(expectedVdn3, network.getDcNode("dn3"));
+        assertVoltageEquals(expectedVdn3b, network.getDcNode("dn3b"));
+
+        VoltageSourceConverter conv23 = network.getVoltageSourceConverter("conv23");
+        assertDcCurrentEquals(expectedIdc, conv23.getDcTerminal2());
+    }
+
+    @Test
+    void testNoDcGround() {
+        // The DC network should contain a DC ground. This should trigger an Exception
+        Network network = DcDetailedNetworkFactory.createVscSymmetricalMonopole();
+
+        // Run load flow
+        CompletionException e5 = assertThrows(CompletionException.class, () -> loadFlowRunner.run(network, parameters));
+        assertEquals("Open Load Flow does not support DC components without a DC ground, but DC component 0 does not have any", e5.getCause().getMessage());
+    }
+
+    @Test
+    void testMultipleSlackBusIsAllowedForAcDcNetworkNoMatterTheNumberOfSynchronousComponent() {
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithAcSubNetworks();
+        parametersExt.setMaxSlackBusCount(2).setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check buses selected as slack bus
+        List<String> firstScSlackBusIds = result.getComponentResults().getFirst().getSlackBusResults().stream().map(LoadFlowResult.SlackBusResult::getId).toList();
+        assertEquals(List.of("vl1_0", "vl2_0"), firstScSlackBusIds);
+
+        List<String> secondScSlackBusIds = result.getComponentResults().getLast().getSlackBusResults().stream().map(LoadFlowResult.SlackBusResult::getId).toList();
+        assertEquals(List.of("vl5_0"), secondScSlackBusIds); // Only one bus on this synchronous component
+    }
+
+    @Test
+    void testDroopLaw() {
+        // A DC_DROOP converter enforces U_dc = refVdc + k * (P_AC - refP), where:
+        //   - k      = curve.getK(U_dc), the coefficient of the band containing the solved U_dc (clamped),
+        //             the slope of U_dc versus P_AC, in kV/MW.
+        //   - refVdc = the min voltage of that band.
+        //   - refP   = the reference power, corresponding to the previous point in the curve.
+        // The equation is solved in per unit (k_pu = k * SB / vBase, vBase = 400 kV, SB = 100 MVA, so
+        // k_pu = k/4 here); refP is anchored and integrated in that same per-unit system (see
+        // buildDroopBands).
+        // The paired V_DC converter (convVdc) pins the DC voltage, so sweeping its targetVdc walks the
+        // droop converter's solved U_dc through each band and past the extremes. The assertion reads the
+        // SOLVED U_dc, so it stays exact.
+        //
+        // Note that the droop curve has the following reference points:
+        // V = 380 kV => P = 20 MW
+        // V = 390 kV => P = 40 MW
+        // V = 410 kV => P = 60 MW
+        // V = 420 kV => P = 65 MW
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        VoltageSourceConverter droopConverter = network.getVoltageSourceConverter("convDroop");
+        final double targetP = 50.0;
+        final double targetVdc = 400.0;
+
+        // Sanity check: let's make sure we have kept consistency.
+        assertEquals(targetP, droopConverter.getTargetP());
+        assertEquals(targetVdc, droopConverter.getTargetVdc());
+
+        // Basic check: when Vdc = targetVdc, then Pac must be equal to targetP.
+        // This is also right in the middle of the middle droop segment.
+        checkDroopResult(network, targetVdc, targetP);
+
+        // Then check expected values on each segment.
+        // We take midpoints to simplify computations.
+        checkDroopResult(network, 385., 30.);
+        checkDroopResult(network, 415., 62.5);
+
+        // Check exactly at the internal band boundaries, where the droop coefficient k is discontinuous
+        // (0.5 -> 1.0 at 390, 1.0 -> 2.0 at 410) and the Jacobian term in ConverterDroopEquationTerm#der
+        // does not account for that discontinuity. Both bands agree on P at their shared boundary, so the
+        // expected value is exact regardless of which side the solver lands on.
+        checkDroopResult(network, 390., 40.);
+        checkDroopResult(network, 410., 60.);
+
+        // Finally check extrapolation (clamped to the nearest band).
+        checkDroopResult(network, 370., 0.);   // clamp to [380,390], k=0.5: 380 + 0.5*(0-20) = 370
+        checkDroopResult(network, 430., 70.);  // clamp to [410,420], k=2.0: 410 + 2.0*(70-60) = 430
+    }
+
+    private void checkDroopResult(Network network, double vdc, double expectedPac) {
+        // The V_DC converter (convVdc) pins U_dc, so sweeping its targetVdc walks the droop converter's solved
+        // U_dc through the curve bands. The droop converter's own anchor (targetVdc, targetP) stays fixed.
+        network.getVoltageSourceConverter("convVdc").setTargetVdc(vdc);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged(), "load flow did not converge for targetVdc=" + vdc);
+
+        Terminal droopConverterAcTerminal = network.getVoltageSourceConverter("convDroop").getTerminal1();
+        assertActivePowerEquals(expectedPac, droopConverterAcTerminal);
+    }
+
+    @Test
+    void testSwitchToDroopControlMidTest() {
+        // Run #1: convDroop is in plain P_PCC mode (its droop curve is attached by the factory but unused
+        // while the control mode is not DC_DROOP) with a target power that is deliberately inconsistent
+        // with what the droop law would give at the DC voltage convVdc is pinning it to. This gives a
+        // converged, non-flat starting state that is not already on the droop curve.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        VoltageSourceConverter convVdc = network.getVoltageSourceConverter("convVdc");
+        VoltageSourceConverter convDroop = network.getVoltageSourceConverter("convDroop");
+        convDroop.setControlMode(ControlMode.P_PCC);
+        convVdc.setTargetVdc(415.); // band [410,420]: droop would require P=62.5, but P_PCC pins P=50 instead.
+
+        LoadFlowResult result1 = loadFlowRunner.run(network, parameters);
+        assertTrue(result1.isFullyConverged());
+        assertActivePowerEquals(50., convDroop.getTerminal1()); // P_PCC: P_AC pinned to targetP, unaffected by U_dc.
+        assertVoltageEquals(415., network.getDcNode("dn1"));    // V_DC: U_dc pinned to targetVdc.
+
+        // Switch convDroop to droop control mid-test (its curve and its own anchor, targetP=50 /
+        // targetVdc=400, are unchanged since creation) and move convVdc's target into the first band.
+        // Warm-started from run #1's state (PREVIOUS_VALUES instead of a flat start), the solver must move
+        // U_dc from 415 down to 385, crossing both the 410 and 390 band boundaries, while also correcting
+        // P_AC from the run #1 value (50, off the droop curve) to the value the droop law now requires.
+        convDroop.setControlMode(ControlMode.DC_DROOP);
+        convVdc.setTargetVdc(385.);
+        parameters.setVoltageInitMode(LoadFlowParameters.VoltageInitMode.PREVIOUS_VALUES);
+
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isFullyConverged(),
+                "did not converge after switching to droop control from a warm start in a different band");
+        // band [380,390], k=0.5: 380 + 0.5*(30-20) = 385
+        assertActivePowerEquals(30., convDroop.getTerminal1());
+        assertVoltageEquals(385., network.getDcNode("dn1"));
+    }
+
+    @Test
+    void testDroopCountsAsVdcControl() {
+        // Check a DC component whose only DC-voltage-controlling converter is in DC_DROOP mode
+        // is accepted.
+        // This is the mirror of testNoVdcControl, which rejects a component with only P_PCC converters.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        network.getVoltageSourceConverter("convVdc").setId("convPAC")
+                .setTargetP(50.)
+                .setControlMode(ControlMode.P_PCC);
+
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+    }
+
+    @Test
+    void testGetDroopCurveEmptyOnNonDroopConverter() {
+        // getDroopCurve is only meaningful in DC_DROOP mode. On any other converter the droop bands are empty.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        LfNetworkParameters lfParameters = new LfNetworkParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector())
+                .setAcDcNetwork(true);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters).get(0);
+
+        // convVdc is in V_DC control mode, so it has no droop bands.
+        LfVoltageSourceConverter vdcConverter = lfNetwork.getVoltageSourceConverters().stream()
+                .filter(c -> "convVdc".equals(c.getId()))
+                .findFirst().orElseThrow();
+
+        assertEquals(List.of(), vdcConverter.getDroopCurve());
+    }
+
+    @Test
+    void testGetDroopCurve() {
+        // Expected values come from the factory's 3-band droop curve (see
+        // AcDcNetworkFactory#createAcDcNetworkWithDroopControl): V=380kV/P=20MW, V=390kV/P=40MW,
+        // V=410kV/P=60MW, converted to per unit with vBase = 400 kV (dn1's nominal voltage) and SB = 100 MVA:
+        // k_pu = k * SB / vBase, V_pu = V / vBase, P_pu = P / SB.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        LfNetworkParameters lfParameters = new LfNetworkParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector())
+                .setAcDcNetwork(true);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters).get(0);
+
+        LfVoltageSourceConverter droopConverter = lfNetwork.getVoltageSourceConverters().stream()
+                .filter(c -> "convDroop".equals(c.getId()))
+                .findFirst().orElseThrow();
+
+        List<LfVoltageSourceConverter.LfDroopReference> droopCurve = droopConverter.getDroopCurve();
+
+        assertEquals(3, droopCurve.size());
+        assertDroopReferenceEquals(0.125, 0.95, 0.2, droopCurve.get(0));
+        assertDroopReferenceEquals(0.25, 0.975, 0.4, droopCurve.get(1));
+        assertDroopReferenceEquals(0.5, 1.025, 0.6, droopCurve.get(2));
+    }
+
+    private void assertDroopReferenceEquals(double expectedK, double expectedRefVdc, double expectedRefP,
+                                             LfVoltageSourceConverter.LfDroopReference actual) {
+        assertEquals(expectedK, actual.k(), 1e-9);
+        assertEquals(expectedRefVdc, actual.refVdc(), 1e-9);
+        assertEquals(expectedRefP, actual.refP(), 1e-9);
+    }
+
+    @Test
+    void testDroopCurveWithAllNegativeCoefficientsIsAccepted() {
+        // Check that droop also works with a decreasing curve.
+        // The anchor invariant (Pac = targetP when Vdc = targetVdc) holds regardless of sign, but away from the
+        // anchor the slope k differs from the all-positive curve, so also check a non-anchor point.
+        // U_dc = refVdc + k*(P-refP); with this curve's bands, refP at [410,420] (k=-2.0) works out to 40 MW,
+        // so checking P=37.5: 410 + (-2.0)*(37.5-40) = 415.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        network.getVoltageSourceConverter("convDroop").newDroopCurve()
+                .beginSegment().setK(-0.5).setMinV(380.).setMaxV(390.).endSegment()
+                .beginSegment().setK(-1.0).setMinV(390.).setMaxV(410.).endSegment()
+                .beginSegment().setK(-2.0).setMinV(410.).setMaxV(420.).endSegment()
+                .add();
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        checkDroopResult(network, 400., 50.);
+        checkDroopResult(network, 415., 37.5);
+    }
+
+    @Test
+    void testDroopAnchorBelowFirstBand() {
+        // The droop converter's anchor (targetVdc, targetP) = (370 kV, 50 MW) lies below the first band [380,390],
+        // so it is clamped to that band (k=0.5): the curve passes through P = 70 MW at 380 kV.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        network.getVoltageSourceConverter("convDroop").setTargetVdc(370.);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        checkDroopResult(network, 380., 70.);
+        checkDroopResult(network, 400., 100.);
+        checkDroopResult(network, 415., 112.5);
+    }
+
+    @Test
+    void testDroopAnchorAboveLastBand() {
+        // The droop converter's anchor (targetVdc, targetP) = (430 kV, 50 MW) lies above the last band [410,420],
+        // so it is clamped to that band (k=2.0): the curve passes through P = 40 MW at 410 kV.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        network.getVoltageSourceConverter("convDroop").setTargetVdc(430.);
+        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+
+        checkDroopResult(network, 385., 10.);
+        checkDroopResult(network, 400., 30.);
+        checkDroopResult(network, 410., 40.);
+    }
+
+    @Test
+    void testDroopWithoutCurveIsRejected() {
+        // IIDM accepts DC_DROOP mode on a converter without droop curve, so the LF network loading must reject it.
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        network.getVoltageSourceConverter("convVdc").setControlMode(ControlMode.DC_DROOP);
+
+        PowsyblException e = assertThrows(PowsyblException.class, () -> loadLfNetwork(network));
+        assertEquals("AC/DC converter 'convVdc' in DC_DROOP control mode must have a droop curve", e.getMessage());
+    }
+
+    @Test
+    void testDroopWithUndefinedTargetsIsRejected() {
+        // IIDM only requires targetP and targetVdc in P_PCC and V_DC modes respectively, so the LF network loading
+        // must reject a DC_DROOP converter for which either target is undefined.
+        Network networkWithoutTargetP = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        networkWithoutTargetP.getVoltageSourceConverter("convDroop").setTargetP(Double.NaN);
+        PowsyblException e = assertThrows(PowsyblException.class, () -> loadLfNetwork(networkWithoutTargetP));
+        assertEquals("AC/DC converter 'convDroop' in DC_DROOP control mode must have targetP and targetVdc defined", e.getMessage());
+
+        Network networkWithoutTargetVdc = AcDcNetworkFactory.createAcDcNetworkWithDroopControl();
+        networkWithoutTargetVdc.getVoltageSourceConverter("convDroop").setTargetVdc(Double.NaN);
+        e = assertThrows(PowsyblException.class, () -> loadLfNetwork(networkWithoutTargetVdc));
+        assertEquals("AC/DC converter 'convDroop' in DC_DROOP control mode must have targetP and targetVdc defined", e.getMessage());
+    }
+
+    private static LfNetwork loadLfNetwork(Network network) {
+        LfNetworkParameters lfParameters = new LfNetworkParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector())
+                .setAcDcNetwork(true);
+        return LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters).get(0);
+    }
+
+    @Test
+    void testSettingInDroopModeWithoutADroopCurveIsRejected() {
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LfNetworkParameters().setAcDcNetwork(true)).getFirst();
+        LfAcDcConverter converter = lfNetwork.getVoltageSourceConverter(0);
+
+        // The converter does not have a droop curve. Trying to set it in DC_DROOP mode raises an exception
+        PowsyblException e = assertThrows(PowsyblException.class, () -> converter.setControlMode(ControlMode.DC_DROOP));
+        assertEquals("AC/DC converter 'conv23' cannot be set to DC_DROOP control mode because it does not have a droop curve", e.getMessage());
+    }
+
+    // -- AC-DC converter AC power limits
+
+    @Test
+    void testActiveLimitsMinPIsEnforced() {
+        // The active limit of converter conv24 (in V_DC mode) is reached. Its AC active power is capped to the limit.
+        Network network = AcDcNetworkFactory.createNetworkWithTwoVdcConverters();
+
+        // conv13 is in V_DC mode and sets dn3 voltage to 400 kV
+        // conv24 is in V_DC mode and sets dn4 voltage to 399.99 kV
+        // dl34 resistance is 0.1 Ohm so the DC current is 0.1 kA, which leads to an AC power consumption of 40 MW in conv13 and -39.999 MW in conv24
+        // We set conv24 limit to -30 MW
+        VoltageSourceConverter conv24 = network.getVoltageSourceConverter("conv24");
+        double limit = -30d;
+        conv24.setMinP(limit);
+
+        // Run load flow
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check that conv24 injects 30 MW (capped to its limit)
+        assertActivePowerEquals(limit, conv24.getTerminal1());
+        // Check its IIDM control mode is still V_DC
+        assertEquals(ControlMode.V_DC, conv24.getControlMode());
+        // Check that conv13 absorbs a bit more than 30 MW
+        VoltageSourceConverter conv13 = network.getVoltageSourceConverter("conv13");
+        double vdn3 = 400d;
+        double dcLineR = 0.1;
+        double expectedVdn4 = 0.5 * (vdn3 + sqrt(vdn3 * vdn3 + 4 * dcLineR * limit));
+        double expectedDcLineLoss = Math.pow(vdn3 - expectedVdn4, 2) / dcLineR;
+        assertActivePowerEquals(-limit + expectedDcLineLoss, conv13.getTerminal1());
+
+        // Check this setpoint change is reflected in AC
+        assertActivePowerEquals(-(50d + expectedDcLineLoss), network.getGenerator("g1").getTerminal());
+        assertActivePowerEquals(-70d, network.getGenerator("g2").getTerminal());
+    }
+
+    @Test
+    void testActiveLimitsMaxPIsEnforced() {
+        // Same case as testActiveLimitsMinPIsEnforced, but converter conv24 exceeds its upper limit instead of its lower one.
+        Network network = AcDcNetworkFactory.createNetworkWithTwoVdcConverters();
+
+        // conv24 is in V_DC mode and is expected to inject about 40 MW in the AC network. We force it to inject at least 60 MW
+        VoltageSourceConverter conv24 = network.getVoltageSourceConverter("conv24");
+        double limit = -60d;
+        conv24.setMaxP(limit);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check that conv24 injects 60 MW (capped to its limit) and that its IIDM control mode is unchanged
+        assertActivePowerEquals(limit, conv24.getTerminal1());
+        assertEquals(ControlMode.V_DC, conv24.getControlMode());
+        // Check that conv13 absorbs a bit more than 60 MW
+        VoltageSourceConverter conv13 = network.getVoltageSourceConverter("conv13");
+        double vdn3 = 400d;
+        double dcLineR = 0.1;
+        double expectedVdn4 = 0.5 * (vdn3 + sqrt(vdn3 * vdn3 + 4 * dcLineR * limit));
+        double expectedDcLineLoss = Math.pow(vdn3 - expectedVdn4, 2) / dcLineR;
+        assertActivePowerEquals(-limit + expectedDcLineLoss, conv13.getTerminal1());
+
+        // Check this setpoint change is reflected in AC
+        assertActivePowerEquals(-(80d + expectedDcLineLoss), network.getGenerator("g1").getTerminal());
+        assertActivePowerEquals(-40d, network.getGenerator("g2").getTerminal());
+    }
+
+    @Test
+    void testActiveLimitsAreEnforcedOnDroopConverter() {
+        // The active limit of converter conv45 (in DC_DROOP mode) is reached. Its AC active power is capped to the limit.
+        Network network = AcDcNetworkFactory.createNetworkWithTwoVdcConverters();
+        VoltageSourceConverter conv24 = network.getVoltageSourceConverter("conv24");
+        conv24.setTargetVdc(399.99)
+                .setTargetP(-39.999)     // targetP and targetVdc are aligned to directly match the final state of the DC network (without considering limits)
+                .setControlMode(AcDcConverter.ControlMode.DC_DROOP)
+                .newDroopCurve()
+                .beginSegment().setMinV(-400).setMaxV(400).setK(0.001).endSegment()
+                .add();
+
+        // We set conv24 limit to -30 MW
+        double limit = -30d;
+        conv24.setMinP(limit);
+
+        // Run load flow
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check that conv24 injects 30 MW (capped to its limit)
+        assertActivePowerEquals(limit, conv24.getTerminal1());
+        // Check its IIDM control mode is still V_DC
+        assertEquals(ControlMode.DC_DROOP, conv24.getControlMode());
+        // Check that conv13 absorbs a bit more than 30 MW
+        VoltageSourceConverter conv13 = network.getVoltageSourceConverter("conv13");
+        double vdn3 = 400d;
+        double dcLineR = 0.1;
+        double expectedVdn4 = 0.5 * (vdn3 + sqrt(vdn3 * vdn3 + 4 * dcLineR * limit));
+        double expectedDcLineLoss = Math.pow(400 - expectedVdn4, 2) / dcLineR;
+        assertActivePowerEquals(-limit + expectedDcLineLoss, conv13.getTerminal1());
+
+        // Check this setpoint change is reflected in AC
+        assertActivePowerEquals(-(50d + expectedDcLineLoss), network.getGenerator("g1").getTerminal());
+        assertActivePowerEquals(-70d, network.getGenerator("g2").getTerminal());
+    }
+
+    @Test
+    void testActiveLimitsAreDisregarded() {
+        // The active limit of converter conv24 (in V_DC mode) is reached.
+        // This limit is ignored because the parameter useActiveLimits is set to false
+        Network network = AcDcNetworkFactory.createNetworkWithTwoVdcConverters();
+        network.getVoltageSourceConverter("conv24").setMinP(-30d);
+
+        // Run load flow
+        parametersExt.setUseActiveLimits(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check that conv24 injects 39.999 MW
+        assertActivePowerEquals(-39.999, network.getVoltageSourceConverter("conv24").getTerminal1());
+        // Check that conv13 absorbs 40 MW
+        assertActivePowerEquals(40d, network.getVoltageSourceConverter("conv13").getTerminal1());
+    }
+
+    @Test
+    void testActiveLimitsFailsIfDcVoltageCannotBeControlled() {
+        // A converter must be switched to P_PCC but then nothing controls the voltage: load flow fails
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+
+        // Converter conv23 is in P_PCC mode and absorbs 50 MW
+        // We set the minimum active power of conv45 to -10 MW: its power limits are exceeded
+        // However, changing its control mode to P_PCC would let the DC network without voltage control : the load flow fails
+        VoltageSourceConverter vsc = network.getVoltageSourceConverter("conv45");
+        vsc.setMinP(-10);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFailed());
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().getFirst().getStatus());
+        assertEquals("Outer loop 'AcDcConverterPowerLimits' failed: Could not enforce AC-DC converter active power limit and ensure DC voltage control in DC component 0",
+                result.getComponentResults().getFirst().getStatusText());
+    }
+
+    @Test
+    void testActiveLimitsRejectsInvalidPccConverter() {
+        // The targetP of a converter in P_PCC mode is not within [minP ; maxP]. An exception is thrown when loading the lfNetwork.
+        Network network = AcDcNetworkFactory.createAcDcNetwork1();
+        VoltageSourceConverter vsc = network.getVoltageSourceConverter("conv23");
+        vsc.setTargetP(60.);
+        LfNetworkParameters lfParameters = new LfNetworkParameters().setAcDcNetwork(true);
+
+        // Set minP above targetP
+        vsc.setMaxP(Double.MAX_VALUE);
+        vsc.setMinP(vsc.getTargetP() + 1);
+
+        LfNetworkLoaderImpl lfNetworkLoader = new LfNetworkLoaderImpl();
+        PowsyblException e1 = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, lfNetworkLoader, lfParameters));
+        assertTrue(e1.getMessage().contains("is below its minP"));
+
+        // Set maxP under targetP
+        vsc.setMinP(-Double.MAX_VALUE);
+        vsc.setMaxP(vsc.getTargetP() - 1);
+
+        LfNetworkLoaderImpl lfNetworkLoader2 = new LfNetworkLoaderImpl();
+        PowsyblException e2 = assertThrows(PowsyblException.class, () -> LfNetwork.load(network, lfNetworkLoader2, lfParameters));
+        assertTrue(e2.getMessage().contains("is above its maxP"));
+
+        // If OpenLoadFlow useActiveLimits parameter is set to false, no exception is raised
+        lfParameters.setUseActiveLimits(false);
+
+        // Set minP above targetP
+        vsc.setMaxP(Double.MAX_VALUE);
+        vsc.setMinP(vsc.getTargetP() + 1);
+        assertDoesNotThrow(() -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
+
+        // Set maxP under targetP
+        vsc.setMinP(-Double.MAX_VALUE);
+        vsc.setMaxP(vsc.getTargetP() - 1);
+        assertDoesNotThrow(() -> LfNetwork.load(network, new LfNetworkLoaderImpl(), lfParameters));
+    }
+
+    @Test
+    void testActiveLimitsSeveralViolationsInSameDcComponent() {
+        // We set conv24 limit to -30 MW and conv13 limit to +35 MW. The active limit of both converters are exceeded.
+        // Only conv24 must be switched to P_PCC (selected because it is the one the furthest from its limit): this is enough to bring the other one within its limits.
+        Network network = AcDcNetworkFactory.createNetworkWithTwoVdcConverters();
+        VoltageSourceConverter conv24 = network.getVoltageSourceConverter("conv24");
+        VoltageSourceConverter conv13 = network.getVoltageSourceConverter("conv13");
+        double conv24Limit = -30d;
+        conv24.setMinP(conv24Limit);
+        conv13.setMaxP(35);
+
+        // Run load flow
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // Check that conv24 injects 30 MW (capped to its limit)
+        assertActivePowerEquals(conv24Limit, conv24.getTerminal1());
+        // Check its IIDM control mode is still V_DC
+        assertEquals(ControlMode.V_DC, conv24.getControlMode());
+        // Check that conv13 absorbs a bit more than 30 MW
+        double vdn3 = 400d;
+        double dcLineR = 0.1;
+        double expectedVdn4 = 0.5 * (vdn3 + sqrt(vdn3 * vdn3 + 4 * dcLineR * conv24Limit));
+        double expectedDcLineLoss = Math.pow(vdn3 - expectedVdn4, 2) / dcLineR;
+        assertActivePowerEquals(-conv24Limit + expectedDcLineLoss, conv13.getTerminal1());
+
+        // Check this setpoint change is reflected in AC
+        assertActivePowerEquals(-(50d + expectedDcLineLoss), network.getGenerator("g1").getTerminal());
+        assertActivePowerEquals(-70d, network.getGenerator("g2").getTerminal());
+    }
+
+    @Test
+    void testActiveLimitsViolationsInSeveralDcComponents() {
+        // Two DC components, each with a V_DC converter exceeding its limit. Each DC component is handled independently.
+        Network network = AcDcNetworkFactory.createAcDcNetworkTwoDcSubNetworks();
+        network.getVoltageSourceConverters().forEach(vsc -> vsc.setIdleLoss(0)); // To simplify analytical validation
+        // Set conv12 and conv14 to V_DC mode and a targetVdc leading to 50 MW and 30 MW transferred
+        VoltageSourceConverter conv12 = network.getVoltageSourceConverter("conv12");
+        conv12.setTargetVdc(499.9).setControlMode(ControlMode.V_DC);  //  injects 49.99 MW
+        conv12.setMinP(-30); // Cap power injection to 30 MW
+        VoltageSourceConverter conv14 = network.getVoltageSourceConverter("conv14");
+        conv14.setTargetVdc(299.9).setControlMode(ControlMode.V_DC);  //  injects 29.9 MW
+        conv14.setMinP(-20); // Cap power injection to 20 MW
+
+        // Run load flow
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        // First DC component: conv12 injects 30 MW
+        assertActivePowerEquals(-30d, conv12.getTerminal1());
+        // Second DC component: conv14 injects 20 MW
+        assertActivePowerEquals(-20d, conv14.getTerminal1());
+    }
+}

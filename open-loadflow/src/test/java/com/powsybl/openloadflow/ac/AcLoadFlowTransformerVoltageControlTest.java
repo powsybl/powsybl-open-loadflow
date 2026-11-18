@@ -1,0 +1,1489 @@
+/*
+ * Copyright (c) 2019-2025, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+package com.powsybl.openloadflow.ac;
+
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
+import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
+import com.powsybl.loadflow.LoadFlow;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
+import com.powsybl.na.network.*;
+import com.powsybl.na.test.CommonTestConfig;
+import com.powsybl.na.test.ServiceParameterResolver;
+import com.powsybl.na.test.networks.FourBusNetworkFactory;
+import com.powsybl.na.test.networks.HvdcNetworkFactory;
+import com.powsybl.na.test.networks.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.outerloop.DistributedSlackOuterLoop;
+import com.powsybl.openloadflow.ac.outerloop.IncrementalTransformerVoltageControlOuterLoop;
+import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
+import com.powsybl.openloadflow.lf.PowsyblOpenLoadFlowReportResourceBundle;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+
+import java.io.IOException;
+import java.util.List;
+
+import static com.powsybl.na.test.LoadFlowAssert.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
+ */
+@ExtendWith(ServiceParameterResolver.class)
+class AcLoadFlowTransformerVoltageControlTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlowTransformerVoltageControlTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
+
+    private Network network;
+    private Bus bus1;
+    private Bus bus2;
+    private Bus bus3;
+    private Bus bus4;
+    private TwoWindingsTransformer t2wt;
+    private TwoWindingsTransformer t2wt2;
+    private ThreeWindingsTransformer t3wt;
+
+    private LoadFlow.Runner loadFlowRunner;
+    private LoadFlowParameters parameters;
+    private OpenLoadFlowParameters parametersExt;
+
+    @BeforeEach
+    void setUp() {
+        loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
+        parameters = new LoadFlowParameters();
+        parameters.setTransformerVoltageControlOn(false);
+        parameters.setDistributedSlack(false);
+        parametersExt = OpenLoadFlowParameters.create(parameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
+    }
+
+    @Test
+    void baseCaseT2wtTest() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertVoltageEquals(135.0, bus1);
+        assertVoltageEquals(134.273, bus2);
+        assertVoltageEquals(27.0038, bus3);
+    }
+
+    @Test
+    void tapPlusTwoT2wtTest() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        t2wt.getRatioTapChanger().setTapPosition(3);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertVoltageEquals(135.0, bus1);
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(34.427, bus3);
+    }
+
+    @Test
+    void voltageControlT2wtTest() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        t2wt.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(34.433, t2wt.getTerminal2().getBusView().getBus()); //FIXME: should be 34.427
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlT2wtTest2() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(34.433, t2wt.getTerminal2().getBusView().getBus()); //FIXME: should be 34.427
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlT2wtTest3() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        t2wt.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal1(), 135.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isFullyConverged());
+
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(27.0, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlT2wtTest4() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTapPosition(2)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 28.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(27.003, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlT2wtTest5() {
+        selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+        t2wt2.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt2.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(2, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition());
+
+        // Now test in stable mode with AfterVoltageControl
+        // dealign transformers
+        t2wt.getRatioTapChanger()
+                .setTapPosition(3)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+        t2wt2.getRatioTapChanger()
+                .setTapPosition(1)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt2.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+        LoadFlowParameters stableParams = parameters.copy();
+        stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlUseInitialTapPosition(true);
+        stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        result = loadFlowRunner.run(network, stableParams);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.267, bus2);
+        assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(1, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, t2wt2.getRatioTapChanger().getTapPosition());
+
+        // Same as above with exchange positions
+        t2wt.getRatioTapChanger()
+                .setTapPosition(1)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+        t2wt2.getRatioTapChanger()
+                .setTapPosition(3)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt2.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+        stableParams = parameters.copy();
+        stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlUseInitialTapPosition(true);
+        stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        result = loadFlowRunner.run(network, stableParams);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.267, bus2);
+        assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(3, t2wt2.getRatioTapChanger().getTapPosition());
+        // Now set solvedTapPosition swapped values
+        t2wt.getRatioTapChanger().setSolvedTapPosition(3);
+        t2wt2.getRatioTapChanger().setSolvedTapPosition(1);
+        // Re-run to prove that solvedTapPotistions do not influence the result
+        result = loadFlowRunner.run(network, stableParams);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.267, bus2);
+        assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(3, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(3, t2wt2.getRatioTapChanger().getTapPosition());
+
+        // still stable mode but with movement needed
+        t2wt.getRatioTapChanger()
+                .setTapPosition(3)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+        t2wt2.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt2.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        result = loadFlowRunner.run(network, stableParams);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.267, bus2);
+        assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(1, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition());
+
+        // stable mode but transfo removed fromtuning because of tht limit
+        t2wt.getRatioTapChanger()
+                .setTapPosition(3)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+        t2wt2.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt2.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        stableParams.getExtension(OpenLoadFlowParameters.class).setGeneratorVoltageControlMinNominalVoltage(150); // Above G1 voltage level
+        result = loadFlowRunner.run(network, stableParams);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.223, bus2);
+        assertVoltageEquals(32.228, t2wt.getTerminal2().getBusView().getBus());  // no voltage control
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt2.getRatioTapChanger().getSolvedTapPosition()); // No change expected
+        assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition()); // No change expected
+
+        // generator now included in tht limit
+        t2wt.getRatioTapChanger()
+                .setTapPosition(3)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+        t2wt2.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt2.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        stableParams.getExtension(OpenLoadFlowParameters.class).setGeneratorVoltageControlMinNominalVoltage(90); // Below G1 voltage level
+        result = loadFlowRunner.run(network, stableParams);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.267, bus2);
+        assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(1, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition());
+
+    }
+
+    @Test
+    void voltageControlT2wtTestRationAtLimit() throws IOException {
+        LoadFlowParameters stableParams = parameters.copy();
+        stableParams.setTransformerVoltageControlOn(true);
+        stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlUseInitialTapPosition(true);
+        stableParams.getExtension(OpenLoadFlowParameters.class).setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        stableParams.getExtension(OpenLoadFlowParameters.class).setMinPlausibleTargetVoltage(0.5); // Keep unusual voltage target to force ratio to tap changer limit
+
+        // Move group to its limit
+        selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt()); // recreate the network (strange bug in server built otherwise)
+        t2wt.getRatioTapChanger()
+                .setTapPosition(3)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 26.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+        t2wt2.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt2.getTerminal2(), 26.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        System.out.println("build on server fails here");
+        ReportNode rootReport = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowRunParameters loadFlowRunParameters = new LoadFlowRunParameters()
+                .setParameters(stableParams)
+                .setReportNode(rootReport);
+
+        LoadFlowResult result = loadFlowRunner.run(network, loadFlowRunParameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.283, bus2);
+        assertVoltageEquals(28.71, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(0, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition());
+        String expected = """
+                         + Outer loop TransformerVoltageControl
+                            + 2 transformers reached their tap maximum position
+                               Transformer T2wT1 reached a tap extreme position
+                               Transformer T2wT2 reached a tap extreme position
+                """;
+        assertReportContainsMultiline(expected, rootReport);
+    }
+
+    @Test
+    void voltageControlT2wtTest6() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTapPosition(1)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 32.0)
+                    .setTargetDeadband(4.0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(30.766, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlT2wtTestInsensitive() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTapPosition(1)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal1(), 145.0) // HV side, but changing tap will not change voltage at all
+                    .setTargetDeadband(4.0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(30.766, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition()); // did not move
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlT2wtTestInsensitive2() {
+        selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt());
+
+        parameters.setTransformerVoltageControlOn(true).setDistributedSlack(true);
+        parametersExt
+                .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL)
+                // put transformer control outerloop first so that it runs twice, so we can test caching of insensitive transformers
+                .setOuterLoopNames(List.of(IncrementalTransformerVoltageControlOuterLoop.NAME, DistributedSlackOuterLoop.NAME));
+        t2wt.getRatioTapChanger()
+                .setTapPosition(1)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal1(), 145.0) // HV side, but changing tap will not change voltage at all
+                    .setTargetDeadband(4.0)
+                    .setRegulating(true);
+        t2wt2.getRatioTapChanger()
+                .setTapPosition(1)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt2.getTerminal1(), 145.0) // HV side, but changing tap will not change voltage at all
+                    .setTargetDeadband(4.0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(32.242, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition()); // did not move
+        assertEquals(1, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(1, t2wt2.getRatioTapChanger().getSolvedTapPosition()); // did not move
+        assertEquals(1, t2wt2.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlParallelT2wtSameControlledBusMaxTapShiftTest() throws IOException {
+        // T1 and T2 both control the voltage of B3: initially 220.09 kV, target 235 kV (+/- 1 kV)
+        network = VoltageControlNetworkFactory.createWithTwoParallelTransformersControllingNearbyBuses(235, 2);
+        TwoWindingsTransformer t1 = network.getTwoWindingsTransformer("T1");
+        TwoWindingsTransformer t2 = network.getTwoWindingsTransformer("T2");
+        t2.getRatioTapChanger().getVoltageRegulation().setTerminal(t1.getTerminal2(), 235);
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, new LoadFlowRunParameters().setParameters(parameters).setReportNode(reportNode));
+        assertTrue(result.isFullyConverged());
+
+        // each transformer cannot change by more than 3 taps (default max tap shift) in an outer loop iteration
+        assertEquals(17, t1.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(16, t2.getRatioTapChanger().getSolvedTapPosition());
+        assertVoltageEquals(235.132, network.getBusBreakerView().getBus("B3"));
+        assertVoltageEquals(234.959, network.getBusBreakerView().getBus("B4"));
+
+        assertTxtReportEquals("""
+                + Test Report
+                   + Load flow on network 'two-parallel-transformers-nearby-buses'
+                      + Network CC0 SC0
+                         + Network info
+                            Network has 3 buses and 3 branches
+                            Network balance: active generation=600 MW, active load=600 MW, reactive generation=0 MVar, reactive load=300 MVar
+                            Angle reference bus: VL1_0
+                            Slack bus: VL1_0
+                         Voltage initialization with method Uniform Values
+                         Outer loop ReactiveLimits
+                         + Outer loop IncrementalTransformerVoltageControl
+                            + Outer loop iteration 1
+                               1 voltage-controlled buses are outside of their target deadbands
+                               + 2 transformers changed tap position
+                                  Transformer T1 changed tap position from 10 to 13
+                                  Transformer T2 changed tap position from 10 to 13
+                            + Outer loop iteration 2
+                               1 voltage-controlled buses are outside of their target deadbands
+                               + 2 transformers changed tap position
+                                  Transformer T1 changed tap position from 13 to 16
+                                  Transformer T2 changed tap position from 13 to 16
+                            + Outer loop iteration 3
+                               1 voltage-controlled buses are outside of their target deadbands
+                               + 1 transformers changed tap position
+                                  Transformer T1 changed tap position from 16 to 17
+                         Outer loop ReactiveLimits
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """, reportNode);
+    }
+
+    @Test
+    void voltageControlT2wtTest7() {
+        selectNetwork2(VoltageControlNetworkFactory.createNetworkWith2T2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 34.0)
+                    .setTargetDeadband(6.0)
+                    .setRegulating(true);
+        t2wt2.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt2.getTerminal2(), 34.0)
+                    .setTargetDeadband(6.0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(32.242, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertEquals(1, t2wt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt2.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlT2wtTest8() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt2());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTapPosition(7)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(34.43, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(4, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(7, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void voltageControlT2wtNonPlausibleTargetV() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt2());
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+
+        t2wt.getRatioTapChanger()
+                .setTapPosition(7)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertFalse(t2wt.getRatioTapChanger().isRegulating());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(27.0, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(7, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(7, t2wt.getRatioTapChanger().getTapPosition());
+
+        t2wt.getRatioTapChanger()
+                .setTapPosition(7)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 60)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(27.0, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(7, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(7, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void remoteVoltageControlT2wtTest() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
+
+        Substation substation = network.newSubstation()
+                .setId("SUBSTATION4")
+                .setCountry(Country.FR)
+                .add();
+        VoltageLevel vl4 = substation.newVoltageLevel()
+                .setId("VL_4")
+                .setNominalV(33.0)
+                .setLowVoltageLimit(0)
+                .setHighVoltageLimit(100)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        Bus bus4 = vl4.getBusBreakerView().newBus()
+                .setId("BUS_4")
+                .add();
+        vl4.newLoad()
+                .setId("LOAD_4")
+                .setBus("BUS_4")
+                .setP0(2.)
+                .setQ0(0.5)
+                .add();
+
+        Line line34 = network.newLine()
+                .setId("LINE_34")
+                .setBus1("BUS_3")
+                .setBus2("BUS_4")
+                .setR(1.05)
+                .setX(10.0)
+                .setG1(0.0000005)
+                .add();
+
+        t2wt.getRatioTapChanger()
+                .setTapPosition(3)
+                .getVoltageRegulation()
+                    .setTerminal(line34.getTerminal2(), 33.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(false);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertVoltageEquals(32.872, bus4);
+        assertTrue(result.isFullyConverged());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(3, t2wt.getRatioTapChanger().getTapPosition());
+
+        parameters.setTransformerVoltageControlOn(true);
+        t2wt.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(line34.getTerminal2(), 33.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        result = loadFlowRunner.run(network, parameters);
+        assertVoltageEquals(32.874, bus4); //FIXME: should be 32.872
+        assertTrue(result.isFullyConverged());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void remoteVoltageControlT2wtTest2() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        Substation substation = network.newSubstation()
+                .setId("SUBSTATION4")
+                .setCountry(Country.FR)
+                .add();
+        VoltageLevel vl4 = substation.newVoltageLevel()
+                .setId("VL_4")
+                .setNominalV(33.0)
+                .setLowVoltageLimit(0)
+                .setHighVoltageLimit(100)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        Bus bus4 = vl4.getBusBreakerView().newBus()
+                .setId("BUS_4")
+                .add();
+        vl4.newLoad()
+                .setId("LOAD_4")
+                .setBus("BUS_4")
+                .setP0(2.)
+                .setQ0(0.5)
+                .add();
+
+        Line line34 = network.newLine()
+                .setId("LINE_34")
+                .setBus1("BUS_3")
+                .setBus2("BUS_4")
+                .setR(1.05)
+                .setX(10.0)
+                .setG1(0.0000005)
+                .add();
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+
+        t2wt.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(line34.getTerminal2(), 33.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertVoltageEquals(32.891, bus4);
+        assertTrue(result.isFullyConverged());
+        assertEquals(3, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void testIncrementalVoltageControlWithGenerator() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        Substation substation = network.newSubstation()
+                .setId("SUBSTATION4")
+                .setCountry(Country.FR)
+                .add();
+        VoltageLevel vl4 = substation.newVoltageLevel()
+                .setId("VL_4")
+                .setNominalV(33.0)
+                .setLowVoltageLimit(0)
+                .setHighVoltageLimit(100)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        Bus bus4 = vl4.getBusBreakerView().newBus()
+                .setId("BUS_4")
+                .add();
+        vl4.newLoad()
+                .setId("LOAD_4")
+                .setBus("BUS_4")
+                .setP0(2.)
+                .setQ0(0.5)
+                .add();
+
+        Line line34 = network.newLine()
+                .setId("LINE_34")
+                .setBus1("BUS_3")
+                .setBus2("BUS_4")
+                .setR(1.05)
+                .setX(10.0)
+                .setG1(0.0000005)
+                .add();
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+
+        t2wt.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(line34.getTerminal2(), 30.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        Generator g4 = vl4.newGenerator()
+                .setId("GEN_4")
+                .setBus("BUS_4")
+                .setMinP(0.0)
+                .setMaxP(30)
+                .setTargetP(5)
+                .setLocalTargetV(33)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .add();
+
+        // Generator reactive capability is enough to hold voltage target
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(33, bus4);
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertReactivePowerEquals(-7.110, g4.getTerminal());
+
+        g4.newMinMaxReactiveLimits().setMinQ(-3.5).setMaxQ(3.5).add();
+        // Generator reactive capability is not enough to hold voltage target and rtc is deactivated
+        t2wt.getRatioTapChanger().getVoltageRegulation().setRegulating(false);
+        LoadFlowResult result2 = loadFlowRunner.run(network, parameters);
+        assertTrue(result2.isFullyConverged());
+        assertVoltageEquals(31.032, bus4);
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertReactivePowerEquals(-3.5, g4.getTerminal());
+
+        // Generator reactive capability is not enough to hold voltage alone but with rtc it is ok
+        t2wt.getRatioTapChanger().getVoltageRegulation().setRegulating(true);
+        LoadFlowResult result3 = loadFlowRunner.run(network, parameters);
+        assertTrue(result3.isFullyConverged());
+        assertVoltageEquals(33, bus4);
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+        assertReactivePowerEquals(-1.172, g4.getTerminal());
+    }
+
+    @Test
+    void nonSupportedVoltageControlT2wtTest() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        t2wt.getRatioTapChanger()
+                .setTapPosition(2)
+                .getVoltageRegulation()
+                    .setTerminal(network.getGenerator("GEN_1").getTerminal(), 33.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(135.0, bus1);
+    }
+
+    @Test
+    void nonSupportedVoltageControlT2wtTest2() {
+        Network network = HvdcNetworkFactory.createLccWithBiggerComponents();
+        TwoWindingsTransformer twt = network.getTwoWindingsTransformer("l45");
+        parameters.setTransformerVoltageControlOn(true);
+        twt.getPhaseTapChanger().remove();
+        twt.newRatioTapChanger().setTapPosition(0)
+                .beginStep()
+                .setX(0.1f)
+                .setRho(1)
+                .endStep()
+                .add();
+        twt.getRatioTapChanger().setLoadTapChangingCapabilities(true)
+            .newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withTerminal(network.getGenerator("g1").getTerminal())
+                .withTargetValue(400)
+                .withTargetDeadband(1)
+                .build();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(390, network.getGenerator("g1").getTerminal().getBusView().getBus());
+    }
+
+    @Test
+    void sharedVoltageControlT2wtTest() {
+        selectNetwork(VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl());
+        parameters.setTransformerVoltageControlOn(true);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.279, bus2);
+        assertVoltageEquals(33.989, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void sharedVoltageControlT2wtWithZeroImpedanceLinesTest() {
+        selectNetwork(createNetworkWithSharedControl());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+        t2wt2.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt2.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.279, bus2);
+        assertVoltageEquals(35.73, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void inconsistentT2wtTargetVoltagesTest() {
+        selectNetwork(createNetworkWithSharedControl());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.WITH_GENERATOR_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 33.6)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+        t2wt2.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt2.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.279, bus2);
+        assertVoltageEquals(35.73, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void sharedVoltageControlT2wtWithZeroImpedanceLinesTest2() {
+        selectNetwork(createNetworkWithSharedControl());
+        network.getVoltageLevel("VL_3").newGenerator()
+                .setId("GEN_3")
+                .setBus("BUS_3")
+                .setMinP(0.0)
+                .setMaxP(35.0)
+                .setTargetP(2)
+                .setLocalTargetV(34.0)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
+                .add();
+
+        parameters.setTransformerVoltageControlOn(true);
+        t2wt.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+        t2wt2.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt2.getTerminal2(), 34.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(136.605, bus2);
+        assertVoltageEquals(34.0, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
+    }
+
+    @Test
+    void openT2wtTest() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        t2wt.getRatioTapChanger()
+                .setTapPosition(2)
+                .getVoltageRegulation()
+                    .setTerminal(network.getGenerator("GEN_1").getTerminal(), 33.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+        t2wt.getTerminal2().disconnect();
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void regulatingTerminalDisconnectedTest() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+        Load load = network.getLoad("LOAD_2");
+        load.getTerminal().disconnect();
+
+        t2wt.getRatioTapChanger()
+                .setTapPosition(2)
+                .getVoltageRegulation()
+                    .setTerminal(load.getTerminal(), 33.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(2, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void baseCaseT3wtTest() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertVoltageEquals(135.0, bus1);
+        assertVoltageEquals(134.265, bus2);
+        assertVoltageEquals(34.402, bus3);
+        assertVoltageEquals(10.320, bus4);
+    }
+
+    @Test
+    void tapPlusTwoT3wtTest() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
+
+        t3wt.getLeg2().getRatioTapChanger().setTapPosition(2);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertVoltageEquals(135.0, bus1);
+        assertVoltageEquals(134.264, bus2);
+        assertVoltageEquals(28.147, bus3);
+        assertVoltageEquals(10.320, bus4);
+    }
+
+    @Test
+    void voltageControlT3wtTest() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
+
+        t3wt.getLeg2().getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t3wt.getLeg2().getTerminal(), 28.)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        parameters.setTransformerVoltageControlOn(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(28.147, bus3);
+        assertEquals(2, t3wt.getLeg2().getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t3wt.getLeg2().getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void incrementalVoltageControlT3wtReportTest() throws IOException {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
+
+        t3wt.getLeg2().getRatioTapChanger()
+                .newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withTargetValue(28.)
+                .withTargetDeadband(0)
+                .withRegulating(true)
+                .withTerminal(t3wt.getLeg2().getTerminal())
+                .build();
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters()
+                .setParameters(parameters)
+                .setReportNode(reportNode);
+
+        LoadFlowResult result = loadFlowRunner.run(network, runParameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, t3wt.getLeg2().getRatioTapChanger().getSolvedTapPosition());
+
+        String expected = """
+                               + 1 transformers changed tap position
+                                  Transformer T3wT on side 2 changed tap position from 0 to 2
+                """;
+        assertReportContainsMultiline(expected, reportNode);
+    }
+
+    @Test
+    void voltageControlT3wtNonPlausibleTargetV() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
+
+        t3wt.getLeg2().getRatioTapChanger()
+                .setTapPosition(2)
+                .getVoltageRegulation()
+                    .setTerminal(t3wt.getLeg2().getTerminal(), 60)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        parameters.setTransformerVoltageControlOn(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(28.147, bus3);
+        assertEquals(2, t3wt.getLeg2().getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(2, t3wt.getLeg2().getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void remoteVoltageControlT3wtTest() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT3wt());
+
+        Substation substation = network.newSubstation()
+                .setId("SUBSTATION5")
+                .setCountry(Country.FR)
+                .add();
+        VoltageLevel vl5 = substation.newVoltageLevel()
+                .setId("VL_5")
+                .setNominalV(33.0)
+                .setLowVoltageLimit(0)
+                .setHighVoltageLimit(100.0)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        Bus bus5 = vl5.getBusBreakerView().newBus()
+                .setId("BUS_5")
+                .add();
+        vl5.newLoad()
+                .setId("LOAD_5")
+                .setBus("BUS_5")
+                .setP0(2.)
+                .setQ0(0.5)
+                .add();
+
+        Line line35 = network.newLine()
+                .setId("LINE_35")
+                .setBus1("BUS_3")
+                .setBus2("BUS_5")
+                .setR(0.5)
+                .setX(1.0)
+                .setG1(0.0000005)
+                .add();
+
+        t3wt.getLeg2().getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(line35.getTerminal2(), 33.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(false);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(34.329, bus5);
+
+        parameters.setTransformerVoltageControlOn(true);
+        t3wt.getLeg2().getRatioTapChanger()
+                .setTapPosition(2)
+                .getVoltageRegulation()
+                    .setTerminal(line35.getTerminal2(), 33.0)
+                    .setTargetDeadband(0)
+                    .setRegulating(true);
+
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(34.329, bus5);
+    }
+
+    /**
+     * A very small network to test with a T2wt.
+     * <pre>
+     *     G1        LD2
+     *     |    L12   |
+     *     |  ------- |
+     *     B1         B2 - T2WT2 - B4 - L43 - B3
+     *                  \                      \
+     *                   T2WT - B5 - L53 - B3 - LD3
+     * </pre>
+     */
+    private Network createNetworkWithSharedControl() {
+
+        Network network = VoltageControlNetworkFactory.createTransformerBaseNetwork("two-windings-transformer-control");
+
+        VoltageLevel vl4 = network.getSubstation("SUBSTATION").newVoltageLevel()
+                .setId("VL_4")
+                .setNominalV(33.0)
+                .setLowVoltageLimit(30.0)
+                .setHighVoltageLimit(40.0)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl4.getBusBreakerView().newBus()
+                .setId("BUS_4")
+                .add();
+
+        VoltageLevel vl5 = network.getSubstation("SUBSTATION").newVoltageLevel()
+                .setId("VL_5")
+                .setNominalV(33.0)
+                .setLowVoltageLimit(30.0)
+                .setHighVoltageLimit(40.0)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl5.getBusBreakerView().newBus()
+                .setId("BUS_5")
+                .add();
+
+        network.newLine()
+                .setId("LINE_43")
+                .setBus1("BUS_4")
+                .setBus2("BUS_3")
+                .setR(0.)
+                .setX(0.)
+                .add();
+
+        network.newLine()
+                .setId("LINE_53")
+                .setBus1("BUS_5")
+                .setBus2("BUS_3")
+                .setR(0.)
+                .setX(0.)
+                .add();
+
+        t2wt = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
+                .setId("T2wT")
+                .setRatedU1(132.0)
+                .setRatedU2(33.0)
+                .setR(17.0)
+                .setX(10.0)
+                .setG(0.00573921028466483)
+                .setB(0.000573921028466483)
+                .setBus1("BUS_2")
+                .setBus2("BUS_5")
+                .add();
+
+        t2wt.newRatioTapChanger()
+                .beginStep()
+                .setRho(0.9)
+                .setR(0.1089)
+                .setX(0.01089)
+                .setG(0.8264462809917356)
+                .setB(0.08264462809917356)
+                .endStep()
+                .beginStep()
+                .setRho(1.0)
+                .setR(0.121)
+                .setX(0.0121)
+                .setG(0.8264462809917356)
+                .setB(0.08264462809917356)
+                .endStep()
+                .beginStep()
+                .setRho(1.1)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .setTapPosition(0)
+                .setLoadTapChangingCapabilities(true)
+                .newVoltageRegulation()
+                    .withRegulating(false)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(network.getLoad("LOAD_3").getTerminal())
+                    .withTargetValue(33.0)
+                    .add()
+                .add();
+
+        t2wt2 = network.getSubstation("SUBSTATION").newTwoWindingsTransformer()
+                .setId("T2wT2")
+                .setRatedU1(132.0)
+                .setRatedU2(33.0)
+                .setR(17.0)
+                .setX(10.0)
+                .setG(0.00573921028466483)
+                .setB(0.000573921028466483)
+                .setBus1("BUS_2")
+                .setBus2("BUS_4")
+                .add();
+
+        t2wt2.newRatioTapChanger()
+                .beginStep()
+                .setRho(0.9)
+                .setR(0.1089)
+                .setX(0.01089)
+                .setG(0.8264462809917356)
+                .setB(0.08264462809917356)
+                .endStep()
+                .beginStep()
+                .setRho(1.0)
+                .setR(0.121)
+                .setX(0.0121)
+                .setG(0.8264462809917356)
+                .setB(0.08264462809917356)
+                .endStep()
+                .beginStep()
+                .setRho(1.1)
+                .setR(0.1331)
+                .setX(0.01331)
+                .setG(0.9090909090909092)
+                .setB(0.09090909090909092)
+                .endStep()
+                .setTapPosition(0)
+                .setLoadTapChangingCapabilities(true)
+                .newVoltageRegulation()
+                    .withRegulating(false)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(network.getLoad("LOAD_3").getTerminal())
+                    .withTargetValue(33.0)
+                    .add()
+                .add();
+
+        return network;
+    }
+
+    private void selectNetwork(Network network) {
+        this.network = network;
+
+        bus1 = network.getBusBreakerView().getBus("BUS_1");
+        bus2 = network.getBusBreakerView().getBus("BUS_2");
+        bus3 = network.getBusBreakerView().getBus("BUS_3");
+        bus4 = network.getBusBreakerView().getBus("BUS_4");
+
+        t2wt = network.getTwoWindingsTransformer("T2wT");
+        t3wt = network.getThreeWindingsTransformer("T3wT");
+    }
+
+    private void selectNetwork2(Network network) {
+        this.network = network;
+
+        bus1 = network.getBusBreakerView().getBus("BUS_1");
+        bus2 = network.getBusBreakerView().getBus("BUS_2");
+        bus3 = network.getBusBreakerView().getBus("BUS_3");
+
+        t2wt = network.getTwoWindingsTransformer("T2wT1");
+        t2wt2 = network.getTwoWindingsTransformer("T2wT2");
+    }
+
+    @Test
+    void testTargetDeadband() {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        t2wt.getRatioTapChanger()
+                .setTapPosition(0)
+                .getVoltageRegulation()
+                    .setTerminal(t2wt.getTerminal2(), 34.0)
+                    .setTargetDeadband(16.0)
+                    .setRegulating(true);
+
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertVoltageEquals(134.281, bus2);
+        assertVoltageEquals(27.00, t2wt.getTerminal2().getBusView().getBus());
+        assertEquals(0, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, t2wt.getRatioTapChanger().getTapPosition());
+    }
+
+    @Test
+    void testGeneratorVoltageControlMinNominalVoltage() {
+        Network network1 = FourBusNetworkFactory.createWithSeveralTransformerVoltageControls();
+        parameters.setTransformerVoltageControlOn(true);
+        parametersExt.setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.AFTER_GENERATOR_VOLTAGE_CONTROL);
+        TwoWindingsTransformer twt1 = network1.getTwoWindingsTransformer("t24");
+        TwoWindingsTransformer twt2 = network1.getTwoWindingsTransformer("t57");
+        TwoWindingsTransformer twt3 = network1.getTwoWindingsTransformer("t56");
+        Bus b4 = network1.getBusBreakerView().getBus("b4");
+        Bus b6 = network1.getBusBreakerView().getBus("b6");
+        // automatic detection of min nominal voltage for generator voltage controls: 90 kV
+        assertNull(twt1.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt1.getRatioTapChanger().getTapPosition());
+        assertNull(twt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
+        assertNull(twt3.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
+        LoadFlowResult result = loadFlowRunner.run(network1, parameters);
+        assertEquals(1, twt1.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt1.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt3.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
+        assertEquals(8, result.getComponentResults().getFirst().getIterationCount());
+        assertVoltageEquals(230.060, b4);
+        assertVoltageEquals(92.050, b6);
+        // we force the min nominal voltage control to 225kV...
+        // 3 transformer voltage controls have been disabled because no PV buses (even behind a transfo)
+        // on not controlled side connected component
+        parametersExt.setGeneratorVoltageControlMinNominalVoltage(230.0);
+        twt1.getRatioTapChanger().setTapPosition(0);
+        twt2.getRatioTapChanger().setTapPosition(0);
+        twt3.getRatioTapChanger().setTapPosition(0);
+        LoadFlowResult result2 = loadFlowRunner.run(network1, parameters);
+        assertEquals(0, twt1.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt1.getRatioTapChanger().getTapPosition());
+        assertEquals(0, twt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
+        assertEquals(0, twt3.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
+        assertEquals(6, result2.getComponentResults().getFirst().getIterationCount());
+        assertVoltageEquals(276.072, b4);
+        assertVoltageEquals(110.460, b6);
+        // we force the min nominal voltage control to 20k...
+        // the 2 generators are kept
+        parametersExt.setGeneratorVoltageControlMinNominalVoltage(20.0);
+        twt1.getRatioTapChanger().setTapPosition(0);
+        twt2.getRatioTapChanger().setTapPosition(0);
+        twt3.getRatioTapChanger().setTapPosition(0);
+        LoadFlowResult result3 = loadFlowRunner.run(network1, parameters);
+        assertEquals(1, twt1.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt1.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt2.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt2.getRatioTapChanger().getTapPosition());
+        assertEquals(1, twt3.getRatioTapChanger().getSolvedTapPosition());
+        assertEquals(0, twt3.getRatioTapChanger().getTapPosition());
+        assertEquals(8, result3.getComponentResults().getFirst().getIterationCount());
+        assertVoltageEquals(230.060, b4);
+        assertVoltageEquals(92.050, b6);
+    }
+
+    @ParameterizedTest
+    @CsvSource(useHeadersInDisplayName = true, textBlock = """
+             twtSplitShuntAdmittance, tap0p1,  tap0p2, tap1p1,  tap1p2, tap2p1,  tap2p2,  tap0v,  tap1v,  tap2v
+             false,                    5.073,    -5.0,  5.159,    -5.0,  5.440,    -5.0, 30.002, 33.152, 35.610
+             true,                     5.073,    -5.0,  5.158,    -5.0,  5.456,    -5.0, 30.084, 33.483, 38.000
+            """
+    )
+    void rxgbChangeOnRtcControlTest(boolean twtSplitShuntAdmittance,
+                                    double tap0p1, double tap0p2, double tap1p1, double tap1p2, double tap2p1, double tap2p2,
+                                    double tap0v, double tap1v, double tap2v) {
+        selectNetwork(VoltageControlNetworkFactory.createNetworkWithT2wt());
+
+        t2wt.setR(2.).setX(20.).setG(1e-4).setB(1e-3);
+
+        t2wt.newRatioTapChanger()
+                .beginStep().setRho(0.9).setR(-50.).setX(-50.).setG(-50.).setB(-50.).endStep()
+                .beginStep().setRho(1.0).setR(0.).setX(0.).setG(0.).setB(0.).endStep()
+                .beginStep().setRho(1.1).setR(150.).setX(150.).setG(150.).setB(150.).endStep()
+                .setTapPosition(0)
+                .setLoadTapChangingCapabilities(true)
+                .newVoltageRegulation()
+                    .withRegulating(false)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(network.getLoad("LOAD_3").getTerminal())
+                    .withTargetValue(33.0)
+                    .add()
+                .add();
+
+        t2wt.getRatioTapChanger().setTapPosition(0).getVoltageRegulation().setRegulating(false);
+
+        parameters
+                .setDistributedSlack(true)
+                .setTransformerVoltageControlOn(true)
+                .setTwtSplitShuntAdmittance(twtSplitShuntAdmittance);
+        parametersExt
+                .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL)
+                .setNewtonRaphsonStoppingCriteriaType(NewtonRaphsonStoppingCriteriaType.PER_EQUATION_TYPE_CRITERIA)
+                .setMaxActivePowerMismatch(1e-3)
+                .setMaxReactivePowerMismatch(1e-3);
+
+        // capture values, no regulation, tap 0
+        t2wt.getRatioTapChanger().setTapPosition(0).getVoltageRegulation().setRegulating(false);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(tap0p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap0p2, t2wt.getTerminal2());
+        assertVoltageEquals(tap0v, bus3);
+
+        // capture values, no regulation, tap 1
+        t2wt.getRatioTapChanger().setTapPosition(1);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(tap1p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap1p2, t2wt.getTerminal2());
+        assertVoltageEquals(tap1v, bus3);
+
+        // capture values, no regulation, tap 2
+        t2wt.getRatioTapChanger().setTapPosition(2);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(tap2p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap2p2, t2wt.getTerminal2());
+        assertVoltageEquals(tap2v, bus3);
+
+        // set at tap 0, enable regulation to have RTC moving to tap 1
+        t2wt.getRatioTapChanger().setTapPosition(0)
+            .getVoltageRegulation()
+                .setTargetValue(33.5)
+                .setTargetDeadband(1.)
+                .setRegulating(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(1, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertActivePowerEquals(tap1p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap1p2, t2wt.getTerminal2());
+        assertVoltageEquals(tap1v, bus3);
+
+        // set at tap 0, enable regulation to have RTC moving to tap 2
+        t2wt.getRatioTapChanger().setTapPosition(0)
+            .getVoltageRegulation()
+                .setTargetValue(37.)
+                .setTargetDeadband(2.)
+                .setRegulating(true);
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertEquals(2, t2wt.getRatioTapChanger().getSolvedTapPosition());
+        assertActivePowerEquals(tap2p1, t2wt.getTerminal1());
+        assertActivePowerEquals(tap2p2, t2wt.getTerminal2());
+        assertVoltageEquals(tap2v, bus3);
+    }
+}

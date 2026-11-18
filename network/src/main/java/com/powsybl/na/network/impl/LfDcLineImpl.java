@@ -1,0 +1,77 @@
+/**
+ * Copyright (c) 2025, SuperGrid Institute (http://www.supergrid-institute.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package com.powsybl.na.network.impl;
+
+import com.powsybl.iidm.network.DcLine;
+import com.powsybl.na.commons.PerUnit;
+import com.powsybl.na.network.*;
+
+import java.util.Objects;
+
+/**
+ * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
+ */
+public class LfDcLineImpl extends AbstractLfDcBranch {
+
+    private final Ref<DcLine> dcLineRef;
+
+    public LfDcLineImpl(LfDcBus dcBus1, LfDcBus dcBus2, LfNetwork network, int numDCC, DcLine dcLine, LfNetworkParameters parameters) {
+        super(network, numDCC, dcBus1, dcBus2, dcLine.getR());
+        this.dcLineRef = Ref.create(dcLine, parameters.isCacheEnabled());
+    }
+
+    private LfDcLineImpl(LfDcLineImpl other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2) {
+        super(other, network, dcBus1, dcBus2);
+        this.dcLineRef = other.dcLineRef;
+    }
+
+    @Override
+    public LfDcBranch copy(LfNetwork copyNetwork) {
+        return new LfDcLineImpl(this,
+                copyNetwork,
+                copyNetwork.getDcBusById(dcBus1.getId()),
+                copyNetwork.getDcBusById(dcBus2.getId()));
+    }
+
+    public static LfDcLineImpl create(DcLine dcLine, LfNetwork network, int numDCC, LfDcBus dcBus1, LfDcBus dcBus2,
+                                      LfNetworkParameters parameters) {
+        Objects.requireNonNull(network);
+        Objects.requireNonNull(dcLine);
+        Objects.requireNonNull(parameters);
+        return new LfDcLineImpl(dcBus1, dcBus2, network, numDCC, dcLine, parameters);
+    }
+
+    private DcLine getDcLine() {
+        return dcLineRef.get();
+    }
+
+    @Override
+    public String getId() {
+        return getDcLine().getId();
+    }
+
+    @Override
+    public void updateFlows(double i1, double i2, double p1, double p2) {
+        var dcLine = getDcLine();
+
+        if (dcBus1 == null || dcBus2 == null) {
+            // Current and power should be zero for both sides
+            dcLine.getDcTerminal1().setI(0);
+            dcLine.getDcTerminal2().setI(0);
+            dcLine.getDcTerminal1().setP(0);
+            dcLine.getDcTerminal2().setP(0);
+            return;
+        }
+        // If a DC bus is grounded, its current and power variable are NaN.
+        // However, we can infer them from the other DC bus (power should be zero)
+        dcLine.getDcTerminal1().setI((dcBus1.isGrounded() ? -i2 : i1) * PerUnit.ibDc(dcBus1.getNominalV()));
+        dcLine.getDcTerminal2().setI((dcBus2.isGrounded() ? -i1 : i2) * PerUnit.ibDc(dcBus2.getNominalV()));
+        dcLine.getDcTerminal1().setP((dcBus1.isGrounded() ? -i2 * dcBus1.getV() : p1) * PerUnit.SB);
+        dcLine.getDcTerminal2().setP((dcBus2.isGrounded() ? -i1 * dcBus2.getV() : p2) * PerUnit.SB);
+    }
+}

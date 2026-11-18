@@ -1,0 +1,219 @@
+/*
+ * Copyright (c) 2022-2025, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package com.powsybl.openloadflow.sa;
+
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.config.InMemoryPlatformConfig;
+import com.powsybl.commons.config.MapModuleConfig;
+import com.powsybl.commons.test.AbstractSerDeTest;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.na.commons.PowsyblOpenLoadFlowVersion;
+import com.powsybl.na.commons.ProviderConstants;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.security.SecurityAnalysisParameters;
+import com.powsybl.security.json.JsonSecurityAnalysisParameters;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ */
+class OpenSecurityAnalysisProviderTest extends AbstractSerDeTest {
+
+    private OpenSecurityAnalysisProvider provider;
+
+    @BeforeEach
+    public void setUp() throws IOException {
+        super.setUp();
+        provider = new OpenSecurityAnalysisProvider();
+    }
+
+    @Test
+    void basicTest() {
+        assertEquals(ProviderConstants.NAME, provider.getName());
+        assertEquals(new PowsyblOpenLoadFlowVersion().getMavenProjectVersion(), provider.getVersion());
+        assertEquals(ProviderConstants.NAME, provider.getLoadFlowProviderName().orElseThrow());
+    }
+
+    @Test
+    void specificParametersNamesTest() {
+        assertEquals(List.of("createResultExtension", "contingencyPropagation", "threadCount", "dcFastMode", "contingencyActivePowerLossDistribution", "startWithFrozenACEmulation"),
+            provider.getSpecificParametersNames());
+    }
+
+    @Test
+    void specificParametersFromDefaultPlatformConfigTest() {
+        InMemoryPlatformConfig platformConfig = new InMemoryPlatformConfig(fileSystem);
+        OpenSecurityAnalysisParameters parametersExt = (OpenSecurityAnalysisParameters) provider.loadSpecificParameters(platformConfig).orElseThrow();
+        assertEquals("open-security-analysis-parameters", parametersExt.getName());
+        int testCount = 0;
+
+        assertFalse(parametersExt.isCreateResultExtension());
+        parametersExt.setCreateResultExtension(true);
+        assertTrue(parametersExt.isCreateResultExtension());
+        testCount++;
+
+        assertTrue(parametersExt.isContingencyPropagation());
+        parametersExt.setContingencyPropagation(false);
+        assertFalse(parametersExt.isContingencyPropagation());
+        testCount++;
+
+        assertFalse(parametersExt.isDcFastMode());
+        parametersExt.setDcFastMode(true);
+        assertTrue(parametersExt.isDcFastMode());
+        testCount++;
+
+        assertTrue(parametersExt.isStartWithFrozenACEmulation());
+        parametersExt.setStartWithFrozenACEmulation(false);
+        assertFalse(parametersExt.isStartWithFrozenACEmulation());
+        testCount++;
+
+        assertEquals(1, parametersExt.getThreadCount());
+        parametersExt.setThreadCount(3);
+        assertEquals(3, parametersExt.getThreadCount());
+        testCount++;
+
+        assertEquals("Default", parametersExt.getContingencyActivePowerLossDistribution());
+        assertThrows(PowsyblException.class, () -> parametersExt.setContingencyActivePowerLossDistribution("Unknown"));
+        assertEquals("Default", parametersExt.getContingencyActivePowerLossDistribution());
+        testCount++;
+
+        assertEquals(OpenSecurityAnalysisParameters.SPECIFIC_PARAMETERS_NAMES.size(), testCount);
+    }
+
+    @Test
+    void specificParametersFromPlatformConfigTest() {
+        InMemoryPlatformConfig platformConfig = new InMemoryPlatformConfig(fileSystem);
+        MapModuleConfig moduleConfig = platformConfig.createModuleConfig("open-security-analysis-default-parameters");
+        moduleConfig.setStringProperty("createResultExtension", "true");
+        moduleConfig.setStringProperty("contingencyPropagation", "false");
+        moduleConfig.setStringProperty("dcFastMode", "true");
+        moduleConfig.setStringProperty("startWithFrozenACEmulation", "false");
+        moduleConfig.setStringProperty("threadCount", "3");
+        moduleConfig.setStringProperty("contingencyActivePowerLossDistribution", "Default");
+
+        OpenSecurityAnalysisParameters parametersExt = (OpenSecurityAnalysisParameters) provider.loadSpecificParameters(platformConfig).orElseThrow();
+        assertTrue(parametersExt.isCreateResultExtension());
+        assertFalse(parametersExt.isContingencyPropagation());
+        assertTrue(parametersExt.isDcFastMode());
+        assertFalse(parametersExt.isStartWithFrozenACEmulation());
+        assertEquals(3, parametersExt.getThreadCount());
+        // check test completeness
+
+        assertEquals(OpenSecurityAnalysisParameters.SPECIFIC_PARAMETERS_NAMES.size(), moduleConfig.getPropertyNames().size());
+
+    }
+
+    @Test
+    void specificParametersFromEmptyPropertiesTest() {
+        OpenSecurityAnalysisParameters parametersExt = (OpenSecurityAnalysisParameters) provider.loadSpecificParameters(Collections.emptyMap()).orElseThrow();
+        assertFalse(parametersExt.isCreateResultExtension());
+        assertTrue(parametersExt.isContingencyPropagation());
+        assertFalse(parametersExt.isDcFastMode());
+    }
+
+    @Test
+    void specificParametersFromPropertiesTest() {
+        Map<String, String> properties = Map.of("createResultExtension", "true",
+                "contingencyPropagation", "false",
+                "dcFastMode", "true",
+                "threadCount", "3",
+                "startWithFrozenACEmulation", "false",
+                "contingencyActivePowerLossDistribution", "Default");
+        OpenSecurityAnalysisParameters parametersExt = (OpenSecurityAnalysisParameters) provider.loadSpecificParameters(properties).orElseThrow();
+        assertTrue(parametersExt.isCreateResultExtension());
+        assertFalse(parametersExt.isContingencyPropagation());
+        assertTrue(parametersExt.isDcFastMode());
+        assertEquals(3, parametersExt.getThreadCount());
+        assertFalse(parametersExt.isStartWithFrozenACEmulation());
+        assertEquals("Default", parametersExt.getContingencyActivePowerLossDistribution());
+
+        // check test completeness
+        assertEquals(OpenSecurityAnalysisParameters.SPECIFIC_PARAMETERS_NAMES.size(), properties.size());
+    }
+
+    @Test
+    void jsonTest() throws IOException {
+        SecurityAnalysisParameters parameters = new SecurityAnalysisParameters();
+        OpenSecurityAnalysisParameters parametersExt = new OpenSecurityAnalysisParameters()
+                .setCreateResultExtension(true)
+                .setContingencyPropagation(false)
+                .setDcFastMode(true)
+                .setThreadCount(3)
+                .setStartWithFrozenACEmulation(false);
+        parameters.addExtension(OpenSecurityAnalysisParameters.class, parametersExt);
+        roundTripTest(parameters, JsonSecurityAnalysisParameters::write, JsonSecurityAnalysisParameters::read, "/sa-params.json");
+    }
+
+    @Test
+    void testParamsExtensionJsonUpdate() {
+
+        // some params with non-default values
+        LoadFlowParameters p = new LoadFlowParameters()
+                .setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
+                .setUseReactiveLimits(false);
+        OpenLoadFlowParameters op = OpenLoadFlowParameters.create(p)
+                .setMaxNewtonRaphsonIterations(30)
+                .setMaxNewtonKrylovIterations(50);
+        SecurityAnalysisParameters sp = new SecurityAnalysisParameters()
+                .setLoadFlowParameters(p);
+        OpenSecurityAnalysisParameters osp = new OpenSecurityAnalysisParameters()
+                .setThreadCount(2)
+                .setCreateResultExtension(true);
+        sp.addExtension(OpenSecurityAnalysisParameters.class, osp);
+
+        assertEquals(LoadFlowParameters.VoltageInitMode.UNIFORM_VALUES, p.getVoltageInitMode());
+        assertFalse(op.isNewtonKrylovLineSearch());
+        assertFalse(osp.isDcFastMode());
+
+        byte[] json = """
+            {
+              "version" : "1.3",
+              "load-flow-parameters" : {
+                "version" : "1.11",
+                "voltageInitMode" : "DC_VALUES",
+                "extensions": {
+                  "open-load-flow-parameters": {
+                    "maxNewtonRaphsonIterations": 35,
+                    "newtonKrylovLineSearch" : true
+                  }
+                }
+              },
+              "extensions" : {
+                "open-security-analysis-parameters" : {
+                  "threadCount": 4,
+                  "dcFastMode": true
+                }
+              }
+            }
+            """.getBytes(StandardCharsets.UTF_8);
+
+        JsonSecurityAnalysisParameters.update(sp, new ByteArrayInputStream(json));
+
+        // unchanged
+        assertEquals(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD, p.getBalanceType());
+        assertFalse(p.isUseReactiveLimits());
+        assertEquals(50, op.getMaxNewtonKrylovIterations());
+        assertTrue(osp.isCreateResultExtension());
+
+        // updated
+        assertEquals(35, op.getMaxNewtonRaphsonIterations());
+        assertTrue(op.isNewtonKrylovLineSearch());
+        assertTrue(osp.isDcFastMode());
+        assertEquals(4, osp.getThreadCount());
+    }
+}
