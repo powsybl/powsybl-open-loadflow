@@ -19,6 +19,15 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.BoundaryFactory;
+import com.powsybl.openloadflow.test.networks.DistributedSlackNetworkFactory;
+import com.powsybl.openloadflow.test.networks.EurostagFactory;
+import com.powsybl.openloadflow.test.networks.HvdcNetworkFactory;
+import com.powsybl.openloadflow.test.networks.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.test.networks.ShuntNetworkFactory;
+import com.powsybl.openloadflow.test.networks.VoltageControlNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -34,7 +43,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**

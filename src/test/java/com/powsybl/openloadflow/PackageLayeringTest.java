@@ -90,7 +90,7 @@ class PackageLayeringTest {
         noClasses().that().resideInAPackage("com.powsybl.openloadflow.network..")
                 .should().dependOnClassesThat(resideInAPackage("com.powsybl.openloadflow..")
                         .and(resideOutsideOfPackages("com.powsybl.openloadflow.network..", "com.powsybl.openloadflow.graph..",
-                                "com.powsybl.openloadflow.util")))
+                                "com.powsybl.openloadflow.util", "com.powsybl.openloadflow.test..")))
                 .check(networkClasses);
     }
 
@@ -106,7 +106,19 @@ class PackageLayeringTest {
                 .should().dependOnClassesThat(resideInAPackage("com.powsybl.openloadflow..")
                         .and(resideOutsideOfPackages("com.powsybl.openloadflow.equations..", "com.powsybl.openloadflow.ac.equations..",
                                 "com.powsybl.openloadflow.dc.equations..", "com.powsybl.openloadflow.adm..",
-                                "com.powsybl.openloadflow.network..", "com.powsybl.openloadflow.graph..", "com.powsybl.openloadflow.util")))
+                                "com.powsybl.openloadflow.network..", "com.powsybl.openloadflow.graph..", "com.powsybl.openloadflow.util",
+                                "com.powsybl.openloadflow.test..")))
                 .check(equationsClasses);
+    }
+
+    @Test
+    void testUtilitiesOnlyDependOnUtil() {
+        JavaClasses testClasses = new ClassFileImporter()
+                .withImportOption(ImportOption.Predefined.ONLY_INCLUDE_TESTS)
+                .importPackages("com.powsybl.openloadflow.test");
+        noClasses().that().resideInAPackage("com.powsybl.openloadflow.test..")
+                .should().dependOnClassesThat(resideInAPackage("com.powsybl.openloadflow..")
+                        .and(resideOutsideOfPackages("com.powsybl.openloadflow.test..", "com.powsybl.openloadflow.util")))
+                .check(testClasses);
     }
 }

@@ -27,7 +27,6 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
@@ -40,7 +39,20 @@ import com.powsybl.openloadflow.lf.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.LoadFlowAssert;
+import com.powsybl.openloadflow.test.networks.BoundaryFactory;
+import com.powsybl.openloadflow.test.networks.ConnectedComponentNetworkFactory;
+import com.powsybl.openloadflow.test.networks.DistributedSlackNetworkFactory;
+import com.powsybl.openloadflow.test.networks.EurostagFactory;
+import com.powsybl.openloadflow.test.networks.FourBusNetworkFactory;
+import com.powsybl.openloadflow.test.networks.HvdcNetworkFactory;
+import com.powsybl.openloadflow.test.networks.MetrixTutorialSixBusesSecurityAnalysisFactory;
+import com.powsybl.openloadflow.test.networks.MultiAreaNetworkFactory;
+import com.powsybl.openloadflow.test.networks.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.test.networks.PhaseControlFactory;
+import com.powsybl.openloadflow.test.networks.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.test.networks.ZeroImpedanceNetworkFactory;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.PostContingencyComputationStatus;
 import com.powsybl.security.SecurityAnalysisParameters;
@@ -67,7 +79,7 @@ import java.util.concurrent.CompletionException;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**

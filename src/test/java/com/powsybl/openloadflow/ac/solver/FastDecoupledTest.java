@@ -19,12 +19,17 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.lf.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.EurostagFactory;
+import com.powsybl.openloadflow.test.networks.FourBusNetworkFactory;
+import com.powsybl.openloadflow.test.networks.PhaseControlFactory;
+import com.powsybl.openloadflow.test.networks.ShuntNetworkFactory;
+import com.powsybl.openloadflow.test.networks.VoltageControlNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,7 +42,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReportEquals;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.assertReportEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**

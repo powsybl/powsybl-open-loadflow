@@ -13,13 +13,14 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.solver.NewtonRaphsonStoppingCriteriaType;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.EurostagFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,8 +29,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.assertActivePowerEquals;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.assertReactivePowerEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

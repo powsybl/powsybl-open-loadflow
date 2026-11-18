@@ -1,4 +1,4 @@
-package com.powsybl.openloadflow.network;
+package com.powsybl.openloadflow.test.networks;
 
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.EnergySource;
