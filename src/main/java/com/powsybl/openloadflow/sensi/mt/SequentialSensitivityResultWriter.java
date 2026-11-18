@@ -69,12 +69,12 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
 
     @Override
     public void computationComplete() {
-
+        sensitivityResultWriter.computationComplete();
     }
 
     @Override
     public boolean isComputationComplete() {
-        return false;
+        return sensitivityResultWriter.isComputationComplete();
     }
 
     public void flush() {
