@@ -21,6 +21,7 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcStateVectorUtil;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
@@ -82,7 +83,7 @@ class AcSolverFactoryTest {
 
         @Override
         public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
-            AcSolverUtil.initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
+            AcStateVectorUtil.initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
             LOGGER.info("I am a not so advanced solver only able to return flat 1 p.u. /_ 0.0, in max iterations, leaving 34 MW slack mismatch.");
             return new AcSolverResult(AcSolverStatus.CONVERGED, parameters.maxIterations(), Collections.singletonMap(0, 0.34));
         }

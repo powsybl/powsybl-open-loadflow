@@ -25,7 +25,6 @@ import com.powsybl.openloadflow.ac.AcLoadFlowResult;
 import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
-import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.equations.Derivable;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
@@ -1008,7 +1007,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         } else {
             // it means that the contingency has no impact.
             // we need to force the state vector to be re-initialized from base case network state
-            AcSolverUtil.initStateVector(lfNetwork, context.getEquationSystem(), context.getParameters().getVoltageInitializer());
+            AcStateVectorUtil.initStateVector(lfNetwork, context.getEquationSystem(), context.getParameters().getVoltageInitializer());
 
             calculateSensitivityValues(validFactorHolder.getFactorsForContingency(lfNetworkChange.getContingencyId()),
                     factorGroups, factorsStates, lfNetworkChange.getContingencyIndex(), lfNetworkChange.getOperatorStrategyIndex(), resultWriter);

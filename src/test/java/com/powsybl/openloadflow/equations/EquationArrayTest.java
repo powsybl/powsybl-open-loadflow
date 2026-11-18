@@ -11,11 +11,8 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.SparseMatrix;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.ac.AcLoadFlowContext;
-import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.equations.vector.*;
-import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
@@ -41,7 +38,7 @@ class EquationArrayTest {
             equationSystem.getEquation(bus2.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow()
                     .addTerm(new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), false, false));
         }
-        AcSolverUtil.initStateVector(lfNetwork, equationSystem, new UniformValueVoltageInitializer());
+        AcStateVectorUtil.initStateVector(lfNetwork, equationSystem, new UniformValueVoltageInitializer());
         return equationSystem;
     }
 
@@ -66,7 +63,7 @@ class EquationArrayTest {
             p2Array.addTerm(bus2, branch);
         }
         networkVector.startListening();
-        AcSolverUtil.initStateVector(lfNetwork, equationSystem, new UniformValueVoltageInitializer());
+        AcStateVectorUtil.initStateVector(lfNetwork, equationSystem, new UniformValueVoltageInitializer());
         p1Array.compress();
         p2Array.compress();
         return equationSystem;
@@ -139,12 +136,12 @@ class EquationArrayTest {
         Network network = FourBusNetworkFactory.createWithTwoScs();
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
 
-        try (var acContext = new AcLoadFlowContext(lfNetwork, new AcLoadFlowParameters().setMatrixFactory(new SparseMatrixFactory()))) {
-            acContext.getJacobianMatrix().initDer();
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcVectorizedEquationSystemCreator(lfNetwork, new AcEquationSystemCreationParameters()).create();
+        try (var jacobianMatrix = new JacobianMatrix<>(equationSystem, new SparseMatrixFactory())) {
             int[] expectedRowIndices = {0, 1, 6, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            int[] rowIndices = ((SparseMatrix) acContext.getJacobianMatrix().matrix).getRowIndices();
+            int[] rowIndices = ((SparseMatrix) jacobianMatrix.getMatrix()).getRowIndices();
             int[] expectedColumnStarts = {0, 1, 2, 3, 9, 17, 23, 29, 37};
-            int[] columnStarts = ((SparseMatrix) acContext.getJacobianMatrix().matrix).getColumnStart();
+            int[] columnStarts = ((SparseMatrix) jacobianMatrix.getMatrix()).getColumnStart();
             assertArrayEquals(expectedRowIndices, rowIndices);
             assertArrayEquals(expectedColumnStarts, columnStarts);
         }

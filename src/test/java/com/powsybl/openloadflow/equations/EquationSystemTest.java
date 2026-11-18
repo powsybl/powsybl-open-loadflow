@@ -13,13 +13,11 @@ import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.openloadflow.ac.AcTargetVector;
 import com.powsybl.openloadflow.ac.equations.AcEquationSystemCreator;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcStateVectorUtil;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.equations.vector.AcVectorizedEquationSystemCreator;
-import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
-import com.powsybl.openloadflow.ac.solver.NewtonRaphson;
 import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
@@ -252,42 +250,13 @@ class EquationSystemTest {
     }
 
     @Test
-    void findLargestMismatchesTest() {
-        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
-        LfNetwork mainNetwork = lfNetworks.get(0);
-
-        EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcEquationSystemCreator(mainNetwork).create();
-        AcSolverUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
-        double[] targets = TargetVector.createArray(mainNetwork, equationSystem, new TargetVector.Initializer<AcVariableType, AcEquationType>() {
-            @Override
-            public void initialize(SingleEquation<AcVariableType, AcEquationType> equation, LfNetwork network, double[] targets) {
-                AcTargetVector.init(equation, network, targets);
-            }
-
-            @Override
-            public void initialize(EquationArray<AcVariableType, AcEquationType> equationArray, LfNetwork network, double[] targets) {
-                AcTargetVector.init(equationArray, network, targets);
-            }
-        });
-        try (var equationVector = new EquationVector<>(equationSystem)) {
-            Vectors.minus(equationVector.getArray(), targets);
-            var largestMismatches = NewtonRaphson.findLargestMismatches(equationSystem, equationVector.getArray(), 3);
-            assertEquals(3, largestMismatches.size());
-            assertEquals(-7.397518453004565, largestMismatches.get(0).getValue(), 0);
-            assertEquals(5.999135514403292, largestMismatches.get(1).getValue(), 0);
-            assertEquals(1.9259062775721603, largestMismatches.get(2).getValue(), 0);
-        }
-    }
-
-    @Test
     void currentMagnitudeTest() {
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
         List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector());
         LfNetwork mainNetwork = lfNetworks.get(0);
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcEquationSystemCreator(mainNetwork).create();
-        AcSolverUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
+        AcStateVectorUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
         LfBranch branch = mainNetwork.getBranchById("NHV1_NHV2_1");
         SingleEquationTerm<AcVariableType, AcEquationType> i1 = (SingleEquationTerm<AcVariableType, AcEquationType>) branch.getI1();
         SingleEquationTerm<AcVariableType, AcEquationType> i2 = (SingleEquationTerm<AcVariableType, AcEquationType>) branch.getI2();
@@ -315,7 +284,7 @@ class EquationSystemTest {
         LfNetwork mainNetwork = lfNetworks.get(0);
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcEquationSystemCreator(mainNetwork).create();
-        AcSolverUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
+        AcStateVectorUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
         LfBranch branch = mainNetwork.getBranchById("NHV1_NHV2_1");
         SingleEquationTerm<AcVariableType, AcEquationType> i1 = (SingleEquationTerm<AcVariableType, AcEquationType>) branch.getI1();
         Variable<AcVariableType> v1var = equationSystem.getVariableSet().getVariable(branch.getBus1().getNum(), AcVariableType.BUS_V);
@@ -333,7 +302,7 @@ class EquationSystemTest {
         LfNetwork mainNetwork = lfNetworks.get(0);
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new AcEquationSystemCreator(mainNetwork).create();
-        AcSolverUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
+        AcStateVectorUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
         LfBranch branch = mainNetwork.getBranchById("NHV1_NHV2_1");
         SingleEquationTerm<AcVariableType, AcEquationType> i2 = (SingleEquationTerm<AcVariableType, AcEquationType>) branch.getI2();
         Variable<AcVariableType> v2var = equationSystem.getVariableSet().getVariable(branch.getBus2().getNum(), AcVariableType.BUS_V);

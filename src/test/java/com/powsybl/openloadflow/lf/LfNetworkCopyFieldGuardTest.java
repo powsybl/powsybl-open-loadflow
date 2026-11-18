@@ -5,9 +5,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.network.impl;
+package com.powsybl.openloadflow.lf;
 
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.AbstractImpedantLfBranch;
+import com.powsybl.openloadflow.network.impl.AbstractLfAcDcConverter;
+import com.powsybl.openloadflow.network.impl.AbstractLfBranch;
+import com.powsybl.openloadflow.network.impl.AbstractLfBus;
+import com.powsybl.openloadflow.network.impl.AbstractLfDcBranch;
+import com.powsybl.openloadflow.network.impl.AbstractLfDcBus;
+import com.powsybl.openloadflow.network.impl.AbstractLfGenerator;
+import com.powsybl.openloadflow.network.impl.AbstractLfInjection;
+import com.powsybl.openloadflow.network.impl.LfAreaImpl;
+import com.powsybl.openloadflow.network.impl.LfBatteryImpl;
+import com.powsybl.openloadflow.network.impl.LfBoundaryLineBranch;
+import com.powsybl.openloadflow.network.impl.LfBoundaryLineBus;
+import com.powsybl.openloadflow.network.impl.LfBoundaryLineGenerator;
+import com.powsybl.openloadflow.network.impl.LfBranchImpl;
+import com.powsybl.openloadflow.network.impl.LfBusImpl;
+import com.powsybl.openloadflow.network.impl.LfDcBusImpl;
+import com.powsybl.openloadflow.network.impl.LfDcLineImpl;
+import com.powsybl.openloadflow.network.impl.LfDcSwitchImpl;
+import com.powsybl.openloadflow.network.impl.LfGeneratorImpl;
+import com.powsybl.openloadflow.network.impl.LfHvdcImpl;
+import com.powsybl.openloadflow.network.impl.LfLegBranch;
+import com.powsybl.openloadflow.network.impl.LfLoadImpl;
+import com.powsybl.openloadflow.network.impl.LfShuntImpl;
+import com.powsybl.openloadflow.network.impl.LfStarBus;
+import com.powsybl.openloadflow.network.impl.LfStaticVarCompensatorImpl;
+import com.powsybl.openloadflow.network.impl.LfSwitch;
+import com.powsybl.openloadflow.network.impl.LfTieLineBranch;
+import com.powsybl.openloadflow.network.impl.LfVoltageSourceConverterImpl;
+import com.powsybl.openloadflow.network.impl.LfVscConverterStationImpl;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
@@ -49,7 +78,7 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(AbstractLfBranch.class, Set.of("bus1", "bus2", "currentLimits1", "activePowerLimits1", "apparentPowerLimits1", "currentLimits2", "activePowerLimits2",
                 "apparentPowerLimits2", "piModel", "phaseControl", "phaseControlEnabled", "voltageControl", "voltageControlEnabled", "transformerReactivePowerControl",
                 "zeroImpedanceContextByModel", "a1", "generatorReactivePowerControl", "asymLine"));
-        expected.put(AbstractLfBranch.ZeroImpedanceContext.class, Set.of("spanningTreeEdge", "zeroImpedance"));
+        expected.put(innerClass(AbstractLfBranch.class, "ZeroImpedanceContext"), Set.of("spanningTreeEdge", "zeroImpedance"));
         expected.put(AbstractLfBus.class, Set.of("slack", "reference", "v", "calculatedV", "angle", "hasGeneratorsWithSlope", "generatorVoltageControlEnabled",
                 "generatorReactivePowerControlEnabled", "generationTargetP", "generationTargetQ", "invalidatedGenerationTargetQ", "qLimitType", "generators",
                 "converters", "shunt", "controllerShunt", "svcShunt", "distributedOnConformLoad", "loads", "loadTargetP", "loadTargetQ", "branches", "hvdcs",

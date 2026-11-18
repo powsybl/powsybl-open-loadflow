@@ -24,7 +24,6 @@ import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.equations.asym.*;
-import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.ac.solver.FastDecoupledFactory;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
@@ -93,7 +92,7 @@ public class AsymmetricalLoadFlowTest {
         LfNetwork mainNetwork = lfNetworks.get(0);
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new AsymmetricalAcEquationSystemCreator(mainNetwork, new AcEquationSystemCreationParameters()).create();
-        AcSolverUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
+        AcStateVectorUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
 
         LfBranch branch = mainNetwork.getBranchById("B1_B2");
         assertEquals(2, equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_ZERO).get().getTerms().size());

@@ -5,9 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.network.impl;
+package com.powsybl.openloadflow.lf;
 
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.impl.Ref;
 import com.powsybl.openloadflow.util.Evaluable;
 
 import java.lang.reflect.Field;
