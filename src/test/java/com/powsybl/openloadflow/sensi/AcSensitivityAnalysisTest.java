@@ -23,6 +23,7 @@ import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder
 import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
@@ -140,8 +141,19 @@ class AcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
             }
 
             @Override
-            public void writeStateStatus(int contingencyIndex, int operatorStrategyIndex, SensitivityAnalysisResult.Status status) {
+            public void writeStateStatus(int contingencyIndex, int operatorStrategyIndex,
+                                  int connectedComponentNum, int synchronousComponentNum,
+                                  LoadFlowResult.ComponentResult.Status status, String statusText) {
                 statusCallCount.incrementAndGet();
+            }
+
+            @Override
+            public void computationComplete() {
+            }
+
+            @Override
+            public boolean isComputationComplete() {
+                return false;
             }
         };
 

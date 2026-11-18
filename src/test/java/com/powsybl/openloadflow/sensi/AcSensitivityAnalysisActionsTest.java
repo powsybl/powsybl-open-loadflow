@@ -22,6 +22,7 @@ import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.serde.NetworkSerDe;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
@@ -78,8 +79,8 @@ class AcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         assertEquals(5, result.getValues(contSimpleState).size());
         assertEquals(5, result.getValues(contDoubleState).size());
 
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contSimpleState));
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contDoubleState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contSimpleState).getFirst().status());
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contDoubleState).getFirst().status());
 
         // sensi N
         assertEquals(0.0509d, result.getSensitivityValue(SensitivityState.PRE_CONTINGENCY, "g2", "l14", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, SensitivityVariableType.INJECTION_ACTIVE_POWER),
@@ -176,8 +177,8 @@ class AcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
 
         var contSimpleState = SensitivityState.postContingency("l23");
         var contAndOpStratState = new SensitivityState("l23", "open l14");
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contSimpleState));
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contAndOpStratState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contSimpleState).getFirst().status());
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contAndOpStratState).getFirst().status());
 
         // should give results equivalent to the previous test with a double contingency
 
@@ -270,7 +271,7 @@ class AcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
 
         var openCState = new SensitivityState(null, "open C");
         assertEquals(1, result.getStateStatuses().size());
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(openCState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(openCState).getFirst().status());
 
         // reference flow N, 300MW on each
         assertEquals(301.884d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
@@ -310,7 +311,7 @@ class AcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
 
         var reconnectState = new SensitivityState(null, "reconnect");
         assertEquals(1, result.getStateStatuses().size());
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(reconnectState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(reconnectState).getFirst().status());
 
         // reference flow N, 600 MW on L2
         assertTrue(Double.isNaN(result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1)));
@@ -365,7 +366,7 @@ class AcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
 
         var reconnectState = new SensitivityState(null, reconnect.getId());
         assertEquals(1, result.getStateStatuses().size());
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(reconnectState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(reconnectState).getFirst().status());
 
         assertTrue(Double.isNaN(result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "FFR1AA1  FFR2AA1  1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1)));
         assertTrue(Double.isNaN(result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "FFR2AA1  FFR3AA1  1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1)));
@@ -430,7 +431,7 @@ class AcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
 
         var reconnectState = new SensitivityState(contingencies.getFirst().getId(), os.getId());
         assertEquals(3, result.getStateStatuses().size());
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(reconnectState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(reconnectState).getFirst().status());
 
         assertEquals(preContRefValues.get("FFR2AA1  DDE3AA1  1"), result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "FFR2AA1  DDE3AA1  1", SensitivityFunctionType.BRANCH_CURRENT_2),
                 LoadFlowAssert.DELTA_POWER);

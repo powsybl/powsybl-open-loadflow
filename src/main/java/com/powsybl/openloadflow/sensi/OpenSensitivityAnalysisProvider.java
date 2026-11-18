@@ -237,6 +237,7 @@ public class OpenSensitivityAnalysisProvider implements SensitivityAnalysisProvi
         }
         analysis.analyse(network, workingVariantId, contingencies, operatorStrategies, actions, creationParameters, variableSets,
                 decoratedFactorReader, resultWriter, sensiReportNode, sensitivityAnalysisParametersExt, computationManager.getExecutor());
+        resultWriter.computationComplete();
         return null;
     }
 
