@@ -152,8 +152,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
                 eq = itSortedSingleEquation.hasNext() ? itSortedSingleEquation.next() : null;
             }
             while (eqArray != null && index == eqArray.getFirstColumn()) { // Compute derivatives of next EquationArrays
-                eqArray.der((column, row, value, matrixElementIndex) ->
-                        matrix.addAndGetIndex(row, column, value), true);
+                eqArray.der(matrix, true, true);
                 index += eqArray.getLength();
                 eqArray = itSortedEquationArray.hasNext() ? itSortedEquationArray.next() : null;
             }
@@ -174,7 +173,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         clearLu();
     }
 
-    protected void updateDer(boolean recomputeRows) {
+    protected void updateDer(boolean termActiveStatusesHaveChanged) {
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
@@ -186,10 +185,7 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
             });
         }
         for (var eq : equationSystem.getIndex().getSortedEquationArraysToSolve()) {
-            eq.der((column, row, value, matrixElementIndex) -> {
-                matrix.addAtIndex(matrixElementIndex, value);
-                return matrixElementIndex;
-            }, recomputeRows);
+            eq.der(matrix, false, termActiveStatusesHaveChanged);
         }
 
         LOGGER.debug(PERFORMANCE_MARKER, "Jacobian matrix values updated in {} us", stopwatch.elapsed(TimeUnit.MICROSECONDS));
@@ -205,9 +201,9 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
-    private void updateValues(boolean recomputeRows) {
-        updateDer(recomputeRows);
-        boolean allowIncrementalUpdate = !recomputeRows;
+    private void updateValues(boolean termActiveStatusesHaveChanged) {
+        updateDer(termActiveStatusesHaveChanged);
+        boolean allowIncrementalUpdate = !termActiveStatusesHaveChanged;
         try {
             updateLu(allowIncrementalUpdate);
         } catch (MatrixException ex) {

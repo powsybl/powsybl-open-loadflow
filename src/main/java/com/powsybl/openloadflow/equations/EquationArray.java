@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.equations;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.math.matrix.Matrix;
 import com.powsybl.openloadflow.network.LfElement;
 import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.map.TIntIntMap;
@@ -120,13 +121,13 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         private final TIntArrayList indexes = new TIntArrayList();
 
         private int get(int i) {
-            if (i >= indexes.size()) {
-                indexes.add(-1);
-            }
             return indexes.getQuick(i);
         }
 
         private void set(int i, int index) {
+            if (i >= indexes.size()) {
+                indexes.add(-1);
+            }
             indexes.setQuick(i, index);
         }
 
@@ -200,7 +201,6 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     private void invalidateElementNumToColumn() {
         elementNumToColumn = null;
         columnToElementNum = null;
-        matrixElementIndexes.reset();
     }
 
     public EquationSystem<V, E> getEquationSystem() {
@@ -494,11 +494,13 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
     }
 
-    public void der(DerHandler handler, boolean recomputeRows) {
-        Objects.requireNonNull(handler);
-
-        buildEquationDerivativeVectors();
-        equationDerivativeVector.update(recomputeRows);
+    public void der(Matrix matrix, boolean recomputeRows, boolean recomputeActiveStatuses) {
+        Objects.requireNonNull(matrix);
+        buildEquationDerivativeVectors(); // only called at first computation, never reinitialized for the same equation system
+        if (recomputeRows) { // If recomputeRows, jacobian matrix structure changed, der is reinitialized
+            matrixElementIndexes.reset();
+        }
+        equationDerivativeVector.update(recomputeRows, recomputeActiveStatuses);
         updateAdditionalTerms(recomputeRows);
         valueIndex = 0;
 
@@ -526,7 +528,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                      cellIndex++) {
                     row = equationDerivativeVector.rowsByCell[cellIndex];
                     if (row != -1) {
-                        onDer(handler, column, row, equationDerivativeVector.valuesByCell[cellIndex]);
+                        fillMatrix(matrix, recomputeRows, column, row, equationDerivativeVector.valuesByCell[cellIndex]);
                     }
                 }
             } else {
@@ -553,23 +555,26 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                                 additionalRows[i] = -1; // removing this row to keep only remaining cells to compute
                             }
                         }
-                        onDer(handler, column, row, value);
+                        fillMatrix(matrix, recomputeRows, column, row, value);
                     }
                 }
                 // Filling remaining cells that were not in the EquationDerivativeVector
                 for (int i = 0; i < additionalRows.length; i++) {
                     if (additionalRows[i] != -1) {
-                        onDer(handler, column, additionalRows[i], additionalDers[i]);
+                        fillMatrix(matrix, recomputeRows, column, additionalRows[i], additionalDers[i]);
                     }
                 }
             }
         }
     }
 
-    private void onDer(DerHandler handler, int column, int row, double value) {
-        int matrixElementIndex = handler.onDer(column, row, value, matrixElementIndexes.get(valueIndex));
-        matrixElementIndexes.set(valueIndex, matrixElementIndex);
-        valueIndex++;
+    private void fillMatrix(Matrix matrix, boolean recomputeRows, int column, int row, double value) {
+        if (recomputeRows) {
+            int matrixElementIndex = matrix.addAndGetIndex(row, column, value);
+            matrixElementIndexes.set(valueIndex++, matrixElementIndex);
+        } else {
+            matrix.setQuickAtIndex(matrixElementIndexes.get(valueIndex++), value);
+        }
     }
 
     public void write(Writer writer, boolean writeInactiveEquations) throws IOException {

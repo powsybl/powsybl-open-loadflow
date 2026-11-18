@@ -24,6 +24,7 @@ class EquationDerivativeVector {
     private final double[] valuesByTerm;
     private final double[][] termDerValues;
     private final MutableBoolean[] termActiveRef;
+    private final boolean[] termActive;
     private final int nbTerms;
 
     protected final double[] valuesByCell;
@@ -42,6 +43,7 @@ class EquationDerivativeVector {
         termDerValues = new double[nbTerms][];
         valuesByTerm = new double[nbTerms];
         termActiveRef = new MutableBoolean[nbTerms];
+        termActive = new boolean[nbTerms];
 
         cellIndexByEquationElementNum = new int[equationArray.getElementCount()];
         nbCellsByEquationElementNum = new int[equationArray.getElementCount()];
@@ -94,16 +96,25 @@ class EquationDerivativeVector {
         }
     }
 
-    private void updateValuesByTerms() {
+    private void updateActiveStatuses() {
         for (int i = 0; i < nbTerms; i++) {
-            valuesByTerm[i] = termActiveRef[i].booleanValue() ? termDerValues[i][termElementNum[i]] : 0.0;
+            termActive[i] = termActiveRef[i].booleanValue();
         }
     }
 
-    void update(boolean recomputeRows) {
+    private void updateValuesByTerms() {
+        for (int i = 0; i < nbTerms; i++) {
+            valuesByTerm[i] = termActive[i] ? termDerValues[i][termElementNum[i]] : 0.0;
+        }
+    }
+
+    void update(boolean recomputeRows, boolean recomputeActiveStatuses) {
         if (nbTerms > 0) {
             if (recomputeRows) {
                 updateRowsByCell();
+            }
+            if (recomputeActiveStatuses) {
+                updateActiveStatuses();
             }
             updateValuesByTerms();
             int start;
