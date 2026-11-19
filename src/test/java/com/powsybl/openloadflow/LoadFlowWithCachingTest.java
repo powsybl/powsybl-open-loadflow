@@ -21,13 +21,7 @@ import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFa
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.test.CommonTestConfig;
 import com.powsybl.openloadflow.test.ServiceParameterResolver;
-import com.powsybl.openloadflow.test.networks.BoundaryFactory;
-import com.powsybl.openloadflow.test.networks.DistributedSlackNetworkFactory;
-import com.powsybl.openloadflow.test.networks.EurostagFactory;
-import com.powsybl.openloadflow.test.networks.HvdcNetworkFactory;
-import com.powsybl.openloadflow.test.networks.NodeBreakerNetworkFactory;
-import com.powsybl.openloadflow.test.networks.ShuntNetworkFactory;
-import com.powsybl.openloadflow.test.networks.VoltageControlNetworkFactory;
+import com.powsybl.openloadflow.test.networks.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
