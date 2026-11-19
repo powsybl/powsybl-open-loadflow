@@ -13,9 +13,7 @@ import com.tngtech.archunit.core.importer.ImportOption;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
-import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsideOfPackage;
-import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsideOfPackages;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.*;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 /**
