@@ -69,12 +69,12 @@ public class PerEquationTypeStoppingCriteria implements NewtonRaphsonStoppingCri
 
     private boolean checkEquation(double[] fx, AcEquationType type, int column) {
         switch (type) {
-            case BRANCH_TARGET_P, BUS_TARGET_P, DUMMY_TARGET_P, BUS_DISTR_SLACK_P -> {
+            case BRANCH_TARGET_P1, BRANCH_TARGET_P2, BUS_TARGET_P, DUMMY_TARGET_P, BUS_DISTR_SLACK_P -> {
                 if (Math.abs(fx[column]) * PerUnit.SB >= maxActivePowerMismatch) {
                     return true;
                 }
             }
-            case BRANCH_TARGET_Q, BUS_TARGET_Q, DISTR_Q, DUMMY_TARGET_Q -> {
+            case BRANCH_TARGET_Q1, BRANCH_TARGET_Q2, BUS_TARGET_Q, DISTR_Q, DUMMY_TARGET_Q -> {
                 if (Math.abs(fx[column]) * PerUnit.SB >= maxReactivePowerMismatch) {
                     return true;
                 }

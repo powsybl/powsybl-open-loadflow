@@ -24,7 +24,7 @@ jobs:
       statuses: write
     steps:
       - name: Setup [JDK, Sonar]
-        uses: powsybl/github-ci/powsybl-fork-sonar@refs/pull/82/head # Last commit on PR https://github.com/powsybl/github-ci/pull/82 - to be changed once the PR is merged
+        uses: powsybl/github-ci/powsybl-fork-sonar@e6f51f02aab4255ca2714397952c4fe5affe1ea7 # v1.0.0
         with:
           sonar_token: ${{ secrets.SONAR_TOKEN }}
           sonar_projectKey: 'com.powsybl:powsybl-open-loadflow'
