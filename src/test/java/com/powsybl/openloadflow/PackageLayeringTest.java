@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsideOfPackage;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsideOfPackages;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 /**
@@ -70,5 +71,15 @@ class PackageLayeringTest {
                 .should().dependOnClassesThat(resideInAPackage("com.powsybl.openloadflow..")
                         .and(resideOutsideOfPackage("com.powsybl.openloadflow.util")))
                 .check(classes);
+    }
+
+    @Test
+    void graphOnlyDependsOnUtil() {
+        // also checks test classes, as graph tests will move with graph to a lower module
+        JavaClasses graphClasses = new ClassFileImporter().importPackages("com.powsybl.openloadflow.graph");
+        noClasses().that().resideInAPackage("com.powsybl.openloadflow.graph..")
+                .should().dependOnClassesThat(resideInAPackage("com.powsybl.openloadflow..")
+                        .and(resideOutsideOfPackages("com.powsybl.openloadflow.graph..", "com.powsybl.openloadflow.util")))
+                .check(graphClasses);
     }
 }

@@ -5,17 +5,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.graph;
+package com.powsybl.openloadflow.network;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivity;
+import com.powsybl.openloadflow.graph.GraphConnectivity;
+import com.powsybl.openloadflow.graph.NaiveGraphConnectivity;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
-import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -144,19 +147,25 @@ class NetworkConnectivityTest {
         }
     }
 
-    private <G extends GraphModel<LfBus, LfBranch>> void testNonConnectedComponents(AbstractGraphConnectivity<LfBus, LfBranch, G> connectivity) {
+    private void testNonConnectedComponents(GraphConnectivity<LfBus, LfBranch> connectivity) {
         updateConnectivity(connectivity);
         cutBranches(connectivity, "l34", "l48");
 
         assertEquals(createVerticesSet("b4_vl_0", "b5_vl_0", "b6_vl_0", "b7_vl_0", "b8_vl_0", "b9_vl_0", "b10_vl_0"),
-            connectivity.getNonConnectedVertices(lfNetwork.getBusById("b3_vl_0")));
+            getNonConnectedVertices(connectivity, lfNetwork.getBusById("b3_vl_0")));
         assertEquals(createVerticesSet("b1_vl_0", "b2_vl_0", "b3_vl_0", "b8_vl_0", "b9_vl_0", "b10_vl_0"),
-            connectivity.getNonConnectedVertices(lfNetwork.getBusById("b6_vl_0")));
+            getNonConnectedVertices(connectivity, lfNetwork.getBusById("b6_vl_0")));
         assertEquals(createVerticesSet("b4_vl_0", "b5_vl_0", "b6_vl_0", "b7_vl_0", "b1_vl_0", "b2_vl_0", "b3_vl_0"),
-            connectivity.getNonConnectedVertices(lfNetwork.getBusById("b10_vl_0")));
+            getNonConnectedVertices(connectivity, lfNetwork.getBusById("b10_vl_0")));
 
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> connectivity.getNonConnectedVertices(null));
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> getNonConnectedVertices(connectivity, null));
         assertEquals("given vertex null is not in the graph", e.getMessage());
+    }
+
+    private Set<LfBus> getNonConnectedVertices(GraphConnectivity<LfBus, LfBranch> connectivity, LfBus bus) {
+        Set<LfBus> nonConnectedVertices = new HashSet<>(lfNetwork.getBuses());
+        nonConnectedVertices.removeAll(connectivity.getConnectedComponent(bus));
+        return nonConnectedVertices;
     }
 
     private void testConnectedComponents(GraphConnectivity<LfBus, LfBranch> connectivity) {
