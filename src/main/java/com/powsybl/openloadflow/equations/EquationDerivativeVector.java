@@ -17,21 +17,24 @@ import java.util.List;
  */
 class EquationDerivativeVector {
 
-    // cache
-    private final Number[] rowRefsByCell;
-    protected final int[] rowsByCell;
-    protected final int[] termElementNum;
+    // cache indexed by term
+    private final int nbTerms;
+    private final int[] termElementNum;
     private final double[] valuesByTerm;
     private final double[][] termDerValues;
     private final MutableBoolean[] termActiveRef;
     private final boolean[] termActive;
-    private final int nbTerms;
 
+    // cache indexed by cell of the matrix (multiple terms can be summed in the same cell)
+    private final int nbCells;
+    private final Number[] rowRefsByCell;
+    private final int[] cellStarts;
+
+    // values accessed by EquationArray when computing der()
+    protected final int[] rowsByCell;
     protected final double[] valuesByCell;
     protected final int[] cellIndexByEquationElementNum;
     protected final int[] nbCellsByEquationElementNum;
-    protected final int[] cellStarts;
-    private final int nbCells;
 
     EquationDerivativeVector(List<EquationDerivativeElement<?>> elements, EquationArray<?, ?> equationArray) {
         nbTerms = elements.size();
@@ -47,9 +50,6 @@ class EquationDerivativeVector {
 
         cellIndexByEquationElementNum = new int[equationArray.getElementCount()];
         nbCellsByEquationElementNum = new int[equationArray.getElementCount()];
-
-        // each potential cell of the jacobian matrix will be stored in values (one cell can be the sum of multiple terms)
-        // so there are fewer values than size (but pre allocating all size) (nbCells < size)
         rowRefsByCell = new Number[nbTerms];
         int[] cellIndices = new int[nbTerms + 1];
 
