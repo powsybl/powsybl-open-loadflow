@@ -25,6 +25,7 @@ import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.test.networks.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -214,7 +215,7 @@ class LfNetworkJsonStateTest {
 
     @Test
     void testRemoveConnectivityRemovedBranch() {
-        Network network = com.powsybl.openloadflow.network.NodeBreakerNetworkFactory.create3Bars();
+        Network network = NodeBreakerNetworkFactory.create3Bars();
         network.getSwitch("C1").setOpen(true);
         network.getSwitch("C2").setOpen(true);
         LfTopoConfig topoConfig = new LfTopoConfig();
@@ -281,7 +282,7 @@ class LfNetworkJsonStateTest {
 
     @Test
     void testReadJsonTopologyRestoredStateRoundTrip() {
-        Network network = com.powsybl.openloadflow.network.NodeBreakerNetworkFactory.create3Bars();
+        Network network = NodeBreakerNetworkFactory.create3Bars();
         network.getSwitch("C1").setOpen(true);
         network.getSwitch("C2").setOpen(true);
         LfTopoConfig topoConfig = new LfTopoConfig();
@@ -304,7 +305,7 @@ class LfNetworkJsonStateTest {
             String state = dump(original);
             assertTrue(state.contains("connectedSide"), "dump should emit connectedSide for disconnection allowed branches");
 
-            Network network2 = com.powsybl.openloadflow.network.NodeBreakerNetworkFactory.create3Bars();
+            Network network2 = NodeBreakerNetworkFactory.create3Bars();
             network2.getSwitch("C1").setOpen(true);
             network2.getSwitch("C2").setOpen(true);
             LfTopoConfig topoConfig2 = new LfTopoConfig();

@@ -22,6 +22,8 @@ import com.powsybl.openloadflow.dc.equations.*;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
+import com.powsybl.openloadflow.test.networks.EurostagFactory;
+import com.powsybl.openloadflow.test.networks.HvdcNetworkFactory;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;

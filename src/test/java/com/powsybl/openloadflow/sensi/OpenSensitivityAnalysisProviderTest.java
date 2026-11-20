@@ -8,8 +8,8 @@
 package com.powsybl.openloadflow.sensi;
 
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.test.CommonTestConfig;
 import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.openloadflow.util.ProviderConstants;
 import com.powsybl.sensitivity.SensitivityAnalysisParameters;

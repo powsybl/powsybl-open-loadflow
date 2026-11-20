@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network;
 import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.test.networks.AcDcNetworkFactory;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
