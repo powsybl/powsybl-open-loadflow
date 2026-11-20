@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory.createWith3BusesNonImpedantSubNetwork;
+import static com.powsybl.openloadflow.test.networks.ZeroImpedanceNetworkFactory.createWith3BusesNonImpedantSubNetwork;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
