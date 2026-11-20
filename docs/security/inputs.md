@@ -37,6 +37,7 @@ Only the following remedial actions are currently implemented in Open load flow:
 - `GeneratorAction`
 - `HvdcAction`
 - `AreaInterchangeTargetAction`
+- `BoundaryLineAction`
 
 Note: Some limitations in the use of these actions exist, please read the documentation about the [security analysis specific parameters](parameters).
 

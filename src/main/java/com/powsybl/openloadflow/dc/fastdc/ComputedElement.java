@@ -7,11 +7,7 @@
  */
 package com.powsybl.openloadflow.dc.fastdc;
 
-import com.powsybl.action.GeneratorAction;
-import com.powsybl.action.LoadAction;
-import com.powsybl.action.PhaseTapChangerTapPositionAction;
-import com.powsybl.action.SwitchAction;
-import com.powsybl.action.TerminalsConnectionAction;
+import com.powsybl.action.*;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
@@ -175,6 +171,7 @@ public interface ComputedElement {
             }
             case GeneratorAction.NAME -> { /* generator actions modify the target vector, they produce no Woodbury elements */ }
             case LoadAction.NAME -> { /* load actions modify the target vector, they produce no Woodbury elements */ }
+            case BoundaryLineAction.NAME -> { /* boundary line actions modify the target vector, they produce no Woodbury elements */ }
             default -> throw new IllegalStateException("Only tap position change and branch enabling/disabling are supported in WoodburyDcSecurityAnalysis");
         }
         if (elements.isEmpty()) {
