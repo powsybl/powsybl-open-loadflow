@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBus;
@@ -40,6 +41,11 @@ public class HvdcAcEmulationSide2DCFlowEquationTerm extends AbstractHvdcAcEmulat
         } else {
             throw new IllegalStateException("Unknown variable: " + variable);
         }
+    }
+
+    @Override
+    public double calculateSensi(DenseMatrix dx, int column) {
+        return -super.calculateSensi(dx, column);
     }
 
     @Override

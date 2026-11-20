@@ -27,6 +27,7 @@ import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.dc.fastdc.ComputedContingencyElement;
 import com.powsybl.openloadflow.dc.fastdc.ComputedElement;
+import com.powsybl.openloadflow.dc.fastdc.ComputedHvdcAcEmulationElement;
 import com.powsybl.openloadflow.dc.fastdc.ConnectivityBreakAnalysis;
 import com.powsybl.openloadflow.dc.fastdc.WoodburyEngine;
 import com.powsybl.openloadflow.equations.Derivable;
@@ -42,6 +43,7 @@ import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.util.Indexed;
+import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.sensitivity.*;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -221,6 +223,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                                              DenseMatrix flowStates, PropagatedContingency contingency,
                                                                              LfOperatorStrategy operatorStrategy,
                                                                              Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                                             ConnectivityBreakAnalysis.HvdcElements hvdcElements,
                                                                              Map<LfAction, List<ComputedElement>> actionElementByLfAction,
                                                                              Set<LfBus> disabledBuses, List<ParticipatingElement> participatingElements,
                                                                              Set<String> elementsToReconnect,
@@ -242,8 +245,8 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .map(actionElementByLfAction::get)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfBranch().getId()))
-                .collect(Collectors.toMap(ComputedElement::getLfBranch, e -> e, (a, b) -> a, LinkedHashMap::new))
+                .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfElement().getId()))
+                .collect(Collectors.toMap(ComputedElement::getLfElement, e -> e, (a, b) -> a, LinkedHashMap::new))
                 .values().stream().toList();
 
         // collect branch IDs enabled by actions (used to exclude from permanent disabled set)
@@ -278,7 +281,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                                                      .toList()
                                                                                    : Collections.emptyList();
 
-        List<ComputedContingencyElement> allContingencyElements = Stream.concat(permanentElements.stream(), realContingencyElements.stream()).toList();
+        // HVDC lines in AC emulation whose droop coupling is lost in this state: the line is in contingency, or one of its
+        // buses is lost (disabled by the contingency or isolated). The coupling is removed with the Woodbury formula like
+        // a virtual branch, and the constant term of the droop law is removed from the target vector when the flow states
+        // are recomputed.
+        Set<LfHvdc> lostHvdcs = findLostHvdcs(contingency, hvdcElements, disabledBuses, isolatedBuses);
+        List<ComputedHvdcAcEmulationElement> lostHvdcElements = lostHvdcs.stream().map(hvdc -> hvdcElements.elementById().get(hvdc.getId())).toList();
+
+        List<ComputedElement> allContingencyElements = Stream.concat(Stream.concat(permanentElements.stream(), realContingencyElements.stream()), lostHvdcElements.stream()).toList();
 
         Set<LfBranch> disabledBranches = findDisabledBranchIds(contingency, actions).stream()
                 .map(lfNetwork::getBranchById)
@@ -291,11 +301,11 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .map(lfNetwork::getBranchById)
                 .filter(Objects::nonNull)
                 .forEach(disabledBranches::add);
-        DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches);
+        DisabledNetwork disabledNetwork = new DisabledNetwork(disabledBuses, disabledBranches, lostHvdcs);
         DenseMatrix newFactorStates = factorStates;
 
         WoodburyEngine engine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(),
-                                                   allContingencyElements, contingenciesStates, actionElements, actionsStates);
+                                                   allContingencyElements, contingenciesStates, hvdcElements.states(), actionElements, actionsStates);
         int operatorStrategyIndex = operatorStrategy != null ? operatorStrategy.getIndex() : -1;
         if (contingency != null && contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLose().isEmpty()) {
             DenseMatrix newFlowStates = flowStates;
@@ -312,11 +322,12 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     .filter(LfBranch::hasPhaseControllerCapability)
                     .collect(Collectors.toSet());
 
-            // if a phase tap changer is lost, if the connectivity has changed, or if there are PST, generator or load actions, we must recompute load flows
+            // if a phase tap changer or an HVDC line in AC emulation is lost, if the connectivity has changed, or if there are
+            // PST, generator or load actions, we must recompute load flows
             boolean hasPstActions = actions.stream().anyMatch(AbstractLfTapChangerAction.class::isInstance);
             boolean hasGeneratorActions = actions.stream().anyMatch(LfGeneratorAction.class::isInstance);
             boolean hasLoadActions = actions.stream().anyMatch(LfLoadAction.class::isInstance);
-            if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty() || hasPstActions || hasGeneratorActions || hasLoadActions) {
+            if (!disabledBuses.isEmpty() || !lostPhaseControllers.isEmpty() || !lostHvdcs.isEmpty() || hasPstActions || hasGeneratorActions || hasLoadActions) {
                 newFlowStates = calculateFlowStates(loadFlowContext, participatingElements, disabledNetwork, actions, reportNode);
             }
 
@@ -387,6 +398,47 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         return buses.contains(branch.getBus1()) || buses.contains(branch.getBus2());
     }
 
+    /**
+     * HVDC lines in AC emulation whose droop coupling is lost in a state: the line is in contingency, or one of its buses
+     * is lost.
+     */
+    private static Set<LfHvdc> findLostHvdcs(PropagatedContingency contingency, ConnectivityBreakAnalysis.HvdcElements hvdcElements,
+                                             Set<LfBus> disabledBuses, Set<LfBus> isolatedBuses) {
+        if (hvdcElements.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<LfHvdc> lostHvdcs = new LinkedHashSet<>();
+        for (ComputedHvdcAcEmulationElement element : hvdcElements.elements()) {
+            LfHvdc hvdc = element.getHvdc();
+            if (contingency != null && contingency.getHvdcIdsToOpen().contains(hvdc.getId())
+                    || disabledBuses.contains(hvdc.getBus1()) || disabledBuses.contains(hvdc.getBus2())
+                    || isolatedBuses.contains(hvdc.getBus1()) || isolatedBuses.contains(hvdc.getBus2())) {
+                lostHvdcs.add(hvdc);
+            }
+        }
+        return lostHvdcs;
+    }
+
+    /**
+     * The DC sensitivity analysis has no outer loop: an HVDC line in AC emulation is always modeled with its linear droop
+     * law, even when the resulting active power exceeds its limits (where a DC load flow would saturate it).
+     */
+    private static void warnAboutHvdcAcEmulationLimits(ConnectivityBreakAnalysis.HvdcElements hvdcElements, Set<LfHvdc> lostHvdcs, DenseMatrix flowStates) {
+        for (ComputedHvdcAcEmulationElement element : hvdcElements.elements()) {
+            LfHvdc hvdc = element.getHvdc();
+            if (lostHvdcs.contains(hvdc)) {
+                continue;
+            }
+            LfHvdc.AcEmulationControl control = hvdc.getAcEmulationControl();
+            double p1 = element.getEquation().calculateSensi(flowStates, 0) + control.getP0();
+            if (p1 > control.getPMaxFromCS1toCS2() || -p1 > control.getPMaxFromCS2toCS1()) {
+                LOGGER.warn("HVDC line '{}' in AC emulation exceeds its active power limit in the pre-contingency state ({} MW at converter station 1): " +
+                                "saturation is not supported in DC sensitivity analysis, the linear droop model is kept",
+                        hvdc.getId(), p1 * PerUnit.SB);
+            }
+        }
+    }
+
     private static Set<String> findDisabledBranchIds(PropagatedContingency contingency, List<LfAction> actions) {
         Set<String> disableBranchIds = new HashSet<>();
         if (contingency != null) {
@@ -422,7 +474,9 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                                                        SensitivityFactorHolder<DcVariableType, DcEquationType> validFactorHolder,
                                                        SensitivityFactorGroupList<DcVariableType, DcEquationType> factorGroups,
                                                        List<ParticipatingElement> participatingElements,
-                                                       Map<String, ComputedContingencyElement> contingencyElementByBranch, Map<LfAction, List<ComputedElement>> actionElementByLfAction,
+                                                       Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                       ConnectivityBreakAnalysis.HvdcElements hvdcElements,
+                                                       Map<LfAction, List<ComputedElement>> actionElementByLfAction,
                                                        DenseMatrix flowStates, DenseMatrix factorsStates, DenseMatrix contingenciesStates, DenseMatrix actionsStates,
                                                        SensitivityResultWriter resultWriter,
                                                        ReportNode reportNode,
@@ -432,7 +486,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             // there is no connectivity break
             calculateSensitivityValuesForContingencyAndOperatorStrategy(loadFlowContext, lfParametersExt, validFactorHolder, factorGroups,
                     factorsStates, contingenciesStates, actionsStates, flowStates, connectivityAnalysisResult.getPropagatedContingency(),
-                    connectivityAnalysisResult.getOperatorStrategy(), contingencyElementByBranch, actionElementByLfAction, Collections.emptySet(),
+                    connectivityAnalysisResult.getOperatorStrategy(), contingencyElementByBranch, hvdcElements, actionElementByLfAction, Collections.emptySet(),
                     participatingElements, Collections.emptySet(), resultWriter, reportNode, Collections.emptySet(), false, permanentContingencyBranchIds, permanentlyIsolatedBuses);
         } else {
             // there is a connectivity break
@@ -469,7 +523,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
             calculateSensitivityValuesForContingencyAndOperatorStrategy(loadFlowContext, lfParametersExt,
                     validFactorHolder, factorGroups, factorsStates, contingenciesStates, actionsStates, flowStates,
-                    contingency, connectivityAnalysisResult.getOperatorStrategy(), contingencyElementByBranch, actionElementByLfAction, disabledBuses,
+                    contingency, connectivityAnalysisResult.getOperatorStrategy(), contingencyElementByBranch, hvdcElements, actionElementByLfAction, disabledBuses,
                     participatingElementsForThisConnectivity, connectivityAnalysisResult.getElementsToReconnect(), resultWriter,
                     reportNode, partialDisabledBranches, rhsChanged, permanentContingencyBranchIds, permanentlyIsolatedBuses);
         }
@@ -489,9 +543,6 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         if (lfParameters.isPhaseShifterRegulationOn()) {
             warnOverridenParameter("phaseShifterRegulationOn", "true", "false");
         }
-        if (lfParameters.isHvdcAcEmulation()) {
-            warnOverridenParameter("hvdcAcEmulation", "true", "false");
-        }
         if (lfParametersExt.isNetworkCacheEnabled()) {
             warnOverridenParameter("networkCacheEnabled", "true", "false");
         }
@@ -510,7 +561,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 .setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS)
                 .setMinImpedance(true)
                 .setPhaseControl(false)
-                .setHvdcAcEmulation(false) // still not supported
+                .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation()) // linear droop model only, saturation is not handled
                 .setCacheEnabled(false) // force not caching as not supported in sensi analysis
                 .setReferenceBusSelector(ReferenceBusSelector.DEFAULT_SELECTOR); // not supported yet
     }
@@ -742,10 +793,15 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                 ? getParticipatingElements(busesForParticipation, lfParameters.getBalanceType(), lfParametersExt)
                 : Collections.emptyList();
 
+        // HVDC lines in AC emulation: their droop law couples their buses like a virtual branch, and their coupling is
+        // removed with the Woodbury formula when they are lost. Compute their +1 -1 states.
+        ConnectivityBreakAnalysis.HvdcElements hvdcElements = ConnectivityBreakAnalysis.HvdcElements.create(loadFlowContext);
+        Set<LfHvdc> permanentlyLostHvdcs = findLostHvdcs(null, hvdcElements, permanentlyIsolatedBuses, Collections.emptySet());
+
         // run DC loadflow on pre-contingency network (with permanently isolated buses' injections zeroed)
         DisabledNetwork permanentDisabledNetwork = permanentlyIsolatedBuses.isEmpty()
                 ? new DisabledNetwork()
-                : new DisabledNetwork(permanentlyIsolatedBuses, Collections.emptySet());
+                : new DisabledNetwork(permanentlyIsolatedBuses, Collections.emptySet(), permanentlyLostHvdcs);
         DenseMatrix baseFlowStates = calculateFlowStates(loadFlowContext, participatingElements, permanentDisabledNetwork, Collections.emptyList(), sensiReportNode);
         // create workingFlowStates matrix that will be a working copy of baseFlowStates
         DenseMatrix workingFlowStates = new DenseMatrix(baseFlowStates.getRowCount(), baseFlowStates.getColumnCount());
@@ -770,7 +826,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         // compute states with +1 -1 to model the contingencies and run connectivity analysis
         // permanent contingency branches are included so their Woodbury vectors are pre-computed
         ConnectivityBreakAnalysis.ConnectivityBreakAnalysisResults connectivityBreakAnalysisResults =
-                ConnectivityBreakAnalysis.run(loadFlowContext, contingenciesWithFactors, permanentContingencyBranchIds);
+                ConnectivityBreakAnalysis.run(loadFlowContext, contingenciesWithFactors, permanentContingencyBranchIds, hvdcElements);
 
         // the map is indexed by lf actions as different kind of actions can be given on the same branch
         Map<LfAction, List<ComputedElement>> actionElementsIndexByLfAction = ComputedElement.createActionElementsIndexByLfAction(lfActionById, loadFlowContext.getEquationSystem(),
@@ -782,33 +838,38 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
 
         if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.ONLY_OPERATOR_STRATEGIES) {
             // calculate sensitivity values for pre-contingency network
-            // if there are permanent contingency branches, apply their Woodbury correction first
-            if (permanentContingencyBranchIds.isEmpty()) {
-                calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), baseFactorStates, baseFlowStates, null, null, resultWriter, new DisabledNetwork());
-            } else {
-                List<ComputedContingencyElement> permanentElements = permanentContingencyBranchIds.stream()
-                        .map(connectivityBreakAnalysisResults.contingencyElementByBranch()::get)
-                        .filter(Objects::nonNull)
-                        // exclude permanent branches isolating a bus (radial bridge to a region disabled in the base flow
-                        // states): they would give a singular Woodbury interaction matrix and their opening is already
-                        // reflected by the disabled bus. Same treatment as the post-contingency states computation.
-                        .filter(element -> !isIncidentToBus(element.getLfBranch(), permanentlyIsolatedBuses))
-                        .toList();
-                DenseMatrix permanentFlowStates = new DenseMatrix(baseFlowStates.getRowCount(), baseFlowStates.getColumnCount());
+            // if there are permanent contingency branches (or HVDC lines in AC emulation lost with a permanently isolated
+            // bus), apply their Woodbury correction first
+            List<ComputedContingencyElement> permanentElements = permanentContingencyBranchIds.stream()
+                    .map(connectivityBreakAnalysisResults.contingencyElementByBranch()::get)
+                    .filter(Objects::nonNull)
+                    // exclude permanent branches isolating a bus (radial bridge to a region disabled in the base flow
+                    // states): they would give a singular Woodbury interaction matrix and their opening is already
+                    // reflected by the disabled bus. Same treatment as the post-contingency states computation.
+                    .filter(element -> !isIncidentToBus(element.getLfBranch(), permanentlyIsolatedBuses))
+                    .toList();
+            List<ComputedHvdcAcEmulationElement> permanentlyLostHvdcElements = permanentlyLostHvdcs.stream()
+                    .map(hvdc -> hvdcElements.elementById().get(hvdc.getId()))
+                    .toList();
+            DenseMatrix permanentFlowStates = baseFlowStates;
+            DenseMatrix permanentFactorStates = baseFactorStates;
+            if (!permanentElements.isEmpty() || !permanentlyLostHvdcElements.isEmpty()) {
+                permanentFlowStates = new DenseMatrix(baseFlowStates.getRowCount(), baseFlowStates.getColumnCount());
                 permanentFlowStates.copyValuesFrom(baseFlowStates);
-                DenseMatrix permanentFactorStates = new DenseMatrix(baseFactorStates.getRowCount(), baseFactorStates.getColumnCount());
+                permanentFactorStates = new DenseMatrix(baseFactorStates.getRowCount(), baseFactorStates.getColumnCount());
                 permanentFactorStates.copyValuesFrom(baseFactorStates);
-                if (!permanentElements.isEmpty()) {
-                    WoodburyEngine permanentEngine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(),
-                            permanentElements, connectivityBreakAnalysisResults.contingenciesStates());
-                    permanentEngine.toPostContingencyStates(permanentFlowStates);
-                    permanentEngine.toPostContingencyStates(permanentFactorStates);
-                }
-                Set<LfBranch> permanentDisabledBranches = permanentContingencyBranchIds.stream()
-                        .map(lfNetwork::getBranchById).filter(Objects::nonNull).collect(Collectors.toSet());
-                DisabledNetwork baseDisabledNetwork = new DisabledNetwork(permanentlyIsolatedBuses, permanentDisabledBranches);
-                calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), permanentFactorStates, permanentFlowStates, null, null, resultWriter, baseDisabledNetwork);
+                List<ComputedElement> allPermanentElements = Stream.concat(permanentElements.stream(), permanentlyLostHvdcElements.stream()).toList();
+                WoodburyEngine permanentEngine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(),
+                        allPermanentElements, connectivityBreakAnalysisResults.contingenciesStates(), hvdcElements.states(),
+                        Collections.emptyList(), DenseMatrix.EMPTY);
+                permanentEngine.toPostContingencyStates(permanentFlowStates);
+                permanentEngine.toPostContingencyStates(permanentFactorStates);
             }
+            warnAboutHvdcAcEmulationLimits(hvdcElements, permanentlyLostHvdcs, permanentFlowStates);
+            Set<LfBranch> permanentDisabledBranches = permanentContingencyBranchIds.stream()
+                    .map(lfNetwork::getBranchById).filter(Objects::nonNull).collect(Collectors.toSet());
+            DisabledNetwork baseDisabledNetwork = new DisabledNetwork(permanentlyIsolatedBuses, permanentDisabledBranches, permanentlyLostHvdcs);
+            calculateSensitivityValues(validFactorHolder.getFactorsForBaseNetwork(), permanentFactorStates, permanentFlowStates, null, null, resultWriter, baseDisabledNetwork);
         }
 
         if (parameters.getOperatorStrategiesCalculationMode() != SensitivityOperatorStrategiesCalculationMode.ONLY_OPERATOR_STRATEGIES) {
@@ -854,12 +915,14 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                             ConnectivityBreakAnalysis.ConnectivityAnalysisResult.createNonBreakingConnectivityAnalysisResult(null, lfOperatorStrategy, lfNetwork),
                             connectivityBreakAnalysisResults.contingencyElementByBranch(),
                             connectivityBreakAnalysisResults.contingenciesStates(),
+                            connectivityBreakAnalysisResults.hvdcElements(),
                             lfOperatorStrategy,
                             actionElementsIndexByLfAction,
                             actionsStates);
 
                     processContingencyAndOperatorStrategy(postActionsConnectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
-                            validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(), actionElementsIndexByLfAction,
+                            validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(),
+                            connectivityBreakAnalysisResults.hvdcElements(), actionElementsIndexByLfAction,
                             workingFlowStates, workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), actionsStates, resultWriter, sensiReportNode,
                             permanentContingencyBranchIds, permanentlyIsolatedBuses);
                 }
@@ -911,6 +974,7 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
                     connectivityAnalysisResult,
                     connectivityBreakAnalysisResults.contingencyElementByBranch(),
                     connectivityBreakAnalysisResults.contingenciesStates(),
+                    connectivityBreakAnalysisResults.hvdcElements(),
                     lfOperatorStrategy,
                     actionElementsIndexByLfAction,
                     actionsStates);
@@ -942,9 +1006,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             workingFactorStates.copyValuesFrom(baseFactorStates);
 
             processContingencyAndOperatorStrategy(postActionsConnectivityAnalysisResult, loadFlowContext, lfParameters, lfParametersExt,
-                validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(), actionElementsIndexByLfAction,
-                workingFlowStates, workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), actionsStates, resultWriter, sensiReportNode,
-                permanentContingencyBranchIds, permanentlyIsolatedBuses);
+                    validFactorHolder, factorGroups, participatingElements, connectivityBreakAnalysisResults.contingencyElementByBranch(),
+                    connectivityBreakAnalysisResults.hvdcElements(), actionElementsIndexByLfAction,
+                    workingFlowStates, workingFactorStates, connectivityBreakAnalysisResults.contingenciesStates(), actionsStates, resultWriter, sensiReportNode,
+                    permanentContingencyBranchIds, permanentlyIsolatedBuses);
         }
     }
 
