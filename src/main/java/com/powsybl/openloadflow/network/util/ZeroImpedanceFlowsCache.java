@@ -35,6 +35,10 @@ public class ZeroImpedanceFlowsCache {
         this.dcPowerFactor = dcPowerFactor;
     }
 
+    public boolean isZeroImpedance(LfBranch branch) {
+        return branch.isZeroImpedance(loadFlowModel);
+    }
+
     /**
      * Branch is expected not to be disabled.
      */
@@ -48,6 +52,10 @@ public class ZeroImpedanceFlowsCache {
             // not part of any zero impedance network: no flow can go through a zero impedance branch open at one side
             double side1 = branch.getBus1() != null ? 0 : Double.NaN;
             double side2 = branch.getBus2() != null ? 0 : Double.NaN;
+            if (loadFlowModel == LoadFlowModel.DC) {
+                // reactive power is not modeled in DC
+                return new LfBranch.LfBranchResults(side1, side2, Double.NaN, Double.NaN, side1, side2);
+            }
             return new LfBranch.LfBranchResults(side1, side2, side1, side2, side1, side2);
         }
         branch.getNetwork().updateZeroImpedanceCache(loadFlowModel);
