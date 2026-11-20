@@ -13,9 +13,7 @@ import com.tngtech.archunit.core.importer.ImportOption;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
-import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsideOfPackage;
-import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsideOfPackages;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.*;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 /**
@@ -81,5 +79,34 @@ class PackageLayeringTest {
                 .should().dependOnClassesThat(resideInAPackage("com.powsybl.openloadflow..")
                         .and(resideOutsideOfPackages("com.powsybl.openloadflow.graph..", "com.powsybl.openloadflow.util")))
                 .check(graphClasses);
+    }
+
+    @Test
+    void networkTestsOnlyDependOnLowerLayers() {
+        // checks test classes, as network tests will move with network to a lower module
+        JavaClasses networkClasses = new ClassFileImporter()
+                .withImportOption(ImportOption.Predefined.ONLY_INCLUDE_TESTS)
+                .importPackages("com.powsybl.openloadflow.network");
+        noClasses().that().resideInAPackage("com.powsybl.openloadflow.network..")
+                .should().dependOnClassesThat(resideInAPackage("com.powsybl.openloadflow..")
+                        .and(resideOutsideOfPackages("com.powsybl.openloadflow.network..", "com.powsybl.openloadflow.graph..",
+                                "com.powsybl.openloadflow.util")))
+                .check(networkClasses);
+    }
+
+    @Test
+    void equationsTestsOnlyDependOnLowerLayers() {
+        // checks test classes, as equations tests will move with equations to a lower module
+        JavaClasses equationsClasses = new ClassFileImporter()
+                .withImportOption(ImportOption.Predefined.ONLY_INCLUDE_TESTS)
+                .importPackages("com.powsybl.openloadflow.equations",
+                "com.powsybl.openloadflow.ac.equations", "com.powsybl.openloadflow.dc.equations", "com.powsybl.openloadflow.adm");
+        noClasses().that().resideInAnyPackage("com.powsybl.openloadflow.equations..", "com.powsybl.openloadflow.ac.equations..",
+                        "com.powsybl.openloadflow.dc.equations..", "com.powsybl.openloadflow.adm..")
+                .should().dependOnClassesThat(resideInAPackage("com.powsybl.openloadflow..")
+                        .and(resideOutsideOfPackages("com.powsybl.openloadflow.equations..", "com.powsybl.openloadflow.ac.equations..",
+                                "com.powsybl.openloadflow.dc.equations..", "com.powsybl.openloadflow.adm..",
+                                "com.powsybl.openloadflow.network..", "com.powsybl.openloadflow.graph..", "com.powsybl.openloadflow.util")))
+                .check(equationsClasses);
     }
 }

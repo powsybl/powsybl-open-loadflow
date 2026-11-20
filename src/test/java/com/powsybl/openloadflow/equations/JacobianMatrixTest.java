@@ -13,11 +13,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.ac.equations.AcEquationType;
-import com.powsybl.openloadflow.ac.equations.AcVariableType;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
-import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ActiveFlowEquationTerm;
-import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
+import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
@@ -63,7 +59,7 @@ class JacobianMatrixTest {
                     .addTerm(new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2,
                             equationSystem.getVariableSet(), false, false));
         }
-        AcSolverUtil.initStateVector(lfNetwork, equationSystem, new UniformValueVoltageInitializer());
+        AcStateVectorUtil.initStateVector(lfNetwork, equationSystem, new UniformValueVoltageInitializer());
         return equationSystem;
     }
 

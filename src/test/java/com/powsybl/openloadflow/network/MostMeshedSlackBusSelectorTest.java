@@ -8,45 +8,24 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.loadflow.LoadFlow;
-import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.CommonTestConfig;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
+import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-@ExtendWith(ServiceParameterResolver.class)
 class MostMeshedSlackBusSelectorTest {
-
-    private final CommonTestConfig commonTestConfig;
-
-    MostMeshedSlackBusSelectorTest(CommonTestConfig commonTestConfig) {
-        this.commonTestConfig = commonTestConfig;
-    }
 
     @Test
     void test() {
         var network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        var provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory());
-        var runner = new LoadFlow.Runner(provider);
-        var parameters = new LoadFlowParameters().setWriteSlackBus(false);
-        LoadFlowResult result = runner.run(network, parameters);
-        assertEquals("VLHV1_0", result.getComponentResults().get(0).getSlackBusResults().get(0).getId());
-        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters)
-                .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(50);
-        result = runner.run(network, parameters);
-        assertEquals("VLLOAD_0", result.getComponentResults().get(0).getSlackBusResults().get(0).getId());
-
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> parametersExt.setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(120));
-        assertEquals("Invalid value for parameter mostMeshedSlackBusSelectorMaxNominalVoltagePercentile: 120.0", exception.getMessage());
+        var lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new MostMeshedSlackBusSelector()).get(0);
+        assertEquals("VLHV1_0", lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst().getId());
+        lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new MostMeshedSlackBusSelector(50, Collections.emptySet())).get(0);
+        assertEquals("VLLOAD_0", lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst().getId());
     }
 }

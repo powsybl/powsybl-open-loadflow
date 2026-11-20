@@ -11,7 +11,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
-import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
+import com.powsybl.openloadflow.ac.equations.AcStateVectorUtil;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
 import com.powsybl.openloadflow.lf.util.LfReports;
@@ -66,7 +66,8 @@ public class FreezingHvdcACEmulationOuterloop implements AcOuterLoop {
         ContextData contextData = new ContextData(context.getNetwork());
         context.setData(contextData);
         LfNetwork network = context.getNetwork();
-        AcSolverUtil.initStateVector(context.getNetwork(), context.getLoadFlowContext().getEquationSystem(), new PreviousValueVoltageInitializer(true)); // Updating State Vector with previous values
+        // Updating State Vector with previous values
+        AcStateVectorUtil.initStateVector(context.getNetwork(), context.getLoadFlowContext().getEquationSystem(), new PreviousValueVoltageInitializer(true));
         network.getHvdcs().stream()
                 .filter(LfHvdc::isAcEmulation)
                 // If some angles are at NaN, it means that the HVDC has been reconnected by an action, AC emulation is not frozen

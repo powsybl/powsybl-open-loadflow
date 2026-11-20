@@ -5,9 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  * SPDX-License-Identifier: MPL-2.0
  */
-package com.powsybl.openloadflow.network.impl;
+package com.powsybl.openloadflow.lf;
 
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.impl.*;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
@@ -49,7 +50,7 @@ class LfNetworkCopyFieldGuardTest {
         expected.put(AbstractLfBranch.class, Set.of("bus1", "bus2", "currentLimits1", "activePowerLimits1", "apparentPowerLimits1", "currentLimits2", "activePowerLimits2",
                 "apparentPowerLimits2", "piModel", "phaseControl", "phaseControlEnabled", "voltageControl", "voltageControlEnabled", "transformerReactivePowerControl",
                 "zeroImpedanceContextByModel", "a1", "generatorReactivePowerControl", "asymLine"));
-        expected.put(AbstractLfBranch.ZeroImpedanceContext.class, Set.of("spanningTreeEdge", "zeroImpedance"));
+        expected.put(innerClass(AbstractLfBranch.class, "ZeroImpedanceContext"), Set.of("spanningTreeEdge", "zeroImpedance"));
         expected.put(AbstractLfBus.class, Set.of("slack", "reference", "v", "calculatedV", "angle", "hasGeneratorsWithSlope", "generatorVoltageControlEnabled",
                 "generatorReactivePowerControlEnabled", "generationTargetP", "generationTargetQ", "invalidatedGenerationTargetQ", "qLimitType", "generators",
                 "converters", "shunt", "controllerShunt", "svcShunt", "distributedOnConformLoad", "loads", "loadTargetP", "loadTargetQ", "branches", "hvdcs",
