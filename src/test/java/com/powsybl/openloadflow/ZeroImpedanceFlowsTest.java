@@ -25,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
 import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -182,6 +183,94 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
      */
     @Test
     void fiveBusesZeroImpedanceLineTest() {
+        Network network = createFiveBusesWithZeroImpedanceLineNetwork();
+        Line l34 = network.getLine("l34");
+        assertNotNull(l34);
+        Line l35 = network.getLine("l35");
+        assertNotNull(l34);
+        Line l45 = network.getLine("l45");
+        assertNotNull(l34);
+
+        parametersExt.setSlackBusId("b1_vl_0")
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setNewtonRaphsonConvEpsPerEq(0.000001);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        checkFlows(1.4, 0.4, l34.getTerminal1(), -1.4, -0.4, l34.getTerminal2());
+        checkFlows(1.5, 0.5, l35.getTerminal1(), -1.5, -0.5, l35.getTerminal2());
+        checkFlows(0.0, 0.0, l45.getTerminal1(), 0.0, 0.0, l45.getTerminal2());
+    }
+
+    @Test
+    void fiveBusesZeroImpedanceLineWithWeightsTest() {
+        Network network = createFiveBusesWithZeroImpedanceLineNetwork();
+        Line l34 = network.getLine("l34");
+        assertNotNull(l34);
+        Line l35 = network.getLine("l35");
+        assertNotNull(l35);
+        Line l45 = network.getLine("l45");
+        assertNotNull(l45);
+
+        parametersExt.setSlackBusId("b1_vl_0")
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setNewtonRaphsonConvEpsPerEq(0.000001);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertLineZeroImpedanceHasZeroFlow(l45);
+
+        assertZeroImpedanceLoop(network, l34, l35, l45, LimitType.APPARENT_POWER, 2000.0);
+        assertZeroImpedanceLoop(network, l34, l35, l45, LimitType.ACTIVE_POWER, 1000.0);
+        assertZeroImpedanceLoop(network, l34, l35, l45, LimitType.CURRENT, 500.0);
+    }
+
+    @Test
+    void fiveBusesZeroImpedanceLineCornerCaseTest() {
+        Network network = createFiveBusesWithZeroImpedanceLineNetwork();
+        Line l45 = network.getLine("l45");
+        assertNotNull(l45);
+
+        parametersExt.setSlackBusId("b1_vl_0")
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setNewtonRaphsonConvEpsPerEq(0.000001);
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+
+        assertLineZeroImpedanceHasZeroFlow(l45);
+
+        // only loadingLimits > 0.0 are considered
+        setDefaultLoadingLimit(l45, TwoSides.ONE, LimitType.APPARENT_POWER, 0.0);
+        loadFlowRunner.run(network, parameters);
+        assertLineZeroImpedanceHasZeroFlow(l45);
+    }
+
+    private void assertZeroImpedanceLoop(Network network, Line l34, Line l35, Line l45, LimitType limitType, double value) {
+        setDefaultLoadingLimit(l45, TwoSides.ONE, limitType, value);
+        loadFlowRunner.run(network, parameters);
+        assertLineZeroImpedanceHasZeroFlow(l35);
+
+        setDefaultLoadingLimit(l35, TwoSides.ONE, limitType, value * 0.99);
+        loadFlowRunner.run(network, parameters);
+        assertLineZeroImpedanceHasZeroFlow(l34);
+
+        setDefaultLoadingLimit(l34, TwoSides.ONE, limitType, value * 0.98);
+        loadFlowRunner.run(network, parameters);
+        assertLineZeroImpedanceHasZeroFlow(l45);
+
+        setDefaultLoadingLimit(l45, TwoSides.TWO, limitType, value * 0.97);
+        loadFlowRunner.run(network, parameters);
+        assertLineZeroImpedanceHasZeroFlow(l35);
+
+        setDefaultLoadingLimit(l35, TwoSides.TWO, limitType, value * 0.96);
+        loadFlowRunner.run(network, parameters);
+        assertLineZeroImpedanceHasZeroFlow(l34);
+
+        setDefaultLoadingLimit(l34, TwoSides.TWO, limitType, value * 0.95);
+        loadFlowRunner.run(network, parameters);
+        assertLineZeroImpedanceHasZeroFlow(l45);
+    }
+
+    private static Network createFiveBusesWithZeroImpedanceLineNetwork() {
         Network network = Network.create("FiveBusesWithZeroImpedanceLine", "code");
         Bus b1 = createBus(network, "b1");
         Bus b2 = createBus(network, "b2");
@@ -194,19 +283,38 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         createLoad(b5, "l3", 1.5, 0.5);
         createLine(network, b1, b2, "l12", 0.01);
         createLine(network, b2, b3, "l23", 0.01);
-        Line l34 = createLine(network, b3, b4, "l34", 0.0);
-        Line l35 = createLine(network, b3, b5, "l35", 0.0);
-        Line l45 = createLine(network, b4, b5, "l45", 0.0);
+        createLine(network, b3, b4, "l34", 0.0);
+        createLine(network, b3, b5, "l35", 0.0);
+        createLine(network, b4, b5, "l45", 0.0);
 
-        parametersExt.setSlackBusId("b1_vl_0")
-            .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
-            .setNewtonRaphsonConvEpsPerEq(0.000001);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
+        return network;
+    }
 
-        checkFlows(1.4, 0.4, l34.getTerminal1(), -1.4, -0.4, l34.getTerminal2());
-        checkFlows(1.5, 0.5, l35.getTerminal1(), -1.5, -0.5, l35.getTerminal2());
-        checkFlows(0.0, 0.0, l45.getTerminal1(), 0.0, 0.0, l45.getTerminal2());
+    private static void setDefaultLoadingLimit(Line line, TwoSides side, LimitType type, double value) {
+        OperationalLimitsGroup group = (side == TwoSides.ONE)
+                ? line.getOrCreateSelectedOperationalLimitsGroup1()
+                : line.getOrCreateSelectedOperationalLimitsGroup2();
+        setOrCreatePermanentLimit(group, type, value);
+    }
+
+    private static void setOrCreatePermanentLimit(OperationalLimitsGroup group, LimitType type, double value) {
+        switch (type) {
+            case APPARENT_POWER -> group.getApparentPowerLimits().ifPresentOrElse(
+                    limits -> limits.setPermanentLimit(value),
+                    () -> group.newApparentPowerLimits().setPermanentLimit(value).add());
+            case ACTIVE_POWER -> group.getActivePowerLimits().ifPresentOrElse(
+                    limits -> limits.setPermanentLimit(value),
+                    () -> group.newActivePowerLimits().setPermanentLimit(value).add());
+            case CURRENT -> group.getCurrentLimits().ifPresentOrElse(
+                    limits -> limits.setPermanentLimit(value),
+                    () -> group.newCurrentLimits().setPermanentLimit(value).add());
+            default -> throw new IllegalArgumentException("Unexpected LimitType: " + type);
+        }
+    }
+
+    private static void assertLineZeroImpedanceHasZeroFlow(Line line) {
+        assertEquals(0.0, line.getTerminal1().getP());
+        assertEquals(0.0, line.getTerminal1().getQ());
     }
 
     @Test

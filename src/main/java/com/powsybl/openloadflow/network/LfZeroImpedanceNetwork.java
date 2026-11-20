@@ -7,20 +7,28 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.LimitType;
+import com.powsybl.openloadflow.sa.LimitScalingManager;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.jgrapht.Graph;
 import org.jgrapht.Graphs;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.alg.interfaces.SpanningTreeAlgorithm;
 import org.jgrapht.alg.spanning.KruskalMinimumSpanningTree;
 import org.jgrapht.graph.AsSubgraph;
-import org.jgrapht.graph.Pseudograph;
+import org.jgrapht.graph.WeightedPseudograph;
 
 import java.util.*;
+import java.util.function.BiFunction;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class LfZeroImpedanceNetwork {
+
+    private static final double UNDEFINED_LIMIT = 1.0e6;
+    private static final double SQRT_3 = Math.sqrt(3.0);
+    private static final double ASSUMED_POWER_FACTOR = 0.95;
 
     private final LfNetwork network;
 
@@ -45,7 +53,7 @@ public class LfZeroImpedanceNetwork {
     }
 
     private static Graph<LfBus, LfBranch> createSubgraph(Graph<LfBus, LfBranch> graph, Set<LfBus> vertexSubset) {
-        Graph<LfBus, LfBranch> subGraph = new Pseudograph<>(LfBranch.class);
+        Graph<LfBus, LfBranch> subGraph = new WeightedPseudograph<>(LfBranch.class);
         Graphs.addGraph(subGraph, new AsSubgraph<>(graph, sortVerticesById(vertexSubset)));
         return subGraph;
     }
@@ -69,7 +77,7 @@ public class LfZeroImpedanceNetwork {
     }
 
     private static Graph<LfBus, LfBranch> createZeroImpedanceSubGraph(LfNetwork network, LoadFlowModel loadFlowModel) {
-        Graph<LfBus, LfBranch> subGraph = new Pseudograph<>(LfBranch.class);
+        Graph<LfBus, LfBranch> subGraph = new WeightedPseudograph<>(LfBranch.class);
         for (LfBranch branch : network.getBranches()) {
             LfBus bus1 = branch.getBus1();
             LfBus bus2 = branch.getBus2();
@@ -83,6 +91,7 @@ public class LfZeroImpedanceNetwork {
                 }
                 if (!branch.isDisabled()) {
                     subGraph.addEdge(bus1, bus2, branch);
+                    subGraph.setEdgeWeight(branch, computeZeroImpedanceWeight(branch));
                 }
             }
         }
@@ -111,6 +120,39 @@ public class LfZeroImpedanceNetwork {
         for (LfBranch branch : graph.edgeSet()) {
             branch.setSpanningTreeEdge(loadFlowModel, spanningTreeEdges.contains(branch));
         }
+    }
+
+    private static double computeZeroImpedanceWeight(LfBranch branch) {
+        return getMinLoadingLimit(branch);
+    }
+
+    private static double getMinLoadingLimit(LfBranch branch) {
+        return Math.min(getMinLoadingLimitSide(branch::getLimits1, branch.getBus1()),
+                getMinLoadingLimitSide(branch::getLimits2, branch.getBus2()));
+    }
+
+    private static double getMinLoadingLimitSide(BiFunction<LimitType, LimitScalingManager, List<LfBranch.LfLimitsGroup>> limits, LfBus bus) {
+        double min = getMinLoadingLimitGroup(limits.apply(LimitType.APPARENT_POWER, null));
+        min = Math.min(min, activePowerToApparentPower(getMinLoadingLimitGroup(limits.apply(LimitType.ACTIVE_POWER, null))));
+        return Math.min(min, currentToApparentPower(getMinLoadingLimitGroup(limits.apply(LimitType.CURRENT, null)), bus.getNominalV()));
+    }
+
+    private static double getMinLoadingLimitGroup(List<LfBranch.LfLimitsGroup> limitsGroup) {
+        return limitsGroup.stream()
+                .flatMap(limitGroup -> limitGroup.getSortedLimits().stream())
+                .mapToDouble(LfBranch.LfLimit::getValue)
+                .filter(limitValue -> Double.isFinite(limitValue) && limitValue > 0.0)
+                .min().orElse(UNDEFINED_LIMIT);
+    }
+
+    private static double activePowerToApparentPower(double activePowerPu) {
+        return activePowerPu / ASSUMED_POWER_FACTOR;
+    }
+
+    private static double currentToApparentPower(double currentLimitPu, double nominalV) {
+        double iAmps = currentLimitPu * PerUnit.ib(nominalV);
+        double sMva = SQRT_3 * nominalV * iAmps / 1000;
+        return sMva / PerUnit.SB;
     }
 
     @SuppressWarnings("unchecked")
@@ -208,7 +250,7 @@ public class LfZeroImpedanceNetwork {
         LfNetwork network = zn1.getNetwork();
         LoadFlowModel loadFlowModel = zn1.getLoadFlowModel();
         Set<LfZeroImpedanceNetwork> zeroImpedanceNetworks = network.getZeroImpedanceNetworks(loadFlowModel);
-        Graph<LfBus, LfBranch> mergedGraph = new Pseudograph<>(LfBranch.class);
+        Graph<LfBus, LfBranch> mergedGraph = new WeightedPseudograph<>(LfBranch.class);
         Graphs.addGraph(mergedGraph, zn1.getGraph());
         Graphs.addGraph(mergedGraph, zn2.getGraph());
         mergedGraph.addEdge(enabledBranch.getBus1(), enabledBranch.getBus2(), enabledBranch);
@@ -224,6 +266,7 @@ public class LfZeroImpedanceNetwork {
 
     public void addBranch(LfBranch branch) {
         graph.addEdge(branch.getBus1(), branch.getBus2(), branch);
+        graph.setEdgeWeight(branch, computeZeroImpedanceWeight(branch));
     }
 
     @Override
