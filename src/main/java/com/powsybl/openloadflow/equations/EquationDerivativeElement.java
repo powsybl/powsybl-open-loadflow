@@ -14,11 +14,13 @@ import java.util.Objects;
 class EquationDerivativeElement<V extends Enum<V> & Quantity> {
     final int termArrayNum;
     final int termNum;
+    final int equationElementNum;
     final Derivative<V> derivative;
 
-    EquationDerivativeElement(int termArrayNum, int termNum, Derivative<V> derivative) {
+    EquationDerivativeElement(int termArrayNum, int termNum, int equationElementNum, Derivative<V> derivative) {
         this.termArrayNum = termArrayNum;
         this.termNum = termNum;
+        this.equationElementNum = equationElementNum;
         this.derivative = Objects.requireNonNull(derivative);
     }
 }
