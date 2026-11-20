@@ -14,6 +14,8 @@ public class BranchState extends ElementState<LfBranch> {
 
     private final double a1;
     private final double r1;
+    private final double dummyP;
+    private final double dummyQ;
     private final boolean phaseControlEnabled;
     private final boolean voltageControlEnabled;
     private Integer tapPosition;
@@ -33,6 +35,8 @@ public class BranchState extends ElementState<LfBranch> {
             a1 = piModel.getA1();
             r1 = piModel.getR1();
         }
+        dummyP = branch.getDummyP();
+        dummyQ = branch.getDummyQ();
         phaseControlEnabled = branch.isPhaseControlEnabled();
         voltageControlEnabled = branch.isVoltageControlEnabled();
         if (branch.isDisconnectionAllowedSide1()) {
@@ -52,6 +56,8 @@ public class BranchState extends ElementState<LfBranch> {
         }
         piModel.setA1(a1);
         piModel.setR1(r1);
+        element.setDummyP(dummyP);
+        element.setDummyQ(dummyQ);
         element.setPhaseControlEnabled(phaseControlEnabled);
         element.setVoltageControlEnabled(voltageControlEnabled);
         if (connectedSide1 != null) {

@@ -127,6 +127,43 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @Test
+    void testZeroImpedanceBranchFlowsRestoredBetweenContingenciesReport() throws IOException {
+        // the zero impedance branch dummy flows found by the g3 contingency must not be reused as starting point of the
+        // l12bis contingency: as bus voltages, they have to be restored to their pre-contingency values
+        Network network = ZeroImpedanceNetworkFactory.createWithGeneratorBehindNonImpedantBranch();
+        network.newLine()
+                .setId("l12bis")
+                .setBus1("b1")
+                .setConnectableBus1("b1")
+                .setBus2("b2")
+                .setConnectableBus2("b2")
+                .setR(1)
+                .setX(20)
+                .add();
+
+        List<Contingency> contingencies = List.of(new Contingency("g3", new GeneratorContingency("g3")),
+                                                  new Contingency("l12bis", new BranchContingency("l12bis")));
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters()
+                .setDistributedSlack(false);
+        OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
+        openLoadFlowParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_SECURITY_ANALYSIS));
+        lfParameters.addExtension(OpenLoadFlowParameters.class, openLoadFlowParameters);
+
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters();
+        saParameters.setLoadFlowParameters(lfParameters);
+
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testSaReport")
+                .build();
+        runSecurityAnalysis(network, contingencies, Collections.emptyList(),
+                saParameters, Collections.emptyList(), Collections.emptyList(), reportNode);
+
+        assertReportEquals("/zeroImpedanceBranchFlowsRestoredBetweenContingenciesReport.txt", reportNode);
+    }
+
+    @Test
     void testThresholdAction() {
         Network network = NodeBreakerNetworkFactory.create3Bars();
         network.getSwitch("C1").setOpen(true);

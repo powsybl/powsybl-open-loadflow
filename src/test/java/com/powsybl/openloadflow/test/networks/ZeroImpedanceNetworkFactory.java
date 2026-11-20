@@ -128,4 +128,31 @@ public class ZeroImpedanceNetworkFactory extends AbstractLoadFlowNetworkFactory 
         createThreeWindingsTransformer(network, "s", b2, b3, b5, "t3wt", 0., 1., 0., 1., 0., 1.);
         return network;
     }
+
+    /**
+     * 400 kV network, g3 injects 600 MW through non impedant branch l23 and is limited to 100 MVar,
+     * so that it is switched PQ by the reactive limits outer loop.
+     *
+     * g1                          g3
+     * |                           |
+     * b1 ---------- b2 ========== b3
+     *               |
+     *               ld2
+     */
+    public static Network createWithGeneratorBehindNonImpedantBranch() {
+        Network network = Network.create("test", "code");
+        Bus b1 = createBus(network, "s", "b1", 400);
+        Bus b2 = createBus(network, "s", "b2", 400);
+        Bus b3 = createBus(network, "s", "b3", 400);
+        createGenerator(b1, "g1", 400, 400);
+        createGenerator(b3, "g3", 600, 410)
+                .newMinMaxReactiveLimits()
+                    .setMinQ(-100)
+                    .setMaxQ(100)
+                    .add();
+        createLoad(b2, "ld2", 1000, 400);
+        createLine(network, b1, b2, "l12", 1, 20);
+        createLine(network, b2, b3, "l23", 0, 0);
+        return network;
+    }
 }

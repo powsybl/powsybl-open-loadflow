@@ -133,6 +133,30 @@ class AcLoadFlowReportTest {
     }
 
     @Test
+    void testZeroImpedanceBranchesOuterLoopReport() throws IOException {
+        // dummy flows of zero impedance branches must be restored on outer loop Newton-Raphson warm start,
+        // otherwise initial P and Q mismatches of the non impedant sub network are equal to the branch flows
+        Network network = ZeroImpedanceNetworkFactory.createWithGeneratorBehindNonImpedantBranch();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        var lfParameters = new LoadFlowParameters()
+                .setDistributedSlack(false);
+        var olfParameters = OpenLoadFlowParameters.create(lfParameters);
+        olfParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
+                .setReportNode(reportNode);
+        LoadFlowResult result = runner.run(network, runParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/zeroImpedanceBranchesOuterLoopReport.txt", reportNode);
+    }
+
+    @Test
     void testMultipleComponents() throws IOException {
         Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
         // open everything at bus b4 to create 3 components
