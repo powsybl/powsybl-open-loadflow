@@ -17,7 +17,7 @@ Below an example empty post-processor, doing nothing:
 package org.example.powsybl.plugins;
 
 import com.google.auto.service.AutoService;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.na.network.*;
 
 @AutoService(LfNetworkLoaderPostProcessor.class)
 public class MyLfNetworkLoaderPostProcessor implements LfNetworkLoaderPostProcessor {

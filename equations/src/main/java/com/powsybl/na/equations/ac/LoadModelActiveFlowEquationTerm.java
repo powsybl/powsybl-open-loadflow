@@ -1,0 +1,40 @@
+/**
+ * Copyright (c) 2023, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package com.powsybl.na.equations.ac;
+
+import com.powsybl.na.equations.VariableSet;
+import com.powsybl.na.network.LfBus;
+import com.powsybl.na.network.LfLoad;
+import com.powsybl.na.network.LfLoadModel;
+
+import java.util.Collection;
+
+/**
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ */
+public class LoadModelActiveFlowEquationTerm extends AbstractLoadModelEquationTerm {
+
+    public LoadModelActiveFlowEquationTerm(LfBus bus, LfLoad load, LfLoadModel loadModel, VariableSet<AcVariableType> variableSet) {
+        super(bus, load, loadModel, variableSet);
+    }
+
+    @Override
+    public Collection<LfLoadModel.ExpTerm> getExpTerms() {
+        return loadModel.getExpTermsP();
+    }
+
+    @Override
+    public double getTarget() {
+        return load.getTargetP();
+    }
+
+    @Override
+    protected String getName() {
+        return "ac_load_p";
+    }
+}

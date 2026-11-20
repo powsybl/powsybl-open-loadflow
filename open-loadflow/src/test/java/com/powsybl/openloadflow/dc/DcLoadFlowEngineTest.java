@@ -1,0 +1,54 @@
+/**
+ * Copyright (c) 2022, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package com.powsybl.openloadflow.dc;
+
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.na.graph.dtree.DTreeGraphConnectivityFactory;
+import com.powsybl.na.network.LfNetwork;
+import com.powsybl.na.network.LfNetworkParameters;
+import com.powsybl.na.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.na.test.CommonTestConfig;
+import com.powsybl.na.test.ServiceParameterResolver;
+import com.powsybl.na.test.networks.EurostagFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import static org.junit.jupiter.api.Assertions.assertSame;
+
+/**
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ */
+@ExtendWith(ServiceParameterResolver.class)
+class DcLoadFlowEngineTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    DcLoadFlowEngineTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
+
+    @Test
+    void contextTest() {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters olfParameters = OpenLoadFlowParameters.create(parameters);
+        DcLoadFlowParameters dcParameters = OpenLoadFlowParameters.createDcParameters(parameters,
+                                                                                      olfParameters,
+                                                                                      commonTestConfig.matrixFactory(),
+                                                                                      new DTreeGraphConnectivityFactory<>(),
+                                                                                      false);
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new LfNetworkParameters()).get(0);
+        try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
+            DcLoadFlowEngine engine = new DcLoadFlowEngine(context);
+            assertSame(context, engine.getContext());
+        }
+    }
+}

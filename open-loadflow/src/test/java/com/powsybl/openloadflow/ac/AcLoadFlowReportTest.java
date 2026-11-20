@@ -1,0 +1,522 @@
+/**
+ * Copyright (c) 2023, Coreso SA (https://www.coreso.eu/) and TSCNET Services GmbH (https://www.tscnet.eu/)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package com.powsybl.openloadflow.ac;
+
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
+import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Terminal;
+import com.powsybl.iidm.network.regulation.RegulationMode;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.loadflow.*;
+import com.powsybl.na.graph.dtree.DTreeGraphConnectivityFactory;
+import com.powsybl.na.network.*;
+import com.powsybl.na.test.CommonTestConfig;
+import com.powsybl.na.test.LoadFlowAssert;
+import com.powsybl.na.test.ServiceParameterResolver;
+import com.powsybl.na.test.networks.*;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.OpenLoadFlowProvider;
+import com.powsybl.openloadflow.ac.solver.MaxVoltageChangeStateVectorScaling;
+import com.powsybl.openloadflow.ac.solver.StateVectorScalingMode;
+import com.powsybl.openloadflow.lf.PowsyblOpenLoadFlowReportResourceBundle;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * @author Bertrand Rix {@literal <bertrand.rix at artelys.com>}
+ */
+@ExtendWith(ServiceParameterResolver.class)
+class AcLoadFlowReportTest {
+
+    private final CommonTestConfig commonTestConfig;
+
+    AcLoadFlowReportTest(CommonTestConfig commonTestConfig) {
+        this.commonTestConfig = commonTestConfig;
+    }
+
+    @Test
+    void testEsgTutoDetailedNrLogsLf() throws IOException {
+        Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testEsgTutoReport")
+                .build();
+        var lfParameters = new LoadFlowParameters()
+                .setTransformerVoltageControlOn(true);
+        var olfParameters = OpenLoadFlowParameters.create(lfParameters);
+        olfParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW))
+                     .setTransformerVoltageControlMode(OpenLoadFlowParameters.TransformerVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL)
+                     .setStateVectorScalingMode(StateVectorScalingMode.MAX_VOLTAGE_CHANGE)
+                     .setMaxVoltageChangeStateVectorScalingMaxDv(MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DV / 10)
+                     .setMaxVoltageChangeStateVectorScalingMaxDphi(MaxVoltageChangeStateVectorScaling.DEFAULT_MAX_DPHI / 10);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
+                .setReportNode(reportNode);
+        LoadFlowResult result = runner.run(network, runParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/esgTutoReportDetailedNrReportLf.txt", reportNode);
+    }
+
+    @Test
+    void testShuntVoltageControlOuterLoopReport() throws IOException {
+        Network network = ShuntNetworkFactory.createWithTwoShuntCompensators();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        var lfParameters = new LoadFlowParameters()
+                .setShuntCompensatorVoltageControlOn(true);
+        var olfParameters = OpenLoadFlowParameters.create(lfParameters);
+        olfParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW))
+                .setStateVectorScalingMode(StateVectorScalingMode.LINE_SEARCH)
+                .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
+                .setReportNode(reportNode);
+        LoadFlowResult result = runner.run(network, runParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/shuntVoltageControlOuterLoopReport.txt", reportNode);
+    }
+
+    @Test
+    void testTransformerReactivePowerControlOuterLoopReport() throws IOException {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        var t2wt = network.getTwoWindingsTransformer("T2wT");
+        t2wt.getRatioTapChanger()
+                .setTapPosition(0)
+                .newVoltageRegulation()
+                    .withTargetDeadband(0)
+                    .withRegulating(true)
+                    .withTerminal(t2wt.getTerminal1())
+                    .withMode(RegulationMode.REACTIVE_POWER)
+                    .withTargetValue(-0.55)
+                    .build();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        var olfParameters = OpenLoadFlowParameters.create(lfParameters);
+        olfParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW))
+                .setTransformerReactivePowerControl(true);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
+                .setReportNode(reportNode);
+        LoadFlowResult result = runner.run(network, runParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/transformerReactivePowerControlOuterLoopReport.txt", reportNode);
+    }
+
+    @Test
+    void testMultipleComponents() throws IOException {
+        Network network = ConnectedComponentNetworkFactory.createThreeCcLinkedByASingleBus();
+        // open everything at bus b4 to create 3 components
+        network.getBusBreakerView().getBus("b4").getConnectedTerminalStream().forEach(Terminal::disconnect);
+
+        // CC1 SC1 has generator but no voltage control. OK in DC, but KO in AC.
+        network.getGenerator("g6").setLocalTargetQ(0.0)
+                .newVoltageRegulation()
+                    .withRegulating(false)
+                    .build();
+        // CC2 SC2 has no generator connected. Ignored in for DC and AC.
+        network.getGenerator("g10").disconnect();
+
+        var lfParameters = new LoadFlowParameters().setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED).setHvdcAcEmulation(false);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+
+        // test in AC
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
+                .setReportNode(reportNode);
+        LoadFlowResult result = runner.run(network, runParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals("Converged", result.getComponentResults().get(0).getStatusText());
+        assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().get(1).getStatus());
+        assertEquals(LfNetwork.Validity.INVALID_NO_GENERATOR_VOLTAGE_CONTROL.toString(), result.getComponentResults().get(1).getStatusText());
+        assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().get(2).getStatus());
+        assertEquals(LfNetwork.Validity.INVALID_NO_GENERATOR.toString(), result.getComponentResults().get(2).getStatusText());
+        assertEquals(Double.NaN, network.getLoad("d9").getTerminal().getP()); // load on the NO_CALCULATION island connected component
+        LoadFlowAssert.assertReportEquals("/multipleConnectedComponentsAcReport.txt", reportNode);
+
+        // test in DC
+        lfParameters.setDc(true);
+        reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        runParameters.setReportNode(reportNode);
+        result = runner.run(network, runParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals("Converged", result.getComponentResults().get(0).getStatusText());
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(1).getStatus());
+        assertEquals("Converged", result.getComponentResults().get(1).getStatusText());
+        assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getComponentResults().get(2).getStatus());
+        assertEquals(LfNetwork.Validity.INVALID_NO_GENERATOR.toString(), result.getComponentResults().get(2).getStatusText());
+        assertEquals(Double.NaN, network.getLoad("d9").getTerminal().getP()); // load on the NO_CALCULATION island connected component
+        LoadFlowAssert.assertReportEquals("/multipleConnectedComponentsDcReport.txt", reportNode);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void generatorVoltageControlDiscardedMultipleCauses(boolean detailedReport) throws IOException {
+        var lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters)
+                .setPlausibleActivePowerLimit(5000)
+                .setReportedFeatures(detailedReport ? Set.of(OpenLoadFlowParameters.ReportedFeatures.NETWORK_LOADING) : Collections.emptySet())
+                .setDisableVoltageControlOfGeneratorsOutsideActivePowerLimits(true);
+
+        Network network = IeeeCdfNetworkFactory.create14();
+        network.getGenerator("B1-G").setMaxP(200); // targetP > maxP, active power control and voltage control will be discarded
+        network.getGenerator("B2-G").setLocalTargetV(10).setMaxP(4000); // not plausible targetV, voltage control will be discarded
+        network.getGenerator("B3-G").setTargetP(10).setMaxP(10).setMinP(10); // minP ~= maxP, active power control will be discarded
+        network.getGenerator("B6-G").setTargetP(10).setMinP(20); // targetP < minP active power control and voltage control will be discarded
+        network.getGenerator("B8-G").newMinMaxReactiveLimits().setMinQ(10).setMaxQ(10).add(); // reactive range is too small, voltage control will be discarded
+
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
+                .setReportNode(reportNode);
+        LoadFlowResult result = runner.run(network, runParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        String reportTxt = """
+                + Test Report
+                   + Load flow on network 'ieee14cdf'
+                      + Network CC0 SC0
+                """
+                + (detailedReport ? // detailed version of the report
+                """
+                         + 1 generators have been discarded from voltage control because of a too small reactive range
+                            Discard generator B8-G from voltage control because reactive range is too small
+                         + 2 generators have been discarded from voltage control because targetP is outside active power limits
+                            Discard generator B1-G from voltage control because targetP is outside active power limits (targetP=232.4 MW, minP=-9999 MW, maxP=200 MW)
+                            Discard generator B6-G from voltage control because targetP is outside active power limits (targetP=10 MW, minP=20 MW, maxP=9999 MW)
+                         + 1 generators have been discarded from active power control because of a targetP equals 0
+                            Discard generator B8-G from active power control because targetP (0 MW) equals 0
+                         + 1 generators have been discarded from active power control because of a targetP > maxP
+                            Discard generator B1-G from active power control because targetP (232.4 MW) > maxTargetP (200 MW)
+                         + 1 generators have been discarded from active power control because of a targetP < minP
+                            Discard generator B6-G from active power control because targetP (10 MW) < minTargetP (20 MW)
+                         + 1 generators have been discarded from active power control because of maxP not plausible
+                            Discard generator B6-G from active power control because maxP (9999MW) > plausibleLimit (5000 MW)
+                         + 1 generators have been discarded from active power control because of maxP equals to minP
+                            Discard generator B3-G from active power control because maxP (10 MW) equals minP (10 MW)
+                         + 1 generators have been discarded from voltage control because targetV is implausible
+                            Discard generator B2-G from voltage control because of implausible target voltage: 0.074074 p.u
+                """ : // not detailed version
+            """
+                         1 generators have been discarded from voltage control because of a too small reactive range
+                         2 generators have been discarded from voltage control because targetP is outside active power limits
+                         1 generators have been discarded from active power control because of a targetP > maxP
+                         1 generators have been discarded from active power control because of a targetP < minP
+                         1 generators have been discarded from active power control because of maxP not plausible
+                         1 generators have been discarded from active power control because of maxP equals to minP
+                         1 generators have been discarded from voltage control because targetV is implausible
+                """) + """
+                         + Network info
+                            Network has 14 buses and 20 branches
+                            Network balance: active generation=292.4 MW, active load=259 MW, reactive generation=55.1 MVar, reactive load=73.5 MVar
+                            Angle reference bus: VL1_0
+                            Slack bus: VL1_0
+                         Voltage initialization with method Uniform Values
+                         + Outer loop DistributedSlack
+                            + Outer loop iteration 1
+                               Slack bus active power (-22.20996 MW) distributed in 1 distribution iteration(s)
+                            + Outer loop iteration 2
+                               Slack bus active power (1.21814 MW) distributed in 1 distribution iteration(s)
+                         Outer loop ReactiveLimits
+                         AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+                """;
+        LoadFlowAssert.assertTxtReportEquals(reportTxt, reportNode);
+    }
+
+    @Test
+    void generatorVoltageControlDiscarded() throws IOException {
+        Network network = FourBusNetworkFactory.create();
+        network.getGenerator("g2").setLocalTargetV(10); // not plausible targetV, will be discarded and reported
+
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        lfParameters.setTransformerVoltageControlOn(true);
+        OpenLoadFlowParameters.create(lfParameters).setMinNominalVoltageTargetVoltageCheck(0.5);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
+                .setReportNode(reportNode);
+        LoadFlowResult result = runner.run(network, runParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/generatorVoltageControlDiscarded.txt", reportNode);
+    }
+
+    @Test
+    void transformerVoltageControlDiscarded() throws IOException {
+        Network network = VoltageControlNetworkFactory.createNetworkWithT2wt();
+        var t2wt = network.getTwoWindingsTransformer("T2wT");
+        t2wt.getRatioTapChanger()
+                .setTapPosition(0)
+                .newVoltageRegulation()
+                    .withTargetDeadband(0)
+                    .withRegulating(true)
+                    .withTerminal(t2wt.getTerminal1())
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTargetValue(100) // not plausible, will be discarded and reported
+                    .build();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        lfParameters.setTransformerVoltageControlOn(true);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
+                .setReportNode(reportNode);
+        LoadFlowResult result = runner.run(network, runParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/transformerVoltageControlDiscarded.txt", reportNode);
+    }
+
+    @Test
+    void shuntVoltageControlDiscarded() throws IOException {
+        Network network = ShuntNetworkFactory.createWithTwoShuntCompensators();
+        network.getShuntCompensator("SHUNT2").setLocalTargetV(600) // not plausible targetV, will be discarded and reported
+                    .getVoltageRegulation().setRegulating(true);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        var lfParameters = new LoadFlowParameters()
+                .setShuntCompensatorVoltageControlOn(true);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
+                .setReportNode(reportNode);
+        LoadFlowResult result = runner.run(network, runParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/shuntVoltageControlDiscarded.txt", reportNode);
+    }
+
+    @Test
+    void testTransformerControlAlreadyExistsWithDifferentTargetV() throws IOException {
+        Network network = VoltageControlNetworkFactory.createWithTransformerSharedRemoteControl();
+        network.getTwoWindingsTransformer("T2wT2").getRatioTapChanger()
+                .getVoltageRegulation()
+                .setTargetValue(34.5)
+                .setTargetDeadband(3.0);
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        lfParameters.setTransformerVoltageControlOn(true);
+        var olfParameters = OpenLoadFlowParameters.create(lfParameters);
+        olfParameters.setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
+                .setReportNode(reportNode);
+        LoadFlowResult result = runner.run(network, runParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/transformerControlAlreadyExistsWithDifferentTargetVReport.txt", reportNode);
+    }
+
+    @Test
+    void areaInterchangeControl() throws IOException {
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithXNode();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters)
+                .setAreaInterchangeControl(true);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
+                .setReportNode(reportNode);
+        LoadFlowResult result = runner.run(network, runParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertReportEquals("/areaInterchangeControlOuterLoop.txt", reportNode);
+    }
+
+    @Test
+    void busesOutOfRealisticVoltageRangeTest() throws IOException {
+        Network network = EurostagTutorialExample1Factory.create();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        var lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters)
+                .setMinRealisticVoltage(0.99)
+                .setMaxRealisticVoltage(1.01);
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
+                .setReportNode(reportNode);
+        LoadFlowResult result = runner.run(network, runParameters);
+
+        assertTrue(result.isFailed());
+        LoadFlowAssert.assertTxtReportEquals("""
+                        + Test Report
+                           + Load flow on network 'sim1'
+                              + Network CC0 SC0
+                                 + Network info
+                                    Network has 4 buses and 4 branches
+                                    Network balance: active generation=607 MW, active load=600 MW, reactive generation=0 MVar, reactive load=200 MVar
+                                    Angle reference bus: VLHV1_0
+                                    Slack bus: VLHV1_0
+                                 Voltage initialization with method Uniform Values
+                                 + Outer loop DistributedSlack
+                                    + Outer loop iteration 1
+                                       Slack bus active power (-1.440405 MW) distributed in 1 distribution iteration(s)
+                                 Outer loop ReactiveLimits
+                                 + 4 buses have a voltage magnitude out of the configured realistic range [0.99, 1.01] p.u.
+                                    Bus VLGEN_0 has an unrealistic voltage magnitude: 1.020833 p.u.
+                                    Bus VLHV1_0 has an unrealistic voltage magnitude: 1.058271 p.u.
+                                    Bus VLHV2_0 has an unrealistic voltage magnitude: 1.026191 p.u.
+                                    Bus VLLOAD_0 has an unrealistic voltage magnitude: 0.983857 p.u.
+                                 AC load flow completed with error (solverStatus=UNREALISTIC_STATE, outerloopStatus=STABLE)
+                        """, reportNode);
+
+    }
+
+    @Test
+    void testReportsOnLfNetworkWithSeveralSynchronousComponent() throws IOException {
+        // If a LfNetwork represents several synchronous component, it shall not be named CCx SCx in the report nodes
+        // but rather CCx.
+        // In addition, if a LfNetwork represents several synchronous component, the following reports should have an
+        // additional indent level as they are specific to one synchronous component that should be identified with a
+        // SCx header.
+        // - Slack and reference bus report
+        // - Slack mismatch distribution outer loop
+
+        Network network = AcDcNetworkFactory.createAcDcNetworkWithTwoAcZones();
+        ReportNode reportNode = ReportNode.newRootReportNode()
+            .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+            .withMessageTemplate("testReport")
+            .build();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(lfParameters)
+            .setAcDcNetwork(true)
+            .setReportedFeatures(Set.of(OpenLoadFlowParameters.ReportedFeatures.NEWTON_RAPHSON_LOAD_FLOW));
+
+        LoadFlowProvider provider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
+        LoadFlow.Runner runner = new LoadFlow.Runner(provider);
+        LoadFlowRunParameters runParameters = new LoadFlowRunParameters().setParameters(lfParameters)
+            .setReportNode(reportNode);
+        LoadFlowResult result = runner.run(network, runParameters);
+
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        LoadFlowAssert.assertTxtReportEquals("""
+            + Test Report
+               + Load flow on network '2ACzones'
+                  + Network CC0
+                     + Network info
+                        Network has 2 buses and 0 branches
+                        Network balance: active generation=100 MW, active load=120 MW, reactive generation=0 MVar, reactive load=0 MVar
+                        + SC0
+                           Angle reference bus: b1_vl_0
+                           Slack bus: b1_vl_0
+                        + SC1
+                           Angle reference bus: b2_vl_0
+                           Slack bus: b2_vl_0
+                     Voltage initialization with method Uniform Values
+                     + Newton-Raphson on Network CC0
+                        No outer loops have been launched
+                        + Initial mismatch
+                           Newton-Raphson norm |f(x)|=0.766587
+                           + Largest V mismatch: 0 p.u.
+                              Bus Id: b1_vl_0 (nominalVoltage=400kV)
+                              Bus V: 1 pu, 0 rad
+                              Bus injection: 0 MW, 0 MVar
+                        + Iteration 1 mismatch
+                           Newton-Raphson norm |f(x)|=0.235715
+                           + Largest V mismatch: 0 p.u.
+                              Bus Id: b1_vl_0 (nominalVoltage=400kV)
+                              Bus V: 1 pu, 0 rad
+                              Bus injection: 70 MW, 0 MVar
+                        + Iteration 2 mismatch
+                           Newton-Raphson norm |f(x)|=0
+                           + Largest V mismatch: 0 p.u.
+                              Bus Id: b1_vl_0 (nominalVoltage=400kV)
+                              Bus V: 1 pu, 0 rad
+                              Bus injection: 70 MW, 0 MVar
+                     + Outer loop DistributedSlack
+                        + Outer loop iteration 1
+                           + SC0
+                              Slack bus active power (40 MW) distributed in 1 distribution iteration(s)
+                           + SC1
+                              Slack bus active power (-19.998222 MW) distributed in 1 distribution iteration(s)
+                     + Newton-Raphson on Network CC0
+                        Newton-Raphson of outer loop iteration 1 of type DistributedSlack
+                        + Initial mismatch
+                           Newton-Raphson norm |f(x)|=0
+                           + Largest V mismatch: 0 p.u.
+                              Bus Id: b1_vl_0 (nominalVoltage=400kV)
+                              Bus V: 1 pu, 0 rad
+                              Bus injection: 70 MW, 0 MVar
+                        + Iteration 1 mismatch
+                           Newton-Raphson norm |f(x)|=0
+                           + Largest V mismatch: 0 p.u.
+                              Bus Id: b1_vl_0 (nominalVoltage=400kV)
+                              Bus V: 1 pu, 0 rad
+                              Bus injection: 70 MW, 0 MVar
+                     Outer loop AcDcConverterPowerLimits
+                     Outer loop ReactiveLimits
+                     AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
+            """, reportNode);
+    }
+
+}

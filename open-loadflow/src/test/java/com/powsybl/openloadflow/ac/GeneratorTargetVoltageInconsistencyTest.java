@@ -1,0 +1,440 @@
+/**
+ * Copyright (c) 2020, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package com.powsybl.openloadflow.ac;
+
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.test.PowsyblTestReportResourceBundle;
+import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
+import com.powsybl.na.commons.PerUnit;
+import com.powsybl.na.network.*;
+import com.powsybl.na.network.impl.Networks;
+import com.powsybl.na.test.LoadFlowAssert;
+import com.powsybl.openloadflow.lf.PowsyblOpenLoadFlowReportResourceBundle;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ */
+class GeneratorTargetVoltageInconsistencyTest {
+
+    private Network createLocalInconsistentTargetVoltageNetwork() {
+        Network network = Network.create("generatorLocalInconsistentTargetVoltage", "code");
+        Substation s = network.newSubstation()
+                .setId("s")
+                .add();
+        VoltageLevel vl1 = s.newVoltageLevel()
+                .setId("vl1")
+                .setNominalV(20)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl1.getBusBreakerView().newBus()
+                .setId("b1")
+                .add();
+
+        vl1.newGenerator()
+                .setId("g1")
+                .setBus("b1")
+                .setConnectableBus("b1")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(200)
+                .setTargetP(100)
+                .setLocalTargetQ(50)
+                .setLocalTargetV(23)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
+                .add();
+        vl1.newGenerator()
+                .setId("g2")
+                .setBus("b1")
+                .setConnectableBus("b1")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(200)
+                .setTargetP(100)
+                .setLocalTargetQ(100)
+                .setLocalTargetV(22)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
+                .add();
+
+        VoltageLevel vl2 = s.newVoltageLevel()
+                .setId("vl2")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl2.getBusBreakerView().newBus()
+                .setId("b2")
+                .add();
+        vl2.newLoad()
+                .setId("ld2")
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setP0(99.9)
+                .setQ0(80)
+                .add();
+        network.newLine()
+                .setId("l1")
+                .setConnectableBus1("b1")
+                .setBus1("b1")
+                .setConnectableBus2("b2")
+                .setBus2("b2")
+                .setR(1)
+                .setX(1)
+                .add();
+        return network;
+    }
+
+    @Test
+    void localTest() throws IOException {
+        Network network = createLocalInconsistentTargetVoltageNetwork();
+
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector());
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reportNode);
+        assertEquals(1, lfNetworks.size());
+
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        LfBus controlledBus = lfNetwork.getBusById("vl1_0");
+        assertNotNull(controlledBus);
+
+        Optional<GeneratorVoltageControl> vc = controlledBus.getGeneratorVoltageControl();
+        assertTrue(vc.isPresent());
+        assertEquals(23, vc.get().getTargetValue() * controlledBus.getNominalV());
+        LoadFlowAssert.assertReportEquals("/notUniqueTargetVControllerBusReport.txt", reportNode);
+    }
+
+    @Test
+    void localTestWithDisabling() {
+        Network network = createLocalInconsistentTargetVoltageNetwork();
+
+        LfNetworkParameters lfNetworkParameters = new LfNetworkParameters()
+                .setSlackBusSelector(new FirstSlackBusSelector())
+                .setDisableInconsistentVoltageControls(true);
+
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport")
+                .build();
+        List<LfNetwork> lfNetworks = Networks.load(network, lfNetworkParameters, reportNode);
+
+        LfNetwork lfNetwork = lfNetworks.get(0);
+        LfBus controlledBus = lfNetwork.getBusById("vl1_0");
+        assertNotNull(controlledBus);
+
+        Optional<GeneratorVoltageControl> vc = controlledBus.getGeneratorVoltageControl();
+        assertFalse(vc.isPresent());
+        LoadFlowAssert.assertReportContains(".*Generators \\[g1\\, g2\\] are connected to the same bus vl1\\_0 with " +
+            "different target voltages \\(23\\.0 kV and 22\\.0 kV\\)\\: disabling voltage control.*$", reportNode);
+        assertEquals(150.0, lfNetwork.getBusById("vl1_0").getGenerationTargetQ() * PerUnit.SB);
+    }
+
+    @Test
+    void remoteTest() {
+        Network network = Network.create("generatorRemoteInconsistentTargetVoltage", "code");
+        Substation s = network.newSubstation()
+                .setId("s")
+                .add();
+
+        VoltageLevel vl3 = s.newVoltageLevel()
+                .setId("vl3")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl3.getBusBreakerView().newBus()
+                .setId("b3")
+                .add();
+        Load ld = vl3.newLoad()
+                .setId("ld")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setP0(99.9)
+                .setQ0(80)
+                .add();
+
+        VoltageLevel vl1 = s.newVoltageLevel()
+                .setId("vl1")
+                .setNominalV(20)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl1.getBusBreakerView().newBus()
+                .setId("b1")
+                .add();
+        vl1.newGenerator()
+                .setId("g1")
+                .setBus("b1")
+                .setConnectableBus("b1")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(200)
+                .setTargetP(100)
+                .newVoltageRegulation()
+                    .withTargetValue(413)
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(ld.getTerminal())
+                    .add()
+                .add();
+
+        VoltageLevel vl2 = s.newVoltageLevel()
+                .setId("vl2")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl2.getBusBreakerView().newBus()
+                .setId("b2")
+                .add();
+        Generator g2 = vl2.newGenerator()
+                .setId("g2")
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(200)
+                .setTargetP(100)
+                .newVoltageRegulation()
+                    .withTargetValue(225)
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(ld.getTerminal())
+                    .add()
+                .add();
+
+        network.newLine()
+                .setId("l1")
+                .setConnectableBus1("b1")
+                .setBus1("b1")
+                .setConnectableBus2("b3")
+                .setBus2("b3")
+                .setR(1)
+                .setX(1)
+                .add();
+        network.newLine()
+                .setId("l2")
+                .setConnectableBus1("b2")
+                .setBus1("b2")
+                .setConnectableBus2("b3")
+                .setBus2("b3")
+                .setR(1)
+                .setX(1)
+                .add();
+
+        LfNetworkParameters parameters = new LfNetworkParameters()
+                .setGeneratorVoltageRemoteControl(true);
+
+        Generator g = network.getGenerator("g2");
+        assertEquals(0.5625, g.getRegulatingTargetV() / g.getTerminal().getVoltageLevel().getNominalV());
+
+        List<LfNetwork> networkList = Networks.load(network, parameters);
+        LfNetwork mainNetwork = networkList.get(0);
+        LfGenerator generator = mainNetwork.getBusById("vl2_0").getGenerators().get(0);
+        assertEquals("g2", generator.getId());
+        assertTrue(Double.isNaN(generator.getTargetV()));
+    }
+
+    @Test
+    void remoteAndLocalTest() throws IOException {
+        Network network = Network.create("generatorRemoteAndLocalInconsistentTargetVoltage", "code");
+        Substation s = network.newSubstation()
+                .setId("s")
+                .add();
+
+        VoltageLevel vl2 = s.newVoltageLevel()
+                .setId("vl2")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl2.getBusBreakerView().newBus()
+                .setId("b2")
+                .add();
+        Generator g2 = vl2.newGenerator()
+                .setId("g2")
+                .setBus("b2")
+                .setConnectableBus("b2")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(200)
+                .setTargetP(100)
+                .setLocalTargetV(413)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
+                .add();
+
+        VoltageLevel vl1 = s.newVoltageLevel()
+                .setId("vl1")
+                .setNominalV(20)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl1.getBusBreakerView().newBus()
+                .setId("b1")
+                .add();
+        vl1.newGenerator()
+                .setId("g1")
+                .setBus("b1")
+                .setConnectableBus("b1")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(200)
+                .setTargetP(100)
+                .newVoltageRegulation()
+                    .withTargetValue(412)
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(g2.getTerminal())
+                    .add()
+                .add();
+
+        network.newLine()
+                .setId("l1")
+                .setConnectableBus1("b1")
+                .setBus1("b1")
+                .setConnectableBus2("b2")
+                .setBus2("b2")
+                .setR(1)
+                .setX(1)
+                .add();
+
+        VoltageLevel vl3 = s.newVoltageLevel()
+                .setId("vl3")
+                .setNominalV(400)
+                .setTopologyKind(TopologyKind.BUS_BREAKER)
+                .add();
+        vl3.getBusBreakerView().newBus()
+                .setId("b3")
+                .add();
+        vl3.newLoad()
+                .setId("ld")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setP0(99.9)
+                .setQ0(80)
+                .add();
+
+        network.newLine()
+                .setId("l2")
+                .setConnectableBus1("b2")
+                .setBus1("b2")
+                .setConnectableBus2("b3")
+                .setBus2("b3")
+                .setR(1)
+                .setX(1)
+                .add();
+
+        LfNetworkParameters parameters = new LfNetworkParameters()
+                .setGeneratorVoltageRemoteControl(true);
+
+        assertEquals(412, network.getGenerator("g1").getRegulatingTargetV());
+        assertEquals(413, g2.getRegulatingTargetV());
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        List<LfNetwork> networkList = Networks.load(network, parameters, reportNode);
+        LfNetwork mainNetwork = networkList.get(0);
+        Optional<GeneratorVoltageControl> sharedVoltageControl = mainNetwork.getBusById("vl2_0").getGeneratorVoltageControl();
+        assertTrue(sharedVoltageControl.isPresent());
+
+        assertEquals(413 / g2.getTerminal().getVoltageLevel().getNominalV(), sharedVoltageControl.get().getTargetValue());
+        LoadFlowAssert.assertReportEquals("/busAlreadyControlledWithDifferentTargetVReport.txt", reportNode);
+    }
+
+    @Test
+    void remoteAndLocalTestWithDisabling() {
+        Network network = createLocalInconsistentTargetVoltageNetwork();
+        Generator g2 = network.getGenerator("g2");
+        g2.newVoltageRegulation()
+                .withTargetValue(400)
+                .withRegulating(true)
+                .withMode(RegulationMode.VOLTAGE)
+                .withTerminal(network.getLoad("ld2").getTerminal())
+                .build();
+        LfNetworkParameters parameters = new LfNetworkParameters()
+                .setGeneratorVoltageRemoteControl(true)
+                .setDisableInconsistentVoltageControls(true);
+
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withMessageTemplate("testReport")
+                .build();
+        List<LfNetwork> networkList = Networks.load(network, parameters, reportNode);
+        LfNetwork lfNetwork = networkList.get(0);
+        Optional<GeneratorVoltageControl> sharedVoltageControl = lfNetwork.getBusById("vl2_0").getGeneratorVoltageControl();
+        assertFalse(sharedVoltageControl.isPresent());
+        LoadFlowAssert.assertReportContains(".*Generators \\[g1\\, g2\\] are connected to the same bus vl1\\_0 but " +
+            "control the voltage of different buses \\(vl1\\_0 and vl2\\_0\\)\\: disabling voltage control", reportNode);
+        assertEquals(150.0, lfNetwork.getBusById("vl1_0").getGenerationTargetQ() * PerUnit.SB);
+    }
+
+    @Test
+    void remoteAndLocalTestWithInconsistentTargetVoltage() throws IOException {
+        Network network = createLocalInconsistentTargetVoltageNetwork();
+        Generator g2 = network.getGenerator("g2");
+        g2.newVoltageRegulation()
+                .withTargetValue(400)
+                .withRegulating(true)
+                .withMode(RegulationMode.VOLTAGE)
+                .withTerminal(network.getLoad("ld2").getTerminal())
+                .build();
+        VoltageLevel vl1 = network.getVoltageLevel("vl1");
+        vl1.newGenerator()
+                .setId("g3")
+                .setBus("b1")
+                .setConnectableBus("b1")
+                .setEnergySource(EnergySource.THERMAL)
+                .setMinP(0)
+                .setMaxP(200)
+                .setTargetP(100)
+                .setLocalTargetV(24)
+                .newVoltageRegulation()
+                    .withRegulating(true)
+                    .withMode(RegulationMode.VOLTAGE)
+                    .add()
+                .add();
+
+        LfNetworkParameters parameters = new LfNetworkParameters()
+                .setGeneratorVoltageRemoteControl(true);
+
+        ReportNode reportNode = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("testReport")
+                .build();
+        List<LfNetwork> networkList = Networks.load(network, parameters, reportNode);
+        LfNetwork lfNetwork = networkList.get(0);
+        LfBus lfBus = lfNetwork.getBusById("vl1_0");
+        Optional<GeneratorVoltageControl> sharedVoltageControl = lfBus.getGeneratorVoltageControl();
+        assertTrue(sharedVoltageControl.isPresent());
+        LoadFlowAssert.assertTxtReportEquals("""
+                        + Test Report
+                           + Network CC0 SC0
+                              Generators [g1, g2, g3] are connected to the same bus vl1_0 but control the voltage of different buses: vl1_0 (kept) and vl2_0 (rejected)
+                              Generators [g1, g2, g3] are connected to the same bus vl1_0 with different target voltages: 23 kV (kept) and 24 kV (rejected)
+                              + Network info
+                                 Network has 2 buses and 1 branches
+                                 Network balance: active generation=300 MW, active load=99.9 MW, reactive generation=0 MVar, reactive load=80 MVar
+                                 Angle reference bus: vl1_0
+                                 Slack bus: vl1_0
+                        """,
+                reportNode);
+        assertEquals(23.0, sharedVoltageControl.get().getTargetValue() * lfBus.getNominalV());
+    }
+}

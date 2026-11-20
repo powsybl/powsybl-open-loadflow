@@ -1,0 +1,439 @@
+/**
+ * Copyright (c) 2019, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package com.powsybl.na.network.impl;
+
+import com.powsybl.iidm.network.*;
+import com.powsybl.na.commons.Evaluable;
+import com.powsybl.na.network.*;
+import net.jafama.FastMath;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
+import java.util.function.Supplier;
+
+/**
+ * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
+ */
+public abstract class AbstractLfBranch extends AbstractElement implements LfBranch {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLfBranch.class);
+
+    protected final LfBus bus1;
+
+    protected final LfBus bus2;
+
+    private List<LfLimitsGroup> currentLimits1;
+
+    private List<LfLimitsGroup> activePowerLimits1;
+
+    private List<LfLimitsGroup> apparentPowerLimits1;
+
+    private List<LfLimitsGroup> currentLimits2;
+
+    private List<LfLimitsGroup> activePowerLimits2;
+
+    private List<LfLimitsGroup> apparentPowerLimits2;
+
+    protected final PiModel piModel;
+
+    protected TransformerPhaseControl phaseControl;
+
+    protected boolean phaseControlEnabled = false;
+
+    protected TransformerVoltageControl voltageControl;
+
+    protected boolean voltageControlEnabled = false;
+
+    protected TransformerReactivePowerControl transformerReactivePowerControl;
+
+    static class ZeroImpedanceContext {
+
+        boolean spanningTreeEdge = false;
+
+        boolean zeroImpedance = false;
+    }
+
+    protected final Map<LoadFlowModel, ZeroImpedanceContext> zeroImpedanceContextByModel = new EnumMap<>(LoadFlowModel.class);
+
+    protected Evaluable a1;
+
+    private GeneratorReactivePowerControl generatorReactivePowerControl;
+
+    protected LfAsymLine asymLine;
+
+    private static final String LIMIT_TYPE_UNSUPPORTED_TEMPLATE = "Getting %s limits is not supported.";
+
+    protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, LfNetworkParameters parameters) {
+        super(network);
+        this.bus1 = bus1;
+        this.bus2 = bus2;
+        this.piModel = Objects.requireNonNull(piModel);
+        this.piModel.setBranch(this);
+        for (LoadFlowModel loadFlowModel : LoadFlowModel.values()) {
+            zeroImpedanceContextByModel.put(loadFlowModel, new ZeroImpedanceContext());
+        }
+        if (!parameters.isMinImpedance()) {
+            for (LoadFlowModel loadFlowModel : LoadFlowModel.values()) {
+                zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance = isZeroImpedanceBranch(piModel, loadFlowModel, parameters.getLowImpedanceThreshold());
+            }
+        }
+    }
+
+    protected AbstractLfBranch(AbstractLfBranch other, LfNetwork network, LfBus bus1, LfBus bus2) {
+        super(network);
+        this.bus1 = bus1;
+        this.bus2 = bus2;
+        this.asymLine = other.asymLine;
+        this.piModel = other.piModel.copy();
+        this.piModel.setBranch(this);
+        for (LoadFlowModel loadFlowModel : LoadFlowModel.values()) {
+            ZeroImpedanceContext context = new ZeroImpedanceContext();
+            context.zeroImpedance = other.zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance;
+            zeroImpedanceContextByModel.put(loadFlowModel, context);
+        }
+        this.disabled = other.disabled;
+        this.phaseControlEnabled = other.phaseControlEnabled;
+        this.voltageControlEnabled = other.voltageControlEnabled;
+    }
+
+    @Override
+    public Optional<ThreeSides> getOriginalSide() {
+        return Optional.empty();
+    }
+
+    @Override
+    public ElementType getType() {
+        return ElementType.BRANCH;
+    }
+
+    @Override
+    public LfBus getBus1() {
+        return bus1;
+    }
+
+    @Override
+    public LfBus getBus2() {
+        return bus2;
+    }
+
+    private List<LfLimitsGroup> getLimits1(LimitType type) {
+        switch (type) {
+            case ACTIVE_POWER -> {
+                return activePowerLimits1;
+            }
+            case APPARENT_POWER -> {
+                return apparentPowerLimits1;
+            }
+            case CURRENT -> {
+                return currentLimits1;
+            }
+            default -> throw new UnsupportedOperationException(String.format(LIMIT_TYPE_UNSUPPORTED_TEMPLATE, type.name()));
+        }
+    }
+
+    private void setLimits1(LimitType type, List<LfLimitsGroup> limits) {
+        switch (type) {
+            case ACTIVE_POWER -> activePowerLimits1 = limits;
+            case APPARENT_POWER -> apparentPowerLimits1 = limits;
+            case CURRENT -> currentLimits1 = limits;
+            default -> throw new UnsupportedOperationException(String.format(LIMIT_TYPE_UNSUPPORTED_TEMPLATE, type.name()));
+        }
+    }
+
+    private <T extends LoadingLimits> List<LfLimitsGroup> createLimits(Supplier<Map<String, T>> loadingLimitsSupplier, LimitScalingManager limitScalingManager, TwoSides side) {
+        // It is possible to apply the scalings here since the only supported ContingencyContext for LimitScaling is ALL.
+        Map<String, T> allSelectedLoadingLimits = loadingLimitsSupplier.get(); // Map of all selected loading limits indexed by their operational limits group id
+        List<LfLimitsGroup> limits = new ArrayList<>();
+        for (Map.Entry<String, T> loadingLimitsEntry : allSelectedLoadingLimits.entrySet()) {
+            T loadingLimits = loadingLimitsEntry.getValue();
+            String operationalLimitsGroupId = loadingLimitsEntry.getKey();
+            limits.add(LfLimitsGroup.createSortedLimitsList(loadingLimits,
+                    operationalLimitsGroupId,
+                    side == TwoSides.ONE ? bus1 : bus2,
+                    getLimitScalings(side, limitScalingManager, loadingLimits)));
+        }
+        return limits;
+    }
+
+    public <T extends LoadingLimits> List<LfLimitsGroup> getLimits1(LimitType type, Supplier<Map<String, T>> loadingLimitsSupplier, LimitScalingManager limitScalingManager) {
+        List<LfLimitsGroup> limits = getLimits1(type);
+        if (limits == null) {
+            limits = createLimits(loadingLimitsSupplier, limitScalingManager, TwoSides.ONE);
+            setLimits1(type, limits);
+        }
+        return limits;
+    }
+
+    private List<LfLimitsGroup> getLimits2(LimitType type) {
+        switch (type) {
+            case ACTIVE_POWER -> {
+                return activePowerLimits2;
+            }
+            case APPARENT_POWER -> {
+                return apparentPowerLimits2;
+            }
+            case CURRENT -> {
+                return currentLimits2;
+            }
+            default -> throw new UnsupportedOperationException(String.format(LIMIT_TYPE_UNSUPPORTED_TEMPLATE, type.name()));
+        }
+    }
+
+    private void setLimits2(LimitType type, List<LfLimitsGroup> limits) {
+        switch (type) {
+            case ACTIVE_POWER -> activePowerLimits2 = limits;
+            case APPARENT_POWER -> apparentPowerLimits2 = limits;
+            case CURRENT -> currentLimits2 = limits;
+            default -> throw new UnsupportedOperationException(String.format(LIMIT_TYPE_UNSUPPORTED_TEMPLATE, type.name()));
+        }
+    }
+
+    public <T extends LoadingLimits> List<LfLimitsGroup> getLimits2(LimitType type, Supplier<Map<String, T>> loadingLimitsSupplier, LimitScalingManager limitScalingManager) {
+        var limits = getLimits2(type);
+        if (limits == null) {
+            limits = createLimits(loadingLimitsSupplier, limitScalingManager, TwoSides.TWO);
+            setLimits2(type, limits);
+        }
+        return limits;
+    }
+
+    @Override
+    public PiModel getPiModel() {
+        return piModel;
+    }
+
+    @Override
+    public Optional<TransformerPhaseControl> getPhaseControl() {
+        return Optional.ofNullable(phaseControl);
+    }
+
+    @Override
+    public void setPhaseControl(TransformerPhaseControl phaseControl) {
+        this.phaseControl = phaseControl;
+    }
+
+    @Override
+    public boolean isPhaseController() {
+        return phaseControl != null && phaseControl.getControllerBranch() == this;
+    }
+
+    @Override
+    public boolean isPhaseControlled() {
+        return phaseControl != null && phaseControl.getControlledBranch() == this;
+    }
+
+    @Override
+    public boolean isPhaseControlEnabled() {
+        return phaseControlEnabled;
+    }
+
+    @Override
+    public void setPhaseControlEnabled(boolean phaseControlEnabled) {
+        if (this.phaseControlEnabled != phaseControlEnabled) {
+            this.phaseControlEnabled = phaseControlEnabled;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onTransformerPhaseControlChange(this, phaseControlEnabled);
+            }
+        }
+    }
+
+    protected void updateSolvedTapPosition(PhaseTapChanger ptc) {
+        int tapPosition = Transformers.findTapPosition(ptc, Math.toDegrees(getPiModel().getA1()));
+        ptc.setSolvedTapPosition(tapPosition);
+    }
+
+    protected void updateSolvedTapPosition(RatioTapChanger rtc, double ptcRho, double rho) {
+        Transformers.findTapPosition(rtc, ptcRho, rho).ifPresent(rtc::setSolvedTapPosition);
+    }
+
+    @Override
+    public Optional<TransformerVoltageControl> getVoltageControl() {
+        return Optional.ofNullable(voltageControl);
+    }
+
+    @Override
+    public boolean isVoltageController() {
+        return voltageControl != null;
+    }
+
+    @Override
+    public void setVoltageControl(TransformerVoltageControl transformerVoltageControl) {
+        this.voltageControl = transformerVoltageControl;
+    }
+
+    @Override
+    public boolean isVoltageControlEnabled() {
+        return voltageControlEnabled;
+    }
+
+    public void setVoltageControlEnabled(boolean voltageControlEnabled) {
+        if (this.voltageControlEnabled != voltageControlEnabled) {
+            this.voltageControlEnabled = voltageControlEnabled;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onTransformerVoltageControlChange(this, voltageControlEnabled);
+            }
+        }
+    }
+
+    @Override
+    public Optional<TransformerReactivePowerControl> getTransformerReactivePowerControl() {
+        return Optional.ofNullable(transformerReactivePowerControl);
+    }
+
+    @Override
+    public void setTransformerReactivePowerControl(TransformerReactivePowerControl transformerReactivePowerControl) {
+        this.transformerReactivePowerControl = transformerReactivePowerControl;
+    }
+
+    @Override
+    public boolean isTransformerReactivePowerController() {
+        return transformerReactivePowerControl != null && transformerReactivePowerControl.getControllerBranch() == this;
+    }
+
+    @Override
+    public boolean isTransformerReactivePowerControlled() {
+        return transformerReactivePowerControl != null && transformerReactivePowerControl.getControlledBranch() == this;
+    }
+
+    public double computeApparentPower1() {
+        double p = getP1().eval();
+        double q = getQ1().eval();
+        return FastMath.sqrt(p * p + q * q);
+    }
+
+    @Override
+    public double computeApparentPower2() {
+        double p = getP2().eval();
+        double q = getQ2().eval();
+        return FastMath.sqrt(p * p + q * q);
+    }
+
+    @Override
+    public boolean isZeroImpedance(LoadFlowModel loadFlowModel) {
+        return zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance;
+    }
+
+    @Override
+    public void setSpanningTreeEdge(LoadFlowModel loadFlowModel, boolean spanningTreeEdge) {
+        ZeroImpedanceContext context = zeroImpedanceContextByModel.get(loadFlowModel);
+        if (spanningTreeEdge != context.spanningTreeEdge) {
+            context.spanningTreeEdge = spanningTreeEdge;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onZeroImpedanceNetworkSpanningTreeChange(this, loadFlowModel, spanningTreeEdge);
+            }
+        }
+    }
+
+    @Override
+    public boolean isSpanningTreeEdge(LoadFlowModel loadFlowModel) {
+        network.updateZeroImpedanceCache(loadFlowModel);
+        return zeroImpedanceContextByModel.get(loadFlowModel).spanningTreeEdge;
+    }
+
+    @Override
+    public Evaluable getA1() {
+        return a1;
+    }
+
+    @Override
+    public void setA1(Evaluable a1) {
+        this.a1 = a1;
+    }
+
+    public Optional<GeneratorReactivePowerControl> getGeneratorReactivePowerControl() {
+        return Optional.ofNullable(generatorReactivePowerControl);
+    }
+
+    @Override
+    public void setGeneratorReactivePowerControl(GeneratorReactivePowerControl pGeneratorReactivePowerControl) {
+        this.generatorReactivePowerControl = Objects.requireNonNull(pGeneratorReactivePowerControl);
+    }
+
+    @Override
+    public boolean isConnectedAtBothSides() {
+        return isConnectedSide1() && isConnectedSide2();
+    }
+
+    @Override
+    public void setMinZ(double lowImpedanceThreshold) {
+        for (LoadFlowModel loadFlowModel : List.of(LoadFlowModel.AC, LoadFlowModel.DC)) {
+            if (piModel.setMinZ(lowImpedanceThreshold, loadFlowModel) ||
+                    LoadFlowModel.DC.equals(loadFlowModel) && isZeroImpedance(loadFlowModel)) {
+                // Note: For DC load flow model, the min impedance has already been set by AC load flow model but
+                //       the zero impedance field must still be updated.
+                LOGGER.trace("Branch {} has a low impedance in {}, set to min {}", getId(), loadFlowModel, lowImpedanceThreshold);
+                zeroImpedanceContextByModel.get(loadFlowModel).zeroImpedance = false;
+            }
+        }
+    }
+
+    private static boolean isZeroImpedanceBranch(PiModel piModel, LoadFlowModel loadFlowModel, double lowImpedanceThreshold) {
+        if (loadFlowModel == LoadFlowModel.DC) {
+            return FastMath.abs(piModel.getX()) < lowImpedanceThreshold;
+        } else {
+            return piModel.getZ() < lowImpedanceThreshold;
+        }
+    }
+
+    private void updateZeroImpedanceNetworks(boolean disabled, LoadFlowModel loadFlowModel) {
+        if (isZeroImpedance(loadFlowModel)) {
+            LfZeroImpedanceNetwork zn1 = bus1.getZeroImpedanceNetwork(loadFlowModel);
+            LfZeroImpedanceNetwork zn2 = bus2.getZeroImpedanceNetwork(loadFlowModel);
+            if (zn1 != null && zn2 != null) {
+                if (disabled) {
+                    if (zn1 == zn2) {
+                        // zero impedance network split (maybe)
+                        zn1.removeBranchAndTryToSplit(this);
+                    } else {
+                        throw new IllegalStateException("Should not happen");
+                    }
+                } else {
+                    if (zn1 != zn2) {
+                        // zero impedance network merge
+                        LfZeroImpedanceNetwork.addBranchAndMerge(zn1, zn2, this);
+                    } else {
+                        // we need to add the branch again to zero impedance graph and update spanning tree as
+                        // this branch might become part of spanning tree (and was not before because disabled)
+                        zn1.addBranch(this);
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public void setDisabled(boolean disabled) {
+        if (disabled != this.disabled) {
+            this.disabled = disabled;
+            notifyDisable();
+            if (bus1 != null && bus2 != null) {
+                updateZeroImpedanceNetworks(disabled, LoadFlowModel.AC);
+                updateZeroImpedanceNetworks(disabled, LoadFlowModel.DC);
+            }
+        }
+    }
+
+    @Override
+    public LfAsymLine getAsymLine() {
+        return asymLine;
+    }
+
+    @Override
+    public void setAsymLine(LfAsymLine asymLine) {
+        this.asymLine = asymLine;
+    }
+
+    @Override
+    public boolean isAsymmetric() {
+        if (asymLine != null) {
+            return asymLine.getAdmittanceMatrix().isCoupled();
+        }
+        return false;
+    }
+}
