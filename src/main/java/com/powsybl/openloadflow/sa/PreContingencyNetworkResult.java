@@ -9,9 +9,10 @@ package com.powsybl.openloadflow.sa;
 
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.LoadFlowModel;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
+import com.powsybl.openloadflow.network.util.ZeroImpedanceFlowsCache;
 import com.powsybl.security.monitor.StateMonitor;
+import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.BusResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
@@ -30,8 +31,8 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
     private final Map<String, BusResult> busResults = new LinkedHashMap<>();
     private final Map<String, ThreeWindingsTransformerResult> threeWindingsTransformerResults = new LinkedHashMap<>();
 
-    public PreContingencyNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
-        super(network, monitorIndexes, createResultExtension, loadFlowModel, dcPowerFactor);
+    public PreContingencyNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension) {
+        super(network, monitorIndex, createResultExtension);
     }
 
     protected void clear() {
@@ -40,18 +41,18 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         threeWindingsTransformerResults.clear();
     }
 
-    private void addResults(StateMonitor monitor, Predicate<LfBranch> isBranchDisabled, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows) {
+    private void addResults(StateMonitor monitor, Predicate<LfBranch> isBranchDisabled, ZeroImpedanceFlowsCache zeroImpedanceFlowsCache) {
         addResults(monitor,
-                branch -> branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension, zeroImpedanceFlows, loadFlowModel)
+                branch -> branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension, zeroImpedanceFlowsCache)
                 .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult)),
                 isBranchDisabled,
                 bus -> bus.createBusResults().forEach(busResult -> busResults.put("%s_%s".formatted(busResult.getVoltageLevelId(), busResult.getBusId()), busResult)),
-                id -> threeWindingsTransformerResults.put(id, LfLegBranch.createThreeWindingsTransformerResult(network, id, createResultExtension, zeroImpedanceFlows, loadFlowModel)));
+                id -> threeWindingsTransformerResults.put(id, LfLegBranch.createThreeWindingsTransformerResult(network, id, createResultExtension, zeroImpedanceFlowsCache)));
     }
 
     @Override
-    public void update() {
-        update(LfBranch::isDisabled);
+    public void update(ZeroImpedanceFlowsCache zeroImpedanceFlowsCache) {
+        update(LfBranch::isDisabled, zeroImpedanceFlowsCache);
     }
 
     @Override
@@ -64,13 +65,10 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
                         b -> b.getPhaseTapChanger().orElseThrow().getTapPosition()));
     }
 
-    public void update(Predicate<LfBranch> isBranchDisabled) {
+    public void update(Predicate<LfBranch> isBranchDisabled, ZeroImpedanceFlowsCache zeroImpedanceFlowsCache) {
         clear();
-        Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getNoneStateMonitor(), network);
-        addResults(monitorIndex.getNoneStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
-        zeroImpedanceFlows.clear();
-        zeroImpedanceFlows = storeResultsForZeroImpedanceBranches(zeroImpedanceMonitorIndex.getAllStateMonitor(), network);
-        addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlows);
+        addResults(monitorIndex.getNoneStateMonitor(), isBranchDisabled, zeroImpedanceFlowsCache);
+        addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlowsCache);
         storeInitialPhaseTapChangerInfo();
         updateChangedPhaseTapChanger();
     }
