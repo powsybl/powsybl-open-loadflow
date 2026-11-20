@@ -9,6 +9,7 @@ package com.powsybl.openloadflow.dc;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -34,7 +35,11 @@ public class DcIncrementalPhaseControlOuterLoop
         extends AbstractIncrementalPhaseControlOuterLoop<DcVariableType, DcEquationType, DcLoadFlowParameters, DcLoadFlowContext, DcOuterLoopContext> implements DcOuterLoop {
 
     public DcIncrementalPhaseControlOuterLoop() {
-        super(LoggerFactory.getLogger(DcIncrementalPhaseControlOuterLoop.class));
+        this(OpenLoadFlowParameters.INCREMENTAL_CONTROL_INTERACTION_SCOPE_DEFAULT_VALUE);
+    }
+
+    public DcIncrementalPhaseControlOuterLoop(OpenLoadFlowParameters.IncrementalControlInteractionScope interactionScope) {
+        super(LoggerFactory.getLogger(DcIncrementalPhaseControlOuterLoop.class), interactionScope);
     }
 
     public static class DcSensitivityContext extends AbstractSensitivityContext<DcVariableType, DcEquationType> {

@@ -46,8 +46,13 @@ public abstract class AbstractDcOuterLoopConfig implements DcOuterLoopConfig {
     }
 
     protected static Optional<DcOuterLoop> createIncrementalPhaseControlOuterLoop(LoadFlowParameters parameters) {
+        return createIncrementalPhaseControlOuterLoop(parameters, OpenLoadFlowParameters.INCREMENTAL_CONTROL_INTERACTION_SCOPE_DEFAULT_VALUE);
+    }
+
+    protected static Optional<DcOuterLoop> createIncrementalPhaseControlOuterLoop(LoadFlowParameters parameters,
+                                                                                  OpenLoadFlowParameters.IncrementalControlInteractionScope incrementalControlInteractionScope) {
         if (parameters.isPhaseShifterRegulationOn()) {
-            return Optional.of(new DcIncrementalPhaseControlOuterLoop());
+            return Optional.of(new DcIncrementalPhaseControlOuterLoop(incrementalControlInteractionScope));
         }
         return Optional.empty();
     }
