@@ -54,9 +54,13 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         private final List<SingleEquationTerm<V, E>> terms = new ArrayList<>();
         private final TreeMap<Variable<V>, List<SingleEquationTerm<V, E>>> termsByVariable = new TreeMap<>();
         boolean variableInvalid = true;
+        boolean hasActiveTerms = true;
+        // An independant term is an additional terms that fills a cell of the matrix that is not filled by termArrays
+        // So even if is inactive, we have to fill the matrix with a zero to keep the sparsity pattern
+        boolean hasIndependentTerms = false;
         private Number[] variableRowRefs;
-        private int[] variableRows;
-        private double[] derValues;
+        private int[] variableRows = new int[0];
+        private double[] derValues = new double[0];
 
         void addSingleTerm(SingleEquationTerm<V, E> termImpl, Equation<V, E> equation) {
             terms.add(termImpl);
@@ -99,14 +103,20 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             }
         }
 
-        void updateAdditionalTermsDer() {
+        void updateAdditionalTermsDer(boolean recomputeActiveStatuses) {
+            if (!hasActiveTerms && !recomputeActiveStatuses) {
+                // No active terms, no update of active statuses, no need to compute der
+                return;
+            }
             int i = 0;
+            hasActiveTerms = false;
             for (Map.Entry<Variable<V>, List<SingleEquationTerm<V, E>>> entry : termsByVariable.entrySet()) {
                 int row = variableRows[i];
                 if (row != -1) {
                     double der = 0.0;
                     for (var term : entry.getValue()) {
                         if (term.isActive()) {
+                            hasActiveTerms = true;
                             der += term.der(entry.getKey());
                         }
                     }
@@ -435,11 +445,6 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         }
     }
 
-    public interface DerHandler {
-
-        int onDer(int column, int row, double value, int matrixElementIndex);
-    }
-
     private void buildEquationDerivativeVectors() {
         if (equationDerivativeVector == null) {
             List<EquationDerivativeElement<?>> allTerms = new ArrayList<>();
@@ -479,21 +484,6 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         matrixElementIndexes.reset();
     }
 
-    void updateAdditionalTerms(boolean recomputeRows) {
-        for (Map.Entry<Integer, AdditionalSingleTermsByEquation> entry : singleTermsByEquationElementNum.entrySet()) {
-            AdditionalSingleTermsByEquation additionalTerms = entry.getValue();
-            if (recomputeRows) {
-                additionalTerms.updateAdditionalTermsVariables();
-                additionalTerms.updateAdditionalTermsRows();
-            }
-            int elementNum = entry.getKey();
-            if (!elementActive[elementNum]) {
-                continue;
-            }
-            additionalTerms.updateAdditionalTermsDer();
-        }
-    }
-
     public void der(Matrix matrix, boolean recomputeRows, boolean recomputeActiveStatuses) {
         Objects.requireNonNull(matrix);
         buildEquationDerivativeVectors(); // only called at first computation, never reinitialized for the same equation system
@@ -501,11 +491,11 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             matrixElementIndexes.reset();
         }
         equationDerivativeVector.update(recomputeRows, recomputeActiveStatuses);
-        updateAdditionalTerms(recomputeRows);
         valueIndex = 0;
 
         // Iterator to quickly get through all additional terms
         Iterator<Map.Entry<Integer, AdditionalSingleTermsByEquation>> itAdditional = singleTermsByEquationElementNum.entrySet().iterator();
+        AdditionalSingleTermsByEquation additionalTerms = null;
 
         // calculate all derivative values
         // process column by column so equation by equation of the array
@@ -516,10 +506,27 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
             }
 
             int column = getElementNumToColumn(elementNum);
+            boolean hasAdditionalTermsToCompute = false;
+            if (hasSingleEquationTerms[elementNum]) {
+                var it = itAdditional.next();
+                while (it.getKey() != elementNum) {
+                    it = itAdditional.next(); // iterating until reaching elementNum (faster than always calling get(elementNum))
+                }
+                additionalTerms = it.getValue();
+                if (recomputeRows) {
+                    additionalTerms.updateAdditionalTermsVariables();
+                    additionalTerms.updateAdditionalTermsRows();
+                }
+                additionalTerms.updateAdditionalTermsDer(recomputeActiveStatuses);
+                // If there are independent terms, we should process it even if it is inactive to fill the corresponding
+                // cell of the matrix (with a zero)
+                hasAdditionalTermsToCompute = additionalTerms.hasActiveTerms || additionalTerms.hasIndependentTerms;
+            }
+
             // for each equation of the array we already have the list of terms to derive and its variable sorted
             // by variable row (required by solvers)
             int row;
-            if (!hasSingleEquationTerms[elementNum]) {
+            if (!hasAdditionalTermsToCompute) {
                 // fast way without additional terms
                 int cellIndexStart = equationDerivativeVector.cellIndexByEquationElementNum[elementNum];
                 int cellIndexCount = equationDerivativeVector.nbCellsByEquationElementNum[elementNum];
@@ -533,11 +540,6 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                 }
             } else {
                 double value;
-                var it = itAdditional.next();
-                while (it.getKey() != elementNum) {
-                    it = itAdditional.next(); // iterating until reaching elementNum (faster than always calling get(elementNum))
-                }
-                AdditionalSingleTermsByEquation additionalTerms = it.getValue();
                 int[] additionalRows = additionalTerms.variableRows.clone(); // Cloning to erase one by one computed cells
                 double[] additionalDers = additionalTerms.derValues;
                 // Filling all the cells that have been computed in EquationDerivativeVector
@@ -558,10 +560,15 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
                         fillMatrix(matrix, recomputeRows, column, row, value);
                     }
                 }
-                // Filling remaining cells that were not in the EquationDerivativeVector
-                for (int i = 0; i < additionalRows.length; i++) {
-                    if (additionalRows[i] != -1) {
-                        fillMatrix(matrix, recomputeRows, column, additionalRows[i], additionalDers[i]);
+                // Filling remaining cells that were not in the EquationDerivativeVector (the independent additional terms)
+                if (additionalTerms.hasIndependentTerms || recomputeRows) {
+                    for (int i = 0; i < additionalRows.length; i++) {
+                        if (additionalRows[i] != -1) {
+                            if (recomputeRows) {
+                                additionalTerms.hasIndependentTerms = true;
+                            }
+                            fillMatrix(matrix, recomputeRows, column, additionalRows[i], additionalDers[i]);
+                        }
                     }
                 }
             }
