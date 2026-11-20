@@ -101,21 +101,21 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
      */
     private DenseMatrix calculateFlowStates(DcLoadFlowContext loadFlowContext, List<ParticipatingElement> participatingElements,
                                             DisabledNetwork disabledNetwork, List<LfAction> actions, ReportNode reportNode) {
-        List<BusState> busStates = Collections.emptyList();
+        List<BusDcState> busStates = Collections.emptyList();
         DcLoadFlowParameters parameters = loadFlowContext.getParameters();
         if (parameters.isDistributedSlack()) {
+            // DC slack redistribution only changes active-power state of participating buses.
             busStates = ElementState.save(participatingElements.stream()
                     .map(ParticipatingElement::getLfBus)
-                    .collect(Collectors.toSet()), BusState::save);
+                    .collect(Collectors.toSet()), BusDcState::save);
         }
 
-        double[] dx = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, actions, reportNode);
-
-        if (parameters.isDistributedSlack()) {
+        try {
+            double[] dx = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(loadFlowContext, disabledNetwork, actions, reportNode);
+            return new DenseMatrix(dx.length, 1, dx);
+        } finally {
             ElementState.restore(busStates);
         }
-
-        return new DenseMatrix(dx.length, 1, dx);
     }
 
     /**
@@ -297,20 +297,24 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
         WoodburyEngine engine = new WoodburyEngine(loadFlowContext.getParameters().getEquationSystemCreationParameters(),
                                                    allContingencyElements, contingenciesStates, actionElements, actionsStates);
         int operatorStrategyIndex = operatorStrategy != null ? operatorStrategy.getIndex() : -1;
-        if (contingency != null && contingency.getGeneratorIdsToLose().isEmpty() && contingency.getLoadIdsToLose().isEmpty()) {
+        // Only injection-loss contingencies apply mutations to the full LF network. Preventive actions and
+        // branch-only contingencies use matrix corrections and, when needed, scoped DC slack redistribution.
+        boolean hasInjectionLoss = contingency != null
+                && (!contingency.getGeneratorIdsToLose().isEmpty() || !contingency.getLoadIdsToLose().isEmpty());
+        if (!hasInjectionLoss) {
             DenseMatrix newFlowStates = flowStates;
             // we need to recompute the factor states because the connectivity changed
             if (rhsChangedAfterConnectivityBreak) {
                 newFactorStates = calculateFactorStates(loadFlowContext, factorGroups, participatingElements);
             }
 
-            // get the lost phase tap changers for this contingency
-            Set<LfBranch> lostPhaseControllers = contingency.getBranchIdsToOpen().keySet().stream()
-                    .filter(element -> !elementsToReconnect.contains(element))
-                    .map(contingencyElementByBranch::get)
-                    .map(ComputedContingencyElement::getLfBranch)
-                    .filter(LfBranch::hasPhaseControllerCapability)
-                    .collect(Collectors.toSet());
+            Set<LfBranch> lostPhaseControllers = contingency == null ? Collections.emptySet()
+                    : contingency.getBranchIdsToOpen().keySet().stream()
+                            .filter(element -> !elementsToReconnect.contains(element))
+                            .map(contingencyElementByBranch::get)
+                            .map(ComputedContingencyElement::getLfBranch)
+                            .filter(LfBranch::hasPhaseControllerCapability)
+                            .collect(Collectors.toSet());
 
             // if a phase tap changer is lost, if the connectivity has changed, or if there are PST, generator or load actions, we must recompute load flows
             boolean hasPstActions = actions.stream().anyMatch(AbstractLfTapChangerAction.class::isInstance);
@@ -323,12 +327,10 @@ public class DcSensitivityAnalysis extends AbstractSensitivityAnalysis<DcVariabl
             engine.toPostContingencyAndOperatorStrategyStates(newFlowStates);
             engine.toPostContingencyAndOperatorStrategyStates(newFactorStates);
             calculateSensitivityValues(factors, newFactorStates, newFlowStates, contingency, operatorStrategy, resultWriter, disabledNetwork);
-            // write contingency status
-            if (contingency.hasNoImpact()) {
-                resultWriter.writeStateStatus(contingency.getIndex(), operatorStrategyIndex, SensitivityAnalysisResult.Status.NO_IMPACT);
-            } else {
-                resultWriter.writeStateStatus(contingency.getIndex(), operatorStrategyIndex, SensitivityAnalysisResult.Status.SUCCESS);
-            }
+            int contingencyIndex = contingency == null ? -1 : contingency.getIndex();
+            SensitivityAnalysisResult.Status status = contingency != null && contingency.hasNoImpact()
+                    ? SensitivityAnalysisResult.Status.NO_IMPACT : SensitivityAnalysisResult.Status.SUCCESS;
+            resultWriter.writeStateStatus(contingencyIndex, operatorStrategyIndex, status);
         } else {
             // if we have a contingency including the loss of a DC line or a generator or a load
             // save base state for later restoration after each contingency
