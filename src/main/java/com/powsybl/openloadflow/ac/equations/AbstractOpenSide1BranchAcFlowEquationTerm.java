@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -23,7 +24,7 @@ abstract class AbstractOpenSide1BranchAcFlowEquationTerm extends AbstractBranchA
 
     protected AbstractOpenSide1BranchAcFlowEquationTerm(LfBranch branch, AcVariableType variableType,
                                                         LfBus bus, VariableSet<AcVariableType> variableSet) {
-        super(branch);
+        super(branch, TwoSides.TWO);
         variables = List.of(variableSet.getVariable(bus.getNum(), variableType));
     }
 

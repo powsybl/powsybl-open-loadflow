@@ -26,8 +26,8 @@ public class ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator extends Abstr
     }
 
     protected double calculateSensi(int branchNum, double dph1, double dph2, double dv1, double dv2, double da1, double dr1) {
-        double y = branchVector.y[branchNum];
-        double ksi = branchVector.ksi[branchNum];
+        double y = branchVector.y21[branchNum];
+        double ksi = branchVector.ksi21[branchNum];
         double g2 = branchVector.g2[branchNum];
         double v1 = busVector.v[branchVector.bus1Num[branchNum]];
         double v2 = busVector.v[branchVector.bus2Num[branchNum]];
@@ -36,6 +36,16 @@ public class ClosedBranchSide2ActiveFlowEquationTermArrayEvaluator extends Abstr
         double a1 = branchVector.a1State[branchNum];
         double r1 = branchVector.r1State[branchNum];
         return ClosedBranchSide2ActiveFlowEquationTerm.calculateSensi(y, ksi, g2, v1, ph1, r1, a1, v2, ph2, dph1, dph2, dv1, dv2, da1, dr1);
+    }
+
+    @Override
+    public double y(int branchNum) {
+        return branchVector.y21[branchNum];
+    }
+
+    @Override
+    public double ksi(int branchNum) {
+        return branchVector.ksi21[branchNum];
     }
 
     @Override

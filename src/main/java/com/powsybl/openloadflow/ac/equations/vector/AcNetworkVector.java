@@ -187,7 +187,7 @@ public class AcNetworkVector extends AbstractLfNetworkListener
                             a1,
                             ph2);
                     double theta2 = theta2(
-                            branchVector.ksi[branchNum],
+                            branchVector.ksi21[branchNum],
                             ph1,
                             a1,
                             ph2);
@@ -263,6 +263,11 @@ public class AcNetworkVector extends AbstractLfNetworkListener
         branchVector.ksi[branch.getNum()] = ksi;
         branchVector.sinKsi[branch.getNum()] = FastMath.sinAndCos(ksi, w);
         branchVector.cosKsi[branch.getNum()] = w.value;
+        branchVector.y21[branch.getNum()] = piModel.getY21();
+        double ksi21 = piModel.getKsi21();
+        branchVector.ksi21[branch.getNum()] = ksi21;
+        branchVector.sinKsi21[branch.getNum()] = FastMath.sinAndCos(ksi21, w);
+        branchVector.cosKsi21[branch.getNum()] = w.value;
         branchVector.b1[branch.getNum()] = piModel.getB1();
         branchVector.b2[branch.getNum()] = piModel.getB2();
         branchVector.g1[branch.getNum()] = piModel.getG1();
@@ -440,8 +445,8 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
     private void updateP2AndDerivatives(int branchNum, double v1, double r1, double v2, double sinTheta2, double cosTheta2) {
         branchVector.p2[branchNum] = ClosedBranchSide2ActiveFlowEquationTerm.p2(
-            branchVector.y[branchNum],
-            branchVector.sinKsi[branchNum],
+            branchVector.y21[branchNum],
+            branchVector.sinKsi21[branchNum],
             branchVector.g2[branchNum],
             v1,
             r1,
@@ -449,14 +454,14 @@ public class AcNetworkVector extends AbstractLfNetworkListener
             sinTheta2);
 
         branchVector.dp2dv1[branchNum] = ClosedBranchSide2ActiveFlowEquationTerm.dp2dv1(
-            branchVector.y[branchNum],
+            branchVector.y21[branchNum],
             r1,
             v2,
             sinTheta2);
 
         branchVector.dp2dv2[branchNum] = ClosedBranchSide2ActiveFlowEquationTerm.dp2dv2(
-            branchVector.y[branchNum],
-            branchVector.sinKsi[branchNum],
+            branchVector.y21[branchNum],
+            branchVector.sinKsi21[branchNum],
             branchVector.g2[branchNum],
             v1,
             r1,
@@ -464,28 +469,28 @@ public class AcNetworkVector extends AbstractLfNetworkListener
             sinTheta2);
 
         branchVector.dp2dph1[branchNum] = ClosedBranchSide2ActiveFlowEquationTerm.dp2dph1(
-            branchVector.y[branchNum],
+            branchVector.y21[branchNum],
             v1,
             r1,
             v2,
             cosTheta2);
 
         branchVector.dp2dph2[branchNum] = ClosedBranchSide2ActiveFlowEquationTerm.dp2dph2(
-            branchVector.y[branchNum],
+            branchVector.y21[branchNum],
             v1,
             r1,
             v2,
             cosTheta2);
 
         branchVector.dp2da1[branchNum] = ClosedBranchSide2ActiveFlowEquationTerm.dp2da1(
-            branchVector.y[branchNum],
+            branchVector.y21[branchNum],
             v1,
             r1,
             v2,
             cosTheta2);
 
         branchVector.dp2dr1[branchNum] = ClosedBranchSide2ActiveFlowEquationTerm.dp2dr1(
-            branchVector.y[branchNum],
+            branchVector.y21[branchNum],
             v1,
             v2,
             sinTheta2);
@@ -493,8 +498,8 @@ public class AcNetworkVector extends AbstractLfNetworkListener
 
     private void updateQ2AndDerivatives(int branchNum, double v1, double r1, double v2, double sinTheta2, double cosTheta2) {
         branchVector.q2[branchNum] = ClosedBranchSide2ReactiveFlowEquationTerm.q2(
-            branchVector.y[branchNum],
-            branchVector.cosKsi[branchNum],
+            branchVector.y21[branchNum],
+            branchVector.cosKsi21[branchNum],
             branchVector.b2[branchNum],
             v1,
             r1,
@@ -502,14 +507,14 @@ public class AcNetworkVector extends AbstractLfNetworkListener
             cosTheta2);
 
         branchVector.dq2dv1[branchNum] = ClosedBranchSide2ReactiveFlowEquationTerm.dq2dv1(
-            branchVector.y[branchNum],
+            branchVector.y21[branchNum],
             r1,
             v2,
             cosTheta2);
 
         branchVector.dq2dv2[branchNum] = ClosedBranchSide2ReactiveFlowEquationTerm.dq2dv2(
-            branchVector.y[branchNum],
-            branchVector.cosKsi[branchNum],
+            branchVector.y21[branchNum],
+            branchVector.cosKsi21[branchNum],
             branchVector.b2[branchNum],
             v1,
             r1,
@@ -517,28 +522,28 @@ public class AcNetworkVector extends AbstractLfNetworkListener
             cosTheta2);
 
         branchVector.dq2dph1[branchNum] = ClosedBranchSide2ReactiveFlowEquationTerm.dq2dph1(
-            branchVector.y[branchNum],
+            branchVector.y21[branchNum],
             v1,
             r1,
             v2,
             sinTheta2);
 
         branchVector.dq2dph2[branchNum] = ClosedBranchSide2ReactiveFlowEquationTerm.dq2dph2(
-            branchVector.y[branchNum],
+            branchVector.y21[branchNum],
             v1,
             r1,
             v2,
             sinTheta2);
 
         branchVector.dq2da1[branchNum] = ClosedBranchSide2ReactiveFlowEquationTerm.dq2da1(
-            branchVector.y[branchNum],
+            branchVector.y21[branchNum],
             v1,
             r1,
             v2,
             sinTheta2);
 
         branchVector.dq2dr1[branchNum] = ClosedBranchSide2ReactiveFlowEquationTerm.dq2dr1(
-            branchVector.y[branchNum],
+            branchVector.y21[branchNum],
             v1,
             v2,
             cosTheta2);

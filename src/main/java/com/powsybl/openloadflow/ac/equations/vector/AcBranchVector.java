@@ -35,6 +35,10 @@ public class AcBranchVector {
     final double[] ksi;
     final double[] cosKsi;
     final double[] sinKsi;
+    final double[] y21;
+    final double[] ksi21;
+    final double[] cosKsi21;
+    final double[] sinKsi21;
     final double[] g1;
     final double[] g2;
     final double[] b1;
@@ -103,6 +107,10 @@ public class AcBranchVector {
         ksi = new double[size];
         cosKsi = new double[size];
         sinKsi = new double[size];
+        y21 = new double[size];
+        ksi21 = new double[size];
+        cosKsi21 = new double[size];
+        sinKsi21 = new double[size];
         g1 = new double[size];
         g2 = new double[size];
         b1 = new double[size];
@@ -173,6 +181,10 @@ public class AcBranchVector {
                 ksi[i] = piModel.getKsi();
                 cosKsi[i] = FastMath.cos(ksi[i]);
                 sinKsi[i] = FastMath.sin(ksi[i]);
+                y21[i] = piModel.getY21();
+                ksi21[i] = piModel.getKsi21();
+                cosKsi21[i] = FastMath.cos(ksi21[i]);
+                sinKsi21[i] = FastMath.sin(ksi21[i]);
             }
             b1[i] = piModel.getB1();
             b2[i] = piModel.getB2();

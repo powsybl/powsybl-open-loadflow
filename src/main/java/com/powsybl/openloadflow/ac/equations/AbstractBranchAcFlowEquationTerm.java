@@ -7,9 +7,12 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.PiModel;
+
+import java.util.Objects;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -26,8 +29,15 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
     protected double g12;
     protected double b12;
 
-    protected AbstractBranchAcFlowEquationTerm(LfBranch branch) {
+    /**
+     * Side whose flow or current the term evaluates. A non-reciprocal branch has a different series impedance for each side
+     * (see {@link PiModel#getR21()}), so the side selects the impedance the term is built with.
+     */
+    protected final TwoSides side;
+
+    protected AbstractBranchAcFlowEquationTerm(LfBranch branch, TwoSides side) {
         super(branch);
+        this.side = Objects.requireNonNull(side);
         PiModel piModel = branch.getPiModel();
         if (piModel.getR() == 0 && piModel.getX() == 0) {
             throw new IllegalArgumentException("Non impedant branch not supported: " + branch.getId());
@@ -36,11 +46,33 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
         b2 = piModel.getB2();
         g1 = piModel.getG1();
         g2 = piModel.getG2();
-        y = piModel.getY();
-        ksi = piModel.getKsi();
+        updateSeriesImpedance(piModel);
+    }
+
+    /**
+     * Set y, ksi, g12 and b12 from the series impedance of the pi model on the side of this term.
+     */
+    public final void updateSeriesImpedance(PiModel piModel) {
+        double r;
+        double x;
+        if (side == TwoSides.ONE) {
+            r = piModel.getR();
+            x = piModel.getX();
+            y = piModel.getY();
+            ksi = piModel.getKsi();
+        } else {
+            r = piModel.getR21();
+            x = piModel.getX21();
+            y = piModel.getY21();
+            ksi = piModel.getKsi21();
+        }
         // y12 = g12+j.b12 = 1/(r+j.x)
-        g12 = piModel.getR() * y * y;
-        b12 = -piModel.getX() * y * y;
+        g12 = r * y * y;
+        b12 = -x * y * y;
+    }
+
+    public TwoSides getSide() {
+        return side;
     }
 
     public void setB1(double b1) {
@@ -57,22 +89,6 @@ abstract class AbstractBranchAcFlowEquationTerm extends AbstractElementEquationT
 
     public void setG2(double g2) {
         this.g2 = g2;
-    }
-
-    public void setB12(double b12) {
-        this.b12 = b12;
-    }
-
-    public void setG12(double g12) {
-        this.g12 = g12;
-    }
-
-    public void setY(double y) {
-        this.y = y;
-    }
-
-    public void setKsi(double ksi) {
-        this.ksi = ksi;
     }
 
     public double b1() {

@@ -17,6 +17,12 @@ equal to zero and $1$. In case of a branch with voltage or phase control, the $\
 ![Pi model](pi-model.svg){class="only-light"}
 ![Pi model](pi-model-dark-mode.svg){class="only-dark"}
 
+A branch may carry a second series impedance $R_{21}$ and $X_{21}$ seen from side 2, as a CGMES `EquivalentBranch` does with
+`r21` and `x21` (a reduced network equivalent is not necessarily reciprocal). By default $R_{21} = R$ and $X_{21} = X$. For a
+non-reciprocal branch, the flow and current equations of side 1 use $R$ and $X$ and the ones of side 2 use $R_{21}$ and
+$X_{21}$; the DC model only uses $X$. Branch parameter sensitivities (resistance, reactance and admittance variables) are not
+supported on such a branch.
+
 ### HVDC line
 
 Open Load Flow also supports networks with HVDC lines (High Voltage Direct Current lines). An HVDC line is connected to the rest of the AC network through HVDC converter stations, that can be either LCC (Line-Commutated Converter) or VSC (Voltage-Source Converter).
@@ -44,6 +50,7 @@ $$p_{i,j}= \rho_iv_i(G_i\rho_iv_i + Y\rho_iv_i\text{sin}(\Xi) - Y\rho_jv_j\text{
 $$q_{i,j}= \rho_iv_i(-B_i\rho_iv_i + Y\rho_iv_i\text{cos}(\Xi) - Y\rho_jv_j\text{cos}(\theta))$$
 
 Where $Y$ is the magnitude of the line complex admittance $\frac{1}{R+jX}$, and $\Xi$ such that: $R+jX = \frac{1}{Y}e^{j(\frac{\pi}{2}-\Xi)}$. $\theta$ satisfies: $\theta= \Xi - A_i + A_j - \phi_i + \phi_j.$
+For a non-reciprocal branch, $Y$ and $\Xi$ in $p_{2,1}$ and $q_{2,1}$ are derived from $R_{21}+jX_{21}$ instead.
 
 Beware that $p_{i,j}$ is the power that goes out from the bus $i$.
 
