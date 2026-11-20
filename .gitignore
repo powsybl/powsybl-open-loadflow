@@ -19,3 +19,6 @@ org.eclipse.jdt.groovy.core.prefs
 # Generated readthedocs pages
 /docs/_build
 build-docs/
+# LikeC4 documentation tooling
+/docs/node_modules
+/docs/_static/likec4
