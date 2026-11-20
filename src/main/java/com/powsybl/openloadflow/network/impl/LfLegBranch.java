@@ -192,7 +192,8 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
 
     @Override
     public double[] getLimitScalings(TwoSides side, LimitScalingManager limitScalingManager, LoadingLimits limits) {
-        return new double[] {};
+        // The limits of a leg are on its own terminal, side 1 of this branch; side 2 is the star bus.
+        return createLimitScalings(limitScalingManager, limits, getLeg().getTerminal().getVoltageLevel().getNominalV());
     }
 
     @Override

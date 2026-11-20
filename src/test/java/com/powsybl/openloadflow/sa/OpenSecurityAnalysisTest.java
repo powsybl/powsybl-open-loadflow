@@ -3855,6 +3855,127 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(945.51416, limitViolations.get(0).getValue(), 0.0001);
     }
 
+    private List<LimitViolation> runWithCurrentLimitScalings(Network network, LimitScaling... limitScalings) {
+        SecurityAnalysisResult result = runSecurityAnalysis(network, List.of(), List.of(), List.of(limitScalings), new SecurityAnalysisParameters());
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getPreContingencyResult().getStatus());
+        return result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations();
+    }
+
+    private static Set<ThreeSides> sidesOf(List<LimitViolation> violations, String subjectId) {
+        return violations.stream()
+                .filter(violation -> violation.getSubjectId().equals(subjectId))
+                .peek(violation -> assertEquals(0.001, violation.getLimitScaling(), 1e-9))
+                .map(LimitViolation::getSide)
+                .collect(Collectors.toSet());
+    }
+
+    @Test
+    void testLimitScalingsOnThreeWindingsTransformerLegs() {
+        Network network = T3wtFactory.create();
+        network.getShuntCompensator("sc3").setSectionCount(1); // otherwise no current flows through leg 3
+        ThreeWindingsTransformer twt = network.getThreeWindingsTransformer("3wt");
+        // Far above the flows, so these limits are only violated once they are scaled.
+        twt.getLeg1().getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10000).add();
+        twt.getLeg2().getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10000).add();
+        twt.getLeg3().getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10000).add();
+        assertEquals(Set.of(), sidesOf(runWithCurrentLimitScalings(network), "3wt"));
+
+        LimitScaling onAllLegs = LimitScaling.builder(LimitType.CURRENT, 0.001).build();
+        assertEquals(Set.of(ThreeSides.ONE, ThreeSides.TWO, ThreeSides.THREE),
+                sidesOf(runWithCurrentLimitScalings(network, onAllLegs), "3wt"));
+
+        // A voltage criterion is compared with the nominal voltage of each leg itself: here 225 kV.
+        LimitScaling onLeg2 = LimitScaling.builder(LimitType.CURRENT, 0.001)
+                .withNetworkElementCriteria(new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(200., 300., true, true))))
+                .build();
+        assertEquals(Set.of(ThreeSides.TWO), sidesOf(runWithCurrentLimitScalings(network, onLeg2), "3wt"));
+    }
+
+    @Test
+    void testLimitScalingsOnTieLines() {
+        Network network = BoundaryFactory.createWithTieLine();
+        TieLine tieLine = network.getTieLine("t12");
+        tieLine.getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(10000).add();
+        tieLine.getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(10000).add();
+        assertEquals(Set.of(), sidesOf(runWithCurrentLimitScalings(network), "t12"));
+
+        LimitScaling limitScaling = LimitScaling.builder(LimitType.CURRENT, 0.001).build();
+        assertEquals(Set.of(ThreeSides.ONE, ThreeSides.TWO),
+                sidesOf(runWithCurrentLimitScalings(network, limitScaling), "t12"));
+    }
+
+    private static Map<ThreeSides, String> limitNamesBySide(List<LimitViolation> violations, String subjectId) {
+        return violations.stream()
+                .filter(violation -> violation.getSubjectId().equals(subjectId))
+                .peek(violation -> assertEquals(0.001, violation.getLimitScaling(), 1e-9))
+                .collect(Collectors.toMap(LimitViolation::getSide, LimitViolation::getLimitName));
+    }
+
+    @Test
+    void testLimitScalingsOnThreeWindingsTransformerLegsTemporaryLimits() {
+        Network network = T3wtFactory.create();
+        network.getShuntCompensator("sc3").setSectionCount(1); // otherwise no current flows through leg 3
+        ThreeWindingsTransformer twt = network.getThreeWindingsTransformer("3wt");
+        // Each leg has its own set of temporary limits, so the scalings must be indexed per leg.
+        twt.getLeg1().getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits()
+                .setPermanentLimit(5000)
+                .beginTemporaryLimit().setName("leg1-600").setAcceptableDuration(600).setValue(10000).endTemporaryLimit()
+                .beginTemporaryLimit().setName("leg1-60").setAcceptableDuration(60).setValue(15000).endTemporaryLimit()
+                .add();
+        twt.getLeg2().getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits()
+                .setPermanentLimit(5000)
+                .beginTemporaryLimit().setName("leg2-600").setAcceptableDuration(600).setValue(10000).endTemporaryLimit()
+                .add();
+        twt.getLeg3().getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits()
+                .setPermanentLimit(5000)
+                .beginTemporaryLimit().setName("leg3-60").setAcceptableDuration(60).setValue(10000).endTemporaryLimit()
+                .add();
+        assertEquals(Map.of(), limitNamesBySide(runWithCurrentLimitScalings(network), "3wt"));
+
+        // Only the 600 s temporary limits are scaled: leg 1 (as its second temporary limit) and leg 2, not leg 3.
+        LimitScaling on600s = LimitScaling.builder(LimitType.CURRENT, 0.001)
+                .withLimitDurationCriteria(new EqualityTemporaryDurationCriterion(600))
+                .build();
+        assertEquals(Map.of(ThreeSides.ONE, "leg1-600", ThreeSides.TWO, "leg2-600"),
+                limitNamesBySide(runWithCurrentLimitScalings(network, on600s), "3wt"));
+
+        // Only the 60 s temporary limits are scaled: leg 1 (as its first temporary limit) and leg 3, not leg 2.
+        LimitScaling on60s = LimitScaling.builder(LimitType.CURRENT, 0.001)
+                .withLimitDurationCriteria(new EqualityTemporaryDurationCriterion(60))
+                .build();
+        assertEquals(Map.of(ThreeSides.ONE, "leg1-60", ThreeSides.THREE, "leg3-60"),
+                limitNamesBySide(runWithCurrentLimitScalings(network, on60s), "3wt"));
+    }
+
+    @Test
+    void testLimitScalingsOnTieLinesNominalVoltagePerSide() {
+        // Side 1 of t12 is in vl1 (380 kV), side 2 in vl3 (400 kV).
+        Network network = BoundaryFactory.createWithTieLine();
+        TieLine tieLine = network.getTieLine("t12");
+        tieLine.getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(10000).add();
+        tieLine.getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(10000).add();
+
+        LimitScaling on380kV = LimitScaling.builder(LimitType.CURRENT, 0.001)
+                .withNetworkElementCriteria(new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(370., 390., true, true))))
+                .build();
+        assertEquals(Set.of(ThreeSides.ONE), sidesOf(runWithCurrentLimitScalings(network, on380kV), "t12"));
+
+        LimitScaling on400kV = LimitScaling.builder(LimitType.CURRENT, 0.001)
+                .withNetworkElementCriteria(new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(390., 410., true, true))))
+                .build();
+        assertEquals(Set.of(ThreeSides.TWO), sidesOf(runWithCurrentLimitScalings(network, on400kV), "t12"));
+    }
+
+    @Test
+    void testLimitScalingsOnBoundaryLines() {
+        Network network = BoundaryFactory.create();
+        network.getBoundaryLine("bl1").getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10000).add();
+        assertEquals(Set.of(), sidesOf(runWithCurrentLimitScalings(network), "bl1"));
+
+        LimitScaling limitScaling = LimitScaling.builder(LimitType.CURRENT, 0.001).build();
+        assertEquals(Set.of(ThreeSides.ONE), sidesOf(runWithCurrentLimitScalings(network, limitScaling), "bl1"));
+    }
+
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void testPhaseTapChangerContingency(boolean dcFastMode) {

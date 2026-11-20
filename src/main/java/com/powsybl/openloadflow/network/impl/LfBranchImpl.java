@@ -290,47 +290,9 @@ public class LfBranchImpl extends AbstractImpedantLfBranch {
         }
     }
 
-    /**
-     * <p>Create the list of the limit scalings to use for each limit:
-     * <ul>
-     *  <li>the value for the permanent limit is stored at index 0, values for the temporary limits are stored from index 1;</li>
-     *  <li>if no scaling is detected for a limit, the corresponding value is set to 1;</li>
-     *  <li>if several LimitScalings are applicable for the same limit, the last one is used;</li>
-     * </ul></p>
-     * <p>This method may return an empty list when no scaling apply.</p>
-     */
     @Override
     public double[] getLimitScalings(TwoSides side, LimitScalingManager limitScalingManager, LoadingLimits limits) {
-        if (limits == null) {
-            return new double[] {};
-        }
-        if (limits.getLimitType() != LimitType.CURRENT) {
-            return new double[] {};
-        }
-        if (limitScalingManager == null || limitScalingManager.isEmpty()) {
-            return new double[] {};
-        }
-        // Initialize the array of the scalings with 1s
-        double[] limitScalings = new double[limits.getTemporaryLimits().size() + 1];
-        Arrays.fill(limitScalings, 1.);
-        double nominalV = branchRef.get().getTerminal(side).getVoltageLevel().getNominalV();
-        for (LimitScalingManager.TerminalLimitScaling terminalLimitScaling : limitScalingManager.getTerminalLimitScalings()) {
-            if (terminalLimitScaling.nominalV().contains(nominalV)) {
-                if (terminalLimitScaling.isPermanent()) {
-                    limitScalings[0] = terminalLimitScaling.scaling();
-                }
-                if (terminalLimitScaling.acceptableDuration() != null) {
-                    int i = 1; // temporary limit's scalings will be stored starting from index 1
-                    for (LoadingLimits.TemporaryLimit temporaryLimit : limits.getTemporaryLimits()) {
-                        if (terminalLimitScaling.acceptableDuration().contains(temporaryLimit.getAcceptableDuration())) {
-                            limitScalings[i] = terminalLimitScaling.scaling();
-                        }
-                        i++;
-                    }
-                }
-            }
-        }
-        return limitScalings;
+        return createLimitScalings(limitScalingManager, limits, branchRef.get().getTerminal(side).getVoltageLevel().getNominalV());
     }
 
     @Override

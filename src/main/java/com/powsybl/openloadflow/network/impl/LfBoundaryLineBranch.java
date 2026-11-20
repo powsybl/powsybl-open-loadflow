@@ -124,7 +124,7 @@ public class LfBoundaryLineBranch extends AbstractImpedantLfBranch {
 
     @Override
     public double[] getLimitScalings(TwoSides side, LimitScalingManager limitScalingManager, LoadingLimits limits) {
-        return new double[] {};
+        return createLimitScalings(limitScalingManager, limits, getBoundaryLine().getTerminal().getVoltageLevel().getNominalV());
     }
 
     @Override
