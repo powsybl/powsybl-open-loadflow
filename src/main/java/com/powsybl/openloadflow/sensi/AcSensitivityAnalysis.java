@@ -685,6 +685,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             actions = configuredActions;
         }
 
+        // Validate against the complete list before splitting contingencies into partitions.
+        OperatorStrategies.check(operatorStrategies, contingencies, actions);
+
         LfTopoConfig topoConfig = new LfTopoConfig();
 
         // update topo config with supported actions
@@ -824,7 +827,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
         Map<String, Action> actionsById = Actions.indexById(actions);
         Map<String, List<Indexed<OperatorStrategy>>> operatorStrategiesByContingencyId =
-                OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById, true);
+                OperatorStrategies.indexByContingencyId(propagatedContingencies, operatorStrategies, actionsById, false);
         Set<Action> neededActions = OperatorStrategies.getNeededActions(operatorStrategiesByContingencyId, actionsById);
         Map<String, LfAction> lfActionById = LfActionUtils.createLfActions(lfNetwork, neededActions, network); // only convert needed actions
 
