@@ -61,7 +61,7 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
         }
 
         @Override
-        public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
+        public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition, boolean modifiedTapImpedance) {
             invalidateValues();
         }
 
@@ -81,6 +81,11 @@ public class TargetVector<V extends Enum<V> & Quantity, E extends Enum<E> & Quan
 
         @Override
         public void onHvdcAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus) {
+            invalidateValues();
+        }
+
+        @Override
+        public void onAcDcConverterTargetPChange(LfAcDcConverter converter, double newTargetP) {
             invalidateValues();
         }
     };

@@ -10,21 +10,12 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.CommonTestConfig;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.ServiceParameterResolver;
-import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
-import com.powsybl.openloadflow.ac.equations.*;
-import com.powsybl.openloadflow.equations.SingleEquationTerm;
-import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.test.networks.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.util.Evaluable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.Collections;
 import java.util.List;
@@ -35,14 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 /**
  * @author Anne Tilloy {@literal <anne.tilloy at rte-france.com>}
  */
-@ExtendWith(ServiceParameterResolver.class)
 class LfSwitchTest {
-
-    private final CommonTestConfig commonTestConfig;
-
-    LfSwitchTest(CommonTestConfig commonTestConfig) {
-        this.commonTestConfig = commonTestConfig;
-    }
 
     private Network network;
 
@@ -50,14 +34,10 @@ class LfSwitchTest {
 
     private LfSwitch lfSwitch;
 
-    private AcLoadFlowParameters acLoadFlowParameters;
-
     @BeforeEach
     void setUp() {
         network = NodeBreakerNetworkFactory.create();
-        acLoadFlowParameters = OpenLoadFlowParameters.createAcParameters(network, new LoadFlowParameters(),
-                new OpenLoadFlowParameters(), commonTestConfig.matrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), true, false);
-        List<LfNetwork> lfNetworks = Networks.load(network, acLoadFlowParameters.getNetworkParameters(), ReportNode.NO_OP);
+        List<LfNetwork> lfNetworks = Networks.load(network, new LfNetworkParameters().setBreakers(true), ReportNode.NO_OP);
         assertEquals(1, lfNetworks.size());
         lfNetwork = lfNetworks.get(0);
         lfSwitch = (LfSwitch) lfNetwork.getBranchById("B3");
@@ -77,22 +57,16 @@ class LfSwitchTest {
 
     @Test
     void setterTest() {
-        lfSwitch.getPiModel().setX(LfNetworkParameters.LOW_IMPEDANCE_THRESHOLD_DEFAULT_VALUE);
-
-        VariableSet<AcVariableType> variableSet = new VariableSet<>();
-        SingleEquationTerm<AcVariableType, AcEquationType> p1 = new ClosedBranchSide1ActiveFlowEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
-        SingleEquationTerm<AcVariableType, AcEquationType> p2 = new ClosedBranchSide2ActiveFlowEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
-        lfSwitch.setP1(p1);
+        Evaluable one = () -> 1.0;
+        lfSwitch.setP1(one);
         assertEquals(Double.NaN, lfSwitch.getP1().eval());
-        lfSwitch.setP2(p2);
+        lfSwitch.setP2(one);
         assertEquals(Double.NaN, lfSwitch.getP2().eval());
 
-        SingleEquationTerm<AcVariableType, AcEquationType> i1 = new ClosedBranchSide1CurrentMagnitudeEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
-        SingleEquationTerm<AcVariableType, AcEquationType> i2 = new ClosedBranchSide2CurrentMagnitudeEquationTerm(lfSwitch, lfSwitch.getBus1(), lfSwitch.getBus2(), variableSet, false, false);
-        lfSwitch.setI1(i1);
-        assertEquals(Double.NaN, lfSwitch.getP1().eval());
-        lfSwitch.setI2(i2);
-        assertEquals(Double.NaN, lfSwitch.getP2().eval());
+        lfSwitch.setI1(one);
+        assertEquals(Double.NaN, lfSwitch.getI1().eval());
+        lfSwitch.setI2(one);
+        assertEquals(Double.NaN, lfSwitch.getI2().eval());
     }
 
 }

@@ -13,17 +13,17 @@ import com.powsybl.iidm.network.Switch;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.LoadFlowAssert;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.assertActivePowerEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -62,7 +62,7 @@ class NonImpedantBranchDisablingTest {
         AcLoadFlowParameters parameters = OpenLoadFlowParameters.createAcParameters(new LoadFlowParameters(),
                                                                                     new OpenLoadFlowParameters(),
                                                                                     commonTestConfig.matrixFactory(),
-                                                                                    new EvenShiloachGraphDecrementalConnectivityFactory<>(),
+                                                                                    new DTreeGraphConnectivityFactory<>(),
                                                                                     true,
                                                                                     false);
         parameters.getNetworkParameters().setSlackBusSelector(new NameSlackBusSelector("VL1_1"));
@@ -125,7 +125,7 @@ class NonImpedantBranchDisablingTest {
                 = OpenLoadFlowParameters.createAcParameters(network,
                                                             parameters, olfParameters,
                                                             commonTestConfig.matrixFactory(),
-                                                            new NaiveGraphConnectivityFactory<>(LfElement::getNum),
+                                                            new DTreeGraphConnectivityFactory<>(),
                                                             true,
                                                             false);
         LfTopoConfig topoConfig = new LfTopoConfig();

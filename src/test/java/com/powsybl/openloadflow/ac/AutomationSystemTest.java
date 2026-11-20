@@ -11,16 +11,20 @@ import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
-import com.powsybl.openloadflow.network.AutomationSystemNetworkFactory;
+import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.AutomationSystemNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertCurrentEquals;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.assertCurrentEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -156,5 +160,17 @@ class AutomationSystemTest {
         assertCurrentEquals(272.485, l34.getTerminal1());
         assertTrue(network.getLine("l33p").getTerminal1().isConnected());
         assertTrue(network.getLine("l33p").getTerminal2().isConnected());
+    }
+
+    @Test
+    void testEvenShiloachIsNotUsedWhenDoingALoadFlowWithAutomationSystem() {
+        EvenShiloachGraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = Mockito.spy(EvenShiloachGraphDecrementalConnectivityFactory.class);
+        var runner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory(), connectivityFactory));
+
+        Network network = AutomationSystemNetworkFactory.createWithSwitchToClose();
+        runner.run(network, parameters);
+
+        Mockito.verify(connectivityFactory, Mockito.atLeastOnce()).supportsIncremental();
+        Mockito.verify(connectivityFactory, Mockito.never()).create();
     }
 }

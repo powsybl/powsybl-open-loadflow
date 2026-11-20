@@ -16,12 +16,12 @@ import java.util.Objects;
 /**
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
-public class LfDcLineImpl extends AbstractLfDcLine {
+public class LfDcLineImpl extends AbstractLfDcBranch {
 
     private final Ref<DcLine> dcLineRef;
 
-    public LfDcLineImpl(LfDcBus dcBus1, LfDcBus dcBus2, LfNetwork network, DcLine dcLine, LfNetworkParameters parameters) {
-        super(network, dcBus1, dcBus2, dcLine.getR());
+    public LfDcLineImpl(LfDcBus dcBus1, LfDcBus dcBus2, LfNetwork network, int numDCC, DcLine dcLine, LfNetworkParameters parameters) {
+        super(network, numDCC, dcBus1, dcBus2, dcLine.getR());
         this.dcLineRef = Ref.create(dcLine, parameters.isCacheEnabled());
     }
 
@@ -31,19 +31,19 @@ public class LfDcLineImpl extends AbstractLfDcLine {
     }
 
     @Override
-    public LfDcLine copy(LfNetwork copyNetwork) {
+    public LfDcBranch copy(LfNetwork copyNetwork) {
         return new LfDcLineImpl(this,
                 copyNetwork,
                 copyNetwork.getDcBusById(dcBus1.getId()),
                 copyNetwork.getDcBusById(dcBus2.getId()));
     }
 
-    public static LfDcLineImpl create(DcLine dcLine, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2,
+    public static LfDcLineImpl create(DcLine dcLine, LfNetwork network, int numDCC, LfDcBus dcBus1, LfDcBus dcBus2,
                                       LfNetworkParameters parameters) {
         Objects.requireNonNull(network);
         Objects.requireNonNull(dcLine);
         Objects.requireNonNull(parameters);
-        return new LfDcLineImpl(dcBus1, dcBus2, network, dcLine, parameters);
+        return new LfDcLineImpl(dcBus1, dcBus2, network, numDCC, dcLine, parameters);
     }
 
     private DcLine getDcLine() {
@@ -53,15 +53,6 @@ public class LfDcLineImpl extends AbstractLfDcLine {
     @Override
     public String getId() {
         return getDcLine().getId();
-    }
-
-    @Override
-    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
-        if (isDisabled()) {
-            updateFlows(Double.NaN, Double.NaN, Double.NaN, Double.NaN);
-        } else {
-            updateFlows(i1.eval(), i2.eval(), p1.eval(), p2.eval());
-        }
     }
 
     @Override

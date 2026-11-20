@@ -21,17 +21,17 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
+import com.powsybl.openloadflow.lf.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LfSecondaryVoltageControl;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysisProvider;
-import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
 import com.powsybl.security.SecurityAnalysisParameters;
 import com.powsybl.security.SecurityAnalysisRunParameters;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,7 +42,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -303,7 +303,7 @@ class SecondaryVoltageControlTest {
         parametersExt.setSecondaryVoltageControl(true);
 
         List<Contingency> contingencies = List.of(Contingency.branch("L1-2-1"), Contingency.branch("L1-5-1"));
-        OpenSecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        OpenSecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         assertDoesNotThrow(() -> securityAnalysisProvider.run(network,
                 network.getVariantManager().getWorkingVariantId(),
                 n -> contingencies,

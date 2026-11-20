@@ -11,17 +11,19 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfSynchronousNetwork;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
-import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * @author Hadrien Godard {@literal <hadrien.godard at artelys.com>}
@@ -29,6 +31,9 @@ import java.util.Objects;
 public class FastDecoupled extends AbstractAcSolver {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FastDecoupled.class);
+
+    private static final Set<AcEquationType> BRANCH_TARGET_PQ = EnumSet.of(AcEquationType.BRANCH_TARGET_P1,
+            AcEquationType.BRANCH_TARGET_P2, AcEquationType.BRANCH_TARGET_Q1, AcEquationType.BRANCH_TARGET_Q2);
 
     protected final NewtonRaphsonParameters parameters;
 
@@ -80,7 +85,8 @@ public class FastDecoupled extends AbstractAcSolver {
         return switch (acEquationType) {
             case BUS_TARGET_P,
                  BUS_TARGET_PHI,
-                 BRANCH_TARGET_P,
+                 BRANCH_TARGET_P1,
+                 BRANCH_TARGET_P2,
                  BRANCH_TARGET_ALPHA1,
                  ZERO_PHI,
                  DUMMY_TARGET_P,
@@ -88,7 +94,8 @@ public class FastDecoupled extends AbstractAcSolver {
             case BUS_TARGET_Q,
                  BUS_TARGET_V,
                  SHUNT_TARGET_B,
-                 BRANCH_TARGET_Q,
+                 BRANCH_TARGET_Q1,
+                 BRANCH_TARGET_Q2,
                  BRANCH_TARGET_RHO1,
                  DISTR_Q,
                  ZERO_V,
@@ -129,9 +136,9 @@ public class FastDecoupled extends AbstractAcSolver {
         LOGGER.debug("Step size: {} ({} {} changes outside thresholds)", stepSize, cutCount, variableName);
         if (reportNode != null) {
             if (isPhiType) {
-                Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, 0, cutCount);
+                LfReports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, 0, cutCount);
             } else {
-                Reports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, cutCount, 0);
+                LfReports.reportMaxVoltageChangeStateVectorScaling(reportNode, stepSize, cutCount, 0);
             }
         }
     }
@@ -185,12 +192,12 @@ public class FastDecoupled extends AbstractAcSolver {
 
         LOGGER.debug("Step size: {}", stepSize);
         if (reportNode != null) {
-            Reports.reportLineSearchStateVectorScaling(reportNode, stepSize);
+            LfReports.reportLineSearchStateVectorScaling(reportNode, stepSize);
         }
     }
 
     private int retrieveBusNumFromEquation(Equation<AcVariableType, AcEquationType> equation) {
-        if (equation.getType() == AcEquationType.BRANCH_TARGET_P || equation.getType() == AcEquationType.BRANCH_TARGET_Q) {
+        if (BRANCH_TARGET_PQ.contains(equation.getType())) {
             // Equations of those types have only one term
             if (equation.getTerms().size() != 1) {
                 throw new IllegalStateException("Equation: " + equation + " is expected to have only one term not " + equation.getTerms().size());
@@ -255,7 +262,7 @@ public class FastDecoupled extends AbstractAcSolver {
         try {
             // create iteration report
             // - add 1 to iteration so that it starts at 1 instead of 0
-            ReportNode iterationReportNode = detailedReport ? Reports.createAcMismatchReporter(reportNode, iterations.intValue() + 1) : null;
+            ReportNode iterationReportNode = detailedReport ? LfReports.createAcMismatchReporter(reportNode, iterations.intValue() + 1) : null;
 
             try {
                 // Solution on PHI
@@ -266,7 +273,7 @@ public class FastDecoupled extends AbstractAcSolver {
                 runSingleSystemSolution(jV, vEquationVector, rangeIndex, false, iterationReportNode);
             } catch (MatrixException e) {
                 LOGGER.error(e.toString(), e);
-                Reports.reportAcSolverError(reportNode, getName(), e.toString());
+                LfReports.reportAcSolverError(reportNode, getName(), e.toString());
                 return AcSolverStatus.SOLVER_FAILED;
             }
 
@@ -301,7 +308,7 @@ public class FastDecoupled extends AbstractAcSolver {
             JacobianMatrixFastDecoupled jVRes = initVJacobianMatrix(rangeIndex)
         ) {
             // initialize state vector
-            AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
+            AcStateVectorUtil.initStateVector(network, equationSystem, voltageInitializer);
 
             equationVector.minus(targetVector);
 
@@ -309,9 +316,9 @@ public class FastDecoupled extends AbstractAcSolver {
 
             LOGGER.debug("|f(x0)|={}", initialTestResult.getNorm());
 
-            ReportNode initialReportNode = detailedReport ? Reports.createAcMismatchReporter(reportNode, 0) : null;
+            ReportNode initialReportNode = detailedReport ? LfReports.createAcMismatchReporter(reportNode, 0) : null;
             if (detailedReport) {
-                Reports.reportSolverNorm(initialReportNode, initialTestResult.getNorm());
+                LfReports.reportSolverNorm(initialReportNode, initialTestResult.getNorm());
             }
             if (detailedReport || LOGGER.isTraceEnabled()) {
                 reportAndLogLargestMismatchByAcEquationType(initialReportNode, equationSystem, equationVector.getArray(), LOGGER);

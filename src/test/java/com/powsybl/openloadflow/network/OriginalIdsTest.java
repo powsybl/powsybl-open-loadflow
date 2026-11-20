@@ -8,6 +8,8 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.test.networks.BoundaryFactory;
+import com.powsybl.openloadflow.test.networks.T3wtFactory;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
