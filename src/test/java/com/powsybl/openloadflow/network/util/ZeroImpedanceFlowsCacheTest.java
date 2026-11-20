@@ -9,12 +9,12 @@ package com.powsybl.openloadflow.network.util;
 
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TwoSides;
-import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.LoadFlowModel;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.test.networks.FourBusNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
