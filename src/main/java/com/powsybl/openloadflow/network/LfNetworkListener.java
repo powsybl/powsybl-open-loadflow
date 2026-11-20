@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.TwoSides;
 
 import java.util.List;
@@ -57,4 +58,8 @@ public interface LfNetworkListener {
     void onReferenceBusChange(LfBus bus, boolean reference);
 
     void onHvdcAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus);
+
+    void onAcDcConverterControlModeChange(LfAcDcConverter converter, AcDcConverter.ControlMode newControlMode);
+
+    void onAcDcConverterTargetPChange(LfAcDcConverter converter, double newTargetP);
 }

@@ -61,6 +61,22 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
         return Optional.empty();
     }
 
+    /**
+     * @param parametersExt Parameters specific to OpenLoadFlow
+     * @return an optional with AcDcConverterPowerLimitsOuterLoop if parameter useActiveLimits is set to true, or empty
+     * otherwise
+     */
+    protected static Optional<AcOuterLoop> createAcDcConverterPowerLimitsOuterLoop(OpenLoadFlowParameters parametersExt) {
+        if (parametersExt.isUseActiveLimits()) {
+            double effectiveMaxActivePowerMismatch = switch (parametersExt.getNewtonRaphsonStoppingCriteriaType()) {
+                case UNIFORM_CRITERIA -> parametersExt.getNewtonRaphsonConvEpsPerEq();
+                case PER_EQUATION_TYPE_CRITERIA -> parametersExt.getMaxActivePowerMismatch() / PerUnit.SB;
+            };
+            return Optional.of(new AcDcConverterPowerLimitsOuterLoop(effectiveMaxActivePowerMismatch));
+        }
+        return Optional.empty();
+    }
+
     protected static Optional<AcOuterLoop> createAreaInterchangeControlOuterLoop(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt,
                                                                                  LoadFlowParametersOverride loadFlowParametersOverride) {
         if (loadFlowParametersOverride.isAreaInterchangeControl(parametersExt)) {

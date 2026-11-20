@@ -850,6 +850,26 @@ public class AcDcNetworkFactory extends AbstractLoadFlowNetworkFactory {
     }
 
     /**
+     * ACDC test case, same topology as {@link #createAcDcNetworkWithTwoAcZones()} but with both converters left in V_DC
+     * control mode.
+     * conv13 targetVdc is 400 kV and conv24 targetVdc is 399.99 kV.
+     *
+     * <pre>
+     * g1                                    g2
+     * |                                      |
+     * b1-conv13-dn3--------------dn4-conv24-b2
+     * |                dl34                  |
+     * ld1                                   ld2
+     * </pre>
+     */
+    public static Network createNetworkWithTwoVdcConverters() {
+        Network network = createAcDcNetworkWithTwoAcZones();
+        network.getVoltageSourceConverter("conv13").setTargetVdc(400).setControlMode(AcDcConverter.ControlMode.V_DC);
+        network.getVoltageSourceConverter("conv24").setTargetVdc(399.99).setControlMode(AcDcConverter.ControlMode.V_DC);
+        return network;
+    }
+
+    /**
      * ACDC test case with 3 AC networks.
      * <pre>
      * g1                                               g2
