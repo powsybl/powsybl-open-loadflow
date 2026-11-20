@@ -63,9 +63,12 @@ public final class AcSolverUtil {
                     network.getBranch(v.getElementNum()).getPiModel().setR1(stateVector.get(v.getRow()));
                     break;
 
-                case DUMMY_P,
-                     DUMMY_Q:
-                    // nothing to do
+                case DUMMY_P:
+                    network.getBranch(v.getElementNum()).setDummyP(stateVector.get(v.getRow()));
+                    break;
+
+                case DUMMY_Q:
+                    network.getBranch(v.getElementNum()).setDummyQ(stateVector.get(v.getRow()));
                     break;
 
                 case DC_BUS_V:

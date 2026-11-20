@@ -21,6 +21,10 @@ public final class AcStateVectorUtil {
     private AcStateVectorUtil() {
     }
 
+    private static double getPreviousValueOrZero(double previousValue, VoltageInitializer initializer) {
+        return Double.isNaN(previousValue) || !(initializer instanceof PreviousValueVoltageInitializer) ? 0.0 : previousValue;
+    }
+
     public static void initStateVector(LfNetwork network, EquationSystem<AcVariableType, AcEquationType> equationSystem, VoltageInitializer initializer) {
         double[] x = new double[equationSystem.getIndex().getSortedVariablesToFind().size()];
         for (Variable<AcVariableType> v : equationSystem.getIndex().getSortedVariablesToFind()) {
@@ -45,9 +49,15 @@ public final class AcStateVectorUtil {
                     x[v.getRow()] = network.getBranch(v.getElementNum()).getPiModel().getR1();
                     break;
 
-                case DUMMY_P,
-                     DUMMY_Q,
-                     BUS_PHI_ZERO,
+                case DUMMY_P:
+                    x[v.getRow()] = getPreviousValueOrZero(network.getBranch(v.getElementNum()).getDummyP(), initializer);
+                    break;
+
+                case DUMMY_Q:
+                    x[v.getRow()] = getPreviousValueOrZero(network.getBranch(v.getElementNum()).getDummyQ(), initializer);
+                    break;
+
+                case BUS_PHI_ZERO,
                      BUS_PHI_NEGATIVE:
                     x[v.getRow()] = 0;
                     break;

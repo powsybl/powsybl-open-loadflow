@@ -49,7 +49,7 @@ class LfNetworkCopyFieldGuardTest {
                 "targetVdc", "initialControlMode", "controlMode", "dcBus1", "dcBus2", "bus1", "minP", "maxP"));
         expected.put(AbstractLfBranch.class, Set.of("bus1", "bus2", "currentLimits1", "activePowerLimits1", "apparentPowerLimits1", "currentLimits2", "activePowerLimits2",
                 "apparentPowerLimits2", "piModel", "phaseControl", "phaseControlEnabled", "voltageControl", "voltageControlEnabled", "transformerReactivePowerControl",
-                "zeroImpedanceContextByModel", "a1", "generatorReactivePowerControl", "asymLine"));
+                "zeroImpedanceContextByModel", "a1", "generatorReactivePowerControl", "asymLine", "dummyP", "dummyQ"));
         expected.put(innerClass(AbstractLfBranch.class, "ZeroImpedanceContext"), Set.of("spanningTreeEdge", "zeroImpedance"));
         expected.put(AbstractLfBus.class, Set.of("slack", "reference", "v", "calculatedV", "angle", "hasGeneratorsWithSlope", "generatorVoltageControlEnabled",
                 "generatorReactivePowerControlEnabled", "generationTargetP", "generationTargetQ", "invalidatedGenerationTargetQ", "qLimitType", "generators",

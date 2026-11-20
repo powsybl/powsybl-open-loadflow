@@ -67,6 +67,10 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
 
     protected LfAsymLine asymLine;
 
+    private double dummyP = Double.NaN;
+
+    private double dummyQ = Double.NaN;
+
     private static final String LIMIT_TYPE_UNSUPPORTED_TEMPLATE = "Getting %s limits is not supported.";
 
     protected AbstractLfBranch(LfNetwork network, LfBus bus1, LfBus bus2, PiModel piModel, LfNetworkParameters parameters) {
@@ -100,6 +104,8 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
         this.disabled = other.disabled;
         this.phaseControlEnabled = other.phaseControlEnabled;
         this.voltageControlEnabled = other.voltageControlEnabled;
+        this.dummyP = other.dummyP;
+        this.dummyQ = other.dummyQ;
     }
 
     @Override
@@ -344,6 +350,26 @@ public abstract class AbstractLfBranch extends AbstractElement implements LfBran
     @Override
     public void setA1(Evaluable a1) {
         this.a1 = a1;
+    }
+
+    @Override
+    public double getDummyP() {
+        return dummyP;
+    }
+
+    @Override
+    public void setDummyP(double dummyP) {
+        this.dummyP = dummyP;
+    }
+
+    @Override
+    public double getDummyQ() {
+        return dummyQ;
+    }
+
+    @Override
+    public void setDummyQ(double dummyQ) {
+        this.dummyQ = dummyQ;
     }
 
     public Optional<GeneratorReactivePowerControl> getGeneratorReactivePowerControl() {

@@ -349,6 +349,14 @@ public interface LfBranch extends LfElement, LfCopyable<LfBranch, LfNetwork> {
 
     void setA1(Evaluable a1);
 
+    double getDummyP();
+
+    void setDummyP(double dummyP);
+
+    double getDummyQ();
+
+    void setDummyQ(double dummyQ);
+
     static double getA(LfBranch branch) {
         Objects.requireNonNull(branch);
         PiModel piModel = branch.getPiModel();
