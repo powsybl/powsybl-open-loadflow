@@ -50,11 +50,32 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     private final int[] equationDerivativeVectorStartIndices;
     private EquationDerivativeVector equationDerivativeVector;
 
+    // Input to output mapping used by eval() to scatter term values to equation values. For each term array, the
+    // term element numbers to read (sorted, so that the term value vector is read sequentially) and the equation
+    // column to write to. Inactive terms and terms of inactive equations are filtered out at build time, so that
+    // the scatter loop is branch free.
+    private int[][] evalScatterTermElementNums;
+    private int[][] evalScatterColumns;
+
+    // Same thing for the single (non vectorized) terms: a flat list of the terms of the active equations, with the
+    // column they contribute to, to avoid walking the maps they are stored in.
+    private SingleEquationTerm<V, E>[] evalSingleTerms;
+    private int[] evalSingleTermColumns;
+
+    // Flat view of the single terms used by der(): for each equation element, the [start, end[ range of its distinct
+    // derivative variables in singleTermDerVariables, and for each of those variables the terms depending on it.
+    private int[] singleTermDerVariableRanges;
+    private Variable<V>[] singleTermDerVariables;
+    private SingleEquationTerm<V, E>[][] singleTermDerTerms;
+    private int[] singleTermDerVariableRows;
+
     private final class AdditionalSingleTermsByEquation {
         private final List<SingleEquationTerm<V, E>> terms = new ArrayList<>();
         private final TreeMap<Variable<V>, List<SingleEquationTerm<V, E>>> termsByVariable = new TreeMap<>();
 
         void addSingleTerm(SingleEquationTerm<V, E> termImpl, Equation<V, E> equation) {
+            invalidateSingleTermDerIndexes();
+            invalidateEvalScatterIndexes();
             terms.add(termImpl);
             singleTermsByTermElementNum.computeIfAbsent(termImpl.getElementNum(), k -> new ArrayList<>())
                     .add(termImpl);
@@ -73,25 +94,33 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
     }
 
     static class MatrixElementIndexes {
-        private final TIntArrayList indexes = new TIntArrayList();
+        private int[] indexes = new int[0];
+        private int size = 0;
 
         private int get(int i) {
-            if (i >= indexes.size()) {
-                indexes.add(-1);
+            if (i >= size) {
+                if (i >= indexes.length) {
+                    indexes = Arrays.copyOf(indexes, Math.max(16, Math.max(i + 1, indexes.length * 2)));
+                }
+                Arrays.fill(indexes, size, i + 1, -1);
+                size = i + 1;
             }
-            return indexes.getQuick(i);
+            return indexes[i];
         }
 
         private void set(int i, int index) {
-            indexes.setQuick(i, index);
+            indexes[i] = index;
         }
 
         void reset() {
-            indexes.clear();
+            size = 0;
         }
     }
 
     private final MatrixElementIndexes matrixElementIndexes = new MatrixElementIndexes();
+
+    // reusable buffer, to avoid allocating one per equation having single terms at each der() call
+    private int[] computedRowsBuffer;
 
     public EquationArray(E type, int elementCount, EquationSystem<V, E> equationSystem) {
         this.type = Objects.requireNonNull(type);
@@ -156,6 +185,14 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         elementNumToColumn = null;
         columnToElementNum = null;
         matrixElementIndexes.reset();
+        invalidateEvalScatterIndexes();
+    }
+
+    void invalidateEvalScatterIndexes() {
+        evalScatterTermElementNums = null;
+        evalScatterColumns = null;
+        evalSingleTerms = null;
+        evalSingleTermColumns = null;
     }
 
     public EquationSystem<V, E> getEquationSystem() {
@@ -220,6 +257,7 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         termArray.setEquationArray(this);
         termArrays.add(termArray);
         invalidateEquationDerivativeVectors();
+        invalidateEvalScatterIndexes();
     }
 
     public Equation<V, E> getElement(int elementNum) {
@@ -355,37 +393,69 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         };
     }
 
-    public void eval(double[] values) {
-        for (EquationTermArray<V, E> termArray : termArrays) {
-            double[] termValues = termArray.eval();
-            int[] termNumsConcatenatedStartIndices = termArray.getTermNumsConcatenatedStartIndices();
-            for (int elementNum = 0; elementNum < elementCount; elementNum++) {
-                // skip inactive equations
-                if (!elementActive[elementNum]) {
+    private void updateEvalScatterIndexes() {
+        if (evalScatterTermElementNums != null) {
+            return;
+        }
+        int[] elementNumToColumnArray = getElementNumToColumn();
+        int termArrayCount = termArrays.size();
+        evalScatterTermElementNums = new int[termArrayCount][];
+        evalScatterColumns = new int[termArrayCount][];
+        for (int termArrayNum = 0; termArrayNum < termArrayCount; termArrayNum++) {
+            EquationTermArray<V, E> termArray = termArrays.get(termArrayNum);
+            int[] sortedTermNums = termArray.getTermNumsSortedByTermElementNum();
+            int[] termElementNums = new int[sortedTermNums.length];
+            int[] columns = new int[sortedTermNums.length];
+            int count = 0;
+            for (int termNum : sortedTermNums) {
+                // skip inactive terms
+                if (!termArray.isTermActive(termNum)) {
                     continue;
                 }
-                int column = getElementNumToColumn(elementNum);
-                var termNums = termArray.getTermNumsConcatenated();
-                int iStart = termNumsConcatenatedStartIndices[elementNum];
-                int iEnd = termNumsConcatenatedStartIndices[elementNum + 1];
-                for (int i = iStart; i < iEnd; i++) {
-                    int termNum = termNums.getQuick(i);
-                    // skip inactive terms
-                    if (termArray.isTermActive(termNum)) {
-                        int termElementNum = termArray.getTermElementNum(termNum);
-                        values[column] += termValues[termElementNum];
-                    }
+                // skip inactive equations
+                int column = elementNumToColumnArray[termArray.getEquationElementNum(termNum)];
+                if (column == -1) {
+                    continue;
                 }
+                termElementNums[count] = termArray.getTermElementNum(termNum);
+                columns[count] = column;
+                count++;
             }
+            evalScatterTermElementNums[termArrayNum] = Arrays.copyOf(termElementNums, count);
+            evalScatterColumns[termArrayNum] = Arrays.copyOf(columns, count);
         }
-        for (Map.Entry<Integer, AdditionalSingleTermsByEquation> singleTermsEntry : singleTermsByEquationElementNum.entrySet()) {
-            if (!elementActive[singleTermsEntry.getKey()]) {
+
+        List<SingleEquationTerm<V, E>> singleTerms = new ArrayList<>();
+        TIntArrayList singleTermColumns = new TIntArrayList();
+        for (Map.Entry<Integer, AdditionalSingleTermsByEquation> e : singleTermsByEquationElementNum.entrySet()) {
+            int column = elementNumToColumnArray[e.getKey()];
+            if (column == -1) { // skip inactive equations
                 continue;
             }
-            for (SingleEquationTerm<V, E> singleTerm : singleTermsEntry.getValue().terms) {
-                if (singleTerm.isActive()) {
-                    values[getElementNumToColumn(singleTermsEntry.getKey())] += singleTerm.eval();
-                }
+            for (SingleEquationTerm<V, E> singleTerm : e.getValue().terms) {
+                singleTerms.add(singleTerm);
+                singleTermColumns.add(column);
+            }
+        }
+        evalSingleTerms = singleTerms.toArray(new SingleEquationTerm[0]);
+        evalSingleTermColumns = singleTermColumns.toArray();
+    }
+
+    public void eval(double[] values) {
+        updateEvalScatterIndexes();
+        for (int termArrayNum = 0; termArrayNum < termArrays.size(); termArrayNum++) {
+            // read the term value vector sequentially and scatter the values to the equation values
+            double[] termValues = termArrays.get(termArrayNum).eval();
+            int[] termElementNums = evalScatterTermElementNums[termArrayNum];
+            int[] columns = evalScatterColumns[termArrayNum];
+            for (int i = 0; i < termElementNums.length; i++) {
+                values[columns[i]] += termValues[termElementNums[i]];
+            }
+        }
+        for (int i = 0; i < evalSingleTerms.length; i++) {
+            SingleEquationTerm<V, E> singleTerm = evalSingleTerms[i];
+            if (singleTerm.isActive()) {
+                values[evalSingleTermColumns[i]] += singleTerm.eval();
             }
         }
     }
@@ -436,103 +506,178 @@ public class EquationArray<V extends Enum<V> & Quantity, E extends Enum<E> & Qua
         matrixElementIndexes.reset();
     }
 
+    private void invalidateSingleTermDerIndexes() {
+        singleTermDerVariableRanges = null;
+        singleTermDerVariables = null;
+        singleTermDerTerms = null;
+        singleTermDerVariableRows = null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void updateSingleTermDerIndexes() {
+        if (singleTermDerVariableRanges != null) {
+            return;
+        }
+        singleTermDerVariableRanges = new int[elementCount + 1];
+        List<Variable<V>> variables = new ArrayList<>();
+        List<SingleEquationTerm<V, E>[]> terms = new ArrayList<>();
+        for (int elementNum = 0; elementNum < elementCount; elementNum++) {
+            singleTermDerVariableRanges[elementNum] = variables.size();
+            if (hasSingleEquationTerms[elementNum]) {
+                for (var e : singleTermsByEquationElementNum.get(elementNum).termsByVariable.entrySet()) {
+                    variables.add(e.getKey());
+                    terms.add(e.getValue().toArray(new SingleEquationTerm[0]));
+                }
+            }
+        }
+        singleTermDerVariableRanges[elementCount] = variables.size();
+        singleTermDerVariables = variables.toArray(new Variable[0]);
+        singleTermDerTerms = terms.toArray(new SingleEquationTerm[0][]);
+        singleTermDerVariableRows = new int[variables.size()];
+    }
+
     public void der(DerHandler handler) {
         Objects.requireNonNull(handler);
 
         updateEquationDerivativeVectors();
-        equationDerivativeVector.update(this);
+        updateSingleTermDerIndexes();
+        equationDerivativeVector.update();
+
+        int[] rows = equationDerivativeVector.rows;
+        double[] values = equationDerivativeVector.values;
+        int[] elementNumToColumnArray = getElementNumToColumn();
 
         // calculate all derivative values
         // process column by column so equation by equation of the array
         int valueIndex = 0;
         for (int elementNum = 0; elementNum < elementCount; elementNum++) {
-            List<Integer> computedRows = new ArrayList<>();
             // skip inactive elements
             if (!elementActive[elementNum]) {
                 continue;
             }
 
-            int column = getElementNumToColumn(elementNum);
+            int column = elementNumToColumnArray[elementNum];
             // for each equation of the array we already have the list of terms to derive and its variable sorted
             // by variable row (required by solvers)
-
-            // process term by term
-            double value = 0;
-            int row = 0;
-
-            AdditionalSingleTermsByEquation additionalTerms = null;
-            if (hasSingleEquationTerms[elementNum]) {
-                additionalTerms = singleTermsByEquationElementNum.get(elementNum);
-            }
-
-            int prevRow = -1;
             int iStart = this.equationDerivativeVectorStartIndices[elementNum];
             int iEnd = this.equationDerivativeVectorStartIndices[elementNum + 1];
-            for (int i = iStart; i < iEnd; i++) {
 
-                // the derivative variable row
-                row = equationDerivativeVector.rows[i];
+            if (hasSingleEquationTerms[elementNum]) {
+                valueIndex = derWithSingleTerms(handler, elementNum, column, iStart, iEnd, rows, values, valueIndex);
+            } else {
+                // fast path: only vectorized terms, values of a same row are contiguous and just have to be summed
+                double value = 0;
+                int prevRow = -1;
+                for (int i = iStart; i < iEnd; i++) {
+                    // the derivative variable row
+                    int row = rows[i];
 
-                // if an element at (row, column) is complete (we switch to another row), notify
-                if (prevRow != -1 && row != prevRow) {
-                    if (additionalTerms != null) {
-                        computedRows.add(prevRow);
-                        for (Variable<V> v : additionalTerms.termsByVariable.keySet()) {
-                            if (v.getRow() == prevRow) {
-                                for (var term : additionalTerms.termsByVariable.get(v)) {
-                                    if (term.isActive()) {
-                                        value += term.der(v);
-                                    }
-                                }
-                            }
+                    // if an element at (row, column) is complete (we switch to another row), notify
+                    if (row != prevRow) {
+                        if (prevRow != -1) {
+                            valueIndex = onDer(handler, column, prevRow, value, valueIndex);
+                            value = 0;
                         }
+                        prevRow = row;
                     }
-                    onDer(handler, column, prevRow, value, valueIndex);
-                    valueIndex++;
-                    value = 0;
+                    value += values[i];
                 }
-                prevRow = row;
-                value += equationDerivativeVector.values[i];
-            }
 
-            // remaining notif
-            if (prevRow != -1) {
-                if (additionalTerms != null) {
-                    computedRows.add(prevRow);
-                    for (Variable<V> v : additionalTerms.termsByVariable.keySet()) {
-                        if (v.getRow() == prevRow) {
-                            for (var term : additionalTerms.termsByVariable.get(v)) {
-                                if (term.isActive()) {
-                                    value += term.der(v);
-                                }
-                            }
-                        }
-                    }
-                }
-                onDer(handler, column, prevRow, value, valueIndex);
-                valueIndex++;
-            }
-
-            if (additionalTerms != null) {
-                for (Variable<V> v : additionalTerms.termsByVariable.keySet()) {
-                    if (v.getRow() != -1 && !computedRows.contains(v.getRow())) {
-                        value = 0;
-                        for (var term : additionalTerms.termsByVariable.get(v)) {
-                            if (term.isActive()) {
-                                value += term.der(v);
-                            }
-                        }
-                        onDer(handler, column, v.getRow(), value, valueIndex);
-                        valueIndex++;
-                    }
+                // remaining notif
+                if (prevRow != -1) {
+                    valueIndex = onDer(handler, column, prevRow, value, valueIndex);
                 }
             }
         }
     }
 
-    private void onDer(DerHandler handler, int column, int row, double value, int valueIndex) {
+    private int derWithSingleTerms(DerHandler handler, int elementNum, int column, int iStart, int iEnd,
+                                   int[] rows, double[] values, int startValueIndex) {
+        int valueIndex = startValueIndex;
+        int vStart = singleTermDerVariableRanges[elementNum];
+        int vEnd = singleTermDerVariableRanges[elementNum + 1];
+        for (int j = vStart; j < vEnd; j++) {
+            singleTermDerVariableRows[j] = singleTermDerVariables[j].getRow();
+        }
+        int[] computedRows = getComputedRowsBuffer(iEnd - iStart + 1);
+        int computedRowCount = 0;
+
+        // process term by term
+        double value = 0;
+        int prevRow = -1;
+        for (int i = iStart; i < iEnd; i++) {
+
+            // the derivative variable row
+            int row = rows[i];
+
+            // if an element at (row, column) is complete (we switch to another row), notify
+            if (prevRow != -1 && row != prevRow) {
+                computedRows[computedRowCount++] = prevRow;
+                value += evalSingleTermsDer(vStart, vEnd, prevRow);
+                valueIndex = onDer(handler, column, prevRow, value, valueIndex);
+                value = 0;
+            }
+            prevRow = row;
+            value += values[i];
+        }
+
+        // remaining notif
+        if (prevRow != -1) {
+            computedRows[computedRowCount++] = prevRow;
+            value += evalSingleTermsDer(vStart, vEnd, prevRow);
+            valueIndex = onDer(handler, column, prevRow, value, valueIndex);
+        }
+
+        // single terms with a variable that has not been seen in the vectorized terms
+        for (int j = vStart; j < vEnd; j++) {
+            int row = singleTermDerVariableRows[j];
+            if (row != -1 && !contains(computedRows, computedRowCount, row)) {
+                value = 0;
+                for (var term : singleTermDerTerms[j]) {
+                    if (term.isActive()) {
+                        value += term.der(singleTermDerVariables[j]);
+                    }
+                }
+                valueIndex = onDer(handler, column, row, value, valueIndex);
+            }
+        }
+        return valueIndex;
+    }
+
+    private int[] getComputedRowsBuffer(int size) {
+        if (computedRowsBuffer == null || computedRowsBuffer.length < size) {
+            computedRowsBuffer = new int[size];
+        }
+        return computedRowsBuffer;
+    }
+
+    private static boolean contains(int[] values, int count, int value) {
+        for (int i = 0; i < count; i++) {
+            if (values[i] == value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private double evalSingleTermsDer(int vStart, int vEnd, int row) {
+        double value = 0;
+        for (int j = vStart; j < vEnd; j++) {
+            if (singleTermDerVariableRows[j] == row) {
+                for (var term : singleTermDerTerms[j]) {
+                    if (term.isActive()) {
+                        value += term.der(singleTermDerVariables[j]);
+                    }
+                }
+            }
+        }
+        return value;
+    }
+
+    private int onDer(DerHandler handler, int column, int row, double value, int valueIndex) {
         int matrixElementIndex = handler.onDer(column, row, value, matrixElementIndexes.get(valueIndex));
         matrixElementIndexes.set(valueIndex, matrixElementIndex);
+        return valueIndex + 1;
     }
 
     public void write(Writer writer, boolean writeInactiveEquations) throws IOException {

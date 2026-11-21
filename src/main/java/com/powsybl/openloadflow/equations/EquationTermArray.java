@@ -20,6 +20,7 @@ import gnu.trove.map.hash.TIntIntHashMap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -75,6 +76,10 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     // for each term number, list of derivative variables
     private final List<List<Derivative<V>>> termDerivatives = new ArrayList<>();
 
+    // term numbers sorted by term element number, so that reading term values in that order is a sequential
+    // access of the term value vectors
+    private int[] termNumsSortedByTermElementNum;
+
     public EquationTermArray(ElementType elementType, Evaluator<V> evaluator) {
         this.elementType = Objects.requireNonNull(elementType);
         this.evaluator = Objects.requireNonNull(evaluator);
@@ -128,6 +133,27 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         return termDerivatives.get(termNum);
     }
 
+    /**
+     * Term numbers, sorted by increasing term element number. Iterating terms in that order means reading the term
+     * value and term derivative value vectors sequentially.
+     */
+    int[] getTermNumsSortedByTermElementNum() {
+        if (termNumsSortedByTermElementNum == null) {
+            int termCount = termElementNums.size();
+            // sort (term element number, term number) couples packed in a long, term element number first
+            long[] keys = new long[termCount];
+            for (int termNum = 0; termNum < termCount; termNum++) {
+                keys[termNum] = ((long) termElementNums.getQuick(termNum) << 32) | termNum;
+            }
+            Arrays.sort(keys);
+            termNumsSortedByTermElementNum = new int[termCount];
+            for (int i = 0; i < termCount; i++) {
+                termNumsSortedByTermElementNum[i] = (int) keys[i];
+            }
+        }
+        return termNumsSortedByTermElementNum;
+    }
+
     public EquationTermArray<V, E> addTerm(LfElement equationElement, LfElement termElement) {
         return addTerm(Objects.requireNonNull(equationElement).getNum(), Objects.requireNonNull(termElement).getNum());
     }
@@ -142,7 +168,9 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         termElementNums.add(termElementNum);
         termActive.add((byte) (evaluator.isDisabled(termElementNum) ? 0 : 1));
         termDerivatives.add(evaluator.getDerivatives(termElementNum));
+        termNumsSortedByTermElementNum = null;
         equationArray.invalidateEquationDerivativeVectors();
+        equationArray.invalidateEvalScatterIndexes();
         equationArray.getEquationSystem().notifyEquationTermArrayChange(this, termNum, EquationTermEventType.EQUATION_TERM_ADDED);
         return this;
     }
@@ -191,6 +219,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         boolean oldActive = termActive.getQuick(termNum) == 1;
         if (active != oldActive) {
             termActive.setQuick(termNum, (byte) (active ? 1 : 0));
+            equationArray.invalidateEvalScatterIndexes();
             equationArray.getEquationSystem().notifyEquationTermArrayChange(this, termNum, active ? EquationTermEventType.EQUATION_TERM_ACTIVATED : EquationTermEventType.EQUATION_TERM_DEACTIVATED);
         }
     }
