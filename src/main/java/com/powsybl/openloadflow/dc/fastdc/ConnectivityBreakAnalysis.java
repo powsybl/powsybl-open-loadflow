@@ -36,7 +36,7 @@ import java.util.stream.Stream;
  */
 public final class ConnectivityBreakAnalysis {
 
-    private static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-7;
+    static final double CONNECTIVITY_LOSS_THRESHOLD = 10e-7;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConnectivityBreakAnalysis.class);
 

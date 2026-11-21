@@ -8,6 +8,7 @@ hidden: true
 getting_started.md
 sensitivity.md
 parameters.md
+lodf.md
 ```
 
 The sensitivity analysis implements the Powsybl core sensitivity analysis API.
