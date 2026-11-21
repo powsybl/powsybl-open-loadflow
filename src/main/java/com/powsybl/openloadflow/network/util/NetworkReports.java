@@ -171,6 +171,15 @@ public final class NetworkReports {
                 .add();
     }
 
+    public static void reportAreaBoundaryInDeadComponentIgnored(ReportNode reportNode, String area, String bus) {
+        reportNode.newReportNode()
+                .withMessageTemplate("olf.areaBoundaryInDeadComponentIgnored")
+                .withUntypedValue("area", area)
+                .withUntypedValue("bus", bus)
+                .withSeverity(TypedValue.INFO_SEVERITY)
+                .add();
+    }
+
     public static void reportAreaNoInterchangeControlMissingBuses(ReportNode reportNode, String area) {
         reportNode.newReportNode()
                 .withMessageTemplate("olf.areaNoInterchangeControlMissingBuses")

@@ -33,6 +33,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
@@ -287,6 +288,57 @@ class AreaInterchangeControlTest {
         assertEquals(-30, componentResult.getDistributedActivePower(), 1e-3);
         assertEquals(3, componentResult.getIterationCount());
         assertEquals(0, componentResult.getSlackBusResults().get(0).getActivePowerMismatch(), 1e-3);
+    }
+
+    @Test
+    void areaBoundaryInDeadComponent() throws IOException {
+        // a2 has a boundary on a bus without any generator in its component (an out of service tie line): it cannot
+        // carry any flow, so it must not keep a2 out of area interchange control
+        Network network = MultiAreaNetworkFactory.createTwoAreasWithDeadTieLine();
+        ReportNode node = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+        Area area1 = network.getArea("a1");
+        Area area2 = network.getArea("a2");
+        area1.setInterchangeTarget(-40);
+        area2.setInterchangeTarget(40);
+
+        var result = loadFlowRunner.run(network, runParameters.setReportNode(node));
+
+        assertTrue(result.isFullyConverged());
+        assertEquals(-40, area1.getInterchange(), parametersExt.getAreaInterchangePMaxMismatch());
+        assertEquals(40, area2.getInterchange(), parametersExt.getAreaInterchangePMaxMismatch());
+        StringWriter report = new StringWriter();
+        node.print(report);
+        // a2 takes part in area interchange control: in a two-area network its interchange would follow a1 anyway
+        assertTrue(report.toString().contains("Area a2 interchange mismatch"), report::toString);
+        assertTrue(report.toString().contains("Area a2: boundary at bus deadBus_vl_0 is in a component without any generator"), report::toString);
+        assertFalse(report.toString().contains("will not be considered in area interchange control"), report::toString);
+    }
+
+    static Stream<Arguments> areaBoundaryInLiveComponentNetworks() {
+        return Stream.of(
+                Arguments.of("static var compensator", MultiAreaNetworkFactory.createTwoAreasWithDeadTieLineAndSvc()),
+                Arguments.of("VSC converter station", MultiAreaNetworkFactory.createTwoAreasWithDeadTieLineAndVsc()));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("areaBoundaryInLiveComponentNetworks")
+    void areaBoundaryInLiveComponent(String source, Network network) throws IOException {
+        // same as areaBoundaryInDeadComponent, but the other component has an element OpenLoadFlow models as a
+        // generator or converter: it is not dead, so a2 stays out of area interchange control as before
+        ReportNode node = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+
+        loadFlowRunner.run(network, runParameters.setReportNode(node));
+
+        StringWriter report = new StringWriter();
+        node.print(report);
+        assertTrue(report.toString().contains("Area a2 will not be considered in area interchange control"), report::toString);
+        assertFalse(report.toString().contains("component without any generator"), report::toString);
     }
 
     @Test

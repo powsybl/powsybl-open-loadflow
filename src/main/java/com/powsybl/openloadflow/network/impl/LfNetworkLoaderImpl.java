@@ -756,12 +756,18 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static boolean checkBoundariesComponent(LfNetwork network, Area area, int numSC) {
         final int numCC = network.getNumCC();
-        List<Bus> boundaryBuses = area.getAreaBoundaryStream()
+        List<Bus> connectedBoundaryBuses = area.getAreaBoundaryStream()
                 .map(areaBoundary -> areaBoundary.getTerminal()
                         .orElseGet(() -> areaBoundary.getBoundary().orElseThrow().getBoundaryLine().getTerminal()))
                 .map(t -> t.getBusView().getBus())
                 .filter(Objects::nonNull)
                 .toList();
+        // A boundary in a dead component cannot carry any flow, so it neither splits the area's interchange over
+        // components nor needs controlling: leave it out of the component check.
+        Map<Boolean, List<Bus>> boundaryBusesByDeadness = connectedBoundaryBuses.stream()
+                .collect(Collectors.partitioningBy(bus -> isDeadComponent(bus.getConnectedComponent())));
+        List<Bus> boundaryBuses = boundaryBusesByDeadness.get(false);
+        List<Bus> deadBoundaryBuses = boundaryBusesByDeadness.get(true);
 
         List<Integer> connectedComponents = boundaryBuses.stream()
                 .map(Bus::getConnectedComponent)
@@ -793,7 +799,37 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                 "area will not be considered for area interchange control", network, area.getId(), numCC, numSC);
             return false;
         }
+        // reported here, in the one component that controls the area, so that it is reported once
+        for (Bus deadBoundaryBus : deadBoundaryBuses) {
+            NetworkReports.reportAreaBoundaryInDeadComponentIgnored(network.getReportNode(), area.getId(), deadBoundaryBus.getId());
+            LOGGER.info("Network {}: Area {} has a boundary at bus {} in a component without any generator. " +
+                "It cannot carry any flow and is ignored by area interchange control", network, area.getId(), deadBoundaryBus.getId());
+        }
         return true;
+    }
+
+    /**
+     * Whether a component is dead: it has nothing that OpenLoadFlow models as a generator or a voltage source converter,
+     * so it is not solved and no flow can enter or leave it.
+     * <p>
+     * This is the iidm counterpart of {@link LfSynchronousNetworkImpl#validateBuses}, which finds the same on a loaded
+     * network ({@link LfNetwork.Validity#INVALID_NO_GENERATOR}) but cannot be used here: a component other than the one
+     * being loaded is not loaded at this point, or at all. The connectables listed must therefore stay in line with
+     * those the loader turns into a {@link LfGenerator} ({@link LfGeneratorImpl}, {@link LfBatteryImpl},
+     * {@link LfStaticVarCompensatorImpl}, {@link LfVscConverterStationImpl}, {@link LfBoundaryLineGenerator}) or into a
+     * {@link LfVoltageSourceConverterImpl}. Missing one would let a live boundary be ignored; listing one too many only
+     * keeps an area out of area interchange control, as it was before.
+     */
+    private static boolean isDeadComponent(Component component) {
+        return component.getBusStream()
+                .flatMap(Bus::getConnectedTerminalStream)
+                .map(Terminal::getConnectable)
+                .noneMatch(connectable -> connectable instanceof Generator
+                        || connectable instanceof Battery
+                        || connectable instanceof StaticVarCompensator
+                        || connectable instanceof VscConverterStation
+                        || connectable instanceof VoltageSourceConverter
+                        || connectable instanceof BoundaryLine boundaryLine && boundaryLine.getGeneration() != null);
     }
 
     private static void createTransformersVoltageControls(LfNetwork lfNetwork, LfNetworkParameters parameters, LoadingContext loadingContext,

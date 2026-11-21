@@ -410,6 +410,75 @@ public class MultiAreaNetworkFactory extends AbstractLoadFlowNetworkFactory {
         return network;
     }
 
+    /**
+     * same as createTwoAreasWithTieLine, with a second tie line between the areas that is out of service:
+     * its a1 side is disconnected and its a2 side ends on a bus of a2 that nothing else is connected to.
+     * Both areas keep that tie line as a boundary, so a2 has a boundary in a component without any generator.
+     */
+    public static Network createTwoAreasWithDeadTieLine() {
+        Network network = createTwoAreasWithTieLine();
+        BoundaryLine deadA1 = network.getVoltageLevel("vl2").newBoundaryLine()
+                .setId("deadA1")
+                .setConnectableBus("b2")
+                .setR(0)
+                .setX(1)
+                .setG(0)
+                .setB(0)
+                .setP0(0)
+                .setQ0(0)
+                .setPairingKey("deadA1A2")
+                .add();
+        Bus deadBus = createBus(network, "deadBus", 400);
+        BoundaryLine deadA2 = deadBus.getVoltageLevel().newBoundaryLine()
+                .setId("deadA2")
+                .setConnectableBus(deadBus.getId())
+                .setBus(deadBus.getId())
+                .setR(0)
+                .setX(1)
+                .setG(0)
+                .setB(0)
+                .setP0(0)
+                .setQ0(0)
+                .setPairingKey("deadA1A2")
+                .add();
+        network.newTieLine()
+                .setId("deadTl")
+                .setBoundaryLine1("deadA1")
+                .setBoundaryLine2("deadA2")
+                .add();
+        network.getArea("a1").newAreaBoundary()
+                .setBoundary(deadA1.getBoundary())
+                .setAc(true)
+                .add();
+        network.getArea("a2")
+                .addVoltageLevel(deadBus.getVoltageLevel())
+                .newAreaBoundary()
+                .setBoundary(deadA2.getBoundary())
+                .setAc(true)
+                .add();
+        return network;
+    }
+
+    /**
+     * same as createTwoAreasWithDeadTieLine, but the bus at the a2 end of the out of service tie line also has a static
+     * var compensator: its component is no longer dead.
+     */
+    public static Network createTwoAreasWithDeadTieLineAndSvc() {
+        Network network = createTwoAreasWithDeadTieLine();
+        createStaticVarCompensator(network.getBusBreakerView().getBus("deadBus"), "deadSvc", 0, 400, RegulationMode.VOLTAGE);
+        return network;
+    }
+
+    /**
+     * same as createTwoAreasWithDeadTieLine, but the bus at the a2 end of the out of service tie line also has a VSC
+     * converter station: its component is no longer dead.
+     */
+    public static Network createTwoAreasWithDeadTieLineAndVsc() {
+        Network network = createTwoAreasWithDeadTieLine();
+        createVsc(network.getBusBreakerView().getBus("deadBus"), "deadVsc", 400, 0);
+        return network;
+    }
+
     public static Network createAreaTwoComponentsWithBoundaries() {
         Network network = createAreaTwoComponents();
         Line dummyLine = network.getLine("dummyLine");
