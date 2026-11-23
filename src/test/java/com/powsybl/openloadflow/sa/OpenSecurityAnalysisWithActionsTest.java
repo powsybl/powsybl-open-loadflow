@@ -1749,6 +1749,43 @@ class OpenSecurityAnalysisWithActionsTest extends AbstractOpenSecurityAnalysisTe
     }
 
     @Test
+    void testShuntActionAfterAnotherOnTheSameBus() {
+        // SHUNT3 and SHUNT3B make one shunt of b3, whose susceptance is the sum of their sections: the second strategy's
+        // action sums SHUNT3B's new section with SHUNT3's, which must be the post-contingency one, not the first strategy's
+        Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
+        network.getShuntCompensator("SHUNT2").setSectionCount(25);
+        network.getShuntCompensator("SHUNT3").setSectionCount(25);
+        network.getVoltageLevel("vl3").newShuntCompensator()
+                .setId("SHUNT3B")
+                .setBus("b3")
+                .setConnectableBus("b3")
+                .setSectionCount(25)
+                .newLinearModel()
+                .setMaximumSectionCount(50)
+                .setBPerSection(-1E-2)
+                .setGPerSection(0.0)
+                .add()
+                .add();
+        List<Contingency> contingencies = List.of(new Contingency("tr2", new TwoWindingsTransformerContingency("tr2")));
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        List<Action> actions = List.of(
+                new ShuntCompensatorPositionActionBuilder().withId("shunt3To50").withShuntCompensatorId("SHUNT3").withSectionCount(50).build(),
+                new ShuntCompensatorPositionActionBuilder().withId("shunt3bTo0").withShuntCompensatorId("SHUNT3B").withSectionCount(0).build());
+        OperatorStrategy strategy1 = new OperatorStrategy("strategy1", ContingencyContext.specificContingency("tr2"), new TrueCondition(), List.of("shunt3To50"));
+        OperatorStrategy strategy2 = new OperatorStrategy("strategy2", ContingencyContext.specificContingency("tr2"), new TrueCondition(), List.of("shunt3bTo0"));
+
+        SecurityAnalysisResult alone = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
+                List.of(strategy2), actions, ReportNode.NO_OP);
+        SecurityAnalysisResult afterStrategy1 = runSecurityAnalysis(network, contingencies, monitors, new SecurityAnalysisParameters(),
+                List.of(strategy1, strategy2), actions, ReportNode.NO_OP);
+        assertEquals(392.407, getPostContingencyResult(alone, "tr2").getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(399.617, getOperatorStrategyResult(alone, "strategy2").getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        assertEquals(385.708, getOperatorStrategyResult(afterStrategy1, "strategy1").getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+        // 392.407 when SHUNT3 kept strategy1's section: 50 sections again on b3, as after the contingency
+        assertEquals(399.617, getOperatorStrategyResult(afterStrategy1, "strategy2").getNetworkResult().getBusResult("b4").getV(), DELTA_V);
+    }
+
+    @Test
     void testWrongShuntAction() {
         Network network = VoltageControlNetworkFactory.createWithShuntSharedRemoteControl();
 

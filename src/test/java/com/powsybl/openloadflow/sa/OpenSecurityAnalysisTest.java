@@ -1588,6 +1588,40 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
     }
 
     @Test
+    void testIncrementalShuntVoltageControlAfterASectionChange() {
+        // l1's outage takes SHUNT from section 2 to section 1 and ld1's loss alone keeps it on 2: ld1 must get the same
+        // result after l1 as alone, so the restore after l1 has to give SHUNT its section back with its susceptance, the
+        // incremental control moving the sections from where they are
+        Network network = ShuntNetworkFactory.create();
+        network.getShuntCompensator("SHUNT").setTargetV(395).setTargetDeadband(0.1);
+        // a much weaker parallel to l1: its outage lowers the voltage at b3
+        Line l1 = network.getLine("l1");
+        network.newLine()
+                .setId("l1_BIS")
+                .setBus1(l1.getTerminal1().getBusBreakerView().getBus().getId())
+                .setBus2(l1.getTerminal2().getBusBreakerView().getBus().getId())
+                .setR(l1.getR() * 10)
+                .setX(l1.getX() * 10)
+                .add();
+        LoadFlowParameters parameters = new LoadFlowParameters()
+                .setShuntCompensatorVoltageControlOn(true);
+        OpenLoadFlowParameters.create(parameters)
+                .setShuntVoltageControlMode(OpenLoadFlowParameters.ShuntVoltageControlMode.INCREMENTAL_VOLTAGE_CONTROL);
+        List<StateMonitor> monitors = createNetworkMonitors(network);
+        SecurityAnalysisResult alone = runSecurityAnalysis(network, List.of(Contingency.load("ld1")), monitors, parameters);
+        SecurityAnalysisResult afterL1 = runSecurityAnalysis(network, List.of(Contingency.line("l1"), Contingency.load("ld1")),
+                monitors, parameters);
+        PostContingencyResult ld1Alone = getPostContingencyResult(alone, "ld1");
+        PostContingencyResult ld1AfterL1 = getPostContingencyResult(afterL1, "ld1");
+        assertSame(PostContingencyComputationStatus.CONVERGED, ld1Alone.getStatus());
+        assertSame(PostContingencyComputationStatus.CONVERGED, ld1AfterL1.getStatus());
+        // the same contingency from the same network: the same result, to the last bit
+        for (BusResult busResult : ld1Alone.getNetworkResult().getBusResults()) {
+            assertEquals(busResult.getV(), ld1AfterL1.getNetworkResult().getBusResult(busResult.getBusId()).getV(), 0);
+        }
+    }
+
+    @Test
     void testWithNonImpedantLineConnectedToSlackBus() {
         Network network = IeeeCdfNetworkFactory.create14();
         network.getLine("L1-2-1").setR(0).setX(0);
