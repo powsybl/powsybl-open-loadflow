@@ -12,6 +12,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.commons.test.AbstractSerDeTest;
 import com.powsybl.commons.test.ComparisonUtils;
 import com.powsybl.contingency.*;
+import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.BatteryNetworkFactory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
@@ -35,13 +36,16 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.powsybl.openloadflow.network.impl.PropagatedContingency.createList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
@@ -66,6 +70,43 @@ class LfContingencyTest extends AbstractSerDeTest {
     @AfterEach
     public void tearDown() throws IOException {
         super.tearDown();
+    }
+
+    /**
+     * The power a contingency disconnects is a sum over the buses it takes out. They come in a set, whose order can
+     * change from one run to the next. The sum must not follow that order, or two runs of one computation differ in
+     * their last digits, and a violation that sits on its threshold is reported by one and not by the other.
+     */
+    @Test
+    void lostPowerDoesNotDependOnTheOrderOfTheLostBuses() {
+        LfNetwork network = Networks.load(IeeeCdfNetworkFactory.create14(), new FirstSlackBusSelector()).get(0);
+        // three buses whose loads do not add up to the same number in one order and in the other
+        List<LfBus> loadBuses = network.getBuses().stream().filter(bus -> bus.getLoadTargetP() != 0).toList();
+        List<LfBus> lostBuses = null;
+        for (int i = 0; i < loadBuses.size() && lostBuses == null; i++) {
+            for (int j = i + 1; j < loadBuses.size() && lostBuses == null; j++) {
+                for (int k = j + 1; k < loadBuses.size() && lostBuses == null; k++) {
+                    double p1 = loadBuses.get(i).getLoadTargetP();
+                    double p2 = loadBuses.get(j).getLoadTargetP();
+                    double p3 = loadBuses.get(k).getLoadTargetP();
+                    if (p1 + p2 + p3 != p3 + p2 + p1) {
+                        lostBuses = List.of(loadBuses.get(i), loadBuses.get(j), loadBuses.get(k));
+                    }
+                }
+            }
+        }
+        assertNotNull(lostBuses);
+
+        LfContingency oneOrder = createContingency(lostBuses);
+        LfContingency otherOrder = createContingency(List.of(lostBuses.get(2), lostBuses.get(1), lostBuses.get(0)));
+        assertEquals(oneOrder.getDisconnectedLoadActivePower(), otherOrder.getDisconnectedLoadActivePower());
+        assertEquals(oneOrder.getDisconnectedGenerationActivePower(), otherOrder.getDisconnectedGenerationActivePower());
+        assertEquals(oneOrder.getActivePowerLoss(), otherOrder.getActivePowerLoss());
+    }
+
+    private static LfContingency createContingency(List<LfBus> lostBuses) {
+        return new LfContingency("contingency", 0, 0, new DisabledNetwork(new LinkedHashSet<>(lostBuses), Set.of()),
+                Map.of(), Map.of(), Set.of(), Set.of());
     }
 
     @Test
