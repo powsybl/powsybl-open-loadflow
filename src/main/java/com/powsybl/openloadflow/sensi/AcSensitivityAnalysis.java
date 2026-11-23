@@ -26,6 +26,8 @@ import com.powsybl.openloadflow.ac.AcloadFlowEngine;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.solver.AcSolverStatus;
 import com.powsybl.openloadflow.equations.Derivable;
+import com.powsybl.openloadflow.equations.Equation;
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
@@ -295,20 +297,21 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     private double[] analyseAdjoint(AcLoadFlowContext context,
                                    SensitivityFactorGroupList<AcVariableType, AcEquationType> factorGroups,
                                    Map<LfSensitivityFactor<AcVariableType, AcEquationType>, Double> cotangents,
-                                   Map<LfBus, Double> slackParticipationByBus) {
+                                   SlackDistribution slackDistribution) {
         var equationSystem = context.getEquationSystem();
         int equationCount = equationSystem.getIndex().getColumnCount();
 
-        // dF/dp columns, one per variable group, collected sparsely (see RhsColumn)
+        // dF/dp columns, one per variable group (see RhsColumn), the slack left to slackDistribution
         RhsColumn[] parameterRhs = new RhsColumn[factorGroups.getList().size()];
         for (var group : factorGroups.getList()) {
-            parameterRhs[group.getIndex()] = group.describeRhs(slackParticipationByBus);
+            parameterRhs[group.getIndex()] = group.describeRhs(Map.of());
         }
         describeSvcPilotFactorsRhs(factorGroups, context).forEach((col, column) -> parameterRhs[col] = column);
 
         // the stored matrix is the transposed Jacobian, so solve() is the adjoint solve
         double[] lambda = computeStateCotangent(equationCount, cotangents); // solved in place
         context.getJacobianMatrix().solve(lambda);
+        double slackBalanceCotangent = slackDistribution != null ? slackDistribution.correct(lambda) : 0;
 
         // thetaBar = lambda . rhs per variable group, plus the direct df/dp term of branch parameters. The rhs
         // column already carries the forward's sign, so no extra sign here.
@@ -316,6 +319,9 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         for (var group : factorGroups.getList()) {
             int col = group.getIndex();
             double thetaG = parameterRhs[col].dot(lambda);
+            if (slackDistribution != null) {
+                thetaG += group.describeSlackBusRhs(slackDistribution.slackBus) * slackBalanceCotangent;
+            }
             for (var factor : group.getFactors()) {
                 Double yBar = cotangents.get(factor);
                 if (yBar != null && yBar != 0.0) {
@@ -325,6 +331,116 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             thetaBar[col] = thetaG / getVariableBaseValue(group.getFirstFactor());
         }
         return thetaBar;
+    }
+
+    /**
+     * The distributed slack as one more unknown mu, injected as alpha_i * mu at each participating bus, with the
+     * slack bus active power balance as its equation:
+     * <pre>
+     *   [ J    b ] [ dx  ]   [ rhs           ]     b = -alpha, c = d(slack bus P)/dx, d = -alpha_slack
+     *   [ c^T  d ] [ dmu ] = [ slack bus rhs ]
+     * </pre>
+     * Adjoint: lambda = lambda0 + kappa * u, u = J^-T c, kappa = b.lambda0 / (d - b.u); the slack balance gets -kappa.
+     */
+    private static final class SlackDistribution {
+
+        private final LfBus slackBus;
+        private final int[] columns;
+        private final double[] participations;
+        private final double[] u; // J^-T c, by equation column
+        private final double sigma;
+
+        private SlackDistribution(AcLoadFlowContext context, LfNetwork lfNetwork, List<ParticipatingElement> participatingElements) {
+            List<LfBus> slackBuses = lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses();
+            if (slackBuses.size() != 1) {
+                throw new PowsyblException("Adjoint slack distribution supports a single slack bus, the network has "
+                        + slackBuses.size());
+            }
+            slackBus = slackBuses.getFirst();
+
+            int[] cols = new int[participatingElements.size()];
+            double[] alphas = new double[participatingElements.size()];
+            int count = 0;
+            double slackParticipation = 0;
+            for (ParticipatingElement element : participatingElements) {
+                Equation<?, ?> p = (Equation<?, ?>) element.getLfBus().getP();
+                if (element.getLfBus() == slackBus) {
+                    slackParticipation -= element.getFactor();
+                } else if (p.isActive()) {
+                    cols[count] = p.getColumn();
+                    alphas[count++] = -element.getFactor();
+                }
+            }
+            columns = Arrays.copyOf(cols, count);
+            participations = Arrays.copyOf(alphas, count);
+
+            u = new double[context.getEquationSystem().getIndex().getColumnCount()];
+            @SuppressWarnings("unchecked")
+            Equation<AcVariableType, AcEquationType> slackP = (Equation<AcVariableType, AcEquationType>) slackBus.getP();
+            for (Map.Entry<Variable<AcVariableType>, List<EquationTerm<AcVariableType, AcEquationType>>> e
+                    : slackP.<EquationTerm<AcVariableType, AcEquationType>>getTermsByVariable().entrySet()) {
+                int row = e.getKey().getRow();
+                if (row < 0) {
+                    continue;
+                }
+                for (EquationTerm<AcVariableType, AcEquationType> term : e.getValue()) {
+                    if (term.isActive()) {
+                        u[row] += term.der(e.getKey());
+                    }
+                }
+            }
+            context.getJacobianMatrix().solve(u);
+            sigma = slackParticipation - dotParticipation(u);
+            if (Math.abs(sigma) < 1e-12) {
+                throw new PowsyblException("Adjoint slack distribution: singular slack balance (sigma=" + sigma + ")");
+            }
+        }
+
+        /** b.v */
+        private double dotParticipation(double[] v) {
+            double dot = 0;
+            for (int k = 0; k < columns.length; k++) {
+                dot += participations[k] * v[columns[k]];
+            }
+            return dot;
+        }
+
+        /** Turns lambda0 into lambda in place, returns the slack bus balance cotangent. */
+        double correct(double[] lambda) {
+            double kappa = dotParticipation(lambda) / sigma;
+            for (int i = 0; i < lambda.length; i++) {
+                lambda[i] += kappa * u[i];
+            }
+            return -kappa;
+        }
+    }
+
+    /** The participating elements, minus the generators the distribution holds at a bound: they do not move. */
+    private List<ParticipatingElement> activeParticipatingElements(LfNetwork lfNetwork, LoadFlowParameters lfParameters) {
+        OpenLoadFlowParameters lfParametersExt = OpenLoadFlowParameters.get(lfParameters);
+        boolean useActiveLimits = lfParametersExt.isUseActiveLimits();
+        List<ParticipatingElement> participatingElements = new ArrayList<>(getParticipatingElements(
+                lfNetwork.getBuses(), lfParameters.getBalanceType(), lfParametersExt));
+        participatingElements.removeIf(e -> e.getElement() instanceof LfGenerator generator
+                && isAtDistributionBound(generator, useActiveLimits));
+        if (participatingElements.isEmpty()) {
+            throw new PowsyblException("Adjoint slack distribution: no element left to distribute the slack over");
+        }
+        ParticipatingElement.normalizeParticipationFactors(participatingElements);
+        return participatingElements;
+    }
+
+    // the bounds of GenerationActivePowerDistributionStep, the generation sign included
+    private static boolean isAtDistributionBound(LfGenerator generator, boolean useActiveLimits) {
+        double targetP = generator.getTargetP();
+        double minTargetP = useActiveLimits ? generator.getMinTargetP() : -Double.MAX_VALUE;
+        double maxTargetP = useActiveLimits ? generator.getMaxTargetP() : Double.MAX_VALUE;
+        if (targetP < 0) {
+            maxTargetP = Math.min(maxTargetP, 0);
+        } else {
+            minTargetP = Math.max(minTargetP, 0);
+        }
+        return targetP <= minTargetP || targetP >= maxTargetP;
     }
 
     /**
@@ -433,18 +549,6 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                                 || f.getStatus() == LfSensitivityFactor.Status.ZERO)
                         .collect(Collectors.toList()));
 
-        LoadFlowParameters lfParameters = parameters.getLoadFlowParameters();
-        Map<LfBus, Double> slackParticipationByBus;
-        if (lfParameters.isDistributedSlack()) {
-            List<ParticipatingElement> participatingElements = getParticipatingElements(
-                    lfNetwork.getBuses(), lfParameters.getBalanceType(), OpenLoadFlowParameters.get(lfParameters));
-            slackParticipationByBus = participatingElements.stream().collect(Collectors.toMap(
-                    ParticipatingElement::getLfBus, e -> -e.getFactor(), Double::sum));
-        } else {
-            slackParticipationByBus = Collections.singletonMap(
-                    lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst(), -1d);
-        }
-
         // cotangent per factor, from the caller's (functionType, functionId)
         Map<LfSensitivityFactor<AcVariableType, AcEquationType>, Double> cotangents = new HashMap<>();
         for (var factor : validLfFactors) {
@@ -455,7 +559,11 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             }
         }
 
-        double[] thetaBar = analyseAdjoint(context, factorGroups, cotangents, slackParticipationByBus);
+        LoadFlowParameters lfParameters = parameters.getLoadFlowParameters();
+        SlackDistribution slackDistribution = lfParameters.isDistributedSlack()
+                ? new SlackDistribution(context, lfNetwork, activeParticipatingElements(lfNetwork, lfParameters))
+                : null;
+        double[] thetaBar = analyseAdjoint(context, factorGroups, cotangents, slackDistribution);
 
         Map<VariableRef, Double> gradientByGroup = new HashMap<>();
         for (var group : factorGroups.getList()) {
