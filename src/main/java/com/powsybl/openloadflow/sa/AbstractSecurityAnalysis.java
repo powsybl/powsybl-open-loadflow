@@ -59,7 +59,6 @@ import org.slf4j.event.Level;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -110,7 +109,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
         Objects.requireNonNull(securityAnalysisParameters);
         Objects.requireNonNull(contingenciesProvider);
         return CompletableFutureTask.runAsync(() -> runSync(securityAnalysisParameters, contingenciesProvider, operatorStrategies,
-            actions, limitScalings, workingVariantId, computationManager.getExecutor()), computationManager.getExecutor());
+            actions, limitScalings, workingVariantId), computationManager.getExecutor());
     }
 
     protected abstract ReportNode createSaRootReportNode();
@@ -124,7 +123,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     SecurityAnalysisReport runSync(SecurityAnalysisParameters securityAnalysisParameters, ContingenciesProvider contingenciesProvider,
                                    List<OperatorStrategy> operatorStrategies, List<Action> actions, List<LimitScaling> limitScalings,
-                                   String workingVariantId, Executor executor) throws ExecutionException {
+                                   String workingVariantId) throws ExecutionException {
         var saReportNode = createSaRootReportNode();
 
         Stopwatch stopwatch = Stopwatch.createStarted();
@@ -203,7 +202,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                             actions, limitScalings, lfParameters));
             ContingencyMultiThreadHelper.ReportMerger reportMerger = ContingencyMultiThreadHelper::mergeReportThreadResults;
             ContingencyMultiThreadHelper.createLFNetworksPerContingencyPartitionAndRunAnalysis(network, workingVariantId, contingenciesPartitions, creationParameters, topoConfig,
-                    parameterProvider, contingencyRunner, saReportNode, reportMerger, executor);
+                    parameterProvider, contingencyRunner, saReportNode, reportMerger);
 
             // we just need to merge post contingency and operator strategy results, all pre contingency are the same
             List<PostContingencyResult> postContingencyResults = new ArrayList<>();

@@ -715,7 +715,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 ContingencyMultiThreadHelper.ReportMerger reportMerger = ContingencyMultiThreadHelper::mergeReportThreadResults;
 
                 ContingencyMultiThreadHelper.createLFNetworksPerContingencyPartitionAndRunAnalysis(network, workingVariantId, contingenciesPartitions, creationParameters, topoConfig,
-                        parameterProvider, contingencyRunner, sensiReportNode, reportMerger, executor);
+                        parameterProvider, contingencyRunner, sensiReportNode, reportMerger);
             }
         }
     }

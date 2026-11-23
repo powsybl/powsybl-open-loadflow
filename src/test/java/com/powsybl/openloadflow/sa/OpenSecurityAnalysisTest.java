@@ -70,8 +70,11 @@ import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -3960,6 +3963,32 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         // test with mt and no report
         securityAnalysisParametersExt.setThreadCount(2);
         runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters, ReportNode.NO_OP);
+    }
+
+    @Test
+    void testMultiThreadsWithAnExecutorOfOneThread() {
+        // the analysis runs on the only thread of the executor of the computation manager: its partitions have threads
+        // of their own, they do not wait for it
+        ExecutorService oneThread = Executors.newSingleThreadExecutor();
+        try {
+            Mockito.when(computationManager.getExecutor()).thenReturn(oneThread);
+            Network network = createNodeBreakerNetwork();
+            LoadFlowParameters lfParameters = new LoadFlowParameters();
+            setSlackBusId(lfParameters, "VL1_1");
+            SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters();
+            securityAnalysisParameters.setLoadFlowParameters(lfParameters);
+            securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, new OpenSecurityAnalysisParameters().setThreadCount(2));
+            List<Contingency> contingencies = Stream.of("L1", "L2")
+                    .map(id -> new Contingency(id, new BranchContingency(id)))
+                    .toList();
+
+            SecurityAnalysisResult result = assertTimeoutPreemptively(Duration.ofSeconds(60),
+                () -> runSecurityAnalysis(network, contingencies, Collections.emptyList(), securityAnalysisParameters));
+
+            assertEquals(List.of("L1", "L2"), result.getPostContingencyResults().stream().map(r -> r.getContingency().getId()).toList());
+        } finally {
+            oneThread.shutdownNow();
+        }
     }
 
     @Test
