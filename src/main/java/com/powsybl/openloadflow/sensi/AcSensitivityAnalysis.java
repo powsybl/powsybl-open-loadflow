@@ -447,7 +447,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
         }
 
         // cotangent per factor, from the caller's (functionType, functionId)
-        Map<LfSensitivityFactor<AcVariableType, AcEquationType>, Double> cotangents = new HashMap<>();
+        Map<LfSensitivityFactor<AcVariableType, AcEquationType>, Double> cotangents = new LinkedHashMap<>();
         for (var factor : validLfFactors) {
             SensitivityFactor declared = factors.get(factor.getIndex());
             Double yBar = cotangentsByFunction.get(new FunctionRef(declared.getFunctionType(), declared.getFunctionId()));
