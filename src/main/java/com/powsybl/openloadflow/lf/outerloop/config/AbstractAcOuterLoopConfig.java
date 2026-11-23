@@ -82,7 +82,8 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
                                                            effectiveMaxReactivePowerMismatch,
                                                            parametersExt.isVoltageRemoteControlRobustMode(),
                                                            parametersExt.getMinRealisticVoltage(),
-                                                           parametersExt.getMaxRealisticVoltage()));
+                                                           parametersExt.getMaxRealisticVoltage(),
+                                                           parametersExt.getReactiveLimitsPqPvSwitchVoltageDeadband()));
         }
         return Optional.empty();
     }

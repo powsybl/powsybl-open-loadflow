@@ -290,6 +290,46 @@ class SecondaryVoltageControlTest {
         assertReportEquals(new ByteArrayInputStream(expected.getBytes()), node);
     }
 
+    /**
+     * The scenario of {@link #testReEnableHelpfulControllerBusesFromReactiveLimit()} switches VL3_0 back from PQ to PV
+     * at its minimum limit, its controlled voltage being 134.07 kV against a target of 136.35 kV. With a voltage
+     * deadband larger than that margin, it stays PQ; with a smaller one, the run is the one without a deadband.
+     */
+    @Test
+    void testPqPvSwitchVoltageDeadband() throws IOException {
+        modifyNetworkToUnblockGeneratorFromLimit();
+        parametersExt.setPlausibleActivePowerLimit(5000);
+        parametersExt.setSlackDistributionFailureBehavior(OpenLoadFlowParameters.SlackDistributionFailureBehavior.LEAVE_ON_SLACK_BUS);
+        parametersExt.setSecondaryVoltageControl(true);
+
+        parametersExt.setReactiveLimitsPqPvSwitchVoltageDeadband(0.001);
+        ReportNode small = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+        loadFlowRunParameters.setReportNode(small);
+        var result = loadFlowRunner.run(network, loadFlowRunParameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertEquals(24, result.getComponentResults().get(0).getIterationCount());
+        assertTrue(reportText(small).contains("Switch bus 'VL3_0' PQ -> PV"));
+
+        parametersExt.setReactiveLimitsPqPvSwitchVoltageDeadband(0.05);
+        ReportNode large = ReportNode.newRootReportNode()
+                .withResourceBundles(PowsyblOpenLoadFlowReportResourceBundle.BASE_NAME, PowsyblTestReportResourceBundle.TEST_BASE_NAME)
+                .withMessageTemplate("test")
+                .build();
+        loadFlowRunParameters.setReportNode(large);
+        result = loadFlowRunner.run(network, loadFlowRunParameters);
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getComponentResults().get(0).getStatus());
+        assertFalse(reportText(large).contains("PQ -> PV"));
+    }
+
+    private static String reportText(ReportNode reportNode) throws IOException {
+        java.io.StringWriter writer = new java.io.StringWriter();
+        reportNode.print(writer);
+        return writer.toString();
+    }
+
     @Test
     void testSecurityAnalysisWithReEnabledControllerBus() {
         modifyNetworkToUnblockGeneratorFromLimit();

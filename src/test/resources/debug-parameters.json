@@ -61,6 +61,7 @@
         "incrementalTransformerRatioTapControlOuterLoopMaxTapShift" : 3,
         "secondaryVoltageControl" : false,
         "reactiveLimitsMaxPqPvSwitch" : 3,
+        "reactiveLimitsPqPvSwitchVoltageDeadband" : 0.0,
         "phaseShifterControlMode" : "CONTINUOUS_WITH_DISCRETISATION",
         "alwaysUpdateNetwork" : false,
         "mostMeshedSlackBusSelectorMaxNominalVoltagePercentile" : 95.0,
