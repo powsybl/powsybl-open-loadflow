@@ -68,6 +68,11 @@ public abstract class AbstractLfNetworkListener implements LfNetworkListener {
     }
 
     @Override
+    public void onGeneratorStatusChange(LfGenerator generator) {
+        // empty
+    }
+
+    @Override
     public void onGenerationReactivePowerTargetChange(LfBus bus, double oldGenerationTargetQ, double newGenerationTargetQ) {
         // empty
     }

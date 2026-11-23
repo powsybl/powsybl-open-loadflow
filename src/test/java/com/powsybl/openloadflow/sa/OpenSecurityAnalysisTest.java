@@ -5396,4 +5396,37 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(1, changedPhaseTapChanger.initialTap());
         assertEquals(0, changedPhaseTapChanger.finalTap());
     }
+
+    @Test
+    void testLossOfGeneratorWithReactivePowerOnly() {
+        // a generator that does not regulate the voltage, with no active power and a reactive power target: losing it
+        // changes only the reactive balance of its bus
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getVoltageLevel("VLLOAD").newGenerator()
+                .setId("GEN_Q")
+                .setBus("NLOAD")
+                .setConnectableBus("NLOAD")
+                .setMinP(0)
+                .setMaxP(100)
+                .setTargetP(0)
+                .setTargetQ(50)
+                .setVoltageRegulatorOn(false)
+                .add();
+        LoadFlowParameters lfParameters = new LoadFlowParameters();
+        SecurityAnalysisParameters securityAnalysisParameters = new SecurityAnalysisParameters().setLoadFlowParameters(lfParameters);
+        List<Contingency> contingencies = List.of(new Contingency("GEN_Q", new GeneratorContingency("GEN_Q")));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, createNetworkMonitors(network), securityAnalysisParameters);
+        double baseV = result.getPreContingencyResult().getNetworkResult().getBusResult("NLOAD").getV();
+        double postContingencyV = result.getPostContingencyResults().get(0).getNetworkResult().getBusResult("NLOAD").getV();
+
+        // the same network without the generator
+        network.getGenerator("GEN_Q").getTerminal().disconnect();
+        LoadFlowResult loadFlowResult = loadFlowRunner.run(network, lfParameters);
+        assertTrue(loadFlowResult.isFullyConverged());
+        double expectedV = network.getBusBreakerView().getBus("NLOAD").getV();
+
+        assertTrue(Math.abs(baseV - expectedV) > 1, "the generator should matter: " + baseV + " against " + expectedV);
+        assertEquals(expectedV, postContingencyV, LoadFlowAssert.DELTA_V);
+    }
 }

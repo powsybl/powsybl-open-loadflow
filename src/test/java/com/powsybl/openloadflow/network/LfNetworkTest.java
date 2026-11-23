@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -187,6 +188,26 @@ class LfNetworkTest extends AbstractSerDeTest {
         assertTrue(b1.getGeneratorVoltageControl().orElseThrow().isDisabled());
         assertTrue(b2.getGeneratorVoltageControl().orElseThrow().isDisabled());
         assertTrue(b3.getGeneratorVoltageControl().orElseThrow().isDisabled());
+    }
+
+    @Test
+    void testGeneratorStatusChangeNotification() {
+        LfNetwork lfNetwork = Networks.load(EurostagTutorialExample1Factory.create(), new FirstSlackBusSelector()).get(0);
+        List<LfGenerator> notified = new ArrayList<>();
+        lfNetwork.addListener(new LfNetworkListenerTracer(new AbstractLfNetworkListener() {
+            @Override
+            public void onGeneratorStatusChange(LfGenerator generator) {
+                notified.add(generator);
+            }
+        }));
+        LfGenerator gen = lfNetwork.getGeneratorById("GEN");
+        assertSame(LfGenerator.GeneratorControlType.VOLTAGE, gen.getGeneratorControlType());
+
+        gen.setDisabled(true);
+        gen.setDisabled(true); // unchanged: not notified
+        gen.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF);
+        gen.setGeneratorControlType(LfGenerator.GeneratorControlType.OFF); // unchanged: not notified
+        assertEquals(List.of(gen, gen), notified);
     }
 
     @Test
