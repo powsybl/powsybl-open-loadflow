@@ -34,9 +34,7 @@ public class MeasurementAggregation {
         /** A bus with no device is treated like any other unmeasured bus. */
         IGNORED,
         /** A zero-valued measurement with a very small standard deviation. */
-        HIGH_CONFIDENCE_MEASUREMENT,
-        /** Enforced exactly, so no weight is involved. */
-        EQUALITY_CONSTRAINT
+        HIGH_CONFIDENCE_MEASUREMENT
     }
 
     /** What to do with two meters reading the same quantity at the same place. */

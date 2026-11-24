@@ -8,26 +8,29 @@
 package com.powsybl.openloadflow.se;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.BoundaryLine;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.BusbarSection;
 import com.powsybl.iidm.network.Connectable;
+import com.powsybl.iidm.network.Ground;
 import com.powsybl.iidm.network.Injection;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.ShuntCompensator;
-import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.iidm.network.ThreeWindingsTransformer;
+import com.powsybl.iidm.network.TieLine;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.extensions.Measurement;
 import com.powsybl.iidm.network.extensions.Measurements;
+import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.se.equations.MeasuredQuantity;
-import com.powsybl.openloadflow.se.network.LfMeasurementProjection;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -52,10 +56,12 @@ import java.util.stream.Collectors;
  * reports generation as positive instead, so whether a source follows the terminal convention
  * is the first thing to confirm about a new feed.</p>
  *
- * <p>Only devices count toward a bus injection: loads, generators, batteries, converter
- * stations. Shunt compensators and static var compensators are excluded because
- * {@code LfNetwork} carries them in the network admittance and the injection equation already
- * includes their term, so a shunt-netted total would count them twice.</p>
+ * <p>Equipment is sorted by how {@code LfNetwork} carries it, which is not always how IIDM
+ * classes it. Loads, generators, batteries, converter stations and static var compensators are
+ * devices, and their readings sum into the bus injection. A shunt compensator is part of the
+ * network admittance, so the injection equation already holds its term and its reading is left
+ * out. A boundary line is an injection in IIDM and a branch in {@code LfNetwork}, so its
+ * reading is a branch flow.</p>
  *
  * <p>Everything leaves per unit on the {@code LfNetwork}'s own base: power on
  * {@link PerUnit#SB}, voltage on the bus nominal voltage, current on the base current of the
@@ -69,8 +75,6 @@ public class MeasurementAggregator {
 
     private final LfNetwork lfNetwork;
 
-    private final LfMeasurementProjection projection;
-
     private final Map<Skipped, Integer> skipped = new EnumMap<>(Skipped.class);
 
     private int summedIntoInjections;
@@ -81,7 +85,6 @@ public class MeasurementAggregator {
 
     public MeasurementAggregator(LfNetwork lfNetwork, MeasurementAggregation settings) {
         this.lfNetwork = Objects.requireNonNull(lfNetwork);
-        this.projection = new LfMeasurementProjection(lfNetwork);
         this.settings = Objects.requireNonNull(settings);
     }
 
@@ -110,7 +113,7 @@ public class MeasurementAggregator {
         }
 
         injections.forEach((key, bucket) -> emitBusInjection(key, bucket, aggregated));
-        addZeroInjections(network, aggregated, injections);
+        addZeroInjections(network, aggregated);
         List<LfMeasurement> resolved = resolveDuplicates(aggregated);
         logSummary(readCount, resolved.size(), aggregated.size() - resolved.size());
         return resolved;
@@ -176,12 +179,11 @@ public class MeasurementAggregator {
             skip(Skipped.OUTSIDE_NETWORK);
             return;
         }
-        lfBus.ifPresent(bus -> {
-            double nominalV = terminal.getVoltageLevel().getNominalV();
-            aggregated.add(LfMeasurement.busVoltage(bus,
-                    reading.getValue() / nominalV,
-                    floored(reading.getStandardDeviation() / nominalV, reading.getValue() / nominalV)));
-        });
+        double nominalV = terminal.getVoltageLevel().getNominalV();
+        aggregated.add(new LfMeasurement(AcEquationType.BUS_TARGET_V, lfBus.get(),
+                reading.getValue() / nominalV,
+                floored(reading.getStandardDeviation() / nominalV, reading.getValue() / nominalV),
+                idsOf(reading)));
     }
 
     private void readPower(Connectable<?> connectable,
@@ -189,30 +191,30 @@ public class MeasurementAggregator {
                            boolean active,
                            List<LfMeasurement> aggregated,
                            Map<InjectionKey, InjectionBucket> injections) {
-        if (connectable instanceof Injection<?>) {
-            collectInjection(connectable, reading, active, injections);
+        if (isCarriedAsBranch(connectable)) {
+            readBranchFlow(connectable, reading,
+                    active ? AcEquationType::branchTargetP : AcEquationType::branchTargetQ, aggregated);
             return;
         }
-        readBranchFlow(connectable, reading,
-                active ? MeasuredQuantity.BRANCH_P : MeasuredQuantity.BRANCH_Q, aggregated);
+        collectInjection(connectable, reading, active, injections);
     }
 
     private void readCurrent(Connectable<?> connectable,
                              Measurement reading,
                              List<LfMeasurement> aggregated) {
-        if (connectable instanceof Injection<?>) {
+        if (!isCarriedAsBranch(connectable)) {
             LOG.debug("Ignored current measurement {} on injection {}: not a branch quantity",
                     reading.getId(), connectable.getId());
             skip(Skipped.UNSUPPORTED_TYPE);
             return;
         }
-        readBranchFlow(connectable, reading, MeasuredQuantity.BRANCH_I, aggregated);
+        readBranchFlow(connectable, reading, AcEquationType::branchTargetI, aggregated);
     }
 
     /** The per unit base follows the quantity: power on {@link PerUnit#SB}, current on the side's. */
     private void readBranchFlow(Connectable<?> connectable,
                                 Measurement reading,
-                                MeasuredQuantity quantity,
+                                Function<TwoSides, AcEquationType> typeAtSide,
                                 List<LfMeasurement> aggregated) {
         Terminal terminal = terminalOf(connectable, reading.getSide());
         if (terminal == null) {
@@ -222,12 +224,13 @@ public class MeasurementAggregator {
             return;
         }
         branchOf(connectable, terminal).ifPresent(resolved -> {
-            double base = quantity == MeasuredQuantity.BRANCH_I
+            AcEquationType type = typeAtSide.apply(resolved.side());
+            double base = reading.getType() == Measurement.Type.CURRENT
                     ? PerUnit.ib(terminal.getVoltageLevel().getNominalV())
                     : PerUnit.SB;
             double valuePu = reading.getValue() / base;
-            aggregated.add(LfMeasurement.branchFlow(resolved.branch(), quantity, resolved.side(),
-                    valuePu, floored(reading.getStandardDeviation() / base, valuePu)));
+            aggregated.add(new LfMeasurement(type, resolved.branch(),
+                    valuePu, floored(reading.getStandardDeviation() / base, valuePu), idsOf(reading)));
         });
     }
 
@@ -235,10 +238,16 @@ public class MeasurementAggregator {
                                   Measurement reading,
                                   boolean active,
                                   Map<InjectionKey, InjectionBucket> injections) {
-        if (isModelledAsShunt(connectable)) {
+        if (connectable instanceof ShuntCompensator) {
             LOG.debug("Ignored measurement {} on {}: shunts are carried in the network admittance",
                     reading.getId(), connectable.getId());
             skip(Skipped.MODELLED_AS_SHUNT);
+            return;
+        }
+        if (!isDevice(connectable)) {
+            LOG.debug("Ignored measurement {} on {}: the equipment carries no power",
+                    reading.getId(), connectable.getId());
+            skip(Skipped.UNSUPPORTED_TYPE);
             return;
         }
         Terminal terminal = ((Injection<?>) connectable).getTerminal();
@@ -249,7 +258,7 @@ public class MeasurementAggregator {
         }
         injections.computeIfAbsent(new InjectionKey(lfBus.get().getId(), active),
                         key -> new InjectionBucket(lfBus.get(), busOf(terminal)))
-                .add(connectable.getId(), reading.getValue(), reading.getStandardDeviation());
+                .add(connectable.getId(), reading.getId(), reading.getValue(), reading.getStandardDeviation());
     }
 
     private void emitBusInjection(InjectionKey key, InjectionBucket bucket, List<LfMeasurement> aggregated) {
@@ -265,30 +274,14 @@ public class MeasurementAggregator {
         // the terminal convention points into the equipment, a bus injection points out of it
         double valuePu = -bucket.sum() / PerUnit.SB;
         double sigmaPu = bucket.standardDeviation() / PerUnit.SB;
-        aggregated.add(LfMeasurement.busInjection(bucket.lfBus(), key.active(), valuePu,
-                floored(sigmaPu, valuePu)));
+        aggregated.add(new LfMeasurement(injectionType(key.active()), bucket.lfBus(), valuePu,
+                floored(sigmaPu, valuePu), bucket.sourceMeasurementIds()));
     }
 
-    /**
-     * Whether {@code LfNetwork} carries this equipment inside the network admittance rather
-     * than as a device injecting into a bus. Those are exactly the ones whose contribution
-     * the bus injection equation already models.
-     */
-    /**
-     * A bus carrying no device injects nothing, which is exact information rather than a
-     * reading. It enters as a zero-valued pseudo-measurement whose standard deviation says how
-     * exactly, since treating it as a hard constraint would need an equality constrained solver.
-     */
-    private void addZeroInjections(Network network,
-                                   List<LfMeasurement> aggregated,
-                                   Map<InjectionKey, InjectionBucket> injections) {
-        MeasurementAggregation.ZeroInjectionMode mode = settings.getZeroInjectionMode();
-        if (mode == MeasurementAggregation.ZeroInjectionMode.IGNORED) {
+    /** A bus with no device injects nothing; that enters as a zero-valued pseudo-measurement. */
+    private void addZeroInjections(Network network, List<LfMeasurement> aggregated) {
+        if (settings.getZeroInjectionMode() == MeasurementAggregation.ZeroInjectionMode.IGNORED) {
             return;
-        }
-        if (mode == MeasurementAggregation.ZeroInjectionMode.EQUALITY_CONSTRAINT) {
-            throw new PowsyblException("Zero injection mode " + mode
-                    + " needs an equality constrained solver, which this estimator does not implement");
         }
         for (LfBus lfBus : lfNetwork.getBuses()) {
             Bus bus = settings.isBreakers()
@@ -297,18 +290,13 @@ public class MeasurementAggregator {
             if (bus == null || devicesAt(bus) > 0) {
                 continue;
             }
-            addZeroInjection(lfBus, true, aggregated, injections);
-            addZeroInjection(lfBus, false, aggregated, injections);
+            addZeroInjection(lfBus, true, aggregated);
+            addZeroInjection(lfBus, false, aggregated);
         }
     }
 
-    private void addZeroInjection(LfBus lfBus, boolean active,
-                                  List<LfMeasurement> aggregated,
-                                  Map<InjectionKey, InjectionBucket> injections) {
-        if (injections.containsKey(new InjectionKey(lfBus.getId(), active))) {
-            return;
-        }
-        aggregated.add(LfMeasurement.busInjection(lfBus, active, 0,
+    private void addZeroInjection(LfBus lfBus, boolean active, List<LfMeasurement> aggregated) {
+        aggregated.add(LfMeasurement.of(injectionType(active), lfBus, 0,
                 settings.getZeroInjectionStandardDeviationPu()));
         zeroInjectionsAdded++;
     }
@@ -333,7 +321,7 @@ public class MeasurementAggregator {
                 case KEEP_ALL -> resolved.addAll(group);
                 case MERGE_INVERSE_VARIANCE -> resolved.add(merged(group));
                 case THROW -> throw new PowsyblException(group.size() + " measurements of "
-                        + entry.getKey().quantity() + " at " + entry.getKey().elementId()
+                        + entry.getKey().type() + " at " + entry.getKey().element().getId()
                         + ": duplicate measurement policy is " + settings.getDuplicateMeasurementPolicy());
             }
         }
@@ -346,22 +334,45 @@ public class MeasurementAggregator {
                 .reduce(DeviceReading::plus)
                 .orElseThrow();
         LfMeasurement first = group.get(0);
-        return new LfMeasurement(first.quantity(), first.bus(), first.branch(), first.side(),
-                combined.value(), Math.sqrt(combined.variance()));
+        List<String> sourceMeasurementIds = group.stream()
+                .flatMap(m -> m.sourceMeasurementIds().stream())
+                .toList();
+        return new LfMeasurement(first.type(), first.element(), combined.value(), Math.sqrt(combined.variance()), sourceMeasurementIds);
+    }
+
+    /** IIDM allows a measurement without an id. */
+    private static List<String> idsOf(Measurement reading) {
+        return reading.getId() == null ? List.of() : List.of(reading.getId());
+    }
+
+    private static AcEquationType injectionType(boolean active) {
+        return active ? AcEquationType.BUS_TARGET_P : AcEquationType.BUS_TARGET_Q;
     }
 
     /** The devices at a bus that a bus injection is expected to account for. */
     private static long devicesAt(Bus bus) {
         return bus.getConnectedTerminalStream()
                 .map(Terminal::getConnectable)
-                .filter(Injection.class::isInstance)
-                .filter(connectable -> !isModelledAsShunt(connectable))
-                .filter(connectable -> !(connectable instanceof BusbarSection))
+                .filter(MeasurementAggregator::isDevice)
                 .count();
     }
 
-    private static boolean isModelledAsShunt(Connectable<?> connectable) {
-        return connectable instanceof ShuntCompensator || connectable instanceof StaticVarCompensator;
+    /**
+     * Equipment whose power a bus injection accounts for. A busbar section and a ground carry
+     * none, and {@code LfNetwork} holds a shunt compensator and a boundary line in the network
+     * itself.
+     */
+    private static boolean isDevice(Connectable<?> connectable) {
+        return connectable instanceof Injection<?>
+                && !(connectable instanceof ShuntCompensator)
+                && !(connectable instanceof BoundaryLine)
+                && !(connectable instanceof BusbarSection)
+                && !(connectable instanceof Ground);
+    }
+
+    /** A boundary line is an injection in IIDM and a branch in {@code LfNetwork}. */
+    private static boolean isCarriedAsBranch(Connectable<?> connectable) {
+        return !(connectable instanceof Injection<?>) || connectable instanceof BoundaryLine;
     }
 
     private double floored(double sigma, double value) {
@@ -374,7 +385,7 @@ public class MeasurementAggregator {
         if (bus == null) {
             return Optional.empty();
         }
-        return projection.findBus(bus.getId());
+        return Optional.ofNullable(lfNetwork.getBusById(bus.getId()));
     }
 
     private Bus busOf(Terminal terminal) {
@@ -388,25 +399,40 @@ public class MeasurementAggregator {
             return Optional.empty();
         }
         // the bus is in this network, so a branch that is not must be one the model does not carry
-        Optional<LfBranch> branch = projection.findBranch(branchIdOf(connectable, terminal));
-        if (branch.isEmpty()) {
+        LfBranch branch = lfNetwork.getBranchById(branchIdOf(connectable, terminal));
+        if (branch == null) {
             LOG.warn("Ignored measurement on {}: no branch of that identifier in network {}",
                     connectable.getId(), lfNetwork);
             skip(Skipped.UNMODELLED_ELEMENT);
             return Optional.empty();
         }
-        return Optional.of(new ResolvedSide(branch.get(),
-                LfMeasurementProjection.sideOf(branch.get(), lfBus.get())));
+        return Optional.of(new ResolvedSide(branch, sideOf(branch, lfBus.get())));
+    }
+
+    /** The branch orientation in {@code LfNetwork} need not match IIDM's, so the side is resolved by bus. */
+    private static TwoSides sideOf(LfBranch branch, LfBus bus) {
+        LfBus bus1 = branch.getBus1();
+        if (bus1 != null && bus1.getNum() == bus.getNum()) {
+            return TwoSides.ONE;
+        }
+        LfBus bus2 = branch.getBus2();
+        if (bus2 != null && bus2.getNum() == bus.getNum()) {
+            return TwoSides.TWO;
+        }
+        throw new IllegalArgumentException("Bus " + bus.getId() + " is not an end of branch " + branch.getId());
     }
 
     /**
      * A three winding transformer is one connectable in IIDM and three branches in an
      * {@code LfNetwork}, one per leg, so a reading on it resolves through the leg its
-     * terminal belongs to.
+     * terminal belongs to. The two boundary lines of a tie line are one branch.
      */
     private static String branchIdOf(Connectable<?> connectable, Terminal terminal) {
         if (connectable instanceof ThreeWindingsTransformer transformer) {
             return LfLegBranch.getId(transformer.getSide(terminal), transformer.getId());
+        }
+        if (connectable instanceof BoundaryLine boundaryLine) {
+            return boundaryLine.getTieLine().map(TieLine::getId).orElse(boundaryLine.getId());
         }
         return connectable.getId();
     }
@@ -510,21 +536,18 @@ public class MeasurementAggregator {
         }
     }
 
-    /** What makes two readings duplicates: the same quantity, at the same element and side. */
-    private record DuplicateKey(MeasuredQuantity quantity, String elementId, int side) {
+    /** Two readings are duplicates when they share a type and an element. */
+    private record DuplicateKey(AcEquationType type, LfElement element) {
 
         private static DuplicateKey of(LfMeasurement measurement) {
-            String elementId = measurement.bus() != null
-                    ? measurement.bus().getId()
-                    : measurement.branch().getId();
-            return new DuplicateKey(measurement.quantity(), elementId, measurement.side());
+            return new DuplicateKey(measurement.type(), measurement.element());
         }
     }
 
     private record InjectionKey(String busId, boolean active) {
     }
 
-    private record ResolvedSide(LfBranch branch, int side) {
+    private record ResolvedSide(LfBranch branch, TwoSides side) {
     }
 
     /**
@@ -539,6 +562,8 @@ public class MeasurementAggregator {
 
         private final Map<String, DeviceReading> readingsByDevice = new LinkedHashMap<>();
 
+        private final List<String> sourceMeasurementIds = new ArrayList<>();
+
         private int readingCount;
 
         private InjectionBucket(LfBus lfBus, Bus bus) {
@@ -550,9 +575,16 @@ public class MeasurementAggregator {
          * Several meters on one device describe that device's contribution, not the bus
          * injection, so they combine here rather than being summed into it twice.
          */
-        private void add(String deviceId, double value, double standardDeviation) {
+        private void add(String deviceId, String measurementId, double value, double standardDeviation) {
             readingCount++;
+            if (measurementId != null) {
+                sourceMeasurementIds.add(measurementId);
+            }
             readingsByDevice.merge(deviceId, DeviceReading.of(value, standardDeviation), DeviceReading::plus);
+        }
+
+        private List<String> sourceMeasurementIds() {
+            return sourceMeasurementIds;
         }
 
         private int readingCount() {

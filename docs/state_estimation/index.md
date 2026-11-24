@@ -24,33 +24,121 @@ behind a `StateEstimationProvider` with no change to the types below.
 | Here | In the API |
 |---|---|
 | `WlsParameters`, holding the tolerance and the iteration cap | an `Extension<StateEstimationParameters>` contributed by this provider, since neither setting changes what the answer means |
-| `LfMeasurement`, `MeasuredQuantity` | built from the IIDM measurement extensions a network already carries |
+| `LfMeasurement`, a reading keyed on the `AcEquationType` of what it measures | built from the IIDM measurement extensions a network already carries |
 | `WlsResult`, already shaped after `ComponentResult` and carrying `BusResult` and `BranchResult` in IIDM units | one entry in `StateEstimationResult.getComponentResults()`, with its bus and branch results merged into the network-wide lists |
+| `WlsResult.Status` and `getStatusText()` | `ComponentResult.Status` and its own status text, with the same four values so nothing is translated |
+| the standard deviations on `WlsResult.BusResult` | `StateEstimationResult.QuantityAccuracy`, for `Quantity.VOLTAGE`. The accuracy of an estimated flow needs the same propagation applied to a branch term and is not reported yet |
+| `WlsResult.MeasurementResult`, one per reading, carrying its residual, its normalized residual and the IIDM measurements it came from | `StateEstimationResult.MeasurementResult`, which names a reading by `getMeasurementId()`, and the input a `BadDataResult` is decided from |
 | nothing yet | `ObservabilityResult`, from a measurement-graph traversal not implemented here |
-| nothing yet | `BadDataResult`, from normalized residuals the kernel already computes and discards |
+| nothing yet | `BadDataResult` itself: the residuals are reported, the test that acts on them is not |
 
 ## What is implemented
 
-Voltage magnitude, active and reactive injection, and active and reactive flow
-measurements, each at a bus or at one side of a branch. Gauss-Newton iteration on the
-normal equations, from a flat start or from a supplied state. One angle per synchronous
-component is held fixed as the reference, and its column is never assembled.
+Voltage magnitude, active and reactive injection, and active and reactive flow measurements,
+each at a bus or at one side of a branch, alongside current magnitude. Gauss-Newton
+iteration on the normal equations, from a flat start unless a state is supplied. One angle per
+synchronous component is held fixed as the reference, and it gets no column in the gain
+matrix. A branch open at one end still carries its own charging, and a reading at its connected
+end is modeled with the load flow's open-branch terms.
 
-The measurement functions are this repository's existing AC flow terms, wrapped in a small
-`MeasurementEquation` abstraction, so the estimator and the load flow interpret a network
-identically. Current magnitude measurements are supported alongside voltage, injection and
-flow.
+The measurement model is an `EquationSystem` keyed on `AcEquationType`, holding one equation
+per measured quantity, built out of this repository's existing AC flow terms. The
+measurement Jacobian comes from a `JacobianMatrix` over that system, so the estimator and
+the load flow differentiate a network with the same code they interpret it with. Every
+matrix is created through the `MatrixFactory` the estimator is given, and the default is
+`SparseMatrixFactory`.
+
+## How a run can end
+
+`WlsResult.Status` carries the four values of `ComponentResult.Status` in the Core API.
+`ESTIMATED` means the iteration met the tolerance. The other three are distinguished rather
+than lumped together, because they call for different things from whoever reads them:
+
+- `UNOBSERVABLE` when the gain matrix cannot be decomposed, which is what a measurement set
+  that does not determine the state looks like numerically. Two cases are caught before any
+  decomposition, because a numerical one does not reliably refuse them: readings that reach no
+  state variable at all, and buses whose readings tie their angles to each other but to no
+  reference bus. Nothing is reported about the accuracy of such a run, no residual of it can
+  be tested, and the redundancy of every reading is `NaN`;
+- `FAILED` when the weighted sum of squared residuals grows in two successive iterations.
+  Gauss-Newton on a non-linear model can overshoot once and recover, so a single worse
+  iteration says nothing, but a run walking away from the answer is worth stopping and worth
+  telling apart from one that merely ran slowly. A derivative, a residual or a state update
+  that is not a finite number ends the run the same way;
+- `DID_NOT_CONVERGE` when the iteration cap arrives with the fit still improving. The
+  accuracy of the estimate survives that, since it follows from where the meters are rather
+  than from how far the iteration got.
+
+`getStatusText()` says why a run ended `UNOBSERVABLE` or `FAILED` and is empty otherwise.
+
+## What is not supported yet
+
+- A current magnitude reading from a flat start. The derivative of a current magnitude is
+  undefined where the current is zero, which is where a flat start puts every branch without
+  a shunt admittance, so such a run ends `FAILED` before its first iteration. Current readings
+  need a supplied starting state;
+- A branch without impedance, which includes every switch of a network loaded at breaker
+  level. The AC flow terms refuse to be built for one, and the estimator throws.
+
+## What the estimate comes with
+
+Beyond the state itself, each run reports what the measurement configuration allows:
+
+- the standard deviation of every estimated bus voltage and angle, which is the diagonal of
+  the inverse of the gain matrix. It follows from where the meters are and how precise each
+  one is, and not at all from what they read;
+- per reading, the residual against the estimate, the share of its own variance that
+  residual kept, and the residual divided by its own standard deviation. That last one is
+  what a bad data detection compares against a threshold, and the share is what tells a
+  reading whose error would show up from one the estimate reproduces no matter what it says;
+- the identifiers of the IIDM measurements each reading was built from, which is how the
+  Core API names a reading and therefore how a bad data result names a culprit. There can be
+  several, where device readings were summed into a bus injection or where two meters on one
+  quantity were merged;
+- the weighted sum of squared residuals and the readings in excess of the unknowns, which
+  are the two arguments of a chi-square test.
+
+The inverse of the gain matrix is never formed. A variance is one
+triangular solve against an already factorized gain matrix, which costs a solve per unknown
+and a solve per measured quantity once the iteration has converged. The gain matrix itself is
+reachable through `getGainMatrix()` for anything that needs more than that.
 
 ## What it reuses, and what it does not
 
-Reused as published API: the AC flow terms of `ac.equations`, `Variable`, `VariableSet`
-and `StateVector` from `equations`, `LfNetwork` and its elements, `Networks` for loading
-and terminal lookup, and `PerUnit`.
+Reused as published API: the AC flow terms and `AcEquationType` of `ac.equations`,
+`EquationSystem`, `JacobianMatrix`, `Variable`, `VariableSet` and `StateVector` from
+`equations`, `LfNetwork` and its elements, `Networks` for loading and terminal lookup,
+`PerUnit`, and `Matrix` with its factories for every piece of linear algebra.
 
-Not reused, deliberately. `EquationSystem` keys equations by element and type and
-`createEquation` is get-or-create, so two redundant meters of the same quantity at the same
-place would collapse into one row; redundancy is what a state estimation is built on.
-`JacobianMatrix` requires a square system and maintains a factorization of itself, while a
-measurement Jacobian is taller than it is wide and what gets factorized is the gain matrix
-`G = H' W H`, not the Jacobian. The estimator accumulates `G` one measurement at a time
-without ever forming `H`, and decomposes it itself.
+Three things had to give before the equation system could carry a measurement model.
+[#1559](https://github.com/powsybl/powsybl-open-loadflow/pull/1559) did two of them.
+`JacobianMatrix` used to refuse a non-square system outright, although only its LU
+decomposition needs one, and a measurement Jacobian is taller than it is wide. And the branch
+power control equations shared one equation type across both ends, so the two sides of a
+branch could not be two measured quantities. The third is here: `AcEquationType` gained
+`BRANCH_TARGET_I1` and `BRANCH_TARGET_I2`, because the load flow builds current magnitude
+terms but hangs them off the branch as `Evaluable`s rather than keying an equation on them,
+so a current reading had no type to be held under. None of the three is specific to state
+estimation.
+
+What is assembled here rather than taken from the load flow is the gain matrix `G = H^T W H`.
+`JacobianMatrix` keeps a factorization of itself, which is the right thing for a load flow
+and the wrong one here, because what gets solved repeatedly is `G`, not `H`. Since `W` is
+diagonal, its square root folds into both factors, so `G` is one `Matrix.times` of a scaled
+copy of `H` with that copy's own transpose. The scaled copy is rebuilt each iteration rather
+than refilled, because a dense matrix iterates the values that are not zero rather than the
+structure holding them, and a derivative that is exactly zero at a flat start stops being one
+a step later.
+
+`MeasurementAggregator` sorts equipment by how `LfNetwork` carries it, which is not always how
+IIDM classes it. A static var compensator is a generator there, so its reading sums into the bus
+injection like any other device's. A shunt compensator sits in the network admittance, so the
+injection equation already holds its term and its reading is left out. A boundary line is an
+injection in IIDM and a branch in `LfNetwork`, alone or as half of a tie line, so its reading is
+a branch flow.
+
+Two meters reading the same quantity at the same place share an equation and a row of `H`,
+and differ in what they read and how far each is trusted. `MeasurementAggregator` merges them
+by inverse variance before that point, which is what pandapower does and what keeps the two
+implementations comparable, and `DuplicateMeasurementPolicy` can be set to keep both instead.
+Either way each reading keeps its own residual, and a merged one names every meter behind it.

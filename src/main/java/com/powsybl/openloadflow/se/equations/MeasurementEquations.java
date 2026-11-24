@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.se.equations;
 
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide1ActiveFlowEquationTerm;
@@ -16,30 +17,26 @@ import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ActiveFlowEquation
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2CurrentMagnitudeEquationTerm;
 import com.powsybl.openloadflow.ac.equations.ClosedBranchSide2ReactiveFlowEquationTerm;
 import com.powsybl.openloadflow.ac.equations.OpenBranchSide1ActiveFlowEquationTerm;
+import com.powsybl.openloadflow.ac.equations.OpenBranchSide1CurrentMagnitudeEquationTerm;
 import com.powsybl.openloadflow.ac.equations.OpenBranchSide1ReactiveFlowEquationTerm;
 import com.powsybl.openloadflow.ac.equations.OpenBranchSide2ActiveFlowEquationTerm;
+import com.powsybl.openloadflow.ac.equations.OpenBranchSide2CurrentMagnitudeEquationTerm;
 import com.powsybl.openloadflow.ac.equations.OpenBranchSide2ReactiveFlowEquationTerm;
 import com.powsybl.openloadflow.ac.equations.ShuntCompensatorActiveFlowEquationTerm;
 import com.powsybl.openloadflow.ac.equations.ShuntCompensatorReactiveFlowEquationTerm;
 import com.powsybl.openloadflow.equations.SingleEquationTerm;
-import com.powsybl.openloadflow.equations.StateVector;
-import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfShunt;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
- * Builds the measurement function h(x) of a meter out of the analytic AC equation terms
- * this repository already provides for load flow.
+ * Builds the measurement function h(x) of a reading from the load flow's AC equation terms.
  *
  * @author Šime Pavlić {@literal <sime.pavlic at kickstage.com>}
  */
@@ -49,83 +46,94 @@ public final class MeasurementEquations {
     }
 
     /**
-     * h = V_i. The measured quantity is a state variable, so the term is the variable's own,
-     * whose derivative is 1.
-     */
-    public static MeasurementEquation busVoltage(LfBus bus, VariableSet<AcVariableType> variableSet,
-                                                 StateVector stateVector) {
-        Objects.requireNonNull(bus);
-        SingleEquationTerm<AcVariableType, AcEquationType> v =
-                variableSet.getVariable(bus.getNum(), AcVariableType.BUS_V).createTerm();
-        return sum(List.of(v), stateVector);
-    }
-
-    /**
-     * Builds the equation for an active or reactive injection meter at a bus, in
-     * generation-positive convention: power fed into the network is positive, which is
-     * the sum of the flows leaving the bus into its incident branches plus the
-     * contribution of the shunts sitting on it.
+     * The terms whose sum is the measurement function of a reading of this type on this element.
      *
-     * <p>Shunt handling follows {@code AcEquationSystemCreator.createShuntEquations}: a
-     * bus can carry a fixed shunt, a controller shunt and an SVC shunt at the same time,
-     * and each has an active contribution as well as a reactive one.</p>
+     * @param type        what is measured
+     * @param element     the bus or branch the reading is on
+     * @param variableSet the variable set of the equation system that will own the terms
+     * @return the terms of the measurement function
+     * @throws IllegalArgumentException if the type is not a measurable quantity
      */
-    public static MeasurementEquation busInjection(LfBus bus, boolean active,
-                                                   VariableSet<AcVariableType> variableSet,
-                                                   StateVector stateVector) {
-        Objects.requireNonNull(bus);
-        List<SingleEquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
-        for (LfBranch branch : bus.getBranches()) {
-            injectionTerm(branch, bus, active, variableSet).ifPresent(terms::add);
-        }
-        for (LfShunt shunt : shunts(bus)) {
-            terms.add(shuntTerm(shunt, bus, active, variableSet));
-        }
-        return sum(terms, stateVector);
+    public static List<SingleEquationTerm<AcVariableType, AcEquationType>> terms(
+            AcEquationType type, LfElement element, VariableSet<AcVariableType> variableSet) {
+        Objects.requireNonNull(element);
+        return switch (type) {
+            case BUS_TARGET_V -> List.of(variableSet.getVariable(element.getNum(), AcVariableType.BUS_V).createTerm());
+            case BUS_TARGET_P -> busInjectionTerms((LfBus) element, true, variableSet);
+            case BUS_TARGET_Q -> busInjectionTerms((LfBus) element, false, variableSet);
+            case BRANCH_TARGET_P1, BRANCH_TARGET_P2, BRANCH_TARGET_Q1, BRANCH_TARGET_Q2,
+                 BRANCH_TARGET_I1, BRANCH_TARGET_I2 -> List.of(branchTerm((LfBranch) element, type, variableSet));
+            default -> throw new IllegalArgumentException(type + " is not a measurable quantity");
+        };
     }
 
     /**
-     * @param side 1 or 2, resolved against the branch orientation
+     * The flow or current term at one side of a branch. Tap position and phase shift are inputs
+     * rather than unknowns, so the term has no derivative on either.
+     *
+     * @param branch      the branch, which must be connected at the side the type names
+     * @param type        one of the {@code BRANCH_TARGET_P/Q/I} types, which carries the side
+     * @param variableSet the variable set of the equation system that will own the term
+     * @return the term
+     * @throws IllegalArgumentException if the branch is open at the side the type names or the
+     *                                  type is not a branch flow or current
      */
-    public static MeasurementEquation branchFlow(LfBranch branch, MeasuredQuantity quantity, int side,
-                                                 VariableSet<AcVariableType> variableSet,
-                                                 StateVector stateVector) {
-        Objects.requireNonNull(branch);
-        if (side != 1 && side != 2) {
-            throw new IllegalArgumentException("Branch side must be 1 or 2, was " + side);
-        }
-        return sum(List.of(closedBranchTerm(branch, quantity, side, variableSet)), stateVector);
-    }
-
-    private static Optional<SingleEquationTerm<AcVariableType, AcEquationType>> injectionTerm(
-            LfBranch branch, LfBus bus, boolean active, VariableSet<AcVariableType> variableSet) {
+    public static SingleEquationTerm<AcVariableType, AcEquationType> branchTerm(
+            LfBranch branch, AcEquationType type, VariableSet<AcVariableType> variableSet) {
         LfBus bus1 = branch.getBus1();
         LfBus bus2 = branch.getBus2();
         if (bus1 != null && bus2 != null) {
-            int side = bus1.getNum() == bus.getNum() ? 1 : 2;
-            MeasuredQuantity quantity = active ? MeasuredQuantity.BRANCH_P : MeasuredQuantity.BRANCH_Q;
-            return Optional.of(closedBranchTerm(branch, quantity, side, variableSet));
+            return switch (type) {
+                case BRANCH_TARGET_P1 -> new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, false, false);
+                case BRANCH_TARGET_P2 -> new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, false, false);
+                case BRANCH_TARGET_Q1 -> new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, false, false);
+                case BRANCH_TARGET_Q2 -> new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, false, false);
+                case BRANCH_TARGET_I1 -> new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, false, false);
+                case BRANCH_TARGET_I2 -> new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, false, false);
+                default -> throw new IllegalArgumentException(type + " is not a branch flow or current");
+            };
         }
-        if (bus1 == null && bus2 != null && bus2.getNum() == bus.getNum()) {
-            // side 1 open: only the connected side 2 half carries flow
-            return Optional.of(active
-                    ? new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, variableSet)
-                    : new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, variableSet));
+        // open at the far end, the connected side still carries the branch's own charging and losses
+        if (bus1 != null) {
+            return switch (type) {
+                case BRANCH_TARGET_P1 -> new OpenBranchSide2ActiveFlowEquationTerm(branch, bus1, variableSet);
+                case BRANCH_TARGET_Q1 -> new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus1, variableSet);
+                case BRANCH_TARGET_I1 -> new OpenBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, variableSet, false);
+                default -> throw notConnected(branch, type);
+            };
         }
-        if (bus2 == null && bus1 != null && bus1.getNum() == bus.getNum()) {
-            return Optional.of(active
-                    ? new OpenBranchSide2ActiveFlowEquationTerm(branch, bus1, variableSet)
-                    : new OpenBranchSide2ReactiveFlowEquationTerm(branch, bus1, variableSet));
+        if (bus2 != null) {
+            return switch (type) {
+                case BRANCH_TARGET_P2 -> new OpenBranchSide1ActiveFlowEquationTerm(branch, bus2, variableSet);
+                case BRANCH_TARGET_Q2 -> new OpenBranchSide1ReactiveFlowEquationTerm(branch, bus2, variableSet);
+                case BRANCH_TARGET_I2 -> new OpenBranchSide1CurrentMagnitudeEquationTerm(branch, bus2, variableSet);
+                default -> throw notConnected(branch, type);
+            };
         }
-        return Optional.empty();
+        throw notConnected(branch, type);
     }
 
-    private static List<LfShunt> shunts(LfBus bus) {
-        List<LfShunt> shunts = new ArrayList<>(3);
-        bus.getShunt().ifPresent(shunts::add);
-        bus.getControllerShunt().ifPresent(shunts::add);
-        bus.getSvcShunt().ifPresent(shunts::add);
-        return shunts;
+    private static IllegalArgumentException notConnected(LfBranch branch, AcEquationType type) {
+        return new IllegalArgumentException(type + " cannot be read on branch " + branch.getId()
+                + ", which is not connected at that side");
+    }
+
+    /**
+     * Generation-positive: the flows leaving the bus into its branches plus its shunts. A static
+     * var compensator is a device with a reading of its own, so the shunt {@code LfNetwork} splits
+     * off one in standby is left out.
+     */
+    private static List<SingleEquationTerm<AcVariableType, AcEquationType>> busInjectionTerms(
+            LfBus bus, boolean active, VariableSet<AcVariableType> variableSet) {
+        List<SingleEquationTerm<AcVariableType, AcEquationType>> terms = new ArrayList<>();
+        for (LfBranch branch : bus.getBranches()) {
+            LfBus bus1 = branch.getBus1();
+            TwoSides side = bus1 != null && bus1.getNum() == bus.getNum() ? TwoSides.ONE : TwoSides.TWO;
+            terms.add(branchTerm(branch, active ? AcEquationType.branchTargetP(side) : AcEquationType.branchTargetQ(side), variableSet));
+        }
+        bus.getShunt().ifPresent(shunt -> terms.add(shuntTerm(shunt, bus, active, variableSet)));
+        bus.getControllerShunt().ifPresent(shunt -> terms.add(shuntTerm(shunt, bus, active, variableSet)));
+        return terms;
     }
 
     private static SingleEquationTerm<AcVariableType, AcEquationType> shuntTerm(LfShunt shunt, LfBus bus, boolean active,
@@ -133,75 +141,5 @@ public final class MeasurementEquations {
         return active
                 ? new ShuntCompensatorActiveFlowEquationTerm(shunt, bus, variableSet)
                 : new ShuntCompensatorReactiveFlowEquationTerm(shunt, bus, variableSet, false);
-    }
-
-    private static SingleEquationTerm<AcVariableType, AcEquationType> closedBranchTerm(
-            LfBranch branch, MeasuredQuantity quantity, int side, VariableSet<AcVariableType> variableSet) {
-        LfBus bus1 = branch.getBus1();
-        LfBus bus2 = branch.getBus2();
-        if (bus1 == null || bus2 == null) {
-            throw new IllegalArgumentException("Branch " + branch.getId()
-                    + " is open at one side and carries no measurable flow at side " + side);
-        }
-        return switch (quantity) {
-            case BRANCH_P -> side == 1
-                    ? new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, false, false)
-                    : new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, variableSet, false, false);
-            case BRANCH_Q -> side == 1
-                    ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, false, false)
-                    : new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, variableSet, false, false);
-            case BRANCH_I -> side == 1
-                    ? new ClosedBranchSide1CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, false, false)
-                    : new ClosedBranchSide2CurrentMagnitudeEquationTerm(branch, bus1, bus2, variableSet, false, false);
-            default -> throw new IllegalArgumentException(quantity + " is not a branch quantity");
-        };
-    }
-
-    private static MeasurementEquation sum(List<SingleEquationTerm<AcVariableType, AcEquationType>> terms,
-                                           StateVector stateVector) {
-        terms.forEach(t -> t.setStateVector(stateVector));
-        return new SumEquation(terms);
-    }
-
-    /** h = sum of AC equation terms; a single flow term is the one-element case. */
-    private static final class SumEquation implements MeasurementEquation {
-
-        private final List<SingleEquationTerm<AcVariableType, AcEquationType>> terms;
-
-        /** The terms depending on each variable, so a derivative visits only the contributing ones. */
-        private final Map<Variable<AcVariableType>, List<SingleEquationTerm<AcVariableType, AcEquationType>>> termsByVariable =
-                new LinkedHashMap<>();
-
-        private SumEquation(List<SingleEquationTerm<AcVariableType, AcEquationType>> terms) {
-            this.terms = terms;
-            for (SingleEquationTerm<AcVariableType, AcEquationType> term : terms) {
-                for (Variable<AcVariableType> variable : term.getVariables()) {
-                    termsByVariable.computeIfAbsent(variable, k -> new ArrayList<>()).add(term);
-                }
-            }
-        }
-
-        @Override
-        public double eval() {
-            double sum = 0;
-            for (SingleEquationTerm<AcVariableType, AcEquationType> term : terms) {
-                sum += term.eval();
-            }
-            return sum;
-        }
-
-        @Override
-        public Collection<Variable<AcVariableType>> variables() {
-            return termsByVariable.keySet();
-        }
-
-        @Override
-        public double der(Variable<AcVariableType> variable) {
-            double sum = 0;
-            for (SingleEquationTerm<AcVariableType, AcEquationType> term : termsByVariable.getOrDefault(variable, List.of())) {
-                sum += term.der(variable);
-            }
-            return sum;
-        }
     }
 }
