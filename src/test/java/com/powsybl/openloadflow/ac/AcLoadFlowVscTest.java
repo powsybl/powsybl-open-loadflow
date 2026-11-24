@@ -17,19 +17,19 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
-import com.powsybl.openloadflow.network.HvdcNetworkFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.HvdcNetworkFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.assertActivePowerEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(ServiceParameterResolver.class)
@@ -201,6 +201,45 @@ class AcLoadFlowVscTest {
         assertReactivePowerEquals(0.0, cs3.getTerminal());
         assertActivePowerEquals(0.0914, cs4.getTerminal());
         assertReactivePowerEquals(0.0, cs4.getTerminal());
+    }
+
+    @Test
+    void testAcEmulationVscReactiveLimits() {
+        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
+        LoadFlowParameters parameters = new LoadFlowParameters().setHvdcAcEmulation(true);
+        Network network = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        network.getHvdcLine("hvdc34").setActivePowerSetpoint(0)
+                .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180)
+                .withP0(0.f)
+                .withEnabled(true)
+                .add();
+        LoadFlowResult result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        VscConverterStation cs4 = network.getVscConverterStation("cs4");
+        assertActivePowerEquals(0.2330, cs4.getTerminal());
+        assertReactivePowerEquals(-3.6015, cs4.getTerminal());
+
+        // cs4 is the sending side, consuming active power, on the negative side of the reactive limits curve
+        // Adding limits: max reactive limit 4 MVar is above 3.6 MVar, no switch to PQ should be performed
+        cs4.newReactiveCapabilityCurve()
+                .beginPoint().setP(-0.2330).setMinQ(-6).setMaxQ(4).endPoint()
+                .beginPoint().setP(0).setMinQ(-1).setMaxQ(1).endPoint()
+                .add();
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(0.2330, cs4.getTerminal());
+        assertReactivePowerEquals(-3.6015, cs4.getTerminal());
+
+        // Now testing with hitting the limit
+        cs4.newReactiveCapabilityCurve()
+                .beginPoint().setP(-0.2330).setMinQ(-6).setMaxQ(2).endPoint()
+                .beginPoint().setP(0).setMinQ(-1).setMaxQ(1).endPoint()
+                .add();
+        result = loadFlowRunner.run(network, parameters);
+        assertTrue(result.isFullyConverged());
+        assertActivePowerEquals(0.2272, cs4.getTerminal());
+        assertReactivePowerEquals(-1.975, cs4.getTerminal());
     }
 
     @Test

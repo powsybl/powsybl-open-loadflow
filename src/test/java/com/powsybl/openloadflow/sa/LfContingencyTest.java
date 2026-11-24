@@ -15,14 +15,15 @@ import com.powsybl.contingency.*;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.BatteryNetworkFactory;
 import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
-import com.powsybl.openloadflow.CommonTestConfig;
-import com.powsybl.openloadflow.ServiceParameterResolver;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.VoltageControlNetworkFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -72,7 +73,7 @@ class LfContingencyTest extends AbstractSerDeTest {
     void test() throws IOException {
         Network network = FourSubstationsNodeBreakerFactory.create();
 
-        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new DTreeGraphConnectivityFactory<>();
 
         List<LfNetwork> lfNetworks = Networks.load(network, new LfNetworkParameters()
                 .setConnectivityFactory(connectivityFactory)
@@ -122,7 +123,7 @@ class LfContingencyTest extends AbstractSerDeTest {
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(2, lfNetworks.size());
 
-        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new DTreeGraphConnectivityFactory<>();
         new AcSecurityAnalysis(network, commonTestConfig.matrixFactory(), connectivityFactory, Collections.emptyList(), ReportNode.NO_OP);
 
         String generatorId = "GEN";
@@ -140,7 +141,7 @@ class LfContingencyTest extends AbstractSerDeTest {
         List<LfNetwork> lfNetworks = Networks.load(network, new MostMeshedSlackBusSelector());
         assertEquals(2, lfNetworks.size());
 
-        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new DTreeGraphConnectivityFactory<>();
         new AcSecurityAnalysis(network, commonTestConfig.matrixFactory(), connectivityFactory, Collections.emptyList(), ReportNode.NO_OP);
 
         String loadId = "LOAD";

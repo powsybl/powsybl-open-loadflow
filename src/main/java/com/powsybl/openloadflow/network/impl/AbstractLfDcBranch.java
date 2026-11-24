@@ -1,0 +1,108 @@
+/**
+ * Copyright (c) 2025, SuperGrid Institute (http://www.supergrid-institute.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+package com.powsybl.openloadflow.network.impl;
+
+import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.util.Evaluable;
+
+import java.util.Objects;
+
+import static com.powsybl.openloadflow.util.EvaluableConstants.NAN;
+
+/**
+ * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
+ */
+public abstract class AbstractLfDcBranch extends AbstractElement implements LfDcBranch {
+
+    private final int numDCC;
+
+    protected final LfDcBus dcBus1;
+
+    protected final LfDcBus dcBus2;
+
+    protected Evaluable p1 = NAN; // in pu
+
+    protected Evaluable i1 = NAN; // in pu
+
+    protected Evaluable p2 = NAN; // in pu
+
+    protected Evaluable i2 = NAN; // in pu
+
+    private final double r; // in Ohm
+
+    protected AbstractLfDcBranch(LfNetwork network, int numDCC, LfDcBus dcBus1, LfDcBus dcBus2, double r) {
+        super(network);
+        this.numDCC = numDCC;
+        this.dcBus1 = dcBus1;
+        this.dcBus2 = dcBus2;
+        this.r = r;
+    }
+
+    protected AbstractLfDcBranch(AbstractLfDcBranch other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2) {
+        super(network);
+        this.numDCC = other.numDCC;
+        this.dcBus1 = dcBus1;
+        this.dcBus2 = dcBus2;
+        this.r = other.r;
+        this.disabled = other.disabled;
+    }
+
+    @Override
+    public int getNumDCC() {
+        return numDCC;
+    }
+
+    @Override
+    public LfDcBus getDcBus1() {
+        return dcBus1;
+    }
+
+    @Override
+    public LfDcBus getDcBus2() {
+        return dcBus2;
+    }
+
+    @Override
+    public ElementType getType() {
+        return ElementType.DC_BRANCH;
+    }
+
+    @Override
+    public double getR() {
+        return r;
+    }
+
+    @Override
+    public void setP1(Evaluable p1) {
+        this.p1 = Objects.requireNonNull(p1);
+    }
+
+    @Override
+    public void setP2(Evaluable p2) {
+        this.p2 = Objects.requireNonNull(p2);
+    }
+
+    @Override
+    public void setI1(Evaluable i1) {
+        this.i1 = Objects.requireNonNull(i1);
+    }
+
+    @Override
+    public void setI2(Evaluable i2) {
+        this.i2 = Objects.requireNonNull(i2);
+    }
+
+    @Override
+    public void updateState(LfNetworkStateUpdateParameters parameters, LfNetworkUpdateReport updateReport) {
+        if (isDisabled()) {
+            updateFlows(Double.NaN, Double.NaN, Double.NaN, Double.NaN);
+        } else {
+            updateFlows(i1.eval(), i2.eval(), p1.eval(), p2.eval());
+        }
+    }
+}

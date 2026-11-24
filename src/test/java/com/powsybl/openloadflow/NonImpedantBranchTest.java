@@ -20,13 +20,15 @@ import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.network.AbstractLoadFlowNetworkFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.network.ZeroImpedanceNetworkFactory;
 import com.powsybl.openloadflow.network.impl.OlfBranchResult;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysisParameters;
 import com.powsybl.openloadflow.sa.OpenSecurityAnalysisProvider;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.AbstractLoadFlowNetworkFactory;
+import com.powsybl.openloadflow.test.networks.ZeroImpedanceNetworkFactory;
 import com.powsybl.security.*;
 import com.powsybl.security.monitor.StateMonitor;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +39,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -372,7 +374,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
                                                   new Contingency("contingency2", List.of(new BranchContingency("l01"), new BranchContingency("l13"))));
 
         ContingenciesProvider provider = n -> contingencies;
-        SecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        SecurityAnalysisProvider securityAnalysisProvider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         SecurityAnalysisRunParameters runParameters = new SecurityAnalysisRunParameters()
                 .setFilter(new LimitViolationFilter())
                 .setComputationManager(LocalComputationManager.getDefault())
@@ -405,7 +407,7 @@ class NonImpedantBranchTest extends AbstractLoadFlowNetworkFactory {
         OpenSecurityAnalysisParameters openSecurityAnalysisParameters = new OpenSecurityAnalysisParameters()
                 .setCreateResultExtension(true);
         securityAnalysisParameters.addExtension(OpenSecurityAnalysisParameters.class, openSecurityAnalysisParameters);
-        SecurityAnalysisProvider provider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        SecurityAnalysisProvider provider = new OpenSecurityAnalysisProvider(commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>());
         List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(),
                 Set.of("tr34"),
                 Set.of("b0_vl", "b1_vl", "b2_vl", "b3_vl", "b4_vl", "b5_vl"),

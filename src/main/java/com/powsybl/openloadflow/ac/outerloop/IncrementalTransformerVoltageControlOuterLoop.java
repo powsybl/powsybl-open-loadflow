@@ -20,8 +20,8 @@ import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChange;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableDouble;
@@ -294,7 +294,7 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
         }
 
         ReportNode iterationReportNode = !controlledBusesOutOfDeadband.isEmpty() || !controllerBranchesAdjusted.isEmpty() || !controlledBusesWithAllItsControllersToLimit.isEmpty() ?
-                Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1) : null;
+                LfReports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1) : null;
 
         if (!controlledBusesOutOfDeadband.isEmpty()) {
             if (LOGGER.isInfoEnabled()) {
@@ -306,20 +306,20 @@ public class IncrementalTransformerVoltageControlOuterLoop extends AbstractTrans
                 LOGGER.info("{} controlled bus voltages are outside of their target deadband, largest ones are: {}",
                         controlledBusesOutOfDeadband.size(), largestMismatches);
             }
-            Reports.reportTransformerControlBusesOutsideDeadband(Objects.requireNonNull(iterationReportNode), controlledBusesOutOfDeadband.size());
+            LfReports.reportTransformerControlBusesOutsideDeadband(Objects.requireNonNull(iterationReportNode), controlledBusesOutOfDeadband.size());
         }
         if (!controllerBranchesAdjusted.isEmpty()) {
             LOGGER.info("{} controlled bus voltages have been adjusted by changing at least one tap",
                     controllerBranchesAdjusted.size());
-            ReportNode summary = Reports.reportTransformerControlChangedTaps(Objects.requireNonNull(iterationReportNode), controllerBranchesAdjusted.size());
+            ReportNode summary = LfReports.reportTransformerControlChangedTaps(Objects.requireNonNull(iterationReportNode), controllerBranchesAdjusted.size());
             controllerBranchesAdjusted
-                    .forEach(controllerDetails -> Reports.reportTransformerControlChangedTapsDetail(summary, controllerDetails));
+                    .forEach(controllerDetails -> LfReports.reportTransformerControlChangedTapsDetail(summary, controllerDetails));
 
         }
         if (!controlledBusesWithAllItsControllersToLimit.isEmpty()) {
             LOGGER.info("{} controlled buses have all its controllers to a tap limit: {}",
                     controlledBusesWithAllItsControllersToLimit.size(), controlledBusesWithAllItsControllersToLimit);
-            Reports.reportTransformerControlTapLimit(Objects.requireNonNull(iterationReportNode), controlledBusesWithAllItsControllersToLimit.size());
+            LfReports.reportTransformerControlTapLimit(Objects.requireNonNull(iterationReportNode), controlledBusesWithAllItsControllersToLimit.size());
         }
 
         return new OuterLoopResult(this, status.get());

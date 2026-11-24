@@ -257,7 +257,7 @@ At least one DC bus must be connected to the ground in each DC network, its pote
 Therefore, symmetrical configuration are currently not supported.<br>
 Each other DC bus introduces an equation of current balance: $\sum_{i} I_i = 0$ where $I_i$ are the currents going out of the DC bus.
 
-### DC Line
+### DC Line and DC switch
 
 Each DC line adds one term to each of its two connected DC buses current balance:
 
@@ -266,6 +266,8 @@ $\sum_{i} I_i + \frac{V_1 - V_2}{R}= 0$ for dcBus1
 $\sum_{i} I_i - \frac{V_1 - V_2}{R}= 0$ for dcBus2
 
 If a DC line is disconnected on any side, no current can pass through it.
+
+DC switches may have non-zero resistances. In this case they contribute to the load flow computation in the same way as a DC line with the same resistance.
 
 ### Line Commutated Converter
 
@@ -396,3 +398,10 @@ band's coefficient is used (clamping), so $k$ is always defined.
 
 The reported solution is self-consistent: for each converter, the applied $k$ is the one its
 curve assigns to that converter's own solved $U_{dc}$, provided that the load flow computation converges.
+
+#### Active power limits
+If the converter has active power limits defined in the IIDM model and the parameter [useActiveLimits](../loadflow/parameters.md#useactivelimits) is set to true, OpenLoadFlow ensures the converter active power stays within the defined bounds (`minP`, `maxP`).
+- If the converter is in `P_PCC` mode, OpenLoadFlow checks that its `targetP` is between `minP` and `maxP` and throws an exception otherwise.
+- If the converter is in `V_DC` or `DC_DROOP` mode, and it exceeds one of its active power limit, its active power is saturated to this limit by switching the converter to `P_PCC` mode with the exceeded limit as new `targetP`. 
+If this control mode switch leads to an invalid DC configuration (i.e. missing DC voltage regulation), the load flow fails. No de-saturation mechanism is implemented.
+- If several converters in the same DC component exceed their limits, only the one of them enters saturation mode at a time. The selected converter is the one the furthest from its active power limits. 

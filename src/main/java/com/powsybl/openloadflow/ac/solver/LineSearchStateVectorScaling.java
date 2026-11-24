@@ -11,7 +11,7 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
-import com.powsybl.openloadflow.util.Reports;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +94,7 @@ public class LineSearchStateVectorScaling implements StateVectorScaling {
             lastTestResult = currentTestResult;
             LOGGER.debug("Step size: {}", stepSize);
             if (reportNode != null) {
-                Reports.reportLineSearchStateVectorScaling(reportNode, stepSize);
+                LfReports.reportLineSearchStateVectorScaling(reportNode, stepSize);
             }
         }
         return lastTestResult;

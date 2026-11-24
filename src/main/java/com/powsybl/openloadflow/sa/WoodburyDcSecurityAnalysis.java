@@ -27,12 +27,12 @@ import com.powsybl.openloadflow.dc.fastdc.ConnectivityBreakAnalysis;
 import com.powsybl.openloadflow.dc.fastdc.ConnectivityBreakAnalysis.ConnectivityAnalysisResult;
 import com.powsybl.openloadflow.dc.fastdc.WoodburyEngine;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.util.Indexed;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import com.powsybl.security.LimitViolationsResult;
 import com.powsybl.security.PostContingencyComputationStatus;
 import com.powsybl.security.SecurityAnalysisParameters;
@@ -79,7 +79,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
     @Override
     protected ReportNode createSaRootReportNode() {
-        return Reports.createWoodburyDcSecurityAnalysis(reportNode, network.getId());
+        return LfReports.createWoodburyDcSecurityAnalysis(reportNode, network.getId());
     }
 
     @Override
@@ -91,7 +91,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
             return droopControl != null && droopControl.isEnabled();
         });
         if (hasDroopControl) {
-            Reports.reportAcEmulationDisabledInWoodburyDcSecurityAnalysis(reportNode);
+            LfReports.reportAcEmulationDisabledInWoodburyDcSecurityAnalysis(reportNode);
         }
         lfNetworkParameters.setMinImpedance(true) // connectivity break analysis does not handle zero impedance lines
                            .setHvdcAcEmulation(false); // ac emulation is not yet supported
@@ -305,7 +305,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         LfNetwork lfNetwork = dcLoadFlowContext.getNetwork();
 
         Contingency contingency = connectivityAnalysisResult.getPropagatedContingency().getContingency();
-        ReportNode postContSimReportNode = Reports.createPostContingencySimulation(lfNetwork.getReportNode(), contingency.getId());
+        ReportNode postContSimReportNode = LfReports.createPostContingencySimulation(lfNetwork.getReportNode(), contingency.getId());
         lfNetwork.setReportNode(postContSimReportNode);
 
         // predicate to determine if a branch is disabled or not due to the contingency
@@ -330,7 +330,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
         List<Indexed<OperatorStrategy>> operatorStrategiesForThisContingency = woodburyContext.operatorStrategiesByContingencyId.get(contingency.getId());
         if (operatorStrategiesForThisContingency != null) {
             for (Indexed<OperatorStrategy> operatorStrategy : operatorStrategiesForThisContingency) {
-                ReportNode osSimReportNode = Reports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.value().getId());
+                ReportNode osSimReportNode = LfReports.createOperatorStrategySimulation(postContSimReportNode, operatorStrategy.value().getId());
                 lfNetwork.setReportNode(osSimReportNode);
 
                 // get the actions associated to the operator strategy
@@ -399,7 +399,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
 
         try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters, false)) {
             ReportNode networkReportNode = lfNetwork.getReportNode();
-            ReportNode preContSimReportNode = Reports.createPreContingencySimulation(networkReportNode);
+            ReportNode preContSimReportNode = LfReports.createPreContingencySimulation(networkReportNode);
             lfNetwork.setReportNode(preContSimReportNode);
 
             // prepare contingencies for connectivity analysis and Woodbury engine

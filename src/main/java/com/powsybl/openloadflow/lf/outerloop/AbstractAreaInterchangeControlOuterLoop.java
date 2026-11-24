@@ -12,13 +12,13 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.equations.Quantity;
 import com.powsybl.openloadflow.lf.AbstractLoadFlowParameters;
 import com.powsybl.openloadflow.lf.LoadFlowContext;
+import com.powsybl.openloadflow.lf.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.LfArea;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 
@@ -281,7 +281,7 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
             movedBuses |= areaResult.movedBuses();
         }
 
-        ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
+        ReportNode iterationReportNode = LfReports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
         AreaInterchangeControlContextData contextData = (AreaInterchangeControlContextData) context.getData();
         int numSC = context.getNetwork().getSynchronousNetworks().getFirst().getNumSC();
         contextData.addDistributedActivePower(numSC, totalDistributedActivePower);
@@ -316,13 +316,13 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
             boolean isInterchangeDistribution = ActivePowerDistributionType.AREA_INTERCHANGE.equals(areaResult.type);
             String distributionType = isInterchangeDistribution ? "interchange mismatch" : "slack distribution share";
             logger.info("Area {} {} ({} MW) distributed in {} distribution iteration(s)", areaResult.areaId, distributionType, areaResult.distributedMismatch * PerUnit.SB, areaResult.iteration());
-            Reports.reportAicAreaDistributionSuccess(iterationReportNode, areaResult.areaId, areaResult.distributedMismatch * PerUnit.SB, areaResult.iteration(), isInterchangeDistribution);
+            LfReports.reportAicAreaDistributionSuccess(iterationReportNode, areaResult.areaId, areaResult.distributedMismatch * PerUnit.SB, areaResult.iteration(), isInterchangeDistribution);
         });
     }
 
     private void reportAndLogAreaActivePowerDistributionFailure(ReportNode iterationReportNode, List<AreaActivePowerDistributionResult> remainingMismatches) {
         logger.error(FAILED_TO_DISTRIBUTE_ACTIVE_POWER_MISMATCH);
-        ReportNode failureReportNode = Reports.reportAreaInterchangeControlDistributionFailure(iterationReportNode);
+        ReportNode failureReportNode = LfReports.reportAreaInterchangeControlDistributionFailure(iterationReportNode);
         remainingMismatches.stream()
                 .sorted(Comparator.comparing(areaResult -> areaResult.areaId))
                 .forEach(areaResult -> {
@@ -330,7 +330,7 @@ public abstract class AbstractAreaInterchangeControlOuterLoop<
                     String mismatchType = isInterchangeDistribution ? "interchange" : "slack distribution";
                     double remainingMismatch = areaResult.remainingMismatch() * PerUnit.SB;
                     logger.error("Remaining {} mismatch for Area {}: {} MW", mismatchType, areaResult.areaId, remainingMismatch);
-                    Reports.reportAicAreaDistributionMismatch(failureReportNode, areaResult.areaId, remainingMismatch, isInterchangeDistribution);
+                    LfReports.reportAicAreaDistributionMismatch(failureReportNode, areaResult.areaId, remainingMismatch, isInterchangeDistribution);
                 });
     }
 

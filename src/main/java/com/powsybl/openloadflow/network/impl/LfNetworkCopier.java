@@ -81,8 +81,8 @@ public final class LfNetworkCopier {
         for (LfDcBus dcBus : originalNetwork.getDcBuses()) {
             copyNetwork.addDcBus(dcBus.copy(copyNetwork));
         }
-        for (LfDcLine dcLine : originalNetwork.getDcLines()) {
-            copyNetwork.addDcLine(dcLine.copy(copyNetwork));
+        for (LfDcBranch dcBranch : originalNetwork.getDcBranches()) {
+            copyNetwork.addDcBranch(dcBranch.copy(copyNetwork));
         }
         for (LfVoltageSourceConverter converter : originalNetwork.getVoltageSourceConverters()) {
             copyNetwork.addVoltageSourceConverter(converter.copy(copyNetwork));

@@ -17,11 +17,11 @@ import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.adm.AdmittanceEquationSystem;
 import com.powsybl.openloadflow.adm.AdmittanceMatrix;
 import com.powsybl.openloadflow.equations.VariableSet;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
 import com.powsybl.openloadflow.graph.GraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
-import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.Pseudograph;
@@ -54,7 +54,7 @@ public class VoltageTargetChecker {
         Objects.requireNonNull(network);
         Objects.requireNonNull(parameters);
         OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.get(parameters);
-        GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory = OpenLoadFlowParameters.getConnectivityFactory(parametersExt, new EvenShiloachGraphDecrementalConnectivityFactory<>());
+        GraphConnectivityFactory<LfBus, LfBranch> selectedConnectivityFactory = new DTreeGraphConnectivityFactory<>();
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, parameters, parametersExt, matrixFactory, selectedConnectivityFactory);
         for (LfNetwork lfNetwork : LfNetwork.load(network, new LfNetworkLoaderImpl(), acParameters.getNetworkParameters())) {
             var result = new VoltageTargetChecker(lfNetwork)
@@ -182,7 +182,7 @@ public class VoltageTargetChecker {
     }
 
     public void fix(VoltageTargetCheckerParameters parameters) {
-        ReportNode fixTargetVoltageReport = Reports.reportFixTargetVoltage(network.getReportNode());
+        ReportNode fixTargetVoltageReport = LfReports.reportFixTargetVoltage(network.getReportNode());
         VoltageTargetCheck.LfResult result = check(parameters);
 
         List<VoltageTargetCheck.LfIncompatibleTargetResolution> incompatibleTargetResolutions = resolveIncompatibleTargets(result.lfIncompatibleTarget());
@@ -192,7 +192,7 @@ public class VoltageTargetChecker {
                     :
                     incompatibleTargetResolution.largestLfIncompatibleTarget().controlledBus1();
             for (VoltageControl<? extends LfElement> voltageControl : incompatibleTargetResolution.controlledBusToFix().getVoltageControls()) {
-                ReportNode incompatibleTargetNode = Reports.reportIncompatibleVoltageTarget(fixTargetVoltageReport,
+                ReportNode incompatibleTargetNode = LfReports.reportIncompatibleVoltageTarget(fixTargetVoltageReport,
                         incompatibleTargetResolution.controlledBusToFix().getId(),
                         otherBus.getId(),
                         incompatibleTargetResolution.largestLfIncompatibleTarget().targetVoltagePlausibilityIndicator(),

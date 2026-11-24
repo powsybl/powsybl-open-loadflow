@@ -17,9 +17,9 @@ import com.powsybl.iidm.network.extensions.PilotPoint;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
 import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.util.NetworkReports;
 import com.powsybl.openloadflow.util.DebugUtil;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import net.jafama.FastMath;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
@@ -71,6 +71,8 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         private final Set<DcLine> dcLineSet = new LinkedHashSet<>();
 
         private final Set<AcDcConverter<?>> acDcConverterSet = new LinkedHashSet<>();
+
+        private final Set<DcSwitch> dcSwitchSet = new LinkedHashSet<>();
     }
 
     private final Supplier<List<LfNetworkLoaderPostProcessor>> postProcessorsSupplier;
@@ -103,7 +105,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
     private static void createDcGrounds(LfNetwork lfNetwork, List<DcGround> dcGrounds) {
         for (DcGround dcGround : dcGrounds) {
-            Objects.requireNonNull(getLfDcBus(dcGround.getDcTerminal(), lfNetwork)).setGround(true);
+            Objects.requireNonNull(getLfDcBusFromDcTerminal(dcGround.getDcTerminal(), lfNetwork)).setGround(true);
         }
     }
 
@@ -258,7 +260,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             LOGGER.error("Bus '{}' control voltage of bus '{}' which is already controlled by buses '{}' with a different target voltage: {} (kept) and {} (ignored)",
                     controllerBus.getId(), controlledBus.getId(), busesId, voltageControlTargetV * controlledBus.getNominalV(),
                     controllerTargetV * controlledBus.getNominalV());
-            Reports.reportBusAlreadyControlledWithDifferentTargetV(controllerBus.getNetwork().getReportNode(), controllerBus.getId(),
+            NetworkReports.reportBusAlreadyControlledWithDifferentTargetV(controllerBus.getNetwork().getReportNode(), controllerBus.getId(),
                     controlledBus.getId(), busesId, voltageControlTargetV * controlledBus.getNominalV(),
                     controllerTargetV * controlledBus.getNominalV());
         }
@@ -272,11 +274,13 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             if (disableInconsistentControls) {
                 LOGGER.warn("Generators [{}] are connected to the same bus '{}' but control the voltage of different buses ({} and {}): disabling voltage control",
                         generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
-                Reports.reportNotUniqueControlledBusDisablingControl(controlledBus.getNetwork().getReportNode(), generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
+                NetworkReports.reportNotUniqueControlledBusDisablingControl(controlledBus.getNetwork().getReportNode(), generatorIds, controller.getId(),
+                        controlledBus.getId(), controlledBusGen.getId());
             } else {
                 LOGGER.warn("Generators [{}] are connected to the same bus '{}' but control the voltage of different buses: {} (kept) and {} (rejected)",
                         generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
-                Reports.reportNotUniqueControlledBusKeepingFirstControl(controlledBus.getNetwork().getReportNode(), generatorIds, controller.getId(), controlledBus.getId(), controlledBusGen.getId());
+                NetworkReports.reportNotUniqueControlledBusKeepingFirstControl(controlledBus.getNetwork().getReportNode(), generatorIds, controller.getId(),
+                        controlledBus.getId(), controlledBusGen.getId());
             }
             return false;
         }
@@ -290,12 +294,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             if (disableInconsistentControls) {
                 LOGGER.warn("Generators [{}] are connected to the same bus '{}' with different target voltages ({} and {}): disabling voltage control",
                         generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
-                Reports.reportNotUniqueTargetVControllerBusDisablingControl(controllerBus.getNetwork().getReportNode(),
+                NetworkReports.reportNotUniqueTargetVControllerBusDisablingControl(controllerBus.getNetwork().getReportNode(),
                     generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
             } else {
                 LOGGER.warn("Generators [{}] are connected to the same bus '{}' with different target voltages: {} (kept) and {} (rejected)",
                         generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
-                Reports.reportNotUniqueTargetVControllerBusKeepingFirstControl(controllerBus.getNetwork().getReportNode(),
+                NetworkReports.reportNotUniqueTargetVControllerBusKeepingFirstControl(controllerBus.getNetwork().getReportNode(),
                     generatorIds, controllerBus.getId(), previousTargetV * controlledBus.getNominalV(), targetV * controlledBus.getNominalV());
             }
             return false;
@@ -379,7 +383,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (!side.equals(generatorReactivePowerControl.getControlledSide())) {
             LOGGER.error("Controlled branch '{}' is controlled at both sides. Controlled side {} (kept) {} (rejected).",
                     generatorReactivePowerControl.getControlledBranch().getId(), generatorReactivePowerControl.getControlledSide(), side);
-            Reports.reportBranchControlledAtBothSides(generatorReactivePowerControl.getControlledBranch().getNetwork().getReportNode(),
+            NetworkReports.reportBranchControlledAtBothSides(generatorReactivePowerControl.getControlledBranch().getNetwork().getReportNode(),
                     generatorReactivePowerControl.getControlledBranch().getId(), generatorReactivePowerControl.getControlledSide().name(), side.name());
             return false;
         }
@@ -525,12 +529,12 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void addDcLine(LfNetwork lfNetwork, LfDcLine lfDcLine) {
-        boolean connectedToSameDcBus = lfDcLine.getDcBus1() == lfDcLine.getDcBus2();
+    private static void addDcBranch(LfNetwork lfNetwork, LfDcBranch lfDcBranch) {
+        boolean connectedToSameDcBus = lfDcBranch.getDcBus1() == lfDcBranch.getDcBus2();
         if (connectedToSameDcBus) {
-            LOGGER.trace("Discard dcLine '{}' because connected to same dcBus at both ends", lfDcLine.getId());
+            LOGGER.trace("Discard DC branch '{}' because connected to same DC bus at both ends", lfDcBranch.getId());
         } else {
-            lfNetwork.addDcLine(lfDcLine);
+            lfNetwork.addDcBranch(lfDcBranch);
         }
     }
 
@@ -624,34 +628,44 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
     }
 
-    private static void createDcLines(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkParameters parameters) {
+    private static void createDcBranches(LfNetwork lfNetwork, int numDcc, LoadingContext loadingContext, LfNetworkParameters parameters) {
         for (DcLine dcLine : loadingContext.dcLineSet) {
-            LfDcBus lfDcBus1 = getLfDcBus(dcLine.getDcTerminal1(), lfNetwork);
-            LfDcBus lfDcBus2 = getLfDcBus(dcLine.getDcTerminal2(), lfNetwork);
-            LfDcLineImpl lfDcLine = LfDcLineImpl.create(dcLine, lfNetwork, lfDcBus1, lfDcBus2, parameters);
-            addDcLine(lfNetwork, lfDcLine);
+            LfDcBus lfDcBus1 = getLfDcBusFromDcTerminal(dcLine.getDcTerminal1(), lfNetwork);
+            LfDcBus lfDcBus2 = getLfDcBusFromDcTerminal(dcLine.getDcTerminal2(), lfNetwork);
+            LfDcLineImpl lfDcLine = LfDcLineImpl.create(dcLine, lfNetwork, numDcc, lfDcBus1, lfDcBus2, parameters);
+            addDcBranch(lfNetwork, lfDcLine);
+        }
+
+        for (DcSwitch dcSwitch : loadingContext.dcSwitchSet) {
+            LfDcBus lfDcBus1 = getLfDcBusFromDcNode(dcSwitch.getDcNode1(), lfNetwork);
+            LfDcBus lfDcBus2 = getLfDcBusFromDcNode(dcSwitch.getDcNode2(), lfNetwork);
+            // Only add branch when the DcSwitch is closed and has
+            // distinct buses (with non-zero resistance).
+            if (!dcSwitch.isOpen() && lfDcBus1 != null && lfDcBus2 != null && lfDcBus1 != lfDcBus2) {
+                LfDcSwitchImpl lfDcSwitch = LfDcSwitchImpl.create(dcSwitch, lfNetwork, numDcc, lfDcBus1, lfDcBus2, parameters);
+                addDcBranch(lfNetwork, lfDcSwitch);
+            }
         }
     }
 
-    private static void createAcDcConverters(LfNetwork lfNetwork, LoadingContext loadingContext, LfNetworkParameters parameters,
-                                             List<AcDcConverter<?>> convertersToSetInVdcMode, double dcNominalV) {
+    private static void createAcDcConverters(LfNetwork lfNetwork, int numDcc, LoadingContext loadingContext, LfNetworkParameters parameters) {
         for (AcDcConverter<?> acDcConverter : loadingContext.acDcConverterSet) {
-            createAcDcConverter(acDcConverter, lfNetwork, parameters, convertersToSetInVdcMode.contains(acDcConverter) ? Optional.of(dcNominalV) : Optional.empty());
+            createAcDcConverter(acDcConverter, lfNetwork, numDcc, parameters);
         }
     }
 
-    private static void createAcDcConverter(AcDcConverter<?> acDcConverter, LfNetwork lfNetwork, LfNetworkParameters parameters, Optional<Double> vdcOverride) {
+    private static void createAcDcConverter(AcDcConverter<?> acDcConverter, LfNetwork lfNetwork, int numDcc, LfNetworkParameters parameters) {
 
         if (acDcConverter.getTerminal2().isPresent()) {
             throw new PowsyblException("Open Load Flow does not support AC/DC converters with two AC terminals");
         }
 
         LfBus lfBus1 = getLfBus(acDcConverter.getTerminal1(), lfNetwork, parameters.isBreakers());
-        LfDcBus lfDcBus1 = getLfDcBus(acDcConverter.getDcTerminal1(), lfNetwork);
-        LfDcBus lfDcBus2 = getLfDcBus(acDcConverter.getDcTerminal2(), lfNetwork);
+        LfDcBus lfDcBus1 = getLfDcBusFromDcTerminal(acDcConverter.getDcTerminal1(), lfNetwork);
+        LfDcBus lfDcBus2 = getLfDcBusFromDcTerminal(acDcConverter.getDcTerminal2(), lfNetwork);
         if (lfBus1 != null && lfDcBus1 != null && lfDcBus2 != null) { // The converter is fully connected
             if (acDcConverter instanceof VoltageSourceConverter voltageSourceConverter) {
-                LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, lfDcBus1, lfDcBus2, lfBus1, parameters, vdcOverride);
+                LfVoltageSourceConverterImpl voltageSourceConverterImpl = LfVoltageSourceConverterImpl.create(voltageSourceConverter, lfNetwork, numDcc, lfDcBus1, lfDcBus2, lfBus1, parameters);
 
                 if (voltageSourceConverterImpl.isVoltageRegulatorOn()) {
                     VoltageSourceConverterVoltageControl voltageControl = new VoltageSourceConverterVoltageControl(lfBus1,
@@ -714,7 +728,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     .stream()
                     .filter(e -> {
                         if (e.getKey().getAreaBoundaryStream().findAny().isEmpty()) {
-                            Reports.reportAreaNoInterchangeControlNoBoundary(network.getReportNode(), e.getKey().getId());
+                            NetworkReports.reportAreaNoInterchangeControlNoBoundary(network.getReportNode(), e.getKey().getId());
                             LOGGER.warn("Network {}: Area {} does not have any area boundary. The area will not be considered for area interchange control", network, e.getKey().getId());
                             return false;
                         }
@@ -722,7 +736,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     })
                     .filter(e -> {
                         if (e.getKey().getInterchangeTarget().isEmpty()) {
-                            Reports.reportAreaNoInterchangeControlNoInterchangeTarget(network.getReportNode(), e.getKey().getId());
+                            NetworkReports.reportAreaNoInterchangeControlNoInterchangeTarget(network.getReportNode(), e.getKey().getId());
                             LOGGER.warn("Network {}: Area {} does not have an interchange target. The area will not be considered for area interchange control", network, e.getKey().getId());
                             return false;
                         }
@@ -768,7 +782,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (connectedComponents.size() > 1 && synchronousComponents.size() > 1) {
             if (connectedComponents.get(0) == numCC && synchronousComponents.get(0) == numSC) {
                 // to avoid logging the same warn multiple times
-                Reports.reportAreaNoInterchangeControlMissingBuses(network.getReportNode(), area.getId());
+                NetworkReports.reportAreaNoInterchangeControlMissingBuses(network.getReportNode(), area.getId());
                 LOGGER.warn("Network {}: Area {} does not have all its boundary buses in the same connected component or synchronous component. " +
                     "The area will not be considered for area interchange control", network, area.getId());
             }
@@ -928,7 +942,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         if (FastMath.abs(vc.getTargetValue() - targetValue) > TARGET_V_EPSILON) {
             LOGGER.warn("Controlled bus '{}' already has a transformer voltage control with a different target voltage: {} and {}",
                 controlledBus.getId(), vc.getTargetValue(), targetValue);
-            Reports.reportTransformerControlAlreadyExistsWithDifferentTargetV(controlledBus.getNetwork().getReportNode(),
+            NetworkReports.reportTransformerControlAlreadyExistsWithDifferentTargetV(controlledBus.getNetwork().getReportNode(),
                 vc.getControllerElements().get(0).getId(), controllerBranch.getId(), controlledBus.getId(),
                 controlledBus.getNominalV() * vc.getTargetValue(), controlledBus.getNominalV() * targetValue);
         }
@@ -940,7 +954,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             double newTargetDeadband = oldTargetDeadband == null ? targetDeadband : Math.min(oldTargetDeadband, targetDeadband);
             vc.setTargetDeadband(newTargetDeadband);
             if (oldTargetDeadband == null || newTargetDeadband != oldTargetDeadband) {
-                Reports.reportTransformerControlAlreadyExistsUpdateDeadband(controlledBus.getNetwork().getReportNode(),
+                NetworkReports.reportTransformerControlAlreadyExistsUpdateDeadband(controlledBus.getNetwork().getReportNode(),
                     vc.getControllerElements().get(0).getId(), controllerBranch.getId(), controlledBus.getId(),
                     controlledBus.getNominalV() * newTargetDeadband, oldTargetDeadband == null ? null : controlledBus.getNominalV() * oldTargetDeadband);
             }
@@ -1017,7 +1031,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             // number of variables. We have only one B variable for more than one bus target V equations.
             if (!controllerShunt.getVoltageControl().orElseThrow().getControlledBus().getId().equals(controlledBus.getId())) {
                 LOGGER.error("Controller shunt {} is already in a shunt voltage control. The second controlled bus {} is ignored", controllerShunt.getId(), controlledBus.getId());
-                Reports.reportControllerShuntAlreadyInVoltageControl(controllerBus.getNetwork().getReportNode(), controllerShunt.getId(), controlledBus.getId());
+                NetworkReports.reportControllerShuntAlreadyInVoltageControl(controllerBus.getNetwork().getReportNode(), controllerShunt.getId(), controlledBus.getId());
             }
             return;
         }
@@ -1066,9 +1080,23 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
-    private static LfDcBus getLfDcBus(DcTerminal terminal, LfNetwork lfNetwork) {
+    private static LfDcBus getLfDcBusFromDcTerminal(DcTerminal terminal, LfNetwork lfNetwork) {
         DcBus dcBus = Networks.getDcBus(terminal);
         return dcBus != null ? lfNetwork.getDcBusById(dcBus.getId()) : null;
+    }
+
+    private static LfDcBus getLfDcBusFromDcNode(DcNode dcNode, LfNetwork lfNetwork) {
+        DcBus dcBus = dcNode.getDcBus();
+        return dcBus != null ? lfNetwork.getDcBusById(dcBus.getId()) : null;
+    }
+
+    /**
+     * Tells whether a DC switch belongs to a given DC component. A closed DC switch links two DC buses of the same DC
+     * component, so checking side 1 is enough.
+     */
+    private static boolean isInDcComponent(DcSwitch dcSwitch, int numDcc) {
+        DcBus dcBus = dcSwitch.getDcNode1().getDcBus();
+        return dcBus != null && dcBus.getDcComponent() != null && dcBus.getDcComponent().getNum() == numDcc;
     }
 
     /**
@@ -1091,7 +1119,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             lfNetwork = lfNetworkByCc.get(numCc);
         } else {
             lfNetwork = new LfNetwork(numCc, parameters.getSlackBusSelector(), parameters.getMaxSlackBusCount(),
-                    parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), Reports.createRootAcDcLfNetworkReportNode(reportNode, numCc));
+                    parameters.getConnectivityFactory(), parameters.getReferenceBusSelector(), NetworkReports.createRootAcDcLfNetworkReportNode(reportNode, numCc));
             lfNetworkByCc.put(numCc, lfNetwork);
         }
         createAc(lfNetwork, numSc, network, buses, switches, topoConfig, parameters, lfNetwork.getReportNode());
@@ -1178,7 +1206,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         if (report.generatorsDiscardedFromVoltageControlBecauseNotStarted > 0) {
-            ReportNode summary = Reports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reportNode, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
+            ReportNode summary = NetworkReports.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted(reportNode, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
             if (report.detailed) {
                 report.reportGeneratorsDiscardedFromVoltageControlBecauseNotStarted.forEach(summary::include);
             }
@@ -1186,7 +1214,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseNotStarted);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall > 0) {
-            ReportNode summary = Reports.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(reportNode,
+            ReportNode summary = NetworkReports.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall(reportNode,
                 report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
             if (report.detailed) {
                 report.reportGeneratorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall.forEach(summary::include);
@@ -1195,7 +1223,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseReactiveRangeIsTooSmall);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits > 0) {
-            ReportNode summary = Reports.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(reportNode,
+            ReportNode summary = NetworkReports.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits(reportNode,
                 report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
             if (report.detailed) {
                 report.reportGeneratorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits.forEach(summary::include);
@@ -1204,20 +1232,20 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseTargetPIsOutsideActiveLimits);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus > 0) {
-            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentControlledBus(reportNode,
+            NetworkReports.reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentControlledBus(reportNode,
                 report.generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because connected to the same bus but controlling the voltage of different buses",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseInconsistentControlledBus);
         }
         if (report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages > 0) {
-            Reports.reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages(reportNode,
+            NetworkReports.reportGeneratorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages(reportNode,
                 report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages);
             LOGGER.warn("Network {}: {} generators have been discarded from voltage control because connected to the same bus but having different target voltages",
                     lfNetwork, report.generatorsDiscardedFromVoltageControlBecauseInconsistentTargetVoltages);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero > 0) {
             if (report.detailed) {
-                ReportNode summary = Reports.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero(reportNode,
+                ReportNode summary = NetworkReports.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero(reportNode,
                     report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero);
                 report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero.forEach(summary::include);
             }
@@ -1225,7 +1253,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseTargetEqualsToZero);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP > 0) {
-            ReportNode summary = Reports.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(reportNode,
+            ReportNode summary = NetworkReports.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP(reportNode,
                 report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP);
             if (report.detailed) {
                 report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP.forEach(summary::include);
@@ -1234,7 +1262,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseTargetPGreaterThanMaxP);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP > 0) {
-            ReportNode summary = Reports.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP(reportNode,
+            ReportNode summary = NetworkReports.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP(reportNode,
                 report.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP);
             if (report.detailed) {
                 report.reportGeneratorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP.forEach(summary::include);
@@ -1243,7 +1271,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseTargetPLowerThanMinP);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible > 0) {
-            ReportNode summary = Reports.reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible(reportNode,
+            ReportNode summary = NetworkReports.reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible(reportNode,
                 report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
             if (report.detailed) {
                 report.reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible.forEach(summary::include);
@@ -1252,7 +1280,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                     lfNetwork, report.generatorsDiscardedFromActivePowerControlBecauseMaxPNotPlausible);
         }
         if (report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP > 0) {
-            ReportNode summary = Reports.reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP(reportNode,
+            ReportNode summary = NetworkReports.reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP(reportNode,
                 report.generatorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP);
             if (report.detailed) {
                 report.reportGeneratorsDiscardedFromActivePowerControlBecauseMaxPEqualsMinP.forEach(summary::include);
@@ -1269,7 +1297,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         if (report.generatorsDiscardedFromVoltageControlBecauseImplausibleTargetVoltage > 0) {
-            ReportNode summary = Reports.reportGeneratorsDiscardedFromVoltageControlBecauseImplausibleTargetVoltage(reportNode,
+            ReportNode summary = NetworkReports.reportGeneratorsDiscardedFromVoltageControlBecauseImplausibleTargetVoltage(reportNode,
                 report.generatorsDiscardedFromVoltageControlBecauseImplausibleTargetVoltage);
             if (report.detailed) {
                 report.reportGeneratorsDiscardedFromVoltageControlBecauseImplausibleTargetVoltage.forEach(summary::include);
@@ -1294,19 +1322,19 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
         }
 
         if (report.transformersWithInconsistentTargetVoltage > 0) {
-            Reports.reportTransformersDiscardedFromVoltageControlBecauseTargetVIsInconsistent(reportNode, report.transformersWithInconsistentTargetVoltage);
+            NetworkReports.reportTransformersDiscardedFromVoltageControlBecauseTargetVIsInconsistent(reportNode, report.transformersWithInconsistentTargetVoltage);
             LOGGER.warn("Network {}: {} transformer voltage controls have an inconsistent target voltage and have been discarded from voltage control",
                     lfNetwork, report.transformersWithInconsistentTargetVoltage);
         }
 
         if (report.shuntsWithInconsistentTargetVoltage > 0) {
-            Reports.reportShuntsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(reportNode, report.shuntsWithInconsistentTargetVoltage);
+            NetworkReports.reportShuntsDiscardedFromVoltageControlBecauseTargetVIsInconsistent(reportNode, report.shuntsWithInconsistentTargetVoltage);
             LOGGER.warn("Network {}: {} shunt voltage controls have an inconsistent target voltage and have been discarded from voltage control",
                     lfNetwork, report.shuntsWithInconsistentTargetVoltage);
         }
 
         if (report.rescaledRemoteVoltageControls > 0) {
-            Reports.reportRescaledRemoteVoltageControls(reportNode, report.rescaledRemoteVoltageControls);
+            NetworkReports.reportRescaledRemoteVoltageControls(reportNode, report.rescaledRemoteVoltageControls);
             LOGGER.warn("Network {}: {} remote voltage controls have no backup local targetV and have been rescaled",
                     lfNetwork, report.rescaledRemoteVoltageControls);
         }
@@ -1366,28 +1394,26 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
 
         List<LfDcBus> lfDcBuses = new ArrayList<>();
         createDcBuses(dcBuses, parameters, lfNetwork, lfDcBuses, loadingContext);
+        network.getDcSwitchStream()
+                .filter(dcSwitch -> isInDcComponent(dcSwitch, numDcc))
+                .forEach(loadingContext.dcSwitchSet::add);
         createDcGrounds(lfNetwork, dcGrounds);
-        createDcLines(lfNetwork, loadingContext, parameters);
+        createDcBranches(lfNetwork, numDcc, loadingContext, parameters);
 
-        // TO DO : Handle switches that have non zero resistance
-        network.getDcSwitchStream().filter(s -> !s.isOpen() && s.getR() != 0)
-                .forEach(s -> {
-                    throw new PowsyblException("DcSwitch " + s.getId() + " has non zero resistance: not handled yet in AC DC load flow (R = " + s.getR() + ")");
-                });
+        // Add AC-DC converters to the LfNetwork
+        createAcDcConverters(lfNetwork, numDcc, loadingContext, parameters);
 
         // -- Sanity checks : detecting invalid DC configuration and automatically resolving reference-less islands
         double dcNominalV = dcVoltages.iterator().next();
-        List<AcDcConverter<?>> convertersToSetInVdcMode =
-                DcComponentValidator.resolveDcComponent(dcBuses, loadingContext.acDcConverterSet, numDcc);
-        convertersToSetInVdcMode.forEach(converter -> {
+        List<LfAcDcConverter> convertersToSetInVdcMode = LfDcComponentValidator.resolve(lfNetwork, numDcc);
+        for (LfAcDcConverter converter : convertersToSetInVdcMode) {
+            converter.setControlMode(AcDcConverter.ControlMode.V_DC);
+            converter.setTargetVdc(1.); // In per-unit
             LOGGER.info("Network {}: converter '{}' automatically set to V_DC control mode (target Vdc = {} kV) " +
                             "to settle an otherwise unconstrained DC island in DC component {}",
                     lfNetwork, converter.getId(), dcNominalV, numDcc);
-            Reports.reportAutomaticVdcReferenceConverter(lfNetwork.getReportNode(), numDcc, converter.getId(), dcNominalV);
-        });
-
-        // Add AC-DC converters to the LfNetwork
-        createAcDcConverters(lfNetwork, loadingContext, parameters, convertersToSetInVdcMode, dcNominalV);
+            NetworkReports.reportAutomaticVdcReferenceConverter(lfNetwork.getReportNode(), numDcc, converter.getId(), dcNominalV);
+        }
 
         postProcessors.forEach(pp -> pp.onLfNetworkLoaded(network, lfNetwork));
     }
@@ -1737,6 +1763,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
             }
         }
 
+        // (connected component, DC component) --> all DC buses
         Map<Pair<Integer, Integer>, List<DcBus>> dcBusesByCc = new TreeMap<>();
         Iterable<DcBus> dcBuses = Networks.getDcBuses(network);
         for (DcBus dcBus : dcBuses) {
@@ -1779,7 +1806,7 @@ public class LfNetworkLoaderImpl implements LfNetworkLoader<Network> {
                         int numSc = networkKey.getRight();
                         List<Bus> scBuses = e.getValue();
                         return createAc(numCc, numSc, network, scBuses, switchesByCc.get(networkKey), topoConfig,
-                                parameters, Reports.createRootLfNetworkReportNode(reportNode, numCc, numSc));
+                                parameters, NetworkReports.createRootLfNetworkReportNode(reportNode, numCc, numSc));
                     })
                     .toList();
 
