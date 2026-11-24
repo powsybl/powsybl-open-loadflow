@@ -19,6 +19,7 @@ import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
 import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.*;
@@ -1028,7 +1029,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-        assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency("l23")));
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(SensitivityState.postContingency("l23")).getFirst().status());
 
         network.getLine("l23").getTerminal1().disconnect();
         network.getLine("l23").getTerminal2().disconnect();
@@ -1262,7 +1263,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         // because l45 is already open on base case
         assertEquals(0.1452d, result.getBranchFlow1SensitivityValue("g2", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.1452d, result.getBranchFlow1SensitivityValue("l45", "g2", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(SensitivityAnalysisResult.Status.NO_IMPACT, result.getStateStatus(SensitivityState.postContingency("l45")));
+        assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getStateComponentStatuses(SensitivityState.postContingency("l45")).getFirst().status());
     }
 
     @Test
@@ -1332,7 +1333,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
         assertEquals(0.0735, result.getBranchFlow1SensitivityValue("l13", "d1", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
-        assertEquals(SensitivityAnalysisResult.Status.NO_IMPACT, result.getStateStatus(SensitivityState.postContingency("l13")));
+        assertEquals(LoadFlowResult.ComponentResult.Status.NO_CALCULATION, result.getStateComponentStatuses(SensitivityState.postContingency("l13")).getFirst().status());
     }
 
     @Test
@@ -1347,7 +1348,7 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
         SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
-        assertEquals(SensitivityAnalysisResult.Status.FAILURE, result.getStateStatus(SensitivityState.postContingency("NHV1_NHV2_2")));
+        assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getStateComponentStatuses(SensitivityState.postContingency("NHV1_NHV2_2")).getFirst().status());
     }
 
     @Test
@@ -1564,10 +1565,10 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
         assertEquals(302.444, result.getBranchFlow1FunctionReferenceValue("NHV1_NHV2_2"), LoadFlowAssert.DELTA_POWER);
         assertEquals(0.019, result.getBranchFlow1FunctionReferenceValue("NLOAD", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
         // Contingency 'NHV1' leads to an isolated slack bus:  slack bus is relocated.
-        assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency("NHV1")));
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(SensitivityState.postContingency("NHV1")).getFirst().status());
         assertEquals(600.784, result.getBranchFlow1FunctionReferenceValue("NHV1", "NHV2_NLOAD"), LoadFlowAssert.DELTA_POWER);
         // Contingency 'NGEN' leads to the loss of a slack bus: slack bus is relocated.
-        assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency("NGEN")));
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(SensitivityState.postContingency("NGEN")).getFirst().status());
         assertEquals(302.304, result.getBranchFlow1FunctionReferenceValue("NGEN", "NHV1_NHV2_1"), LoadFlowAssert.DELTA_POWER);
         assertEquals(Double.NaN, result.getBranchFlow1FunctionReferenceValue("NGEN", "NGEN_NHV1"), LoadFlowAssert.DELTA_POWER);
     }

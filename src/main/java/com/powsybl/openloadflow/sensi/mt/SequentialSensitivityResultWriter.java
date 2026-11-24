@@ -8,7 +8,7 @@
 
 package com.powsybl.openloadflow.sensi.mt;
 
-import com.powsybl.sensitivity.SensitivityAnalysisResult;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.sensitivity.SensitivityResultWriter;
 
 import java.io.Closeable;
@@ -55,19 +55,33 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
         }
     }
 
+    @Override
+    public void writeStateStatus(int contingencyIndex, int operatorStrategyIndex,
+                                 int connectedComponentNum, int synchronousComponentNum,
+                                 LoadFlowResult.ComponentResult.Status status, String statusText) {
+        flush(); // send all previous values to the writer in case it expects ordered data
+
+        // Not called for the base case. No need to manage duplicate calls.
+        executor.execute(() -> sensitivityResultWriter.writeStateStatus(contingencyIndex, operatorStrategyIndex,
+                connectedComponentNum, synchronousComponentNum, status, statusText));
+
+    }
+
+    @Override
+    public void computationComplete() {
+        sensitivityResultWriter.computationComplete();
+    }
+
+    @Override
+    public boolean isComputationComplete() {
+        return sensitivityResultWriter.isComputationComplete();
+    }
+
     public void flush() {
         List<SensitivityRecord> records = localBatch.get();
         localBatch.set(new ArrayList<>(VALUE_BATCH_SIZE));
         executor.execute(() -> records.forEach(r ->
                 sensitivityResultWriter.writeSensitivityValue(r.factorIndex, r.contingencyIndex, r.operatorStrategyIndex, r.value, r.functionReference)));
-    }
-
-    @Override
-    public void writeStateStatus(int contingencyIndex, int operatorStrategyIndex, SensitivityAnalysisResult.Status status) {
-        flush(); // send all previous values to the writer in case it expects ordered data
-
-        // Not called for the base case. No need to manage duplicate calls.
-        executor.execute(() -> sensitivityResultWriter.writeStateStatus(contingencyIndex, operatorStrategyIndex, status));
     }
 
     @Override
