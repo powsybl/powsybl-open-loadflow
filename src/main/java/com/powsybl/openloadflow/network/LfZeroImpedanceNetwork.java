@@ -27,7 +27,7 @@ public class LfZeroImpedanceNetwork {
 
     private static final double UNDEFINED_LIMIT = 1.0e6;
     private static final double SQRT_3 = Math.sqrt(3.0);
-    private static final double ASSUMED_POWER_FACTOR = 0.95;
+    private static final double ASSUMED_POWER_FACTOR = 1.0;
 
     private final LfNetwork network;
 
