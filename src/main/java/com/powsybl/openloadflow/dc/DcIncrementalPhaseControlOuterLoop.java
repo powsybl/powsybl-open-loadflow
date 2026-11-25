@@ -18,10 +18,10 @@ import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChange;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.TransformerPhaseControl;
-import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
@@ -87,9 +87,9 @@ public class DcIncrementalPhaseControlOuterLoop
                     activePowerControlPhaseControls, activePowerControlPstsThatChangedTap);
             if (!activePowerControlPstsThatChangedTap.isEmpty()) {
                 status = OuterLoopStatus.UNSTABLE;
-                ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
-                ReportNode summary = Reports.reportActivePowerControlPstsChangedTaps(iterationReportNode, activePowerControlPstsThatChangedTap.size());
-                activePowerControlPstsThatChangedTap.forEach(change -> Reports.reportTransformerControlChangedTapsDetail(summary, change));
+                ReportNode iterationReportNode = LfReports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
+                ReportNode summary = LfReports.reportActivePowerControlPstsChangedTaps(iterationReportNode, activePowerControlPstsThatChangedTap.size());
+                activePowerControlPstsThatChangedTap.forEach(change -> LfReports.reportTransformerControlChangedTapsDetail(summary, change));
             }
         }
 

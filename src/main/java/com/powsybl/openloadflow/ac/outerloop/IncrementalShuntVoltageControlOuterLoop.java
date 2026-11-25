@@ -21,8 +21,8 @@ import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChange;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -244,9 +244,9 @@ public class IncrementalShuntVoltageControlOuterLoop extends AbstractShuntVoltag
 
         if (!adjustedControllers.isEmpty()) {
             status.setValue(OuterLoopStatus.UNSTABLE);
-            ReportNode iterationReportNode = Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
-            ReportNode summary = Reports.reportShuntVoltageControlChangedSection(iterationReportNode, adjustedControllers.size());
-            adjustedControllers.forEach(c -> Reports.reportShuntVoltageControlChangedSectionDetail(summary, c));
+            ReportNode iterationReportNode = LfReports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1);
+            ReportNode summary = LfReports.reportShuntVoltageControlChangedSection(iterationReportNode, adjustedControllers.size());
+            adjustedControllers.forEach(c -> LfReports.reportShuntVoltageControlChangedSectionDetail(summary, c));
         }
 
         return new OuterLoopResult(this, status.get());

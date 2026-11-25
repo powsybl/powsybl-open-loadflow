@@ -8,7 +8,6 @@
 package com.powsybl.openloadflow.network;
 
 import com.powsybl.iidm.network.LimitType;
-import com.powsybl.openloadflow.sa.LimitScalingManager;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.jgrapht.Graph;
 import org.jgrapht.Graphs;

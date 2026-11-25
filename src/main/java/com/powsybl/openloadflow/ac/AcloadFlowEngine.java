@@ -22,11 +22,12 @@ import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.lf.LoadFlowEngine;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfSynchronousNetwork;
+import com.powsybl.openloadflow.network.util.NetworkReports;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
-import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -84,14 +85,14 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
     private ReportNode addSolverReporterOuterLoop(AcOuterLoop outerLoop, AcSolver solver, RunningContext runningContext, ReportNode reportNode) {
         if (context.getParameters().isDetailedReport()) {
             if (context.getNetwork().getSynchronousNetworks().size() == 1) {
-                return Reports.createDetailedSolverReporterOuterLoop(reportNode,
+                return LfReports.createDetailedSolverReporterOuterLoop(reportNode,
                         solver.getName(),
                         context.getNetwork().getNumCC(),
                         context.getNetwork().getSynchronousNetworks().getFirst().getNumSC(),
                         runningContext.outerLoopTotalIterations + 1,
                         outerLoop.getName());
             } else {
-                return Reports.createDetailedSolverReporterOuterLoopConnectedComponent(reportNode,
+                return LfReports.createDetailedSolverReporterOuterLoopConnectedComponent(reportNode,
                         solver.getName(),
                         context.getNetwork().getNumCC(),
                         runningContext.outerLoopTotalIterations + 1,
@@ -102,7 +103,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
     }
 
     private void runOuterLoop(AcOuterLoop outerLoop, AcOuterLoopContext outerLoopContext, AcSolver solver, RunningContext runningContext, boolean checkUnrealistic) {
-        ReportNode olReportNode = Reports.createOuterLoopReporter(outerLoopContext.getNetwork().getReportNode(), outerLoop.getName());
+        ReportNode olReportNode = LfReports.createOuterLoopReporter(outerLoopContext.getNetwork().getReportNode(), outerLoop.getName());
 
         // for each outer loop re-run solver until stabilization
         OuterLoopResult outerLoopResult;
@@ -152,7 +153,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         }
 
         if (outerLoopResult.status() != OuterLoopStatus.STABLE) {
-            Reports.reportUnsuccessfulOuterLoop(olReportNode, outerLoopResult.status().name());
+            LfReports.reportUnsuccessfulOuterLoop(olReportNode, outerLoopResult.status().name());
         }
     }
 
@@ -182,7 +183,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
             LOGGER.error("{} buses have a voltage magnitude out of range [{}, {}]: {}",
                     busesOutOfNormalVoltageRange.size(), parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage(), busesOutOfNormalVoltageRange);
 
-            Reports.reportNewtonRaphsonBusesOutOfRealisticVoltageRange(reportNode, busesOutOfNormalVoltageRange, parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage());
+            LfReports.reportNewtonRaphsonBusesOutOfRealisticVoltageRange(reportNode, busesOutOfNormalVoltageRange, parameters.getMinRealisticVoltage(), parameters.getMaxRealisticVoltage());
         }
         return !busesOutOfNormalVoltageRange.isEmpty();
     }
@@ -227,7 +228,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
                 .anyMatch(b -> b.isGeneratorVoltageControlEnabled() && !b.isDisabled() && !b.getGeneratorVoltageControl().orElseThrow().isDisabled());
         if (!hasVoltageRegulatedBus) {
             LOGGER.info("Network must have at least one bus with generator voltage control enabled");
-            Reports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
+            NetworkReports.reportNetworkMustHaveAtLeastOneBusGeneratorVoltageControlEnabled(reportNode);
             Map<Integer, Double> nonInitializedSlackMismatch = new TreeMap<>();
             context.getNetwork().getSynchronousNetworks().forEach(lfScNetwork -> nonInitializedSlackMismatch.put(lfScNetwork.getNumSC(), Double.NaN));
             runningContext.lastSolverResult = new AcSolverResult(AcSolverStatus.SOLVER_FAILED, 0, nonInitializedSlackMismatch);
@@ -256,12 +257,12 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
 
         if (context.getParameters().isDetailedReport()) {
             if (context.getNetwork().getSynchronousNetworks().size() == 1) {
-                reportNode = Reports.createDetailedSolverReporter(reportNode,
+                reportNode = LfReports.createDetailedSolverReporter(reportNode,
                         solver.getName(),
                         context.getNetwork().getNumCC(),
                         context.getNetwork().getSynchronousNetworks().getFirst().getNumSC());
             } else {
-                reportNode = Reports.createDetailedSolverReporterConnectedComponent(reportNode,
+                reportNode = LfReports.createDetailedSolverReporterConnectedComponent(reportNode,
                         solver.getName(),
                         context.getNetwork().getNumCC());
             }
@@ -335,7 +336,7 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         }
 
         if (runningContext.outerLoopTotalIterations >= context.getParameters().getMaxOuterLoopIterations()) {
-            Reports.reportMaxOuterLoopIterations(reportNode, runningContext.outerLoopTotalIterations, true, LOGGER);
+            LfReports.reportMaxOuterLoopIterations(reportNode, runningContext.outerLoopTotalIterations, true, LOGGER);
         }
 
         final OuterLoopResult outerLoopFinalResult;
@@ -363,10 +364,10 @@ public class AcloadFlowEngine implements LoadFlowEngine<AcVariableType, AcEquati
         final String acLoadflowCompleteMessage = "AC loadflow complete on network {} (result={})";
         if (result.isSuccess()) {
             LOGGER.info(acLoadflowCompleteMessage, context.getNetwork(), result);
-            Reports.reportAcLfCompleteWithSuccess(context.getNetwork().getReportNode(), result.getSolverStatus().name(), result.getOuterLoopResult().status().name());
+            LfReports.reportAcLfCompleteWithSuccess(context.getNetwork().getReportNode(), result.getSolverStatus().name(), result.getOuterLoopResult().status().name());
         } else {
             LOGGER.error(acLoadflowCompleteMessage, context.getNetwork(), result);
-            Reports.reportAcLfCompleteWithError(context.getNetwork().getReportNode(), result.getSolverStatus().name(), result.getOuterLoopResult().status().name());
+            LfReports.reportAcLfCompleteWithError(context.getNetwork().getReportNode(), result.getSolverStatus().name(), result.getOuterLoopResult().status().name());
         }
 
         context.setResult(result);

@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
-import com.powsybl.iidm.network.util.HvdcUtils;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.Variable;
 import com.powsybl.openloadflow.equations.VariableSet;
@@ -66,15 +65,6 @@ public abstract class AbstractHvdcAcEmulationFlowEquationTerm extends AbstractEl
 
     protected static double getVscLossMultiplier(double lossFactor1, double lossFactor2) {
         return (1 - lossFactor1) * (1 - lossFactor2);
-    }
-
-    public static double getAbsActivePowerWithLosses(double pController, double lossController, double lossNonController, double r) {
-        double lineInputPower = (1 - lossController) * Math.abs(pController);
-        return (1 - lossNonController) * (lineInputPower - getHvdcLineLosses(lineInputPower, r));
-    }
-
-    protected static double getHvdcLineLosses(double lineInputPower, double r) {
-        return HvdcUtils.getHvdcLineLosses(lineInputPower, 1, r);
     }
 
     @Override
