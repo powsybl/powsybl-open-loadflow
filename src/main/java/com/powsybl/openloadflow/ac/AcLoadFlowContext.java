@@ -37,7 +37,9 @@ public class AcLoadFlowContext extends AbstractLoadFlowContext<AcVariableType, A
     @Override
     public JacobianMatrix<AcVariableType, AcEquationType> getJacobianMatrix() {
         if (jacobianMatrix == null) {
-            jacobianMatrix = new AcJacobianMatrix(getEquationSystem(), parameters.getMatrixFactory(), network);
+            jacobianMatrix = parameters.getJacobianStructure() == AcJacobianStructure.FIXED
+                    ? new AcFixedJacobianMatrix(getEquationSystem(), parameters.getMatrixFactory(), network)
+                    : new AcJacobianMatrix(getEquationSystem(), parameters.getMatrixFactory(), network);
         }
         return jacobianMatrix;
     }

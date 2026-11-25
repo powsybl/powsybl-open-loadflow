@@ -64,6 +64,8 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
 
     private boolean vectorized = vectorizedDefaultValue;
 
+    private AcJacobianStructure jacobianStructure = AcJacobianStructure.FIXED;
+
     private boolean voltageInitReport = true;
 
     public AcLoadFlowParameters() {
@@ -86,6 +88,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         this.minNominalVoltageRealisticVoltageCheck = other.minNominalVoltageRealisticVoltageCheck;
         this.fixVoltageTargets = other.fixVoltageTargets;
         this.vectorized = other.vectorized;
+        this.jacobianStructure = other.jacobianStructure;
         this.voltageInitReport = other.voltageInitReport;
     }
 
@@ -211,6 +214,15 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
         return this;
     }
 
+    public AcJacobianStructure getJacobianStructure() {
+        return jacobianStructure;
+    }
+
+    public AcLoadFlowParameters setJacobianStructure(AcJacobianStructure jacobianStructure) {
+        this.jacobianStructure = Objects.requireNonNull(jacobianStructure);
+        return this;
+    }
+
     public boolean isVoltageInitReport() {
         return voltageInitReport;
     }
@@ -240,6 +252,7 @@ public class AcLoadFlowParameters extends AbstractLoadFlowParameters<AcLoadFlowP
                 ", minNominalVoltageRealisticVoltageCheck=" + minNominalVoltageRealisticVoltageCheck +
                 ", fixVoltageTargets=" + fixVoltageTargets +
                 ", vectorized=" + vectorized +
+                ", jacobianStructure=" + jacobianStructure +
                 ", voltageInitReport=" + voltageInitReport +
                 ')';
     }
