@@ -30,6 +30,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
+import com.powsybl.openloadflow.network.impl.LfStarBus;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
@@ -278,21 +279,27 @@ public class MeasurementAggregator {
                 floored(sigmaPu, valuePu), bucket.sourceMeasurementIds()));
     }
 
-    /** A bus with no device injects nothing; that enters as a zero-valued pseudo-measurement. */
+    /**
+     * A bus with no device injects nothing; that enters as a zero-valued pseudo-measurement. The
+     * star bus of a three winding transformer is one by construction and has no IIDM bus to ask.
+     */
     private void addZeroInjections(Network network, List<LfMeasurement> aggregated) {
         if (settings.getZeroInjectionMode() == MeasurementAggregation.ZeroInjectionMode.IGNORED) {
             return;
         }
         for (LfBus lfBus : lfNetwork.getBuses()) {
-            Bus bus = settings.isBreakers()
-                    ? network.getBusBreakerView().getBus(lfBus.getId())
-                    : network.getBusView().getBus(lfBus.getId());
-            if (bus == null || devicesAt(bus) > 0) {
-                continue;
+            if (lfBus instanceof LfStarBus || hasNoDevice(network, lfBus)) {
+                addZeroInjection(lfBus, true, aggregated);
+                addZeroInjection(lfBus, false, aggregated);
             }
-            addZeroInjection(lfBus, true, aggregated);
-            addZeroInjection(lfBus, false, aggregated);
         }
+    }
+
+    private boolean hasNoDevice(Network network, LfBus lfBus) {
+        Bus bus = settings.isBreakers()
+                ? network.getBusBreakerView().getBus(lfBus.getId())
+                : network.getBusView().getBus(lfBus.getId());
+        return bus != null && devicesAt(bus) == 0;
     }
 
     private void addZeroInjection(LfBus lfBus, boolean active, List<LfMeasurement> aggregated) {

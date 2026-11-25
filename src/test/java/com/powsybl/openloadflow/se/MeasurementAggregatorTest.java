@@ -359,6 +359,20 @@ class MeasurementAggregatorTest {
     }
 
     @Test
+    void theStarBusOfAThreeWindingTransformerIsAZeroInjection() {
+        // the three legs meet at a bus LfNetwork adds and IIDM does not have
+        Network twtNetwork = ThreeWindingsTransformerNetworkFactory.create();
+
+        List<LfMeasurement> readings = aggregate(twtNetwork);
+
+        assertEquals(2, readings.size(), "every other bus of this network holds a device");
+        for (LfMeasurement reading : readings) {
+            assertEquals("3WT_BUS0", reading.element().getId());
+            assertEquals(0.0, reading.valuePu(), 1e-12);
+        }
+    }
+
+    @Test
     void aMeteredBusIsNeverTreatedAsAZeroInjection() {
         meter(network.getLoad("B2-L"), "p", Measurement.Type.ACTIVE_POWER, null, 21.7, 0.5);
 

@@ -31,7 +31,7 @@ public class MeasurementAggregation {
 
     /** How a bus known to inject nothing is handled. */
     public enum ZeroInjectionMode {
-        /** A bus with no device is treated like any other unmeasured bus. */
+        /** A bus with no device, or the star bus of a three winding transformer, is treated like any other unmeasured bus. */
         IGNORED,
         /** A zero-valued measurement with a very small standard deviation. */
         HIGH_CONFIDENCE_MEASUREMENT

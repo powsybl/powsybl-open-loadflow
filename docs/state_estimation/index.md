@@ -164,6 +164,10 @@ injection equation already holds its term and its reading is left out. A boundar
 injection in IIDM and a branch in `LfNetwork`, alone or as half of a tie line, so its reading is
 a branch flow.
 
+A bus with no device injects nothing, and by default that enters as a zero-valued reading with
+a small standard deviation. The star bus of a three winding transformer is such a bus by
+construction, and it is the one pandapower always treats this way.
+
 Two meters reading the same quantity at the same place share an equation and a row of `H`,
 and differ in what they read and how far each is trusted. `MeasurementAggregator` merges them
 by inverse variance before that point, which is what pandapower does and what keeps the two
