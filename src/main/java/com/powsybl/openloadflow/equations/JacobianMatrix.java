@@ -266,7 +266,12 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         }
     }
 
-    private LUDecomposition getLUDecomposition() {
+    /**
+     * The decomposition every solve goes through: the LU decomposition of {@link #getMatrix()}, created on the first
+     * solve and updated with the matrix. A subclass that solves on another factorisation of the same system returns
+     * it here; it takes right-hand sides and gives solutions in the numbering of the index.
+     */
+    protected LUDecomposition getLUDecomposition() {
         checkSquare();
         Matrix m = getMatrix();
         if (lu == null) {

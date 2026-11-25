@@ -559,7 +559,7 @@ class OpenLoadFlowParametersTest {
                 "useActiveLimits=true, disableVoltageControlOfGeneratorsOutsideActivePowerLimits=false, lineSearchStateVectorScalingMaxIteration=10, " +
                 "lineSearchStateVectorScalingStepFold=1.3333333333333333, maxVoltageChangeStateVectorScalingMaxDv=0.1, " +
                 "maxVoltageChangeStateVectorScalingMaxDphi=0.17453292519943295, linePerUnitMode=IMPEDANCE, useLoadModel=false, dcApproximationType=IGNORE_R, " +
-                "simulateAutomationSystems=false, acSolverType=NEWTON_RAPHSON, maxNewtonKrylovIterations=100, newtonKrylovLineSearch=false, " +
+                "simulateAutomationSystems=false, acSolverType=NEWTON_RAPHSON, acJacobianStructure=FIXED, maxNewtonKrylovIterations=100, newtonKrylovLineSearch=false, " +
                 "referenceBusSelectionMode=FIRST_SLACK, writeReferenceTerminals=true, voltageTargetPriorities=[VOLTAGE_SOURCE_CONVERTER, GENERATOR, TRANSFORMER, SHUNT], " +
                 "transformerVoltageControlUseInitialTapPosition=false, generatorVoltageControlMinNominalVoltage=-1.0, fictitiousGeneratorVoltageControlCheckMode=FORCED, " +
                 "areaInterchangeControl=false, areaInterchangeControlAreaType=ControlArea, areaInterchangePMaxMismatch=2.0, voltageRemoteControlRobustMode=true, " +
