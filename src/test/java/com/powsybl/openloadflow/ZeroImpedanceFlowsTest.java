@@ -203,6 +203,12 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         checkFlows(0.0, 0.0, l45.getTerminal1(), 0.0, 0.0, l45.getTerminal2());
     }
 
+    /**
+     * The test network contains a zero-impedance loop with three branches.
+     * The test progressively adds limits of different types, with increasingly restrictive values,
+     * to each of the three branches in sequence. After each calculation,
+     * it checks that the branch with the most restrictive limit is always the one that receives a flow.
+     */
     @Test
     void fiveBusesZeroImpedanceLineWithWeightsTest() {
         Network network = createFiveBusesWithZeroImpedanceLineNetwork();
