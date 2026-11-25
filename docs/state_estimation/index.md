@@ -23,7 +23,7 @@ behind a `StateEstimationProvider` with no change to the types below.
 
 | Here | In the API |
 |---|---|
-| `WlsParameters`, holding the tolerance and the iteration cap | an `Extension<StateEstimationParameters>` contributed by this provider, since neither setting changes what the answer means |
+| `WlsParameters`, holding the tolerance, the iteration cap and the two safeguards of the iteration | an `Extension<StateEstimationParameters>` contributed by this provider, since none of them changes what the answer means |
 | `LfMeasurement`, a reading keyed on the `AcEquationType` of what it measures | built from the IIDM measurement extensions a network already carries |
 | `WlsResult`, already shaped after `ComponentResult` and carrying `BusResult` and `BranchResult` in IIDM units | one entry in `StateEstimationResult.getComponentResults()`, with its bus and branch results merged into the network-wide lists |
 | `WlsResult.Status` and `getStatusText()` | `ComponentResult.Status` and its own status text, with the same four values so nothing is translated |
@@ -47,6 +47,35 @@ measurement Jacobian comes from a `JacobianMatrix` over that system, so the esti
 the load flow differentiate a network with the same code they interpret it with. Every
 matrix is created through the `MatrixFactory` the estimator is given, and the default is
 `SparseMatrixFactory`.
+
+## The solver
+
+`WlsStateEstimator` builds the measurement model and reports the result. The minimization
+itself sits behind `WlsSolver`, which the estimator gets from a `WlsSolverFactory`, the way
+the AC load flow gets its Newton-Raphson, Newton-Krylov or fast decoupled solver from an
+`AcSolverFactory`. `GaussNewtonFactory` is the default and the only implementation so far.
+
+A solver works on a `WlsProblem`: the readings, their weights, the unknowns, the residuals at
+the current state, and `W^(1/2) H^T` over the unknowns, which is the one matrix every
+formulation of the normal equations starts from. What a solver does with that matrix is its
+own business. `GaussNewton` hands it to a `GainFactorization`, and `LuGainFactorization` forms
+`G` and decomposes it by LU. A different factorization, such as a sparse Cholesky one working
+from the scaled Jacobian, is another `GainFactorization` given to `GaussNewtonFactory`. An
+algorithm that iterates differently, such as Levenberg-Marquardt, is another `WlsSolver`.
+
+The accuracy of an estimate is worked out with the factorization of the solver that produced
+it, through `WlsSolver.factorizeGain`, so the two never disagree about the linear algebra.
+
+Two safeguards of the iteration are settings of `WlsParameters`, with pandapower's values as
+defaults:
+
+- the first iteration leaves current magnitude readings out. The derivative of a current
+  magnitude is undefined where the current is zero, which is where a flat start puts every
+  branch without a shunt admittance. The other readings therefore have to determine the state
+  on their own, as they do for pandapower;
+- a step whose largest component exceeds 0.35, per unit or radians, is scaled down to it. The
+  direction is kept, so an iteration started far from the answer does not overshoot into
+  divergence.
 
 ## How a run can end
 
@@ -73,12 +102,10 @@ than lumped together, because they call for different things from whoever reads 
 
 ## What is not supported yet
 
-- A current magnitude reading from a flat start. The derivative of a current magnitude is
-  undefined where the current is zero, which is where a flat start puts every branch without
-  a shunt admittance, so such a run ends `FAILED` before its first iteration. Current readings
-  need a supplied starting state;
 - A branch without impedance, which includes every switch of a network loaded at breaker
-  level. The AC flow terms refuse to be built for one, and the estimator throws.
+  level. The AC flow terms refuse to be built for one, and the estimator throws;
+- A current magnitude reading on a branch that carries no current at the estimated state. Its
+  derivative is as undefined there as at a flat start, and the run ends `FAILED`.
 
 ## What the estimate comes with
 

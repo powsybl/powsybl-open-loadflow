@@ -21,14 +21,26 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.math.matrix.LUDecomposition;
+import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.SparseMatrix;
+import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.se.solver.GainFactorization;
+import com.powsybl.openloadflow.se.solver.LuGainFactorization;
+import com.powsybl.openloadflow.se.solver.WlsParameters;
+import com.powsybl.openloadflow.se.solver.WlsProblem;
+import com.powsybl.openloadflow.se.solver.WlsSolver;
+import com.powsybl.openloadflow.se.solver.WlsSolverFactory;
+import com.powsybl.openloadflow.se.solver.WlsSolverResult;
+import com.powsybl.openloadflow.se.solver.WlsSolverStatus;
 import com.powsybl.openloadflow.test.networks.ShuntNetworkFactory;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
@@ -510,16 +522,7 @@ class WlsStateEstimatorTest {
 
     @Test
     void estimatesFromCurrentReadingsAlongsidePowerOnes() {
-        List<LfMeasurement> described = new ArrayList<>(describeRedundantMeterSet());
-        for (LfBranch branch : lfNetwork.getBranches()) {
-            if (branch.getBus1() == null || branch.getBus2() == null) {
-                continue;
-            }
-            for (TwoSides side : TwoSides.values()) {
-                described.add(LfMeasurement.of(AcEquationType.branchTargetI(side), branch, 0, 0.05));
-            }
-        }
-        List<LfMeasurement> measurements = withNoiseFreeValues(described);
+        List<LfMeasurement> measurements = withNoiseFreeValues(withCurrentReadings(describeRedundantMeterSet()));
 
         WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
         estimator.init(trueV, trueAngle);
@@ -535,6 +538,103 @@ class WlsStateEstimatorTest {
                     "a noise-free current reading leaves no residual on " + current.elementId());
             assertTrue(current.value() > 0, "a current comes back in amperes, so it is positive");
         }
+    }
+
+    @Test
+    void leavesCurrentReadingsOutOfTheFirstIterationFromAFlatStart() {
+        List<LfMeasurement> measurements = withNoiseFreeValues(withCurrentReadings(describeRedundantMeterSet()));
+
+        WlsResult result = estimateFromFlat(measurements);
+
+        assertEquals(WlsResult.Status.ESTIMATED, result.getStatus(), result.getStatusText());
+        for (LfBus bus : lfNetwork.getBuses()) {
+            assertEquals(trueV[bus.getNum()] * bus.getNominalV(), busResult(result, bus.getId()).v(), 1e-6);
+        }
+    }
+
+    @Test
+    void aCurrentReadingHasNoDerivativeAtAFlatStart() {
+        List<LfMeasurement> measurements = withNoiseFreeValues(withCurrentReadings(describeRedundantMeterSet()));
+        WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
+
+        WlsResult result = estimator.estimate(new WlsParameters(WlsParameters.DEFAULT_MAX_ITERATIONS,
+                WlsParameters.DEFAULT_TOLERANCE, WlsParameters.DEFAULT_MAX_STEP, false));
+
+        assertEquals(WlsResult.Status.FAILED, result.getStatus(),
+                "which is why the first iteration leaves current readings out unless told otherwise");
+        assertTrue(result.getStatusText().contains("derivative"), result.getStatusText());
+    }
+
+    private List<LfMeasurement> withCurrentReadings(List<LfMeasurement> described) {
+        List<LfMeasurement> withCurrents = new ArrayList<>(described);
+        for (LfBranch branch : lfNetwork.getBranches()) {
+            if (branch.getBus1() != null && branch.getBus2() != null) {
+                for (TwoSides side : TwoSides.values()) {
+                    withCurrents.add(LfMeasurement.of(AcEquationType.branchTargetI(side), branch, 0, 0.05));
+                }
+            }
+        }
+        return withCurrents;
+    }
+
+    @Test
+    void scalesAStepLongerThanTheLimitDownToIt() {
+        WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork,
+                withNoiseFreeValues(describeRedundantMeterSet()));
+
+        // from a flat start the first whole step moves some angle by more than 0.05 rad
+        WlsResult result = estimator.estimate(new WlsParameters(1, WlsParameters.DEFAULT_TOLERANCE, 0.05, true));
+
+        double largestChange = 0;
+        for (LfBus bus : lfNetwork.getBuses()) {
+            WlsResult.BusResult busResult = busResult(result, bus.getId());
+            largestChange = Math.max(largestChange, Math.abs(busResult.v() / bus.getNominalV() - 1));
+            largestChange = Math.max(largestChange, Math.abs(Math.toRadians(busResult.angle())));
+        }
+        assertEquals(0.05, largestChange, 1e-12, "the largest change is brought to the limit and the rest keep their proportion");
+    }
+
+    @Test
+    void iteratesWithTheSolverItIsGiven() {
+        // a solver that calls the start the answer, which no other could be mistaken for
+        WlsSolverFactory standingStill = new WlsSolverFactory() {
+            @Override
+            public String getName() {
+                return "STANDING_STILL";
+            }
+
+            @Override
+            public WlsSolver create(WlsProblem problem, JacobianMatrix<AcVariableType, AcEquationType> jacobian,
+                                    WlsParameters parameters) {
+                return new WlsSolver() {
+                    @Override
+                    public String getName() {
+                        return "STANDING_STILL";
+                    }
+
+                    @Override
+                    public WlsSolverResult run() {
+                        return new WlsSolverResult(WlsSolverStatus.CONVERGED, "", 0);
+                    }
+
+                    @Override
+                    public GainFactorization factorizeGain(Matrix scaledJacobian) {
+                        return new LuGainFactorization(scaledJacobian);
+                    }
+                };
+            }
+        };
+        WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork,
+                withNoiseFreeValues(describeRedundantMeterSet()), new SparseMatrixFactory(), standingStill);
+
+        WlsResult result = estimator.estimate();
+
+        assertEquals(WlsResult.Status.ESTIMATED, result.getStatus());
+        assertEquals(0, result.getIterationCount());
+        LfBus bus = lfNetwork.getBuses().get(1);
+        assertEquals(bus.getNominalV(), busResult(result, bus.getId()).v(), 1e-9, "still at the flat start");
+        assertTrue(busResult(result, bus.getId()).vStandardDeviation() > 0,
+                "the accuracy is worked out with the factorization the solver supplies");
     }
 
     @Test
@@ -652,7 +752,10 @@ class WlsStateEstimatorTest {
             measurements.add(LfMeasurement.of(AcEquationType.branchTargetQ(TwoSides.ONE), branch, 5, 0.01));
         }
 
-        WlsResult result = estimateFromFlat(measurements);
+        // every step applied whole: the step limit exists to keep a run like this one from diverging
+        WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
+        WlsResult result = estimator.estimate(new WlsParameters(WlsParameters.DEFAULT_MAX_ITERATIONS,
+                WlsParameters.DEFAULT_TOLERANCE, Double.POSITIVE_INFINITY, true));
 
         assertEquals(WlsResult.Status.FAILED, result.getStatus(),
                 "a run walking away from the answer is a different outcome from one closing in slowly");
