@@ -160,7 +160,7 @@ class FictitiousGeneratorTest {
                 .setTargetP(0)
                 .setLocalTargetV(224)
                 .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
-                .setCondenser(true)
+                .setCondenserCapability(true)
                 .add();
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
