@@ -12,17 +12,17 @@ import com.powsybl.iidm.network.extensions.ActivePowerControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
-import com.powsybl.openloadflow.network.TwoBusNetworkFactory;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.TwoBusNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -92,7 +92,7 @@ class AcLoadFlowTwoBusNetworkTest {
                 .setId("bt2")
                 .setBus("b2")
                 .setTargetP(-1)
-                .setTargetQ(-0.1)
+                .setLocalTargetQ(-0.1)
                 .setMinP(-1)
                 .setMaxP(0)
                 .add();
@@ -115,7 +115,7 @@ class AcLoadFlowTwoBusNetworkTest {
                 .setId("bt2")
                 .setBus("b2")
                 .setTargetP(-1)
-                .setTargetQ(-0.1)
+                .setLocalTargetQ(-0.1)
                 .setMinP(-2)
                 .setMaxP(2)
                 .add();
@@ -142,7 +142,7 @@ class AcLoadFlowTwoBusNetworkTest {
                 .setId("bt2")
                 .setBus("b2")
                 .setTargetP(-1)
-                .setTargetQ(-0.1)
+                .setLocalTargetQ(-0.1)
                 .setMinP(-2)
                 .setMaxP(2)
                 .add();

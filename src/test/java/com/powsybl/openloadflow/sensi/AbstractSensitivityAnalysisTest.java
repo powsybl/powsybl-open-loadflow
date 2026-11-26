@@ -21,12 +21,14 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.math.matrix.DenseMatrix;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.LoadFlowAssert;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.EurostagFactory;
+import com.powsybl.openloadflow.test.networks.HvdcNetworkFactory;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -361,7 +363,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
                     case INJECTION_REACTIVE_POWER -> {
                         var g = network.getGenerator(variable.getId());
                         if (g != null) {
-                            g.setTargetQ(g.getTargetQ() + STEP_SIZE);
+                            g.setLocalTargetQ(g.getLocalTargetQ() + STEP_SIZE);
                         } else {
                             var l = network.getLoad(variable.getId());
                             if (l != null) {
@@ -371,7 +373,7 @@ public abstract class AbstractSensitivityAnalysisTest extends AbstractSerDeTest 
                     }
                     case BUS_TARGET_VOLTAGE -> {
                         var g = network.getGenerator(variable.getId());
-                        g.setTargetV(g.getTargetV() + STEP_SIZE);
+                        g.setLocalTargetV(g.getLocalTargetV() + STEP_SIZE);
                     }
                     default -> throw new UnsupportedOperationException();
                 }

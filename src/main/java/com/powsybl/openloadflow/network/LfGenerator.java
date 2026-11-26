@@ -15,7 +15,7 @@ import java.util.OptionalDouble;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection {
+public interface LfGenerator extends PropertyBag, LfReferencePriorityInjection, LfCopyable<LfGenerator, LfBus> {
 
     enum GeneratorControlType {
         OFF, REMOTE_REACTIVE_POWER, VOLTAGE, MONITORING_VOLTAGE

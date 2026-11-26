@@ -23,11 +23,14 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.json.JsonLoadFlowParameters;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.config.ExplicitAcOuterLoopConfig;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.EurostagFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,7 +45,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 import static com.powsybl.openloadflow.OpenLoadFlowParameters.*;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -145,6 +148,9 @@ class OpenLoadFlowParametersTest {
         assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxRatioMismatch(-1));
         assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxActivePowerMismatch(-1));
         assertThrows(IllegalArgumentException.class, () -> openLoadFlowParameters.setMaxReactivePowerMismatch(-1));
+        PowsyblException e = assertThrows(PowsyblException.class, () -> openLoadFlowParameters.setNetworkVariantPoolSize(0));
+        assertEquals("Network variant pool size must be strictly positive", e.getMessage());
+        assertEquals(10, openLoadFlowParameters.setNetworkVariantPoolSize(10).getNetworkVariantPoolSize());
     }
 
     @Test
@@ -210,7 +216,7 @@ class OpenLoadFlowParametersTest {
 
         // Change the nominal voltage to have a target V distant enough but still plausible (in [0.8 1.2] in Pu), so that the NR diverges
         network.getVoltageLevel("VLGEN").setNominalV(100);
-        network.getGenerator("GEN").setTargetV(120);
+        network.getGenerator("GEN").setLocalTargetV(120);
 
         LoadFlowResult result = loadFlowRunner.run(network, parameters);
         assertEquals(LoadFlowResult.ComponentResult.Status.MAX_ITERATION_REACHED, result.getComponentResults().get(0).getStatus());
@@ -245,7 +251,7 @@ class OpenLoadFlowParametersTest {
     void testPlausibleTargetVoltage() {
         LoadFlowParameters parameters = LoadFlowParameters.load();
         Network network = EurostagFactory.fix(EurostagTutorialExample1Factory.create());
-        network.getGenerator("GEN").setTargetV(30.0);
+        network.getGenerator("GEN").setLocalTargetV(30.0);
         LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
         loadFlowRunner.run(network, parameters);
         assertTrue(Double.isNaN(network.getGenerator("GEN").getRegulatingTerminal().getBusView().getBus().getV())); // no calculation
@@ -559,7 +565,7 @@ class OpenLoadFlowParametersTest {
                 "areaInterchangeControl=false, areaInterchangeControlAreaType=ControlArea, areaInterchangePMaxMismatch=2.0, voltageRemoteControlRobustMode=true, " +
                 "forceTargetQInReactiveLimits=false, disableInconsistentVoltageControls=false, extrapolateReactiveLimits=false, startWithFrozenACEmulation=false, " +
                 "generatorsWithZeroMwTargetAreNotStarted=true, incrementalShuntControlOuterLoopMaxSectionShift=3, fixVoltageTargets=false, acDcNetwork=false, " +
-                "allowNonLinearShuntZeroSection=true)",
+                "allowNonLinearShuntZeroSection=true, networkVariantPoolSize=20, networkCacheScope=null)",
                 parameters.toString());
     }
 
@@ -570,7 +576,7 @@ class OpenLoadFlowParametersTest {
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
                 .setSecondaryVoltageControl(true);
 
-        assertEquals(List.of("DistributedSlack", "AcHvdcAcEmulationLimits", "SecondaryVoltageControl", "VoltageMonitoring", "ReactiveLimits", "ShuntVoltageControl"),
+        assertEquals(List.of("DistributedSlack", "HvdcAcEmulationLimits", "AcDcConverterPowerLimits", "SecondaryVoltageControl", "VoltageMonitoring", "ReactiveLimits", "ShuntVoltageControl"),
             OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setOuterLoopNames(List.of("ReactiveLimits", "SecondaryVoltageControl"));
@@ -588,8 +594,8 @@ class OpenLoadFlowParametersTest {
         assertEquals("Ordered explicit list of outer loop names, supported outer loops are for AC : [IncrementalPhaseControl, " +
                 "DistributedSlack, IncrementalShuntVoltageControl, IncrementalTransformerVoltageControl, VoltageMonitoring, PhaseControl, " +
                 "ReactiveLimits, SecondaryVoltageControl, ShuntVoltageControl, SimpleTransformerVoltageControl, TransformerVoltageControl, " +
-                "AutomationSystem, IncrementalTransformerReactivePowerControl, AreaInterchangeControl, FreezingHvdcACEmulation], and for DC : " +
-                "[IncrementalPhaseControl, AreaInterchangeControl]",
+                "AutomationSystem, IncrementalTransformerReactivePowerControl, AreaInterchangeControl, FreezingHvdcACEmulation, HvdcAcEmulationLimits, AcDcConverterPowerLimits], " +
+                "and for DC : [IncrementalPhaseControl, AreaInterchangeControl, HvdcAcEmulationLimits]",
             OpenLoadFlowParameters.SPECIFIC_PARAMETERS.stream().filter(p -> p.getName().equals(OpenLoadFlowParameters.OUTER_LOOP_NAMES_PARAM_NAME)).findFirst().orElseThrow().getDescription());
     }
 
@@ -600,11 +606,14 @@ class OpenLoadFlowParametersTest {
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
                 .setAreaInterchangeControl(true);
 
-        assertEquals(List.of("DcHvdcAcEmulationLimits", "IncrementalPhaseControl", "AreaInterchangeControl"),
+        assertEquals(List.of("HvdcAcEmulationLimits", "IncrementalPhaseControl", "AreaInterchangeControl"),
             OpenLoadFlowParameters.createDcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getName).toList());
 
         parametersExt.setOuterLoopNames(List.of("IncrementalPhaseControl"));
         assertEquals(List.of("IncrementalPhaseControl"), OpenLoadFlowParameters.createDcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getName).toList());
+
+        parametersExt.setOuterLoopNames(List.of("IncrementalPhaseControl", "HvdcAcEmulationLimits"));
+        assertEquals(List.of("IncrementalPhaseControl", "HvdcAcEmulationLimits"), OpenLoadFlowParameters.createDcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getName).toList());
 
         parametersExt.setOuterLoopNames(List.of("IncrementalPhaseControl", "DistributedSlack"));
         PowsyblException e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createDcOuterLoops(parameters, parametersExt));
@@ -617,11 +626,11 @@ class OpenLoadFlowParametersTest {
                 .setDistributedSlack(true);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters();
 
-        assertEquals(List.of("DistributedSlack", "AcHvdcAcEmulationLimits", "VoltageMonitoring", "ReactiveLimits"),
+        assertEquals(List.of("DistributedSlack", "HvdcAcEmulationLimits", "AcDcConverterPowerLimits", "VoltageMonitoring", "ReactiveLimits"),
             OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setAreaInterchangeControl(true);
-        assertEquals(List.of("AcHvdcAcEmulationLimits", "AreaInterchangeControl", "VoltageMonitoring", "ReactiveLimits"),
+        assertEquals(List.of("HvdcAcEmulationLimits", "AcDcConverterPowerLimits", "AreaInterchangeControl", "VoltageMonitoring", "ReactiveLimits"),
             OpenLoadFlowParameters.createAcOuterLoops(parameters, parametersExt).stream().map(OuterLoop::getType).toList());
 
         parametersExt.setOuterLoopNames(List.of("DistributedSlack", "AreaInterchangeControl"));
@@ -641,7 +650,7 @@ class OpenLoadFlowParametersTest {
 
         parametersExt.setVoltageTargetPriorities(List.of("SHUNT"));
         LfNetworkParameters lfNetworkParameters = OpenLoadFlowParameters.getNetworkParameters(parameters, parametersExt, new FirstSlackBusSelector(),
-            new EvenShiloachGraphDecrementalConnectivityFactory<>(), false);
+            new DTreeGraphConnectivityFactory<>(), false);
         assertEquals(0, lfNetworkParameters.getVoltageTargetPriority(VoltageControl.Type.SHUNT)); // user-provided
         assertEquals(1, lfNetworkParameters.getVoltageTargetPriority(VoltageControl.Type.VOLTAGE_SOURCE_CONVERTER)); // filled from default
         assertEquals(2, lfNetworkParameters.getVoltageTargetPriority(VoltageControl.Type.GENERATOR)); // filled from default

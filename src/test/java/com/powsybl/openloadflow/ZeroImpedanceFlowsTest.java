@@ -9,22 +9,25 @@ package com.powsybl.openloadflow;
 
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.StaticVarCompensator.RegulationMode;
 import com.powsybl.iidm.network.extensions.StandbyAutomatonAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
-import com.powsybl.openloadflow.graph.NaiveGraphConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.AbstractLoadFlowNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertReactivePowerEquals;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.assertActivePowerEquals;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.assertReactivePowerEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -529,10 +532,12 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b3, "l23", 0.0);
         createLine(network, b3, b4, "l34", 0.01);
         createLine(network, b1, b4, "l14", 0.01);
-        network.getGenerator("g1").setRegulatingTerminal(network.getLine("l12").getTerminal2()); // remote control g1 -> b2
-        network.getGenerator("g4").setRegulatingTerminal(network.getLine("l34").getTerminal1()); // remote control g4 -> b3
+        network.getGenerator("g1").getVoltageRegulation().setTerminal(network.getLine("l12").getTerminal2(),
+                network.getGenerator("g1").getRegulatingTargetV()); // remote control g1 -> b2
+        network.getGenerator("g4").getVoltageRegulation().setTerminal(network.getLine("l34").getTerminal1(),
+                network.getGenerator("g4").getRegulatingTargetV()); // remote control g4 -> b3
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
-                new LoadFlowParameters(), new OpenLoadFlowParameters(), commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>(), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             assertTrue(lfNetwork.getBranchById("l23").isSpanningTreeEdge(LoadFlowModel.AC));
@@ -570,10 +575,12 @@ class ZeroImpedanceFlowsTest extends AbstractLoadFlowNetworkFactory {
         createLine(network, b2, b3, "l23", 0.0);
         createLine(network, b3, b4, "l34", 0.01);
         createLine(network, b1, b4, "l14", 0.01);
-        network.getGenerator("g1").setRegulatingTerminal(network.getLine("l12").getTerminal2()); // remote control g1 -> b2
-        network.getGenerator("g3").setRegulatingTerminal(network.getLine("l34").getTerminal2()); // remote control g3 -> b4
+        network.getGenerator("g1").getVoltageRegulation().setTerminal(network.getLine("l12").getTerminal2(),
+                network.getGenerator("g1").getRegulatingTargetV()); // remote control g1 -> b2
+        network.getGenerator("g3").getVoltageRegulation().setTerminal(network.getLine("l34").getTerminal2(),
+                network.getGenerator("g3").getRegulatingTargetV()); // remote control g4 -> b3
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network,
-                new LoadFlowParameters(), new OpenLoadFlowParameters(), commonTestConfig.matrixFactory(), new NaiveGraphConnectivityFactory<>(LfBus::getNum), true, false);
+                new LoadFlowParameters(), new OpenLoadFlowParameters(), commonTestConfig.matrixFactory(), new DTreeGraphConnectivityFactory<>(), true, false);
         try (LfNetworkList lfNetworks = Networks.loadWithReconnectableElements(network, new LfTopoConfig(), acParameters.getNetworkParameters(), ReportNode.NO_OP)) {
             LfNetwork lfNetwork = lfNetworks.getLargest().orElseThrow();
             assertTrue(lfNetwork.getBranchById("l23").isSpanningTreeEdge(LoadFlowModel.AC));

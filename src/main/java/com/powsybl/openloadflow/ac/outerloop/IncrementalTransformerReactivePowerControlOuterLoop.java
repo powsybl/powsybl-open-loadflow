@@ -17,12 +17,13 @@ import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
+import com.powsybl.openloadflow.lf.outerloop.DiscreteControllerChange;
 import com.powsybl.openloadflow.lf.outerloop.IncrementalContextData;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.Range;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.Pair;
@@ -136,8 +137,9 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         }
     }
 
-    private boolean adjustWithController(LfBranch controllerBranch, LfBranch controlledBranch, TwoSides controlledSide, IncrementalContextData contextData,
+    private void adjustWithController(LfBranch controllerBranch, LfBranch controlledBranch, TwoSides controlledSide, IncrementalContextData contextData,
                                          double diffQ, SensitivityContext sensitivities,
+                                         List<DiscreteControllerChange> adjustedControllerBranches,
                                          List<String> controlledBranchesWithAllItsControllersToLimit) {
         // only one transformer controls a branch
         var controllerContext = contextData.getControllersContexts().get(controllerBranch.getId());
@@ -145,17 +147,18 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
         PiModel piModel = controllerBranch.getPiModel();
         int previousTapPosition = piModel.getTapPosition();
         double deltaR1 = diffQ / sensitivity;
-        return piModel.updateTapPositionToReachNewR1(deltaR1, maxTapShift, controllerContext.getAllowedDirection()).map(direction -> {
+        piModel.updateTapPositionToReachNewR1(deltaR1, maxTapShift, controllerContext.getAllowedDirection()).ifPresent(direction -> {
             controllerContext.updateAllowedDirection(direction);
             Range<Integer> tapPositionRange = piModel.getTapPositionRange();
             LOGGER.debug("Controller branch '{}' change tap from {} to {} (full range: {})", controllerBranch.getId(),
                     previousTapPosition, piModel.getTapPosition(), tapPositionRange);
+            adjustedControllerBranches.add(DiscreteControllerChange.ofTransformer(controllerBranch, previousTapPosition, piModel.getTapPosition()));
+
             if (piModel.getTapPosition() == tapPositionRange.getMinimum()
                     || piModel.getTapPosition() == tapPositionRange.getMaximum()) {
                 controlledBranchesWithAllItsControllersToLimit.add(controlledBranch.getId());
             }
-            return direction;
-        }).isPresent();
+        });
     }
 
     @Override
@@ -178,7 +181,7 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
                 loadFlowContext.getEquationSystem(), loadFlowContext.getJacobianMatrix());
 
         // for synthetics logs
-        List<String> controlledBranchesAdjusted = new ArrayList<>();
+        List<DiscreteControllerChange> adjustedControllerBranches = new ArrayList<>();
         List<String> controlledBranchesWithAllItsControllersToLimit = new ArrayList<>();
 
         controlledBranchesOutOfDeadband.forEach(controlledBranch -> {
@@ -188,15 +191,17 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
             TwoSides controlledSide = reactivePowerControl.getControlledSide();
 
             // TODO : add case with more controllers
-            boolean adjusted = adjustWithController(controller, controlledBranch, controlledSide, contextData, diffQ, sensitivityContext, controlledBranchesWithAllItsControllersToLimit);
-            if (adjusted) {
-                controlledBranchesAdjusted.add(controlledBranch.getId());
-                status.setValue(OuterLoopStatus.UNSTABLE);
-            }
+            adjustWithController(controller, controlledBranch, controlledSide, contextData, diffQ, sensitivityContext,
+                    adjustedControllerBranches, controlledBranchesWithAllItsControllersToLimit);
+
         });
 
-        ReportNode iterationReportNode = !controlledBranchesOutOfDeadband.isEmpty() || !controlledBranchesAdjusted.isEmpty() || !controlledBranchesWithAllItsControllersToLimit.isEmpty() ?
-                Reports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1) : null;
+        if (!adjustedControllerBranches.isEmpty()) {
+            status.setValue(OuterLoopStatus.UNSTABLE);
+        }
+
+        ReportNode iterationReportNode = !controlledBranchesOutOfDeadband.isEmpty() || !adjustedControllerBranches.isEmpty() || !controlledBranchesWithAllItsControllersToLimit.isEmpty() ?
+                LfReports.createOuterLoopIterationReporter(reportNode, context.getOuterLoopTotalIterations() + 1) : null;
 
         if (!controlledBranchesOutOfDeadband.isEmpty()) {
             if (LOGGER.isInfoEnabled()) {
@@ -208,17 +213,21 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
                 LOGGER.info("{} controlled branch reactive power are outside of their target deadband, largest ones are: {}",
                         controllerBranchesOutOfDeadband.size(), largestMismatches);
             }
-            Reports.reportTransformerControlBranchesOutsideDeadband(Objects.requireNonNull(iterationReportNode), controlledBranchesOutOfDeadband.size());
+            LfReports.reportTransformerControlBranchesOutsideDeadband(Objects.requireNonNull(iterationReportNode), controlledBranchesOutOfDeadband.size());
         }
-        if (!controlledBranchesAdjusted.isEmpty()) {
+        if (!adjustedControllerBranches.isEmpty()) {
             LOGGER.info("{} controlled branch reactive power have been adjusted by changing at least one tap",
-                    controlledBranchesAdjusted.size());
-            Reports.reportTransformerControlChangedTaps(Objects.requireNonNull(iterationReportNode), controlledBranchesAdjusted.size());
+                    adjustedControllerBranches.size());
+            ReportNode summary = LfReports.reportTransformerControlChangedTaps(
+                    Objects.requireNonNull(iterationReportNode), adjustedControllerBranches.size());
+            adjustedControllerBranches.forEach(
+                    controllerDetails -> LfReports.reportTransformerControlChangedTapsDetail(summary, controllerDetails));
+
         }
         if (!controlledBranchesWithAllItsControllersToLimit.isEmpty()) {
             LOGGER.info("{} controlled branches have all its controllers to a tap limit: {}",
                     controlledBranchesWithAllItsControllersToLimit.size(), controlledBranchesWithAllItsControllersToLimit);
-            Reports.reportTransformerControlTapLimit(Objects.requireNonNull(iterationReportNode), controlledBranchesWithAllItsControllersToLimit.size());
+            LfReports.reportTransformerControlTapLimit(Objects.requireNonNull(iterationReportNode), controlledBranchesWithAllItsControllersToLimit.size());
         }
 
         return new OuterLoopResult(this, status.getValue());
@@ -238,4 +247,5 @@ public class IncrementalTransformerReactivePowerControlOuterLoop extends Abstrac
                         .orElseThrow()
                         .getTargetValue());
     }
+
 }

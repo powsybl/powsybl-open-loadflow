@@ -15,14 +15,15 @@ import com.powsybl.contingency.*;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.LoadFlowAssert;
+import com.powsybl.openloadflow.test.networks.*;
 import com.powsybl.openloadflow.util.DebugUtil;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -43,7 +44,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertActivePowerEquals;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.assertActivePowerEquals;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -2119,8 +2120,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setMinP(0.0)
                 .setMaxP(10)
                 .setTargetP(5)
-                .setTargetV(30)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(30)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         network.getTwoWindingsTransformer("T2wT").getTerminal1().disconnect();
 
@@ -2152,8 +2153,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setMinP(0.0)
                 .setMaxP(10)
                 .setTargetP(5)
-                .setTargetV(30)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(30)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         network.getTwoWindingsTransformer("T2wT").getTerminal1().disconnect();
 
@@ -2183,8 +2184,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                 .setMinP(0.0)
                 .setMaxP(10)
                 .setTargetP(5)
-                .setTargetV(30)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(30)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
         network.getTwoWindingsTransformer("T2wT").getTerminal1().disconnect();
 

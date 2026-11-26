@@ -21,12 +21,16 @@ import com.powsybl.math.matrix.DenseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
+import com.powsybl.openloadflow.lf.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.test.LoadFlowAssert;
+import com.powsybl.openloadflow.test.networks.EurostagFactory;
+import com.powsybl.openloadflow.test.networks.FourBusNetworkFactory;
+import com.powsybl.openloadflow.test.networks.MultiAreaNetworkFactory;
+import com.powsybl.openloadflow.test.networks.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.report.PowsyblOpenLoadFlowReportResourceBundle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -37,7 +41,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -280,8 +284,7 @@ class DcLoadFlowTest {
                 .setMinP(0)
                 .setMaxP(20)
                 .setTargetP(1)
-                .setTargetQ(0)
-                .setVoltageRegulatorOn(false)
+                .setLocalTargetQ(0)
                 .add();
         for (Line l : List.of(network.getLine("L13-14-1"),
                 network.getLine("L6-13-1"),
@@ -491,7 +494,10 @@ class DcLoadFlowTest {
                         Network balance: active generation=140 MW, active load=140 MW, reactive generation=0 MVar, reactive load=55 MVar
                         Angle reference bus: VL1_0
                         Slack bus: VL1_0
-                     Outer loop IncrementalPhaseControl
+                     + Outer loop IncrementalPhaseControl
+                        + Outer loop iteration 1
+                           + 1 active power control PST(s) changed taps
+                              Transformer PS1 changed tap position from 1 to 2
                      + Outer loop AreaInterchangeControl
                         + Outer loop iteration 2
                            Area A1 interchange mismatch (19.996807 MW) distributed in 1 distribution iteration(s)
@@ -531,7 +537,7 @@ class DcLoadFlowTest {
         assertFalse(result.isFullyConverged());
 
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
-        assertEquals("Outer loop failed: Failed to distribute active power mismatch", result.getComponentResults().get(0).getStatusText());
+        assertEquals("Outer loop 'AreaInterchangeControl' failed: Failed to distribute active power mismatch", result.getComponentResults().get(0).getStatusText());
     }
 
     @Test
@@ -574,6 +580,9 @@ class DcLoadFlowTest {
                             Angle reference bus: VL1_0
                             Slack bus: VL1_0
                          + Outer loop IncrementalPhaseControl
+                            + Outer loop iteration 1
+                               + 1 active power control PST(s) changed taps
+                                  Transformer PS1 changed tap position from 1 to 2
                             Outer loop unsuccessful with status: UNSTABLE
                          Maximum number of outerloop iterations reached: 1
                          DC load flow completed (solverSuccess=true, outerloopStatus=UNSTABLE)
@@ -653,7 +662,7 @@ class DcLoadFlowTest {
         assertFalse(result.isFullyConverged());
         assertEquals(1, result.getComponentResults().size());
         assertEquals(LoadFlowResult.ComponentResult.Status.FAILED, result.getComponentResults().get(0).getStatus());
-        assertEquals("Outer loop failed: Failed to distribute slack bus active power mismatch, 321.90 MW remains", result.getComponentResults().get(0).getStatusText());
+        assertEquals("Outer loop 'DistributedSlack' failed: Failed to distribute slack bus active power mismatch, 321.90 MW remains", result.getComponentResults().get(0).getStatusText());
         assertEquals(321.9, result.getComponentResults().get(0).getSlackBusResults().get(0).getActivePowerMismatch(), 0.01);
         assertEquals(0, result.getComponentResults().get(0).getDistributedActivePower(), 0.01);
         assertReportContains("Failed to distribute slack bus active power mismatch, [-+]?321\\.\\d* MW remains", reportNode);

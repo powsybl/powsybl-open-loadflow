@@ -7,12 +7,22 @@
  */
 package com.powsybl.openloadflow.network.impl;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 
 /**
+ * Base class of the AC/DC converters of a {@link LfNetwork}.
+ * <p>Usage rules for subclasses, which IIDM does not enforce:
+ * <ul>
+ *     <li>a converter in {@code DC_DROOP} control mode must have a droop curve and both {@code targetP} and
+ *     {@code targetVdc} defined, otherwise loading the network fails with a {@code PowsyblException};</li>
+ *     <li>all DC buses of a DC component share the same nominal voltage, which is the DC voltage base
+ *     (see {@link #getDcVoltageBase()}).</li>
+ * </ul>
+ *
  * @author Denis Bonnand {@literal <denis.bonnand at supergrid-institute.com>}
  */
 public abstract class AbstractLfAcDcConverter extends AbstractElement implements LfAcDcConverter {
@@ -25,7 +35,11 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected Evaluable calculatedIconv2; // in pu
 
-    protected final double targetP; // in pu
+    protected double targetP; // in pu
+
+    private final double minP; // in pu
+
+    private final double maxP; // in pu
 
     protected double pAc; // in MW
 
@@ -35,7 +49,9 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected double targetVdc; // in pu
 
-    protected final AcDcConverter.ControlMode controlMode;
+    private final AcDcConverter.ControlMode initialControlMode;
+
+    protected AcDcConverter.ControlMode controlMode;
 
     protected final LfDcBus dcBus1;
 
@@ -43,18 +59,65 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
 
     protected final LfBus bus1;
 
-    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
-        super(network);
+    private final int numDCC;
 
+    protected AbstractLfAcDcConverter(AcDcConverter<?> converter, LfNetwork network, int numDCC, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1, boolean checkActiveLimits) {
+        super(network);
+        if (checkActiveLimits && converter.getControlMode() == AcDcConverter.ControlMode.P_PCC) {
+            validateActivePowerLimits(converter);
+        }
+
+        this.numDCC = numDCC;
         this.dcBus1 = dcBus1;
         this.dcBus2 = dcBus2;
         this.bus1 = bus1;
         this.lossFactors = new LossFactors(converter.getIdleLoss(), converter.getSwitchingLoss(), converter.getResistiveLoss());
+        this.initialControlMode = converter.getControlMode();
         this.controlMode = converter.getControlMode();
         this.targetP = converter.getTargetP() / PerUnit.SB;
-        targetVdc = dcBus1.isGrounded() ? converter.getTargetVdc() / dcBus2.getNominalV() : converter.getTargetVdc() / dcBus1.getNominalV();
+        this.minP = converter.getMinP() / PerUnit.SB;
+        this.maxP = converter.getMaxP() / PerUnit.SB;
+        this.targetVdc = converter.getTargetVdc() / getDcVoltageBase();
         this.pAc = converter.getTerminal1().getP();
         this.qAc = converter.getTerminal1().getQ();
+    }
+
+    protected AbstractLfAcDcConverter(AbstractLfAcDcConverter other, LfNetwork network, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1) {
+        super(network);
+        this.numDCC = other.numDCC;
+        this.dcBus1 = dcBus1;
+        this.dcBus2 = dcBus2;
+        this.bus1 = bus1;
+        this.lossFactors = other.lossFactors;
+        this.initialControlMode = other.initialControlMode;
+        this.controlMode = other.controlMode;
+        this.targetP = other.targetP;
+        this.minP = other.minP;
+        this.maxP = other.maxP;
+        this.targetVdc = other.targetVdc;
+        this.pAc = other.pAc;
+        this.qAc = other.qAc;
+        this.disabled = other.disabled;
+    }
+
+    /**
+     * Check that the target AC power of a converter is within the allowed bounds and throws an exception otherwise.
+     *
+     * @param converter The converter being checked
+     * @throws PowsyblException if the converter's target AC power is not within its power bounds.
+     */
+    private static void validateActivePowerLimits(AcDcConverter<?> converter) {
+        if (converter.getTargetP() < converter.getMinP()) {
+            throw new PowsyblException("Converter " + converter.getId() + " targetP (" + converter.getTargetP() + ") is below its minP (" + converter.getMinP() + ")");
+        }
+        if (converter.getTargetP() > converter.getMaxP()) {
+            throw new PowsyblException("Converter " + converter.getId() + " targetP (" + converter.getTargetP() + ") is above its maxP (" + converter.getMaxP() + ")");
+        }
+    }
+
+    @Override
+    public int getNumDCC() {
+        return numDCC;
     }
 
     @Override
@@ -78,6 +141,26 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     }
 
     @Override
+    public void setTargetP(double newTargetP) {
+        if (newTargetP != targetP) {
+            targetP = newTargetP;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onAcDcConverterTargetPChange(this, newTargetP);
+            }
+        }
+    }
+
+    @Override
+    public double getMinP() {
+        return minP;
+    }
+
+    @Override
+    public double getMaxP() {
+        return maxP;
+    }
+
+    @Override
     public LossFactors getLossFactors() {
         return lossFactors;
     }
@@ -98,13 +181,44 @@ public abstract class AbstractLfAcDcConverter extends AbstractElement implements
     }
 
     @Override
+    public AcDcConverter.ControlMode getInitialControlMode() {
+        return initialControlMode;
+    }
+
+    @Override
     public AcDcConverter.ControlMode getControlMode() {
         return controlMode;
     }
 
     @Override
+    public void setControlMode(AcDcConverter.ControlMode newControlMode) {
+        if (newControlMode != controlMode) {
+            controlMode = newControlMode;
+            for (LfNetworkListener listener : network.getListeners()) {
+                listener.onAcDcConverterControlModeChange(this, newControlMode);
+            }
+        }
+    }
+
+    @Override
     public double getTargetVdc() {
         return targetVdc;
+    }
+
+    @Override
+    public void setTargetVdc(double newTargetVdc) {
+        if (newTargetVdc != targetVdc) {
+            targetVdc = newTargetVdc;
+            // This is only called when initialising the LfNetwork. At this stage, there is no LfNetworkListeners.
+            // This will need to be updated if DC network validation is used outside the LfNetwork initialisation
+            // (e.g. in security analysis)
+        }
+    }
+
+    @Override
+    public double getDcVoltageBase() {
+        // Hypothesis: all buses in the DC voltage have the same nominal DC voltage.
+        return dcBus1.getNominalV();
     }
 
     @Override

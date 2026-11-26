@@ -13,6 +13,7 @@ import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.*;
 import com.powsybl.openloadflow.lf.outerloop.AbstractAreaInterchangeControlOuterLoop;
+import com.powsybl.openloadflow.lf.outerloop.AbstractHvdcAcEmulationLimitsOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.AbstractIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoop;
 
@@ -41,7 +42,9 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
                                                      AutomationSystemOuterLoop.NAME,
                                                      IncrementalTransformerReactivePowerControlOuterLoop.NAME,
                                                      AbstractAreaInterchangeControlOuterLoop.NAME,
-                                                     FreezingHvdcACEmulationOuterloop.NAME);
+                                                     FreezingHvdcACEmulationOuterloop.NAME,
+                                                     AbstractHvdcAcEmulationLimitsOuterLoop.NAME,
+                                                     AcDcConverterPowerLimitsOuterLoop.NAME);
 
     private static Optional<AcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
         return switch (name) {
@@ -78,6 +81,8 @@ public class ExplicitAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
             case IncrementalTransformerReactivePowerControlOuterLoop.NAME -> createTransformerReactivePowerControlOuterLoop(parametersExt);
             case AbstractAreaInterchangeControlOuterLoop.NAME -> createAreaInterchangeControlOuterLoop(parameters, parametersExt, loadFlowParametersOverride);
             case FreezingHvdcACEmulationOuterloop.NAME -> createFreezingHvdcACEmulationOuterLoop(parametersExt);
+            case AbstractHvdcAcEmulationLimitsOuterLoop.NAME -> createHvdcAcEmulationLimitsOuterLoop(parameters);
+            case AcDcConverterPowerLimitsOuterLoop.NAME -> createAcDcConverterPowerLimitsOuterLoop(parametersExt);
             default -> throw new PowsyblException("Unknown outer loop '" + name + "' for AC load flow");
         };
     }

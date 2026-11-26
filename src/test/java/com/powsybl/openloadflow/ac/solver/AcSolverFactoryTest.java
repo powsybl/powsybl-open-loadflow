@@ -15,22 +15,23 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcStateVectorUtil;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.equations.TargetVector;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.network.FourBusNetworkFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.FourBusNetworkFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
@@ -82,7 +83,7 @@ class AcSolverFactoryTest {
 
         @Override
         public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
-            AcSolverUtil.initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
+            AcStateVectorUtil.initStateVector(network, equationSystem, new UniformValueVoltageInitializer());
             LOGGER.info("I am a not so advanced solver only able to return flat 1 p.u. /_ 0.0, in max iterations, leaving 34 MW slack mismatch.");
             return new AcSolverResult(AcSolverStatus.CONVERGED, parameters.maxIterations(), Collections.singletonMap(0, 0.34));
         }
@@ -137,7 +138,7 @@ class AcSolverFactoryTest {
                 parameters,
                 parametersExt,
                 commonTestConfig.matrixFactory(),
-                new EvenShiloachGraphDecrementalConnectivityFactory<>()
+                new DTreeGraphConnectivityFactory<>()
         );
         assertEquals("AcSolverMockParameters(maxIterations=12)", acLoadFlowParameters.getAcSolverParameters().toString());
 

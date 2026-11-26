@@ -18,13 +18,16 @@ import com.powsybl.openloadflow.ac.VoltageMagnitudeInitializer;
 import com.powsybl.openloadflow.ac.solver.FastDecoupledFactory;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.EurostagFactory;
+import com.powsybl.openloadflow.util.PowsyblOpenLoadFlowVersion;
 import com.powsybl.openloadflow.util.ProviderConstants;
-import com.powsybl.tools.PowsyblCoreVersion;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -52,16 +55,16 @@ class OpenLoadFlowProviderTest {
     void test() {
         LoadFlowProvider loadFlowProvider = new OpenLoadFlowProvider(commonTestConfig.matrixFactory());
         assertEquals(ProviderConstants.NAME, loadFlowProvider.getName());
-        assertEquals(new PowsyblCoreVersion().getMavenProjectVersion(), loadFlowProvider.getVersion());
+        assertEquals(new PowsyblOpenLoadFlowVersion().getMavenProjectVersion(), loadFlowProvider.getVersion());
     }
 
     @Test
     void testDcParameters() {
         Network network = Mockito.mock(Network.class);
         DcLoadFlowParameters dcParameters = OpenLoadFlowParameters.createDcParameters(network, new LoadFlowParameters().setReadSlackBus(true),
-            new OpenLoadFlowParameters(), new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), true);
+            new OpenLoadFlowParameters(), new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>(), true);
         assertEquals("DcLoadFlowParameters(networkParameters=LfNetworkParameters(slackBusSelector=NetworkSlackBusSelector, " +
-                "connectivityFactory=EvenShiloachGraphDecrementalConnectivityFactory, generatorVoltageRemoteControl=false, " +
+                "connectivityFactory=DTreeGraphConnectivityFactory, generatorVoltageRemoteControl=false, " +
                 "minImpedance=false, twtSplitShuntAdmittance=false, breakers=false, plausibleActivePowerLimit=10000.0, componentMode=MAIN_CONNECTED, " +
                 "countriesToBalance=[], distributedOnConformLoad=false, phaseControl=false, transformerVoltageControl=false, " +
                 "voltagePerReactivePowerControl=false, generatorReactivePowerRemoteControl=false, transformerReactivePowerControl=false, " +
@@ -72,7 +75,7 @@ class OpenLoadFlowProviderTest {
                 "referenceBusSelector=ReferenceBusFirstSlackSelector, voltageTargetPriorities=[VOLTAGE_SOURCE_CONVERTER, GENERATOR, TRANSFORMER, SHUNT], " +
                 "fictitiousGeneratorVoltageControlCheckMode=FORCED, areaInterchangeControl=false, areaInterchangeControlAreaType=ControlArea, " +
                 "forceTargetQInReactiveLimits=false, disableInconsistentVoltageControls=false, extrapolateReactiveLimits=false, " +
-                "generatorsWithZeroMwTargetAreNotStarted=true, isAcDcNetwork=false, detailedReport=false, includeElementsReconnectingSmallComponents=true, " +
+                "generatorsWithZeroMwTargetAreNotStarted=true, isAcDcNetwork=false, detailedReport=false, " +
                 "allowNonLinearShuntZeroSection=true), equationSystemCreationParameters=DcEquationSystemCreationParameters(updateFlows=true, " +
                 "forcePhaseControlOffAndAddAngle1Var=true, useTransformerRatio=true, dcApproximationType=IGNORE_R), matrixFactory=DenseMatrixFactory, " +
                 "distributedSlack=true, balanceType=PROPORTIONAL_TO_GENERATION_P_MAX, setVToNan=true, maxOuterLoopIterations=20)",
@@ -83,9 +86,9 @@ class OpenLoadFlowProviderTest {
     void testAcParameters() {
         Network network = Mockito.mock(Network.class);
         AcLoadFlowParameters acParameters = OpenLoadFlowParameters.createAcParameters(network, new LoadFlowParameters().setReadSlackBus(true),
-            new OpenLoadFlowParameters(), new DenseMatrixFactory(), new EvenShiloachGraphDecrementalConnectivityFactory<>(), false, false);
+            new OpenLoadFlowParameters(), new DenseMatrixFactory(), new DTreeGraphConnectivityFactory<>(), false, false);
         assertEquals("AcLoadFlowParameters(networkParameters=LfNetworkParameters(slackBusSelector=NetworkSlackBusSelector, " +
-                "connectivityFactory=EvenShiloachGraphDecrementalConnectivityFactory, generatorVoltageRemoteControl=true, " +
+                "connectivityFactory=DTreeGraphConnectivityFactory, generatorVoltageRemoteControl=true, " +
                 "minImpedance=false, twtSplitShuntAdmittance=false, breakers=false, plausibleActivePowerLimit=10000.0, " +
                 "componentMode=MAIN_CONNECTED, countriesToBalance=[], distributedOnConformLoad=false, phaseControl=false, " +
                 "transformerVoltageControl=false, voltagePerReactivePowerControl=false, generatorReactivePowerRemoteControl=false, " +
@@ -97,12 +100,12 @@ class OpenLoadFlowProviderTest {
                 "voltageTargetPriorities=[VOLTAGE_SOURCE_CONVERTER, GENERATOR, TRANSFORMER, SHUNT], fictitiousGeneratorVoltageControlCheckMode=FORCED, " +
                 "areaInterchangeControl=false, areaInterchangeControlAreaType=ControlArea, forceTargetQInReactiveLimits=false, " +
                 "disableInconsistentVoltageControls=false, extrapolateReactiveLimits=false, generatorsWithZeroMwTargetAreNotStarted=true, " +
-                "isAcDcNetwork=false, detailedReport=false, includeElementsReconnectingSmallComponents=true, allowNonLinearShuntZeroSection=true), " +
+                "isAcDcNetwork=false, detailedReport=false, allowNonLinearShuntZeroSection=true), " +
                 "equationSystemCreationParameters=AcEquationSystemCreationParameters(forceA1Var=false), acSolverParameters=NewtonRaphsonParameters(maxIterations=15, " +
                 "stoppingCriteria=DefaultNewtonRaphsonStoppingCriteria, stateVectorScalingMode=NONE, alwaysUpdateNetwork=false, " +
                 "lineSearchStateVectorScalingMaxIteration=10, lineSearchStateVectorScalingStepFold=1.3333333333333333, " +
                 "maxVoltageChangeStateVectorScalingMaxDv=0.1, maxVoltageChangeStateVectorScalingMaxDphi=0.17453292519943295), " +
-                "outerLoops=[DistributedSlackOuterLoop, AcHvdcAcEmulationLimitsOuterLoop, MonitoringVoltageOuterLoop, ReactiveLimitsOuterLoop], " +
+                "outerLoops=[DistributedSlackOuterLoop, AcHvdcAcEmulationLimitsOuterLoop, AcDcConverterPowerLimitsOuterLoop, MonitoringVoltageOuterLoop, ReactiveLimitsOuterLoop], " +
                 "maxOuterLoopIterations=20, matrixFactory=DenseMatrixFactory, voltageInitializer=UniformValueVoltageInitializer, " +
                 "asymmetrical=false, slackDistributionFailureBehavior=FAIL, solverFactory=NewtonRaphsonFactory, detailedReport=false, " +
                 "voltageRemoteControlRobustMode=true, minRealisticVoltage=0.5, maxRealisticVoltage=2.0, minNominalVoltageRealisticVoltageCheck=0.0, " +
@@ -112,7 +115,7 @@ class OpenLoadFlowProviderTest {
 
     private static VoltageInitializer getExtendedVoltageInitializer(Network network, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, CommonTestConfig commonTestConfig) {
         LfNetworkParameters networkParameters = OpenLoadFlowParameters.getNetworkParameters(parameters, parametersExt, new FirstSlackBusSelector(),
-            new EvenShiloachGraphDecrementalConnectivityFactory<>(), false);
+            new DTreeGraphConnectivityFactory<>(), false);
         return OpenLoadFlowParameters.getExtendedVoltageInitializer(parameters, parametersExt, networkParameters, commonTestConfig.matrixFactory());
     }
 
@@ -136,7 +139,7 @@ class OpenLoadFlowProviderTest {
     void specificParametersTest() {
         OpenLoadFlowProvider provider = new OpenLoadFlowProvider();
 
-        assertEquals(82, provider.getSpecificParameters().size());
+        assertEquals(84, provider.getSpecificParameters().size());
 
         LoadFlowParameters parameters = new LoadFlowParameters();
 
@@ -162,8 +165,8 @@ class OpenLoadFlowProviderTest {
         Map<String, String> map = provider.createMapFromSpecificParameters(parametersExt);
         // Null values are not serialized by the provider
         long nullValueCount = parametersExt.toMap().values().stream().filter(Objects::isNull).count();
-        assertEquals(82, map.size() + nullValueCount);
-        assertEquals(2, nullValueCount); // debugDir and outerLoopNames are nullable
+        assertEquals(84, map.size() + nullValueCount);
+        assertEquals(3, nullValueCount); // debugDir, outerLoopNames and networkCacheScope are nullable
         assertEquals(provider.getRawSpecificParameters().size(), map.size() + nullValueCount);
     }
 
@@ -179,7 +182,7 @@ class OpenLoadFlowProviderTest {
         OpenLoadFlowParameters openLoadFlowParameters = new OpenLoadFlowParameters();
         loadFlowParameters.setHvdcAcEmulation(true);
         openLoadFlowParameters.setAcSolverType(FastDecoupledFactory.NAME);
-        EvenShiloachGraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        DTreeGraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new DTreeGraphConnectivityFactory<>();
 
         PowsyblException e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createAcParameters(network, loadFlowParameters,
                 openLoadFlowParameters, commonTestConfig.matrixFactory(), connectivityFactory, false, false));

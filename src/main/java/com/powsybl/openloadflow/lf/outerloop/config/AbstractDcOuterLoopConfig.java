@@ -15,7 +15,7 @@ import com.powsybl.openloadflow.dc.DcAreaInterchangeControlOuterLoop;
 import com.powsybl.openloadflow.dc.DcHvdcAcEmulationLimitsOuterLoop;
 import com.powsybl.openloadflow.dc.DcIncrementalPhaseControlOuterLoop;
 import com.powsybl.openloadflow.dc.DcOuterLoop;
-import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.lf.util.ActivePowerDistribution;
 
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -52,7 +52,7 @@ public abstract class AbstractDcOuterLoopConfig implements DcOuterLoopConfig {
         return Optional.empty();
     }
 
-    protected static Optional<DcOuterLoop> createDcHvdcAcEmulationLimitsOuterLoop(LoadFlowParameters parameters) {
+    protected static Optional<DcOuterLoop> createHvdcAcEmulationLimitsOuterLoop(LoadFlowParameters parameters) {
         if (parameters.isHvdcAcEmulation()) {
             return Optional.of(new DcHvdcAcEmulationLimitsOuterLoop());
         }

@@ -14,23 +14,24 @@ import com.powsybl.iidm.network.extensions.GeneratorFortescueAdder;
 import com.powsybl.iidm.network.extensions.LineFortescue;
 import com.powsybl.iidm.network.extensions.LineFortescueAdder;
 import com.powsybl.iidm.network.extensions.LoadAsymmetricalAdder;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.equations.*;
 import com.powsybl.openloadflow.ac.equations.asym.*;
-import com.powsybl.openloadflow.ac.solver.AcSolverUtil;
 import com.powsybl.openloadflow.ac.solver.FastDecoupledFactory;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationTerm;
-import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
+import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.TwoBusNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,7 +40,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -92,7 +93,7 @@ public class AsymmetricalLoadFlowTest {
         LfNetwork mainNetwork = lfNetworks.get(0);
 
         EquationSystem<AcVariableType, AcEquationType> equationSystem = new AsymmetricalAcEquationSystemCreator(mainNetwork, new AcEquationSystemCreationParameters()).create();
-        AcSolverUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
+        AcStateVectorUtil.initStateVector(mainNetwork, equationSystem, new UniformValueVoltageInitializer());
 
         LfBranch branch = mainNetwork.getBranchById("B1_B2");
         assertEquals(2, equationSystem.getEquation(branch.getBus1().getNum(), AcEquationType.BUS_TARGET_IX_ZERO).get().getTerms().size());
@@ -370,7 +371,7 @@ public class AsymmetricalLoadFlowTest {
     void incompatibilityWithFastDecoupledTest() {
         parametersExt.setAcSolverType(FastDecoupledFactory.NAME);
         parametersExt.setAsymmetrical(true);
-        EvenShiloachGraphDecrementalConnectivityFactory<LfBus, LfBranch> connectivityFactory = new EvenShiloachGraphDecrementalConnectivityFactory<>();
+        DTreeGraphConnectivityFactory<LfBus, LfBranch> connectivityFactory = new DTreeGraphConnectivityFactory<>();
 
         PowsyblException e = assertThrows(PowsyblException.class, () -> OpenLoadFlowParameters.createAcParameters(network, parameters,
                 parametersExt, commonTestConfig.matrixFactory(), connectivityFactory, false, false));
@@ -415,8 +416,8 @@ public class AsymmetricalLoadFlowTest {
                 .setMinP(0.0)
                 .setMaxP(200)
                 .setTargetP(10)
-                .setTargetV(100.0)
-                .setVoltageRegulatorOn(true)
+                .setLocalTargetV(100.0)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).add()
                 .add();
 
         // Bus 2

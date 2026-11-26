@@ -14,12 +14,14 @@ import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Importers;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.openloadflow.CommonTestConfig;
-import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.network.util.VoltageInitializer;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.EurostagFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -196,10 +198,12 @@ public class VoltageMagnitudeInitializerTest {
                 .endStep()
                 .setTapPosition(0)
                 .setLoadTapChangingCapabilities(true)
-                .setRegulating(true)
-                .setTargetV(1.1 * twt49.getTerminal2().getVoltageLevel().getNominalV())
-                .setTargetDeadband(0)
-                .setRegulationTerminal(twt49.getTerminal2())
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(twt49.getTerminal2())
+                    .withTargetValue(1.1 * twt49.getTerminal2().getVoltageLevel().getNominalV())
+                    .withTargetDeadband(0)
+                    .add()
                 .add();
         networkParameters.setTransformerVoltageControl(true);
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), networkParameters).get(0);

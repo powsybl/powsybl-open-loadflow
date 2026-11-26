@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.graph;
 
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -31,15 +30,5 @@ public interface GraphModel<V, E> {
 
     V getEdgeTarget(E edge);
 
-    Set<E> getEdgesBetween(V vertex1, V vertex2);
-
-    Set<E> getEdges();
-
     Set<E> getNeighborEdgesOf(V v);
-
-    int getNeighborEdgeCountOf(V v);
-
-    Set<V> getVertices();
-
-    List<V> getNeighborVerticesOf(V v);
 }

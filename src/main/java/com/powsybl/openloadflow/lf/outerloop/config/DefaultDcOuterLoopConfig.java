@@ -29,7 +29,7 @@ public class DefaultDcOuterLoopConfig extends AbstractDcOuterLoopConfig {
     public List<DcOuterLoop> configure(LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
         List<DcOuterLoop> outerLoops = new ArrayList<>(2);
         // ac emulation
-        createDcHvdcAcEmulationLimitsOuterLoop(parameters).ifPresent(outerLoops::add);
+        createHvdcAcEmulationLimitsOuterLoop(parameters).ifPresent(outerLoops::add);
         // incremental phase control
         createIncrementalPhaseControlOuterLoop(parameters).ifPresent(outerLoops::add);
         // area interchange control

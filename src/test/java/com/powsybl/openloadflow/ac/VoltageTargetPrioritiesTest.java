@@ -9,23 +9,24 @@ package com.powsybl.openloadflow.ac;
 
 import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
-import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import com.powsybl.openloadflow.network.VoltageControl;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.EurostagFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.assertVoltageEquals;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.assertVoltageEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -54,8 +55,8 @@ class VoltageTargetPrioritiesTest {
 
         network.getTwoWindingsTransformer("NHV2_NLOAD")
                 .getRatioTapChanger()
-                .setRegulationTerminal(network.getTwoWindingsTransformer("NGEN_NHV1").getTerminal1())
-                .setTargetV(25.115);
+                .getVoltageRegulation()
+                    .setTerminal(network.getTwoWindingsTransformer("NGEN_NHV1").getTerminal1(), 25.115);
 
         loadBus.getVoltageLevel().newShuntCompensator()
                 .setId("SC")
@@ -66,10 +67,12 @@ class VoltageTargetPrioritiesTest {
                 .setBPerSection(3.25 * Math.pow(10, -3))
                 .setMaximumSectionCount(1)
                 .add()
-                .setVoltageRegulatorOn(true)
-                .setRegulatingTerminal(network.getTwoWindingsTransformer("NGEN_NHV1").getTerminal1())
-                .setTargetV(23.75)
-                .setTargetDeadband(0)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withTerminal(network.getTwoWindingsTransformer("NGEN_NHV1").getTerminal1())
+                    .withTargetValue(23.75)
+                    .withTargetDeadband(0)
+                    .add()
                 .add();
 
         parameters.setTransformerVoltageControlOn(true)

@@ -7,9 +7,11 @@
  */
 package com.powsybl.openloadflow.ac.equations;
 
+import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.openloadflow.equations.AbstractEquationSystemUpdater;
+import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.EvaluableConstants;
@@ -220,11 +222,11 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     }
 
     @Override
-    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition) {
+    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition, boolean modifiedTapImpedance) {
         // TODO :
         //  This code is not necessary with AcVectorizedEquationSystemCreator since values of closed branch terms are updated in AcBranchVector
         //  It should be removed if vectorized parameter in AcLoadFlowParameters is removed
-        if (branch.isConnectedSide1() && branch.isConnectedSide2()) { // Transformers that can change tap position should only be closed branches
+        if (modifiedTapImpedance && branch.isConnectedSide1() && branch.isConnectedSide2()) { // Transformers that can change tap position should only be closed branches
             PiModel piModel = branch.getPiModel();
             updateAcClosedBranchEquationTerm(branch.getClosedP1(), piModel);
             updateAcClosedBranchEquationTerm(branch.getClosedQ1(), piModel);
@@ -232,6 +234,7 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
             updateAcClosedBranchEquationTerm(branch.getClosedP2(), piModel);
             updateAcClosedBranchEquationTerm(branch.getClosedQ2(), piModel);
             updateAcClosedBranchEquationTerm(branch.getClosedI2(), piModel);
+            equationSystem.notifyEquationTermConstantsChange();
         }
     }
 
@@ -248,5 +251,48 @@ public class AcEquationSystemUpdater extends AbstractEquationSystemUpdater<AcVar
     @Override
     protected AcVariableType getTypeBusPhi() {
         return AcVariableType.BUS_PHI;
+    }
+
+    /**
+     * Activate the equation corresponding to the converter current control mode and deactivate the others.
+     * @param converter The converter which control mode has been changed.
+     * @param newControlMode The new control mode of the converter.
+     */
+    @Override
+    public void onAcDcConverterControlModeChange(LfAcDcConverter converter, AcDcConverter.ControlMode newControlMode) {
+        Equation<AcVariableType, AcEquationType> pPccEquation = equationSystem.getEquation(converter.getNum(), AcEquationType.AC_CONV_TARGET_P_REF).orElseThrow();
+        Equation<AcVariableType, AcEquationType> droopEquation = equationSystem.getEquation(converter.getNum(), AcEquationType.ACDC_CONV_DC_DROOP).orElseThrow();
+        Equation<AcVariableType, AcEquationType> vDcEquation = equationSystem.getEquation(converter.getNum(), AcEquationType.DC_BUS_TARGET_V_REF).orElseThrow();
+
+        activateControlModeEquation(pPccEquation, droopEquation, vDcEquation, newControlMode);
+    }
+
+    /**
+     * Activate the equation corresponding to the converter current control mode and deactivate the others.
+     * @param pPccEquation Equation to represent the converter in P_PCC mode.
+     * @param droopEquation Equation to represent the converter in DC_DROOP mode.
+     * @param vDcEquation Equation to represent the converter in V_DC mode.
+     * @param controlMode The current control mode of the converter.
+     */
+    static void activateControlModeEquation(Equation<AcVariableType, AcEquationType> pPccEquation, Equation<AcVariableType, AcEquationType> droopEquation,
+                                                   Equation<AcVariableType, AcEquationType> vDcEquation, AcDcConverter.ControlMode controlMode) {
+        switch (controlMode) {
+            case P_PCC -> {
+                pPccEquation.setActive(true);
+                droopEquation.setActive(false);
+                vDcEquation.setActive(false);
+            }
+            case DC_DROOP -> {
+                droopEquation.setActive(true);
+                pPccEquation.setActive(false);
+                vDcEquation.setActive(false);
+            }
+            case V_DC -> {
+                vDcEquation.setActive(true);
+                pPccEquation.setActive(false);
+                droopEquation.setActive(false);
+            }
+            default -> throw new IllegalStateException("Unsupported converter control mode: " + controlMode);
+        }
     }
 }

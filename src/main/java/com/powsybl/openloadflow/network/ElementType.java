@@ -16,7 +16,7 @@ public enum ElementType {
     SHUNT_COMPENSATOR,
     HVDC,
     AREA,
-    DC_LINE,
+    DC_BRANCH,
     DC_BUS,
     CONVERTER
 }

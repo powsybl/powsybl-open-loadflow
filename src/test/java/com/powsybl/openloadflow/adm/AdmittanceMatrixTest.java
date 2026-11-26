@@ -15,8 +15,8 @@ import com.powsybl.openloadflow.equations.VariableSet;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
-import com.powsybl.openloadflow.network.ShuntNetworkFactory;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.test.networks.ShuntNetworkFactory;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -60,9 +60,6 @@ class AdmittanceMatrixTest {
     void testWithShunt() {
         Network network = ShuntNetworkFactory.create();
         network.getShuntCompensator("SHUNT").setSectionCount(1);
-        for (var shunt : network.getShuntCompensators()) {
-            System.out.println(shunt.getId() + " " + shunt.getB());
-        }
         LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
         var ySystem = AdmittanceEquationSystem.create(lfNetwork, new VariableSet<>());
         try (var y = AdmittanceMatrix.create(ySystem, new DenseMatrixFactory())) {

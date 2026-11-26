@@ -8,8 +8,8 @@
 package com.powsybl.openloadflow.dc.equations;
 
 import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.openloadflow.equations.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.EvaluableConstants;
 
@@ -83,6 +83,13 @@ public class DcEquationSystemUpdater extends AbstractEquationSystemUpdater<DcVar
                 branch.setP1(EvaluableConstants.NAN);
                 branch.setP2(EvaluableConstants.NAN);
             }
+        }
+    }
+
+    @Override
+    public void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition, boolean modifiedTapImpedance) {
+        if (modifiedTapImpedance) {
+            equationSystem.notifyEquationTermConstantsChange();
         }
     }
 

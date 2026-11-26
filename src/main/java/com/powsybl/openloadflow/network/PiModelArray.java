@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.ToDoubleFunction;
+import java.util.stream.Collectors;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -246,8 +247,11 @@ public class PiModelArray implements PiModel {
         tapPositionIndex = finder.find(models, tapPositionIndex, valueGetter, positionIndexRange, maxTapShift);
 
         if (tapPositionIndex != oldPositionIndex) {
+            PiModel oldPiModel = models.get(oldPositionIndex);
+            PiModel newPiModel = models.get(tapPositionIndex);
+            boolean modifiedTapImpedance = oldPiModel.getR() != newPiModel.getR() || oldPiModel.getX() != newPiModel.getX();
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
-                listener.onTapPositionChange(branch, lowTapPosition + oldPositionIndex, lowTapPosition + tapPositionIndex);
+                listener.onTapPositionChange(branch, lowTapPosition + oldPositionIndex, lowTapPosition + tapPositionIndex, modifiedTapImpedance);
             }
 
             return Optional.of(tapPositionIndex - oldPositionIndex > 0 ? Direction.INCREASE : Direction.DECREASE);
@@ -319,8 +323,11 @@ public class PiModelArray implements PiModel {
 
         if (tapPositionIndex != oldTapPositionIndex) {
             a1 = Double.NaN;
+            PiModel oldPiModel = models.get(oldTapPositionIndex);
+            PiModel newPiModel = models.get(tapPositionIndex);
+            boolean modifiedTapImpedance = oldPiModel.getR() != newPiModel.getR() || oldPiModel.getX() != newPiModel.getX();
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
-                listener.onTapPositionChange(branch, lowTapPosition + oldTapPositionIndex, lowTapPosition + tapPositionIndex);
+                listener.onTapPositionChange(branch, lowTapPosition + oldTapPositionIndex, lowTapPosition + tapPositionIndex, modifiedTapImpedance);
             }
             return true;
         }
@@ -399,8 +406,11 @@ public class PiModelArray implements PiModel {
             r1 = Double.NaN;
             continuousR1 = Double.NaN;
             a1 = Double.NaN;
+            PiModel oldPiModel = models.get(oldTapPositionIndex);
+            PiModel newPiModel = models.get(tapPosition - lowTapPosition);
+            boolean modifiedTapImpedance = oldPiModel.getR() != newPiModel.getR() || oldPiModel.getX() != newPiModel.getX();
             for (LfNetworkListener listener : branch.getNetwork().getListeners()) {
-                listener.onTapPositionChange(branch, lowTapPosition + oldTapPositionIndex, tapPosition);
+                listener.onTapPositionChange(branch, lowTapPosition + oldTapPositionIndex, tapPosition, modifiedTapImpedance);
             }
         }
         return this;
@@ -420,4 +430,15 @@ public class PiModelArray implements PiModel {
     public Range<Integer> getTapPositionRange() {
         return Range.of(lowTapPosition, lowTapPosition + models.size() - 1);
     }
+
+    @Override
+    public PiModelArray copy() {
+        List<PiModel> modelCopies = models.stream().map(PiModel::copy).collect(Collectors.toList());
+        PiModelArray c = new PiModelArray(modelCopies, lowTapPosition, lowTapPosition + tapPositionIndex);
+        c.a1 = a1;
+        c.r1 = r1;
+        c.continuousR1 = continuousR1;
+        return c;
+    }
+
 }
