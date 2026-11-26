@@ -8,6 +8,7 @@
 package com.powsybl.openloadflow.se;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.BoundaryLine;
 import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Bus;
@@ -58,8 +59,9 @@ import java.util.stream.Collectors;
  * is the first thing to confirm about a new feed.</p>
  *
  * <p>Equipment is sorted by how {@code LfNetwork} carries it, which is not always how IIDM
- * classes it. Loads, generators, batteries, converter stations and static var compensators are
- * devices, and their readings sum into the bus injection. A shunt compensator is part of the
+ * classes it. Loads, generators, batteries, converter stations, AC/DC converters and static var
+ * compensators are devices, and their readings sum into the bus injection. Of an AC/DC converter
+ * only the AC side is read, and nothing behind it is estimated. A shunt compensator is part of the
  * network admittance, so the injection equation already holds its term and its reading is left
  * out. A boundary line is an injection in IIDM and a branch in {@code LfNetwork}, so its
  * reading is a branch flow.</p>
@@ -251,7 +253,13 @@ public class MeasurementAggregator {
             skip(Skipped.UNSUPPORTED_TYPE);
             return;
         }
-        Terminal terminal = ((Injection<?>) connectable).getTerminal();
+        Terminal terminal = terminalOf(connectable, reading.getSide());
+        if (terminal == null) {
+            LOG.warn("Ignored measurement {} on {}: no terminal at side {}",
+                    reading.getId(), connectable.getId(), reading.getSide());
+            skip(Skipped.NO_SIDE);
+            return;
+        }
         Optional<LfBus> lfBus = findBus(terminal);
         if (lfBus.isEmpty()) {
             skip(Skipped.OUTSIDE_NETWORK);
@@ -367,9 +375,13 @@ public class MeasurementAggregator {
     /**
      * Equipment whose power a bus injection accounts for. A busbar section and a ground carry
      * none, and {@code LfNetwork} holds a shunt compensator and a boundary line in the network
-     * itself.
+     * itself. IIDM does not class an AC/DC converter as an {@code Injection}, yet it injects at its
+     * AC bus like one.
      */
     private static boolean isDevice(Connectable<?> connectable) {
+        if (connectable instanceof AcDcConverter<?>) {
+            return true;
+        }
         return connectable instanceof Injection<?>
                 && !(connectable instanceof ShuntCompensator)
                 && !(connectable instanceof BoundaryLine)
@@ -379,7 +391,9 @@ public class MeasurementAggregator {
 
     /** A boundary line is an injection in IIDM and a branch in {@code LfNetwork}. */
     private static boolean isCarriedAsBranch(Connectable<?> connectable) {
-        return !(connectable instanceof Injection<?>) || connectable instanceof BoundaryLine;
+        return connectable instanceof Branch<?>
+                || connectable instanceof ThreeWindingsTransformer
+                || connectable instanceof BoundaryLine;
     }
 
     private double floored(double sigma, double value) {
@@ -454,7 +468,8 @@ public class MeasurementAggregator {
         if (connectable instanceof Branch<?> branch) {
             return branch.getTerminal(side.toTwoSides());
         }
-        return connectable.getTerminals().get(side.getNum() - 1);
+        List<? extends Terminal> terminals = connectable.getTerminals();
+        return side.getNum() <= terminals.size() ? terminals.get(side.getNum() - 1) : null;
     }
 
     /** Why a reading did not become a measurement, counted so one line can account for a whole feed. */

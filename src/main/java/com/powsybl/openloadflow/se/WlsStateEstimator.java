@@ -7,11 +7,14 @@
  */
 package com.powsybl.openloadflow.se;
 
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcStateVectorUtil;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -22,6 +25,8 @@ import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.VoltageInitializer;
 import com.powsybl.openloadflow.se.equations.MeasurementEquations;
 import com.powsybl.openloadflow.se.solver.GainFactorization;
 import com.powsybl.openloadflow.se.solver.GaussNewtonFactory;
@@ -58,6 +63,15 @@ public class WlsStateEstimator {
      */
     public static final double MINIMUM_TESTABLE_REDUNDANCY = 1e-9;
 
+    /**
+     * The smallest branch impedance the estimator accepts, per unit. A branch enters the gain
+     * matrix with its admittance squared, so below this the rest of the network no longer registers
+     * against it and the iteration diverges. A network holding such a branch is estimated by
+     * loading it with {@code LfNetworkParameters.setMinImpedance(true)} and at least this value as
+     * the low impedance threshold.
+     */
+    public static final double MINIMUM_BRANCH_IMPEDANCE = 1e-6;
+
     private final LfNetwork network;
 
     private final List<LfMeasurement> measurements;
@@ -87,6 +101,7 @@ public class WlsStateEstimator {
         this.matrixFactory = Objects.requireNonNull(matrixFactory);
         this.solverFactory = Objects.requireNonNull(solverFactory);
         this.equationSystem = new EquationSystem<>(AcEquationType.class, network);
+        checkBranchImpedances(network);
 
         List<Equation<AcVariableType, AcEquationType>> equations = new ArrayList<>(this.measurements.size());
         double[] values = new double[this.measurements.size()];
@@ -104,41 +119,32 @@ public class WlsStateEstimator {
         this.problem = new WlsProblem(network, equationSystem, equations, values, standardDeviations, matrixFactory);
     }
 
+    private static void checkBranchImpedances(LfNetwork network) {
+        for (LfBranch branch : network.getBranches()) {
+            double z = branch.getPiModel().getZ();
+            // the load flow's own cut to a minimum impedance lands within round-off of it
+            if ((branch.getBus1() != null || branch.getBus2() != null) && z < MINIMUM_BRANCH_IMPEDANCE * (1 - 1e-9)) {
+                throw new PowsyblException("Branch " + branch.getId() + " has an impedance of " + z + " per unit, below the "
+                        + MINIMUM_BRANCH_IMPEDANCE + " a state estimation can resolve. Load the network with a minimum impedance"
+                        + " (LfNetworkParameters.setMinImpedance) and a low impedance threshold of at least that");
+            }
+        }
+    }
+
     /** The measurement model, for anything that needs the equations themselves. */
     public EquationSystem<AcVariableType, AcEquationType> getEquationSystem() {
         return equationSystem;
     }
 
-    /** Starts from a flat profile: 1 pu everywhere, every angle zero. */
-    public void initFlat() {
-        double[] x = new double[equationSystem.getIndex().getRowCount()];
-        for (LfBus bus : network.getBuses()) {
-            set(x, row(bus, AcVariableType.BUS_V), 1.0);
-        }
-        equationSystem.getStateVector().set(x);
-    }
-
     /**
-     * Starts from an externally supplied state, for instance a previous estimate.
-     *
-     * @param busV           the voltage magnitude of each bus, per unit, indexed by bus number
-     * @param busAngleRadian the voltage angle of each bus, in radians, indexed by bus number
+     * Sets the state the iteration starts from, with one of the load flow's own initializers:
+     * {@code UniformValueVoltageInitializer} for a flat start, {@code PreviousValueVoltageInitializer}
+     * for the voltages the network already holds.
      */
-    public void init(double[] busV, double[] busAngleRadian) {
-        Objects.requireNonNull(busV);
-        Objects.requireNonNull(busAngleRadian);
-        double[] x = new double[equationSystem.getIndex().getRowCount()];
-        for (LfBus bus : network.getBuses()) {
-            set(x, row(bus, AcVariableType.BUS_V), busV[bus.getNum()]);
-            set(x, row(bus, AcVariableType.BUS_PHI), busAngleRadian[bus.getNum()]);
-        }
-        equationSystem.getStateVector().set(x);
-    }
-
-    private static void set(double[] x, int row, double value) {
-        if (row >= 0) {
-            x[row] = value;
-        }
+    public void init(VoltageInitializer initializer) {
+        Objects.requireNonNull(initializer);
+        initializer.prepare(network, ReportNode.NO_OP);
+        AcStateVectorUtil.initStateVector(network, equationSystem, initializer);
     }
 
     private int row(LfBus bus, AcVariableType type) {
@@ -154,12 +160,12 @@ public class WlsStateEstimator {
         return estimate(new WlsParameters());
     }
 
-    /** Starts from a flat profile unless {@link #initFlat} or {@link #init} set another start. */
+    /** Starts from a flat profile unless {@link #init} set another start. */
     public WlsResult estimate(WlsParameters parameters) {
         Objects.requireNonNull(parameters);
         gain = null;
         if (equationSystem.getStateVector().get() == null) {
-            initFlat();
+            init(new UniformValueVoltageInitializer());
         }
         if (problem.getUnknownCount() == 0) {
             return buildResult(WlsResult.Status.UNOBSERVABLE,

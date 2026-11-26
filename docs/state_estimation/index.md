@@ -36,8 +36,10 @@ behind a `StateEstimationProvider` with no change to the types below.
 
 Voltage magnitude, active and reactive injection, and active and reactive flow measurements,
 each at a bus or at one side of a branch, alongside current magnitude. Gauss-Newton
-iteration on the normal equations, from a flat start unless a state is supplied. One angle per
-synchronous component is held fixed as the reference, and it gets no column in the gain
+iteration on the normal equations, from a flat start unless another is asked for.
+`WlsStateEstimator.init` takes a `VoltageInitializer`, so the load flow's own starts apply
+unchanged: uniform values, the voltages the network already holds, or a DC load flow. One angle
+per synchronous component is held fixed as the reference, and it gets no column in the gain
 matrix. A branch open at one end still carries its own charging, and a reading at its connected
 end is modeled with the load flow's open-branch terms. One without shunt admittance carries
 nothing, so a current reading at its connected end cannot move the state and stays whole in its
@@ -104,8 +106,16 @@ than lumped together, because they call for different things from whoever reads 
 
 ## What is not supported yet
 
-- A branch without impedance, which includes every switch of a network loaded at breaker
-  level. The AC flow terms refuse to be built for one, and the estimator throws;
+- A branch without impedance as the load flow carries it, through the flow across it as an
+  unknown of its own. A branch enters the gain matrix with its admittance squared, so the
+  estimator refuses a network holding one below `WlsStateEstimator.MINIMUM_BRANCH_IMPEDANCE`,
+  1e-6 per unit, and names it. Loading the network with `LfNetworkParameters.setMinImpedance`
+  and that threshold gives such a branch the smallest impedance the estimate still resolves. On
+  the IEEE 14 bus network with one line emptied of its impedance and carrying 186 MW, that
+  recovers the voltages to 1e-7 per unit. It covers the occasional line, not a network loaded at
+  breaker level: a four substation network loaded with its eleven switches already diverged at
+  1e-7 and cost 4e-6 per unit of accuracy at 1e-6. A node-breaker network is estimated through
+  its bus view;
 - A current magnitude reading on a closed branch that carries no current at the estimated
   state. Its derivative is as undefined there as at a flat start, and the run ends `FAILED`.
 
@@ -161,7 +171,8 @@ a step later.
 
 `MeasurementAggregator` sorts equipment by how `LfNetwork` carries it, which is not always how
 IIDM classes it. A static var compensator is a generator there, so its reading sums into the bus
-injection like any other device's. A shunt compensator sits in the network admittance, so the
+injection like any other device's. So does the reading at the AC terminal of an AC/DC converter,
+which is no injection in IIDM, and nothing on its DC side is estimated. A shunt compensator sits in the network admittance, so the
 injection equation already holds its term and its reading is left out. A boundary line is an
 injection in IIDM and a branch in `LfNetwork`, alone or as half of a tie line, so its reading is
 a branch flow.

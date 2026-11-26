@@ -11,6 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Connectable;
 import com.powsybl.iidm.network.Injection;
+import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.Terminal;
 import com.powsybl.iidm.network.ThreeSides;
@@ -25,17 +26,20 @@ import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.test.networks.AcDcNetworkFactory;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -46,6 +50,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @author Šime Pavlić {@literal <sime.pavlic at kickstage.com>}
  */
 class MeasurementAggregatorTest {
+
+    /** The load flow refuses a network with AC/DC converters unless told to model them. */
+    private static final LfNetworkParameters AC_DC = new LfNetworkParameters().setAcDcNetwork(true);
 
     private Network network;
 
@@ -190,6 +197,54 @@ class MeasurementAggregatorTest {
     }
 
     @Test
+    void aBusHoldingOnlyAnAcDcConverterIsNotAZeroInjection() {
+        Network converterNetwork = AcDcNetworkFactory.createAcDcNetwork1();
+        converterNetwork.getLoad("ld5").remove();
+
+        List<LfMeasurement> readings = aggregate(converterNetwork, AC_DC);
+
+        assertTrue(readings.stream().noneMatch(m -> m.element().getId().equals("vl5_0")),
+                "the converter feeds the bus from the DC side, so nothing at it is known to be zero");
+    }
+
+    @Test
+    void anAcDcConverterIsADeviceReadAtItsAcTerminal() {
+        Network converterNetwork = AcDcNetworkFactory.createAcDcNetwork1();
+        meter(converterNetwork.getLoad("ld5"), "load", Measurement.Type.ACTIVE_POWER, null, 60, 0.5);
+
+        assertTrue(of(aggregate(converterNetwork, AC_DC), AcEquationType.BUS_TARGET_P).isEmpty(),
+                "the converter shares the bus and has no meter, so the load alone is not the injection");
+
+        meter(converterNetwork.getVoltageSourceConverter("conv45"), "converter", Measurement.Type.ACTIVE_POWER,
+                ThreeSides.ONE, -45, 0.5);
+        var reading = of(aggregate(converterNetwork, AC_DC), AcEquationType.BUS_TARGET_P).orElseThrow();
+
+        assertEquals("vl5_0", reading.element().getId());
+        assertEquals(-(60 - 45) / PerUnit.SB, reading.valuePu(), 1e-12);
+        assertEquals(Set.of("load", "converter"), Set.copyOf(reading.sourceMeasurementIds()));
+    }
+
+    @Test
+    void readingsOfALoadFlowLeadBackToItAcrossAnAcDcConverter() {
+        Network converterNetwork = AcDcNetworkFactory.createAcDcNetwork1();
+        LoadFlowParameters parameters = new LoadFlowParameters();
+        OpenLoadFlowParameters.create(parameters).setAcDcNetwork(true);
+        meterWithLoadFlowResult(converterNetwork, parameters);
+
+        LfNetwork converterLfNetwork = Networks.load(converterNetwork, AC_DC).get(0);
+        List<LfMeasurement> readings = new MeasurementAggregator(converterLfNetwork, new MeasurementAggregation()).aggregate(converterNetwork);
+        WlsResult result = new WlsStateEstimator(converterLfNetwork, readings).estimate();
+
+        assertEquals(WlsResult.Status.ESTIMATED, result.getStatus(), result.getStatusText());
+        for (WlsResult.BusResult bus : result.getBusResults()) {
+            assertEquals(converterNetwork.getBusView().getBus(bus.busId()).getV(), bus.v(), 0.4, "voltage at " + bus.busId());
+        }
+        assertEquals(0, result.getObjectiveFunctionValue(), 1e-3, "a converter reading taken with the wrong sign would not fit");
+        assertEquals(6, readings.stream().filter(m -> m.type() == AcEquationType.BUS_TARGET_P || m.type() == AcEquationType.BUS_TARGET_Q).count(),
+                "every bus has all its devices metered, the two with a converter included");
+    }
+
+    @Test
     void aBoundaryLineReadingIsABranchFlow() {
         // an injection in IIDM, a branch in LfNetwork: the bus holds a generator and the boundary line
         Network boundaryNetwork = BoundaryLineNetworkFactory.create();
@@ -245,10 +300,38 @@ class MeasurementAggregatorTest {
         assertEquals(terminal.getQ(), flow.q1(), 0.1);
     }
 
+    @Test
+    void readingsOfALoadFlowLeadBackToItAcrossALineWithoutImpedance() {
+        Network coupled = IeeeCdfNetworkFactory.create14();
+        Line line = coupled.getLine("L1-2-1");
+        line.setR(0).setX(0).setG1(0).setB1(0).setG2(0).setB2(0);
+        meterWithLoadFlowResult(coupled);
+
+        // the load flow carries such a line without an impedance, and the estimator needs the smallest one it can resolve
+        LfNetwork withMinimumImpedance = Networks.load(coupled, new LfNetworkParameters().setMinImpedance(true)
+                .setLowImpedanceThreshold(WlsStateEstimator.MINIMUM_BRANCH_IMPEDANCE)).get(0);
+        List<LfMeasurement> readings = new MeasurementAggregator(withMinimumImpedance, new MeasurementAggregation()).aggregate(coupled);
+        WlsResult result = new WlsStateEstimator(withMinimumImpedance, readings).estimate();
+
+        assertEquals(WlsResult.Status.ESTIMATED, result.getStatus(), result.getStatusText());
+        for (WlsResult.BusResult bus : result.getBusResults()) {
+            assertEquals(coupled.getBusView().getBus(bus.busId()).getV(), bus.v(), 1e-3, "voltage at " + bus.busId());
+        }
+        WlsResult.BranchResult flow = result.getBranchResults().stream()
+                .filter(branch -> branch.branchId().equals("L1-2-1")).findFirst().orElseThrow();
+        assertEquals(line.getTerminal1().getP(), flow.p1(), 1e-2);
+        assertEquals(line.getTerminal1().getQ(), flow.q1(), 1e-2);
+        assertTrue(Math.abs(flow.p1()) > 100, "the line carries real power, so the check is not one of zero against zero");
+    }
+
     /** Puts a meter on every terminal reading what a load flow found there, so the readings agree with one another. */
     private static void meterWithLoadFlowResult(Network metered) {
+        meterWithLoadFlowResult(metered, new LoadFlowParameters());
+    }
+
+    private static void meterWithLoadFlowResult(Network metered, LoadFlowParameters parameters) {
         LoadFlow.Runner runner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
-        assertTrue(runner.run(metered, new LoadFlowParameters()).isFullyConverged());
+        assertTrue(runner.run(metered, parameters).isFullyConverged());
         int count = 0;
         for (Connectable<?> connectable : metered.getConnectables()) {
             List<? extends Terminal> terminals = connectable.getTerminals();
@@ -265,7 +348,11 @@ class MeasurementAggregatorTest {
     }
 
     private static List<LfMeasurement> aggregate(Network other) {
-        LfNetwork otherLfNetwork = Networks.load(other, new LfNetworkParameters()).get(0);
+        return aggregate(other, new LfNetworkParameters());
+    }
+
+    private static List<LfMeasurement> aggregate(Network other, LfNetworkParameters parameters) {
+        LfNetwork otherLfNetwork = Networks.load(other, parameters).get(0);
         return new MeasurementAggregator(otherLfNetwork, new MeasurementAggregation()).aggregate(other);
     }
 

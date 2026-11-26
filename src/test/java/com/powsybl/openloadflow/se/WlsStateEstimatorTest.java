@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.se;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
@@ -27,12 +28,17 @@ import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
+import com.powsybl.openloadflow.dc.DcValueVoltageInitializer;
+import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.equations.JacobianMatrix;
 import com.powsybl.openloadflow.network.FirstSlackBusSelector;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
+import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.network.util.PreviousValueVoltageInitializer;
+import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.se.solver.GainFactorization;
 import com.powsybl.openloadflow.se.solver.LuGainFactorization;
 import com.powsybl.openloadflow.se.solver.WlsParameters;
@@ -100,7 +106,7 @@ class WlsStateEstimatorTest {
         List<LfMeasurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
 
         WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
-        estimator.initFlat();
+        estimator.init(new UniformValueVoltageInitializer());
         WlsResult result = estimator.estimate();
 
         assertTrue(result.isConverged(), "the estimate must converge from a flat start");
@@ -123,7 +129,7 @@ class WlsStateEstimatorTest {
         List<LfMeasurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
 
         WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
-        estimator.initFlat();
+        estimator.init(new UniformValueVoltageInitializer());
         WlsResult result = estimator.estimate();
 
         long connectedBranches = lfNetwork.getBranches().stream()
@@ -144,7 +150,7 @@ class WlsStateEstimatorTest {
         List<LfMeasurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
 
         WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
-        estimator.initFlat();
+        estimator.init(new UniformValueVoltageInitializer());
         WlsResult result = estimator.estimate();
 
         assertEquals(WlsResult.Status.ESTIMATED, result.getStatus());
@@ -170,7 +176,7 @@ class WlsStateEstimatorTest {
         List<LfMeasurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
 
         WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
-        estimator.init(trueV, trueAngle);
+        estimator.init(new PreviousValueVoltageInitializer());
         WlsResult result = estimator.estimate();
 
         assertTrue(result.isConverged());
@@ -187,7 +193,7 @@ class WlsStateEstimatorTest {
         measurements.add(LfMeasurement.of(AcEquationType.BUS_TARGET_V, bus, trueV[bus.getNum()] + 0.05, 0.01));
 
         WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
-        estimator.initFlat();
+        estimator.init(new UniformValueVoltageInitializer());
         WlsResult result = estimator.estimate();
 
         assertTrue(result.isConverged());
@@ -225,20 +231,13 @@ class WlsStateEstimatorTest {
                 .findFirst()
                 .orElseThrow();
 
-        double[] v = new double[lf.getBuses().size()];
-        double[] angle = new double[lf.getBuses().size()];
-        for (LfBus bus : lf.getBuses()) {
-            v[bus.getNum()] = bus.getV();
-            angle[bus.getNum()] = bus.getAngle();
-        }
-
         // the bus carries a shunt and a line and nothing else, so its device injection is
         // zero: the line flow and the shunt must cancel on both axes
         List<LfMeasurement> injections = List.of(
                 LfMeasurement.of(AcEquationType.BUS_TARGET_P, shuntBus, 0, 0.01),
                 LfMeasurement.of(AcEquationType.BUS_TARGET_Q, shuntBus, 0, 0.01));
         WlsStateEstimator probe = new WlsStateEstimator(lf, injections);
-        probe.init(v, angle);
+        probe.init(new PreviousValueVoltageInitializer());
         double[] predicted = probe.evaluate();
 
         assertEquals(0, predicted[0], 1e-9, "active injection at a bus carrying only a shunt and a line");
@@ -274,7 +273,7 @@ class WlsStateEstimatorTest {
      */
     private List<LfMeasurement> withNoiseFreeValues(List<LfMeasurement> described) {
         WlsStateEstimator probe = new WlsStateEstimator(lfNetwork, described);
-        probe.init(trueV, trueAngle);
+        probe.init(new PreviousValueVoltageInitializer());
         double[] exact = probe.evaluate();
 
         List<LfMeasurement> measurements = new ArrayList<>(described.size());
@@ -394,11 +393,11 @@ class WlsStateEstimatorTest {
         List<LfMeasurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
 
         WlsStateEstimator sparse = new WlsStateEstimator(lfNetwork, measurements);
-        sparse.initFlat();
+        sparse.init(new UniformValueVoltageInitializer());
         WlsResult sparseResult = sparse.estimate();
 
         WlsStateEstimator dense = new WlsStateEstimator(lfNetwork, measurements, new DenseMatrixFactory());
-        dense.initFlat();
+        dense.init(new UniformValueVoltageInitializer());
         WlsResult denseResult = dense.estimate();
 
         assertInstanceOf(SparseMatrix.class, sparse.getGainMatrix(),
@@ -420,7 +419,7 @@ class WlsStateEstimatorTest {
     void reportsBusAccuraciesThatMatchTheInverseOfTheGainMatrix() {
         WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork,
                 withNoiseFreeValues(describeRedundantMeterSet()));
-        estimator.initFlat();
+        estimator.init(new UniformValueVoltageInitializer());
         WlsResult result = estimator.estimate();
 
         // invert the gain matrix the long way round, as a check on accuracies the estimator derives
@@ -474,7 +473,7 @@ class WlsStateEstimatorTest {
 
     private WlsResult estimateFromFlat(List<LfMeasurement> measurements) {
         WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
-        estimator.initFlat();
+        estimator.init(new UniformValueVoltageInitializer());
         return estimator.estimate();
     }
 
@@ -529,7 +528,7 @@ class WlsStateEstimatorTest {
         List<LfMeasurement> measurements = withNoiseFreeValues(withCurrentReadings(describeRedundantMeterSet()));
 
         WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
-        estimator.init(trueV, trueAngle);
+        estimator.init(new PreviousValueVoltageInitializer());
         WlsResult result = estimator.estimate();
 
         assertEquals(WlsResult.Status.ESTIMATED, result.getStatus());
@@ -709,6 +708,35 @@ class WlsStateEstimatorTest {
     }
 
     @Test
+    void startsFromADcLoadFlowWhenGivenThatInitializer() {
+        List<LfMeasurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
+        WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements);
+
+        estimator.init(new DcValueVoltageInitializer(new LfNetworkParameters(), false,
+                LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX, true, DcApproximationType.IGNORE_R,
+                new DenseMatrixFactory(), 1));
+        WlsResult result = estimator.estimate();
+
+        assertEquals(WlsResult.Status.ESTIMATED, result.getStatus(), result.getStatusText());
+        for (LfBus bus : lfNetwork.getBuses()) {
+            assertEquals(trueV[bus.getNum()] * bus.getNominalV(), busResult(result, bus.getId()).v(), 1e-6);
+        }
+    }
+
+    @Test
+    void refusesABranchWhoseImpedanceItCannotResolve() {
+        Network network = IeeeCdfNetworkFactory.create14();
+        network.getLine("L1-2-1").setR(0).setX(0);
+        solveAndLoad(network);
+        List<LfMeasurement> measurements = describeRedundantMeterSet();
+
+        PowsyblException refused = assertThrows(PowsyblException.class, () -> new WlsStateEstimator(lfNetwork, measurements));
+
+        assertTrue(refused.getMessage().contains("L1-2-1"), refused.getMessage());
+        assertTrue(refused.getMessage().contains("setMinImpedance"), "the message says how the network can be estimated");
+    }
+
+    @Test
     void readsTheLiveEndOfABranchOpenAtTheOther() {
         Network network = IeeeCdfNetworkFactory.create14();
         Line line = network.getLine("L1-2-1");
@@ -718,18 +746,12 @@ class WlsStateEstimatorTest {
 
         LfNetwork lf = Networks.load(network, new FirstSlackBusSelector()).get(0);
         LfBranch halfOpen = lf.getBranchById("L1-2-1");
-        double[] v = new double[lf.getBuses().size()];
-        double[] angle = new double[lf.getBuses().size()];
-        for (LfBus bus : lf.getBuses()) {
-            v[bus.getNum()] = bus.getV();
-            angle[bus.getNum()] = bus.getAngle();
-        }
 
         // the line still charges from the end that is connected, and a meter there reads it
         WlsStateEstimator probe = new WlsStateEstimator(lf, List.of(
                 LfMeasurement.of(AcEquationType.BRANCH_TARGET_P1, halfOpen, 0, 0.01),
                 LfMeasurement.of(AcEquationType.BRANCH_TARGET_Q1, halfOpen, 0, 0.01)));
-        probe.init(v, angle);
+        probe.init(new PreviousValueVoltageInitializer());
         double[] predicted = probe.evaluate();
 
         assertEquals(line.getTerminal1().getP() / PerUnit.SB, predicted[0], 1e-6);
@@ -834,7 +856,7 @@ class WlsStateEstimatorTest {
     void stopsAtTheIterationCapWithoutCallingItAFailure() {
         WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork,
                 withNoiseFreeValues(describeRedundantMeterSet()));
-        estimator.initFlat();
+        estimator.init(new UniformValueVoltageInitializer());
 
         WlsResult result = estimator.estimate(new WlsParameters(1, 1e-6));
 
@@ -855,7 +877,7 @@ class WlsStateEstimatorTest {
         // a dense decomposition is only carried out on the first solve, so the singular gain
         // matrix surfaces somewhere else than with a sparse one, and must end the same way
         WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, measurements, new DenseMatrixFactory());
-        estimator.initFlat();
+        estimator.init(new UniformValueVoltageInitializer());
         WlsResult result = estimator.estimate();
 
         assertEquals(WlsResult.Status.UNOBSERVABLE, result.getStatus());
@@ -881,7 +903,7 @@ class WlsStateEstimatorTest {
         // going after it, where the objective moves by round-off alone
         List<LfMeasurement> described = describeRedundantMeterSet();
         WlsStateEstimator probe = new WlsStateEstimator(lfNetwork, described);
-        probe.init(trueV, trueAngle);
+        probe.init(new PreviousValueVoltageInitializer());
         double[] exact = probe.evaluate();
         for (int seed = 0; seed < 20; seed++) {
             Random random = new Random(seed);
@@ -892,7 +914,7 @@ class WlsStateEstimatorTest {
                         exact[i] + random.nextGaussian() * m.sigmaPu(), m.sigmaPu(), m.sourceMeasurementIds()));
             }
             WlsStateEstimator estimator = new WlsStateEstimator(lfNetwork, noisy);
-            estimator.initFlat();
+            estimator.init(new UniformValueVoltageInitializer());
 
             WlsResult result = estimator.estimate(new WlsParameters(60, 1e-15));
 
@@ -918,7 +940,7 @@ class WlsStateEstimatorTest {
                 LfMeasurement.of(AcEquationType.BUS_TARGET_V, bus, 1.02, 0.004));
 
         WlsStateEstimator estimator = new WlsStateEstimator(oneBus, measurements);
-        estimator.initFlat();
+        estimator.init(new UniformValueVoltageInitializer());
         WlsResult result = estimator.estimate();
 
         assertEquals(WlsResult.Status.ESTIMATED, result.getStatus(), result.getStatusText());
