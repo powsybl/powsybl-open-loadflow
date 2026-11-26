@@ -9,17 +9,16 @@ repository a state estimator reuses, ahead of the module split described in
 
 ## Relationship to the PowSyBl Core API
 
-A solver-agnostic `state-estimation-api` module is proposed for PowSyBl Core in
+PowSyBl Core has a solver-agnostic `state-estimation-api` module since
 [powsybl-core#4144](https://github.com/powsybl/powsybl-core/pull/4144). It defines three
 operations behind one provider, `analyseObservability`, `estimate` and `detectBadData`,
 along with the parameters and results they exchange.
 
 The types here are already shaped after that API. What is missing is the provider itself:
-`@AutoService` and `ServiceLoader` need the real interface on the classpath, and
-`state-estimation-api` exists only at Core 7.5.0-SNAPSHOT, built from the fork behind that
-pull request and published nowhere. Taking the dependency would mean nobody else could build
-this branch. Once a Core release carries the module, `WlsStateEstimator` becomes the engine
-behind a `StateEstimationProvider` with no change to the types below.
+`@AutoService` and `ServiceLoader` need the real interface on the classpath, and the module
+first ships with Core 7.5.0, while this repository builds against 7.4.0. Once it builds against
+a Core release that carries the module, `WlsStateEstimator` becomes the engine behind a
+`StateEstimationProvider` with no change to the types below.
 
 | Here | In the API |
 |---|---|
