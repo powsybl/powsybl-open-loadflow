@@ -39,7 +39,9 @@ each at a bus or at one side of a branch, alongside current magnitude. Gauss-New
 iteration on the normal equations, from a flat start unless a state is supplied. One angle per
 synchronous component is held fixed as the reference, and it gets no column in the gain
 matrix. A branch open at one end still carries its own charging, and a reading at its connected
-end is modeled with the load flow's open-branch terms.
+end is modeled with the load flow's open-branch terms. One without shunt admittance carries
+nothing, so a current reading at its connected end cannot move the state and stays whole in its
+residual.
 
 The measurement model is an `EquationSystem` keyed on `AcEquationType`, holding one equation
 per measured quantity, built out of this repository's existing AC flow terms. The
@@ -104,8 +106,8 @@ than lumped together, because they call for different things from whoever reads 
 
 - A branch without impedance, which includes every switch of a network loaded at breaker
   level. The AC flow terms refuse to be built for one, and the estimator throws;
-- A current magnitude reading on a branch that carries no current at the estimated state. Its
-  derivative is as undefined there as at a flat start, and the run ends `FAILED`.
+- A current magnitude reading on a closed branch that carries no current at the estimated
+  state. Its derivative is as undefined there as at a flat start, and the run ends `FAILED`.
 
 ## What the estimate comes with
 

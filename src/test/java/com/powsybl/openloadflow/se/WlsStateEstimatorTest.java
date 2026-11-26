@@ -76,7 +76,11 @@ class WlsStateEstimatorTest {
 
     @BeforeEach
     void setUp() {
-        Network network = IeeeCdfNetworkFactory.create14();
+        solveAndLoad(IeeeCdfNetworkFactory.create14());
+    }
+
+    /** Makes the load-flow state of this network the one the meter sets of this class read. */
+    private void solveAndLoad(Network network) {
         LoadFlow.Runner runner = new LoadFlow.Runner(new OpenLoadFlowProvider(new DenseMatrixFactory()));
         LoadFlowResult result = runner.run(network, new LoadFlowParameters());
         assertTrue(result.isFullyConverged(), "the reference load flow must converge");
@@ -734,6 +738,67 @@ class WlsStateEstimatorTest {
 
         List<LfMeasurement> atTheOpenEnd = List.of(LfMeasurement.of(AcEquationType.BRANCH_TARGET_P2, halfOpen, 0, 0.01));
         assertThrows(IllegalArgumentException.class, () -> new WlsStateEstimator(lf, atTheOpenEnd));
+    }
+
+    @Test
+    void readsTheChargingCurrentAtTheLiveEndOfAnOpenBranch() {
+        Line line = openAtSide2(true);
+        List<LfMeasurement> described = describeRedundantMeterSet();
+        described.add(LfMeasurement.of(AcEquationType.BRANCH_TARGET_I1, lfNetwork.getBranchById(line.getId()), 0, 0.05));
+
+        WlsResult result = estimateFromFlat(withNoiseFreeValues(described));
+
+        assertEquals(WlsResult.Status.ESTIMATED, result.getStatus(), result.getStatusText());
+        WlsResult.MeasurementResult current = result.getMeasurementResults().get(described.size() - 1);
+        assertEquals(line.getTerminal1().getI(), current.estimatedValue(), 1e-3);
+        assertTrue(current.estimatedValue() > 1, "the charging of an open line is a current a meter reads");
+    }
+
+    @Test
+    void estimatesWithACurrentReadingOnAnOpenBranchThatCarriesNone() {
+        Line line = openAtSide2(false);
+        List<LfMeasurement> described = describeRedundantMeterSet();
+        described.add(LfMeasurement.of(AcEquationType.BRANCH_TARGET_I1, lfNetwork.getBranchById(line.getId()), 0, 0.05));
+
+        WlsResult result = estimateFromFlat(withNoiseFreeValues(described));
+
+        assertEquals(WlsResult.Status.ESTIMATED, result.getStatus(), result.getStatusText());
+        for (LfBus bus : lfNetwork.getBuses()) {
+            assertEquals(trueV[bus.getNum()] * bus.getNominalV(), busResult(result, bus.getId()).v(), 1e-6);
+        }
+        WlsResult.MeasurementResult current = result.getMeasurementResults().get(described.size() - 1);
+        assertEquals(0, current.estimatedValue(), 0, "a branch without shunt admittance carries nothing once it is open");
+        assertEquals(0, current.residual(), 0);
+    }
+
+    @Test
+    void leavesACurrentReadWhereNoneCanFlowWhollyInItsResidual() {
+        Line line = openAtSide2(false);
+        List<LfMeasurement> measurements = withNoiseFreeValues(describeRedundantMeterSet());
+        measurements.add(LfMeasurement.of(AcEquationType.BRANCH_TARGET_I1, lfNetwork.getBranchById(line.getId()), 0.1, 0.05));
+
+        WlsResult result = estimateFromFlat(measurements);
+
+        assertEquals(WlsResult.Status.ESTIMATED, result.getStatus(), result.getStatusText());
+        for (LfBus bus : lfNetwork.getBuses()) {
+            assertEquals(trueV[bus.getNum()] * bus.getNominalV(), busResult(result, bus.getId()).v(), 1e-6,
+                    "no state explains the reading any better, so it must not move one");
+        }
+        WlsResult.MeasurementResult current = result.getMeasurementResults().get(measurements.size() - 1);
+        assertEquals(1, current.redundancy(), 1e-12);
+        assertEquals(0.1 / 0.05, current.normalizedResidual(), 1e-9);
+    }
+
+    /** Opens a line of the 14 bus network at its second end, with or without its charging, and solves it. */
+    private Line openAtSide2(boolean charging) {
+        Network network = IeeeCdfNetworkFactory.create14();
+        Line line = network.getLine("L1-2-1");
+        if (!charging) {
+            line.setG1(0).setB1(0).setG2(0).setB2(0);
+        }
+        line.getTerminal2().disconnect();
+        solveAndLoad(network);
+        return line;
     }
 
     @Test
