@@ -308,7 +308,7 @@ public class FastDecoupled extends AbstractAcSolver {
             JacobianMatrixFastDecoupled jVRes = initVJacobianMatrix(rangeIndex)
         ) {
             // initialize state vector
-            AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
+            AcStateVectorUtil.initStateVector(network, equationSystem, voltageInitializer);
 
             equationVector.minus(targetVector);
 

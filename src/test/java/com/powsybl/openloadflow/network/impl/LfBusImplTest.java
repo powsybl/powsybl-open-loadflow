@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.powsybl.openloadflow.util.LoadFlowAssert.DELTA_POWER;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.DELTA_POWER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

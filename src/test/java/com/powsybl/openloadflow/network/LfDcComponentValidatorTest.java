@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VoltageSourceConverter;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.test.networks.AcDcNetworkFactory;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
