@@ -28,23 +28,17 @@ import com.powsybl.openloadflow.network.action.LfPhaseTapChangerAction;
 import com.powsybl.openloadflow.network.action.LfSwitchAction;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
 import com.powsybl.openloadflow.test.LoadFlowAssert;
-import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.openloadflow.test.networks.FourBusNetworkFactory;
+import com.powsybl.openloadflow.test.networks.HvdcNetworkFactory;
 import com.powsybl.openloadflow.test.networks.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.test.networks.PhaseControlFactory;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
