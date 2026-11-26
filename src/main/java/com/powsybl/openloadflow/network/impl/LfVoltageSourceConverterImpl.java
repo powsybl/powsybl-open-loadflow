@@ -38,7 +38,7 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
 
     public LfVoltageSourceConverterImpl(VoltageSourceConverter converter, LfNetwork network, int numDCC, LfDcBus dcBus1, LfDcBus dcBus2, LfBus bus1,
                                         LfNetworkParameters parameters) {
-        super(converter, network, numDCC, dcBus1, dcBus2, bus1);
+        super(converter, network, numDCC, dcBus1, dcBus2, bus1, parameters.isUseActiveLimits());
         bus1.addConverter(this);
         this.converterRef = Ref.create(converter, parameters.isCacheEnabled());
         this.isVoltageRegulatorOn = converter.isRegulatingWithMode(RegulationMode.VOLTAGE);
@@ -212,5 +212,14 @@ public class LfVoltageSourceConverterImpl extends AbstractLfAcDcConverter implem
     @Override
     public List<LfDroopReference> getDroopCurve() {
         return droopBands;
+    }
+
+    @Override
+    public void setControlMode(AcDcConverter.ControlMode newControlMode) {
+        if (newControlMode == AcDcConverter.ControlMode.DC_DROOP && droopBands.isEmpty()) {
+            // No real case today of switching to DC_DROOP mode, but this is a safeguard.
+            throw new PowsyblException("AC/DC converter '" + getId() + "' cannot be set to DC_DROOP control mode because it does not have a droop curve");
+        }
+        super.setControlMode(newControlMode);
     }
 }

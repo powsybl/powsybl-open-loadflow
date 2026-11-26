@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.ac.solver;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.math.matrix.MatrixException;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcStateVectorUtil;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
 import com.powsybl.openloadflow.lf.util.LfReports;
@@ -101,7 +102,7 @@ public class NewtonRaphson extends AbstractAcSolver {
     @Override
     public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
         // initialize state vector
-        AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
+        AcStateVectorUtil.initStateVector(network, equationSystem, voltageInitializer);
 
         Vectors.minus(equationVector.getArray(), targetVector.getArray());
 

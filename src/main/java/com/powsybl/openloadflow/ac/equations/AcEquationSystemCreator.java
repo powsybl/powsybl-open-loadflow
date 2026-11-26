@@ -162,7 +162,7 @@ public class AcEquationSystemCreator {
                 EquationTerm<AcVariableType, AcEquationType> q = rpc.getControlledSide() == TwoSides.ONE
                         ? new ClosedBranchSide1ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
                         : new ClosedBranchSide2ReactiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-                equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_Q)
+                equationSystem.createEquation(branch, AcEquationType.branchTargetQ(rpc.getControlledSide()))
                         .addTerm(q);
                 createGeneratorReactivePowerDistributionEquations(rpc, equationSystem, creationParameters);
                 updateGeneratorReactivePowerControlBranchEquations(rpc, equationSystem);
@@ -176,7 +176,7 @@ public class AcEquationSystemCreator {
                 .stream()
                 .filter(b -> !b.isDisabled()) // discard disabled controller elements
                 .toList();
-        Equation<AcVariableType, AcEquationType> qEq = equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.BRANCH_TARGET_Q)
+        Equation<AcVariableType, AcEquationType> qEq = equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.branchTargetQ(generatorReactivePowerControl.getControlledSide()))
                 .orElseThrow();
 
         if (controlledBranch.isDisabled()) {
@@ -543,9 +543,9 @@ public class AcEquationSystemCreator {
                 EquationTerm<AcVariableType, AcEquationType> p = phaseControl.getControlledSide() == TwoSides.ONE
                         ? new ClosedBranchSide1ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1)
                         : new ClosedBranchSide2ActiveFlowEquationTerm(branch, bus1, bus2, equationSystem.getVariableSet(), deriveA1, deriveR1);
-                equationSystem.createEquation(branch, AcEquationType.BRANCH_TARGET_P)
+                equationSystem.createEquation(branch, AcEquationType.branchTargetP(phaseControl.getControlledSide()))
                         .addTerm(p)
-                        .setActive(false); // by default BRANCH_TARGET_ALPHA1 is active and BRANCH_TARGET_P inactive
+                        .setActive(false); // by default BRANCH_TARGET_ALPHA1 is active and the branch active power target inactive
             }
         }
     }
@@ -568,7 +568,7 @@ public class AcEquationSystemCreator {
             boolean controlEnabled = !controllerBranch.isDisabled() && !controlledBranch.isDisabled() && controllerBranch.isPhaseControlEnabled();
 
             // activate/de-activate phase control equation
-            equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.BRANCH_TARGET_P)
+            equationSystem.getEquation(controlledBranch.getNum(), AcEquationType.branchTargetP(phaseControl.getControlledSide()))
                     .orElseThrow()
                     .setActive(controlEnabled);
 
@@ -996,28 +996,28 @@ public class AcEquationSystemCreator {
         LfBus bus = converter.getBus1();
         LfDcBus dcBus1 = converter.getDcBus1();
         LfDcBus dcBus2 = converter.getDcBus2();
-        switch (converter.getControlMode()) {
-            case P_PCC ->
-                // in PCC mode, we add an equation to set Pac injected into the converter
-                equationSystem.createEquation(converter, AcEquationType.AC_CONV_TARGET_P_REF)
-                        .addTerm(equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_P_AC)
-                                .createTerm());
-            case DC_DROOP ->
-                // in droop mode, we add an equation enforcing U_dc = refVdc + k*(P - refP), coupling Pac and the DC voltage
-                equationSystem.createEquation(converter, AcEquationType.ACDC_CONV_DC_DROOP)
-                        .addTerm(new ConverterDroopEquationTerm(converter, dcBus1, dcBus2, equationSystem.getVariableSet()));
-            case V_DC -> {
-                // in V mode, we add an equation to set V = v1 - v2 the voltage between the two dc buses connected to the converter
-                EquationTerm<AcVariableType, AcEquationType> v1 = equationSystem.getVariable(dcBus1.getNum(), AcVariableType.DC_BUS_V)
-                        .createTerm();
-                EquationTerm<AcVariableType, AcEquationType> v2 = equationSystem.getVariable(dcBus2.getNum(), AcVariableType.DC_BUS_V)
-                        .createTerm();
-                equationSystem.createEquation(converter, AcEquationType.DC_BUS_TARGET_V_REF)
-                        .addTerm(v1)
-                        .addTerm(v2.minus());
-            }
-            default -> throw new IllegalStateException("Unsupported converter control mode: " + converter.getControlMode());
-        }
+
+        // Create the equations corresponding to each control mode. Then, activate only the required one
+
+        // in PCC mode, we add an equation to set Pac injected into the converter
+        Equation<AcVariableType, AcEquationType> pPccEquation = equationSystem.createEquation(converter, AcEquationType.AC_CONV_TARGET_P_REF)
+                .addTerm(equationSystem.getVariable(converter.getNum(), AcVariableType.CONV_P_AC)
+                        .createTerm());
+
+        // in droop mode, we add an equation enforcing U_dc = refVdc + k*(P - refP), coupling Pac and the DC voltage
+        Equation<AcVariableType, AcEquationType> droopEquation = equationSystem.createEquation(converter, AcEquationType.ACDC_CONV_DC_DROOP)
+                .addTerm(new ConverterDroopEquationTerm(converter, dcBus1, dcBus2, equationSystem.getVariableSet()));
+
+        // in V mode, we add an equation to set V = v1 - v2 the voltage between the two dc buses connected to the converter
+        EquationTerm<AcVariableType, AcEquationType> v1 = equationSystem.getVariable(dcBus1.getNum(), AcVariableType.DC_BUS_V)
+                .createTerm();
+        EquationTerm<AcVariableType, AcEquationType> v2 = equationSystem.getVariable(dcBus2.getNum(), AcVariableType.DC_BUS_V)
+                .createTerm();
+        Equation<AcVariableType, AcEquationType> vDcEquation = equationSystem.createEquation(converter, AcEquationType.DC_BUS_TARGET_V_REF)
+                .addTerm(v1)
+                .addTerm(v2.minus());
+
+        AcEquationSystemUpdater.activateControlModeEquation(pPccEquation, droopEquation, vDcEquation, converter.getControlMode());
 
         // The converter add its power pAc in AC power balance
         // We choose the convention pAc > 0 if the converter inject power in DC Network.

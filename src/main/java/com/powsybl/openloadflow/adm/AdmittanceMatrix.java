@@ -39,6 +39,7 @@ public class AdmittanceMatrix implements AutoCloseable {
     public static AdmittanceMatrix create(AdmittanceEquationSystem ySystem, MatrixFactory matrixFactory) {
         Objects.requireNonNull(matrixFactory);
         try (var j = new JacobianMatrix<>(ySystem.getEquationSystem(), matrixFactory)) {
+            j.checkSquare();
             return new AdmittanceMatrix(ySystem.getEquationSystem(), j.getMatrix());
         }
     }

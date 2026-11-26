@@ -24,6 +24,10 @@ import java.util.concurrent.TimeUnit;
 import static com.powsybl.openloadflow.util.Markers.PERFORMANCE_MARKER;
 
 /**
+ * The derivatives of an equation system. The matrix is built for any shape, but {@link #solve} and
+ * {@link #solveTransposed} go through an LU decomposition, which exists only for a square system.
+ * On any other shape they throw.
+ *
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
 public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Quantity>
@@ -118,10 +122,6 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         Stopwatch stopwatch = Stopwatch.createStarted();
         int rowCount = equationSystem.getIndex().getRowCount();
         int columnCount = equationSystem.getIndex().getColumnCount();
-        if (rowCount != columnCount) {
-            throw new PowsyblException("Expected to have same number of equations (" + columnCount
-                    + ") and variables (" + rowCount + ")");
-        }
 
         int estimatedNonZeroValueCount = rowCount * 3;
         matrix = matrixFactory.create(rowCount, columnCount, estimatedNonZeroValueCount);
@@ -251,7 +251,23 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return matrix;
     }
 
+    /**
+     * For consumers of {@link #getMatrix()} that require a square system without going through an LU decomposition.
+     * Checked on the equation system rather than on the matrix, which is a square sub-matrix in fast decoupled mode.
+     *
+     * @throws com.powsybl.commons.PowsyblException if the equation system is not square
+     */
+    public void checkSquare() {
+        int rowCount = equationSystem.getIndex().getRowCount();
+        int columnCount = equationSystem.getIndex().getColumnCount();
+        if (rowCount != columnCount) {
+            throw new PowsyblException("Expected to have same number of equations (" + columnCount
+                    + ") and variables (" + rowCount + ")");
+        }
+    }
+
     private LUDecomposition getLUDecomposition() {
+        checkSquare();
         Matrix m = getMatrix();
         if (lu == null) {
             Stopwatch stopwatch = Stopwatch.createStarted();
@@ -263,18 +279,22 @@ public class JacobianMatrix<V extends Enum<V> & Quantity, E extends Enum<E> & Qu
         return lu;
     }
 
+    /** Requires a square equation system. */
     public void solve(double[] b) {
         getLUDecomposition().solve(b);
     }
 
+    /** Requires a square equation system. */
     public void solveTransposed(double[] b) {
         getLUDecomposition().solveTransposed(b);
     }
 
+    /** Requires a square equation system. */
     public void solve(DenseMatrix b) {
         getLUDecomposition().solve(b);
     }
 
+    /** Requires a square equation system. */
     public void solveTransposed(DenseMatrix b) {
         getLUDecomposition().solveTransposed(b);
     }

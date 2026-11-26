@@ -15,16 +15,17 @@ import com.powsybl.iidm.network.Terminal;
 import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.*;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.ac.solver.MaxVoltageChangeStateVectorScaling;
 import com.powsybl.openloadflow.ac.solver.StateVectorScalingMode;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.lf.PowsyblOpenLoadFlowReportResourceBundle;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.LoadFlowAssert;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -512,6 +513,7 @@ class AcLoadFlowReportTest {
                               Bus Id: b1_vl_0 (nominalVoltage=400kV)
                               Bus V: 1 pu, 0 rad
                               Bus injection: 70 MW, 0 MVar
+                     Outer loop AcDcConverterPowerLimits
                      Outer loop ReactiveLimits
                      AC load flow completed successfully (solverStatus=CONVERGED, outerloopStatus=STABLE)
             """, reportNode);
