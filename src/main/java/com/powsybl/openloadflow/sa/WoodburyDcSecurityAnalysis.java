@@ -142,7 +142,7 @@ public class WoodburyDcSecurityAnalysis extends DcSecurityAnalysis {
                 .map(actionElementByLfAction::get)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfBranch().getId()))
+                .filter(actionElement -> !elementsToReconnect.contains(actionElement.getLfElement().getId()))
                 .toList();
 
         var lfNetwork = loadFlowContext.getNetwork();

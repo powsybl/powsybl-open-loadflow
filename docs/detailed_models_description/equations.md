@@ -140,7 +140,7 @@ In both control modes (active power setpoint mode or in AC emulation mode), the 
 - the `maxP` configured for the HVDC line,
 - or alternatively separate limit values for both directions using the [HVDC operator active power range IIDM extension](inv:powsyblcore:*:*:#hvdc-operator-active-power-range-extension)
   In AC Emulation, these boundaries are handled through the HVDC AC emulation limit outer loop. After solving the equation system, if the computed active power flow through the HVDC overpasses the limits, saturation is applied by the outer loop.
-  Note that this HVDC AC emulation outer loop is only available in AC calculation, and normal DC calculation (not available in DC Woodbury Security analysis and DC Woodbury Sensitivity Analysis).
+  Note that this HVDC AC emulation outer loop is only available in AC calculation and in normal DC calculation. The DC Woodbury security analysis does not support AC emulation. The DC sensitivity analysis supports AC emulation but has no outer loop: HVDC lines in AC emulation are modeled with the linear droop law without saturation (see the [sensitivity analysis documentation](../sensitivity/sensitivity.md)).
 
 The reactive power flow on each side of the line depends on whether voltage regulation of the converters is enabled. If the voltage regulation is enabled, then the VSC converter behaves like a generator regulating the voltage.
 Otherwise, reactive power of the converter at AC side is given by its reactive power setpoint.
