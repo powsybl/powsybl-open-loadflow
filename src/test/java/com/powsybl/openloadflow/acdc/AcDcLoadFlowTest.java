@@ -14,12 +14,13 @@ import com.powsybl.iidm.network.test.DcDetailedNetworkFactory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.AcDcNetworkFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,8 +32,8 @@ import java.util.List;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 
-import static com.powsybl.openloadflow.network.AcDcNetworkFactory.createBaseNetwork;
-import static com.powsybl.openloadflow.util.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.test.LoadFlowAssert.*;
+import static com.powsybl.openloadflow.test.networks.AcDcNetworkFactory.createBaseNetwork;
 import static java.lang.Math.sqrt;
 import static org.junit.jupiter.api.Assertions.*;
 

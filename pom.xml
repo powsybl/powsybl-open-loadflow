@@ -80,10 +80,7 @@
                         </goals>
                         <configuration>
                             <includes>
-                                <include>com/powsybl/openloadflow/network/**/*Factory*.class</include>
-                                <include>com/powsybl/openloadflow/util/LoadFlowAssert.class</include>
-                                <include>com/powsybl/openloadflow/util/LoadFlowResultBuilder.class</include>
-                                <include>com/powsybl/openloadflow/test/AbstractSecurityAnalysisTest.class</include>
+                                <include>com/powsybl/openloadflow/test/**/*.class</include>
                             </includes>
                         </configuration>
                     </execution>

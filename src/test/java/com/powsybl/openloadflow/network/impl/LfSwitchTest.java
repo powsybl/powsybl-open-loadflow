@@ -12,7 +12,7 @@ import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.test.networks.NodeBreakerNetworkFactory;
 import com.powsybl.openloadflow.util.Evaluable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

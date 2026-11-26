@@ -14,6 +14,7 @@ import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.graph.NaiveGraphConnectivity;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivity;
 import com.powsybl.openloadflow.network.impl.Networks;
+import com.powsybl.openloadflow.test.networks.EurostagFactory;
 import org.jgrapht.alg.connectivity.BiconnectivityInspector;
 import org.jgrapht.graph.Pseudograph;
 import org.junit.jupiter.api.BeforeEach;
