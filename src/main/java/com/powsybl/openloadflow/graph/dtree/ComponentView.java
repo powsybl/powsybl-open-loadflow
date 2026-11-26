@@ -7,8 +7,12 @@
  */
 package com.powsybl.openloadflow.graph.dtree;
 
+import com.powsybl.openloadflow.graph.Component;
+
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * A set view of the connected component of a graph containing a specific {@link DTNode} in a spanning tree.
@@ -18,7 +22,7 @@ import java.util.Objects;
  *
  * @author Valentin Carrez {@literal <valentin.carrez at rte-france.com>}
  */
-class ComponentView<V, E> extends AbstractSetView<V> {
+class ComponentView<V, E> extends AbstractSetView<V> implements Component<V> {
 
     private final DTNode<V, E> node;
 
@@ -44,6 +48,18 @@ class ComponentView<V, E> extends AbstractSetView<V> {
     @Override
     public int size() {
         return getRoot().size();
+    }
+
+    @Override
+    public int getNumber() {
+        DTreeGraphConnectivity<V, E> dtree = node.getDTree();
+        dtree.updateComponents();
+        return getRoot().getIndex();
+    }
+
+    @Override
+    public Set<V> toOwnedSet() {
+        return new HashSet<>(this);
     }
 
     DTNode<V, E> getRoot() {

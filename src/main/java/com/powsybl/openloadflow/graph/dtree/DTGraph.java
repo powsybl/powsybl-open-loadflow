@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.graph.dtree;
 
+import com.powsybl.openloadflow.graph.Component;
 import com.powsybl.openloadflow.graph.GraphModel;
 
 import java.util.*;
@@ -19,6 +20,8 @@ import java.util.*;
  */
 public class DTGraph<V, E> implements GraphModel<V, E> {
 
+    private DTreeGraphConnectivity<V, E> dtree;
+
     /**
      * map a vertex to a node in a spanning tree
      */
@@ -29,6 +32,10 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
     private final Map<E, Edge<V, E>> edges = new HashMap<>();
 
     private final Set<DTNode<V, E>> roots = new LinkedHashSet<>();
+
+    public void setDTree(DTreeGraphConnectivity<V, E> dtree) {
+        this.dtree = Objects.requireNonNull(dtree);
+    }
 
     public DTNode<V, E> getNodeOrThrow(V v) {
         DTNode<V, E> node = vertexToTreeNode.get(v);
@@ -353,7 +360,7 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
         return roots.size();
     }
 
-    public Set<V> createComponentView(V vertex) {
+    public Component<V> createComponentView(V vertex) {
         return getNodeOrThrow(vertex).createComponentView();
     }
 
@@ -374,8 +381,8 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
      *
      * @return a list of components sorted by size in reverse order.
      */
-    public List<Set<V>> allComponents() {
-        List<Set<V>> components = roots.stream()
+    public List<Component<V>> allComponents() {
+        List<Component<V>> components = roots.stream()
                 .map(DTNode::createComponentView)
                 .sorted(Comparator.<Set<V>>comparingInt(Set::size).reversed())
                 .toList();
@@ -390,5 +397,9 @@ public class DTGraph<V, E> implements GraphModel<V, E> {
 
     Set<DTNode<V, E>> getRoots() {
         return roots;
+    }
+
+    public DTreeGraphConnectivity<V, E> getDTree() {
+        return dtree;
     }
 }

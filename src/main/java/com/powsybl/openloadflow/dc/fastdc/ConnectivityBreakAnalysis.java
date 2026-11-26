@@ -16,7 +16,6 @@ import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
-import com.powsybl.openloadflow.graph.dtree.AbstractSetView;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
 import com.powsybl.openloadflow.network.action.LfAction;
@@ -244,7 +243,8 @@ public final class ConnectivityBreakAnalysis {
                 Set<LfHvdc> hvdcsWithoutPower = PropagatedContingency.getHvdcsWithoutPower(lfNetwork, disabledBuses, connectivity);
                 connectivityAnalysisResult = new ConnectivityAnalysisResult(contingency, operatorStrategy, lfNetwork, elementsToReconnect,
                         new DisabledElements(disabledBuses, connectivity.getEdgesRemovedFromMainComponent(), hvdcsWithoutPower),
-                        AbstractSetView.copyIfNeeded(connectivity.getConnectedComponent(lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst())),
+                        connectivity.getConnectedComponent(lfNetwork.getSynchronousNetworks().getFirst().getSlackBuses().getFirst())
+                                .toOwnedSet(),
                         createdSynchronousComponents);
             }
         } finally {
@@ -255,7 +255,7 @@ public final class ConnectivityBreakAnalysis {
 
     private static boolean isBreakingConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity, ComputedElement element) {
         LfBranch lfBranch = element.getLfBranch();
-        return connectivity.getComponentNumber(lfBranch.getBus1()) != connectivity.getComponentNumber(lfBranch.getBus2());
+        return !connectivity.connected(lfBranch.getBus1(), lfBranch.getBus2());
     }
 
     /**
@@ -264,6 +264,30 @@ public final class ConnectivityBreakAnalysis {
     private static Set<String> computeElementsToReconnect(GraphConnectivity<LfBus, LfBranch> connectivity,
                                                           Set<ComputedElement> breakingConnectivityElements,
                                                           int nbConnectedComponentsBefore) {
+        if (connectivity.supportTemporaryChangesNesting()) {
+            Set<String> elementsToReconnect = new LinkedHashSet<>();
+
+            connectivity.startTemporaryChanges(false);
+
+            for (ComputedElement element : breakingConnectivityElements) {
+                LfBranch branch = element.getLfBranch();
+
+                if (!connectivity.connected(branch.getBus1(), branch.getBus2())) {
+                    connectivity.addEdge(branch.getBus1(), branch.getBus2(), branch);
+                    elementsToReconnect.add(branch.getId());
+                }
+            }
+
+            connectivity.undoTemporaryChanges();
+            return elementsToReconnect;
+        } else {
+            return computeElementsToReconnectNoTemporaryChanges(connectivity, breakingConnectivityElements, nbConnectedComponentsBefore);
+        }
+    }
+
+    private static Set<String> computeElementsToReconnectNoTemporaryChanges(GraphConnectivity<LfBus, LfBranch> connectivity,
+                                                                            Set<ComputedElement> breakingConnectivityElements,
+                                                                            int nbConnectedComponentsBefore) {
         Set<String> elementsToReconnect = new LinkedHashSet<>();
 
         // We suppose we're reconnecting one by one each element breaking connectivity.
