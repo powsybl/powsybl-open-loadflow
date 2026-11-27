@@ -11,6 +11,12 @@ This could be done in a set of branches given by the user.
 *NOTE* DC sensitivity analysis can distribute the slack (if the loadflow parameter **distributedSlack** is set to True), but in case of slack distribution failure,
 is always in mode LEAVE_ON_SLACK bus.
 
+*NOTE* If the loadflow parameter **hvdcAcEmulation** is set to True, HVDC lines with an enabled angle droop active power control are modeled with
+their linear droop law $P = P_0 + k (\theta_1 - \theta_2)$, which couples their two buses like a virtual branch of susceptance $k$. The loss of such
+an HVDC line (or of one of its buses) in a contingency removes this coupling and the constant term $P_0$. As the DC sensitivity analysis has no outer loop,
+the saturation of the droop control at the HVDC active power limits is not handled: the linear law is kept (a warning is logged when it is exceeded in
+the pre-contingency state), so results may differ from a DC load flow where the HVDC line saturates.
+
 ### Sensitivities on the base network 
 
 Injection increases could be either an active power increase of a generator $targetP$ or an active power increase of a load $P0$. To get the impact of an injection increase in a given bus into a given branch, we compute the right-hand side $b$ corresponding to an injection of 1 MW at this bus and 0 MW elsewhere. The LU decomposition gives the matrices $L$ and $U$ in order to compute the vector $\theta$. Then it is easy to retrieve the active power flow in the branch.

@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.dc.equations;
 
+import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.equations.AbstractElementEquationTerm;
 import com.powsybl.openloadflow.equations.StateVector;
 import com.powsybl.openloadflow.equations.Variable;
@@ -15,6 +16,7 @@ import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfHvdc;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author Didier Vidal {@literal <didier.vidal_externe at rte-france.com>}
@@ -57,4 +59,27 @@ public abstract class AbstractHvdcAcEmulationDcFlowEquationTerm extends Abstract
         return sv.get(ph2Var.getRow());
     }
 
+    public Variable<DcVariableType> getPh1Var() {
+        return ph1Var;
+    }
+
+    public Variable<DcVariableType> getPh2Var() {
+        return ph2Var;
+    }
+
+    /**
+     * Droop coefficient of the AC emulation control, in per unit per radian: the linear mode couples the two buses
+     * exactly like a DC branch of power {@code k}.
+     */
+    public double getK() {
+        return k;
+    }
+
+    @Override
+    public double calculateSensi(DenseMatrix dx, int column) {
+        Objects.requireNonNull(dx);
+        double dph1 = dx.get(ph1Var.getRow(), column);
+        double dph2 = dx.get(ph2Var.getRow(), column);
+        return k * (dph1 - dph2);
+    }
 }

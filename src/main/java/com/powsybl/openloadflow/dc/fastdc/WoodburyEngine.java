@@ -14,7 +14,6 @@ import com.powsybl.math.matrix.LUDecomposition;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.AbstractClosedBranchDcFlowEquationTerm;
-import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.equations.Equation;
@@ -39,28 +38,40 @@ public class WoodburyEngine {
 
     private final DcEquationSystemCreationParameters creationParameters;
 
-    private final List<ComputedContingencyElement> contingencyElements;
+    // contingency elements: lost branches (ComputedContingencyElement) and lost HVDC AC emulation droop couplings
+    // (ComputedHvdcAcEmulationElement), all indexed in the same contingenciesStates matrix
+    private final List<? extends ComputedElement> contingencyElements;
 
     private final DenseMatrix contingenciesStates;
+
+    // +1 -1 states of the HVDC AC emulation elements (they are computed separately from the branch contingency elements)
+    private final DenseMatrix hvdcStates;
 
     private final List<ComputedElement> actionElements;
 
     private final DenseMatrix actionsStates;
 
-    public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<ComputedContingencyElement> contingencyElements,
+    public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<? extends ComputedElement> contingencyElements,
                           DenseMatrix contingenciesStates) {
-        this.creationParameters = Objects.requireNonNull(creationParameters);
-        this.contingencyElements = Objects.requireNonNull(contingencyElements);
-        this.contingenciesStates = Objects.requireNonNull(contingenciesStates);
-        this.actionElements = Collections.emptyList();
-        this.actionsStates = DenseMatrix.EMPTY;
+        this(creationParameters, contingencyElements, contingenciesStates, DenseMatrix.EMPTY, Collections.emptyList(), DenseMatrix.EMPTY);
     }
 
-    public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<ComputedContingencyElement> contingencyElements,
+    public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<? extends ComputedElement> contingencyElements,
                           DenseMatrix contingenciesStates, List<ComputedElement> actionElements, DenseMatrix actionsStates) {
+        this(creationParameters, contingencyElements, contingenciesStates, DenseMatrix.EMPTY, actionElements, actionsStates);
+    }
+
+    /**
+     * @param contingencyElements lost branches ({@link ComputedContingencyElement}, states in {@code contingenciesStates})
+     *                            and lost HVDC AC emulation droop couplings ({@link ComputedHvdcAcEmulationElement}, states
+     *                            in {@code hvdcStates})
+     */
+    public WoodburyEngine(DcEquationSystemCreationParameters creationParameters, List<? extends ComputedElement> contingencyElements,
+                          DenseMatrix contingenciesStates, DenseMatrix hvdcStates, List<ComputedElement> actionElements, DenseMatrix actionsStates) {
         this.creationParameters = Objects.requireNonNull(creationParameters);
         this.contingencyElements = Objects.requireNonNull(contingencyElements);
         this.contingenciesStates = Objects.requireNonNull(contingenciesStates);
+        this.hvdcStates = Objects.requireNonNull(hvdcStates);
         this.actionElements = Objects.requireNonNull(actionElements);
         this.actionsStates = Objects.requireNonNull(actionsStates);
     }
@@ -87,6 +98,17 @@ public class WoodburyEngine {
         }
 
         DcLoadFlowParameters parameters = loadFlowContext.getParameters();
+
+        // apply generator/load (injection) actions on the network before distributing the slack, so that the slack
+        // induced by the injection change is distributed over the participating elements exactly as in a full DC load
+        // flow (the target vector listens to these network changes). As for the slack distribution itself, restoring the
+        // network state modified here is the caller's responsibility.
+        LfNetworkParameters networkParameters = parameters.getNetworkParameters();
+        lfActions.stream().filter(LfGeneratorAction.class::isInstance).map(LfGeneratorAction.class::cast)
+                .forEach(action -> action.apply(loadFlowContext.getNetwork(), null, networkParameters));
+        lfActions.stream().filter(LfLoadAction.class::isInstance).map(LfLoadAction.class::cast)
+                .forEach(action -> action.apply(loadFlowContext.getNetwork(), null, networkParameters));
+
         if (parameters.isDistributedSlack()) {
             distributeSlack(loadFlowContext.getNetwork(), remainingBuses, parameters.getBalanceType(), parameters.getNetworkParameters().isUseActiveLimits());
         }
@@ -104,6 +126,24 @@ public class WoodburyEngine {
                     .flatMap(lfBus -> loadFlowContext.getEquationSystem().getEquation(lfBus.getNum(), DcEquationType.BUS_TARGET_P).stream())
                     .map(Equation::getColumn)
                     .forEach(column -> targetVectorArray[column] = 0);
+        }
+
+        if (!disabledNetwork.getHvdcs().isEmpty()) {
+            // an HVDC line in AC emulation (linear mode) injects the constant term p0 of its droop law in the target vector
+            // through the right-hand side of its flow equation terms: when the line is lost, this injection is removed
+            // (the droop coupling itself is removed through the Woodbury formula, see ComputedHvdcAcEmulationElement)
+            for (LfHvdc hvdc : disabledNetwork.getHvdcs()) {
+                if (!hvdc.isAcEmulation()) {
+                    continue;
+                }
+                for (var term : loadFlowContext.getEquationSystem().getEquationTerms(ElementType.HVDC, hvdc.getNum())) {
+                    var equation = term.getEquation();
+                    LfBus bus = loadFlowContext.getNetwork().getBus(equation.getElementNum());
+                    if (term.isActive() && term.hasRhs() && equation.isActive() && !disabledNetwork.getBuses().contains(bus)) {
+                        targetVectorArray[equation.getColumn()] += term.rhs();
+                    }
+                }
+            }
         }
 
         if (!disabledNetwork.getBranches().isEmpty()) {
@@ -128,32 +168,6 @@ public class WoodburyEngine {
                                     targetVectorArray[column] = tapPositionChange.getNewPiModel().getA1();
                                 }
                         );
-                    });
-
-            // apply generator actions by shifting the bus target P injection
-            lfActions.stream()
-                    .filter(LfGeneratorAction.class::isInstance)
-                    .map(LfGeneratorAction.class::cast)
-                    .filter(a -> !a.getGenerator().isDisabled())
-                    .forEach(genAction -> {
-                        LfBus bus = genAction.getGenerator().getBus();
-                        double deltaTargetP = genAction.getNewTargetP() - genAction.getGenerator().getTargetP();
-                        loadFlowContext.getEquationSystem().getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
-                                .filter(Equation::isActive)
-                                .ifPresent(eq -> targetVectorArray[eq.getColumn()] += deltaTargetP);
-                    });
-
-            // apply load actions: a load increase reduces the bus net injection (generation - load)
-            lfActions.stream()
-                    .filter(LfLoadAction.class::isInstance)
-                    .map(LfLoadAction.class::cast)
-                    .filter(a -> a.isValid() && !a.getLfLoad().isOriginalLoadDisabled(a.getLoadId()))
-                    .forEach(loadAction -> {
-                        LfBus bus = loadAction.getLfLoad().getBus();
-                        double deltaTargetP = -loadAction.getPowerShift().getActive();
-                        loadFlowContext.getEquationSystem().getEquation(bus.getNum(), DcEquationType.BUS_TARGET_P)
-                                .filter(Equation::isActive)
-                                .ifPresent(eq -> targetVectorArray[eq.getColumn()] += deltaTargetP);
                     });
 
             // set transformer phase shift to 0 for disabled phase tap changers by actions
@@ -186,13 +200,13 @@ public class WoodburyEngine {
      * Returns the value of the right-hand side member, associated with the linear system to be solved in order to compute
      * the flow transfer factors.
      */
-    private double getAlphaRhsValue(DenseMatrix states, ClosedBranchSide1DcFlowEquationTerm p1, int columnState, ComputedElement computedElement) {
+    private double getAlphaRhsValue(DenseMatrix states, ComputedElement element, int columnState) {
         double newAlpha = 0;
-        if (computedElement instanceof ComputedTapPositionChangeElement computedTapPositionChangeElement) {
+        if (element instanceof ComputedTapPositionChangeElement computedTapPositionChangeElement) {
             TapPositionChange tapPositionChange = computedTapPositionChangeElement.getTapPositionChange();
             PiModel newPiModel = tapPositionChange.getNewPiModel();
             newAlpha = newPiModel.getA1();
-        } else if (computedElement instanceof ComputedSwitchBranchElement switchElement && switchElement.isEnabled()
+        } else if (element instanceof ComputedSwitchBranchElement switchElement && switchElement.isEnabled()
                 && switchElement.getLfBranch().isDisabled()) {
             // when closing a branch that is currently disabled (absent from the base flow states), and if it is a phase
             // shifting transformer, its phase shift must be injected the same way a tap position change injects the new
@@ -200,47 +214,60 @@ public class WoodburyEngine {
             // analysis), its phase shift is already accounted for and must not be added again.
             newAlpha = switchElement.getLfBranch().getPiModel().getA1();
         }
-        return states.get(p1.getPh1Var().getRow(), columnState) - states.get(p1.getPh2Var().getRow(), columnState) + newAlpha;
+        return states.get(element.getPh1VarRow(), columnState) - states.get(element.getPh2VarRow(), columnState) + newAlpha;
     }
 
     /**
-     * Returns a value on the diagonal of the alpha matrix linked to the switch in impedance caused by an action
+     * Returns the value on the diagonal of the alpha matrix: the inverse of the power change of the element.
+     * For a lost branch or a lost HVDC AC emulation droop coupling (virtual branch of power k), it is the inverse of the
+     * power. For an action it depends on the type of change.
      */
-    private double computeDeltaXForDiagonalValues(LfBranch lfBranch, ComputedElement element) {
+    private double computeDeltaXForDiagonalValues(ComputedElement element) {
+        if (element instanceof ComputedHvdcAcEmulationElement hvdcElement) {
+            return 1d / hvdcElement.getPower();
+        } else if (element instanceof ComputedContingencyElement contingencyElement) {
+            return 1d / calculatePower(contingencyElement.getLfBranch());
+        }
         double oldPower = 0;
         double newPower = 0;
         // if tap position change, the power transiting on the branch might have changed
         if (element instanceof ComputedTapPositionChangeElement tapChangeElement) {
             TapPositionChange tapPositionChange = tapChangeElement.getTapPositionChange();
             newPower = calculatePower(tapPositionChange.getNewPiModel());
-            oldPower = calculatePower(lfBranch);
+            oldPower = calculatePower(tapChangeElement.getLfBranch());
         } else if (element instanceof ComputedSwitchBranchElement switchElement) {
             // if enabled, power is now transiting on the branch
             if (switchElement.isEnabled()) {
-                newPower = calculatePower(lfBranch);
+                newPower = calculatePower(switchElement.getLfBranch());
                 // if disabled, no power is transiting on the branch anymore
             } else {
-                oldPower = calculatePower(lfBranch);
+                oldPower = calculatePower(switchElement.getLfBranch());
             }
         } else {
-            throw new IllegalStateException("Unexpected computed element type");
+            throw new IllegalStateException("Unexpected computed element type: " + element.getClass().getSimpleName());
         }
         return 1d / (oldPower - newPower);
     }
 
+    private DenseMatrix getStates(ComputedElement element) {
+        if (element instanceof ComputedContingencyElement) {
+            return contingenciesStates;
+        } else if (element instanceof ComputedHvdcAcEmulationElement) {
+            return hvdcStates;
+        }
+        return actionsStates;
+    }
+
     /**
      * Returns the value of the matrix associated with the linear system to be solved in order to compute the flow transfer factors.
+     * The element of the row gives the angle variables (and the diagonal power change), the element of the column gives
+     * the +1/-1 states to read.
      */
-    private double getAlphaMatrixValue(LfBranch lfBranch, ClosedBranchSide1DcFlowEquationTerm p1, ComputedElement element, boolean onDiagonal) {
-        if (element instanceof ComputedContingencyElement) {
-            double deltaX = onDiagonal ? 1d / calculatePower(lfBranch) : 0d;
-            return deltaX - (contingenciesStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
-                    - contingenciesStates.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
-        } else {
-            double deltaX = onDiagonal ? computeDeltaXForDiagonalValues(lfBranch, element) : 0;
-            return deltaX - (actionsStates.get(p1.getPh1Var().getRow(), element.getComputedElementIndex())
-                    - actionsStates.get(p1.getPh2Var().getRow(), element.getComputedElementIndex()));
-        }
+    private double getAlphaMatrixValue(ComputedElement rowElement, ComputedElement columnElement, boolean onDiagonal) {
+        double deltaX = onDiagonal ? computeDeltaXForDiagonalValues(rowElement) : 0d;
+        DenseMatrix states = getStates(columnElement);
+        return deltaX - (states.get(rowElement.getPh1VarRow(), columnElement.getComputedElementIndex())
+                - states.get(rowElement.getPh2VarRow(), columnElement.getComputedElementIndex()));
     }
 
     /**
@@ -250,67 +277,34 @@ public class WoodburyEngine {
         if (contingencyElements.size() + actionElements.size() == 1) {
             ComputedElement element = actionElements.isEmpty() ? contingencyElements.iterator().next()
                     : actionElements.iterator().next();
-            LfBranch lfBranch = element.getLfBranch();
-            ClosedBranchSide1DcFlowEquationTerm p1 = element.getLfBranchEquation();
 
             // we solve a*alpha = b
-            double a = getAlphaMatrixValue(lfBranch, p1, element, true);
-            double b = getAlphaRhsValue(states, p1, columnState, element);
+            double a = getAlphaMatrixValue(element, element, true);
+            double b = getAlphaRhsValue(states, element, columnState);
             element.setAlphaForWoodburyComputation(b / a);
         } else {
             // set local indexes of computed elements to use them in small matrix computation
-            ComputedElement.setLocalIndexes(contingencyElements);
-            ComputedElement.setLocalIndexes(actionElements);
-            int size = contingencyElements.size() + actionElements.size();
+            // contingency elements first, then action elements
+            List<ComputedElement> allElements = new ArrayList<>(contingencyElements.size() + actionElements.size());
+            allElements.addAll(contingencyElements);
+            allElements.addAll(actionElements);
+            ComputedElement.setLocalIndexes(allElements);
+            int size = allElements.size();
             DenseMatrix rhs = new DenseMatrix(size, 1);
             DenseMatrix matrix = new DenseMatrix(size, size);
 
-            for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                int i = contingencyElement.getLocalIndex();
-                LfBranch lfBranch = contingencyElement.getLfBranch();
-                ClosedBranchSide1DcFlowEquationTerm p1 = contingencyElement.getLfBranchEquation();
-                rhs.set(i, 0, getAlphaRhsValue(states, p1, columnState, contingencyElement));
-
-                // loop on contingencies to fill top-left quadrant of the matrix
-                for (ComputedContingencyElement contingencyElement2 : contingencyElements) {
-                    int j = contingencyElement2.getLocalIndex();
-                    double value = getAlphaMatrixValue(lfBranch, p1, contingencyElement2, i == j);
-                    matrix.set(i, j, value);
-                }
-
-                // loop on actions to fill top-right quadrant of the matrix
-                for (ComputedElement actionElement : actionElements) {
-                    int j = contingencyElements.size() + actionElement.getLocalIndex();
-                    double value = getAlphaMatrixValue(lfBranch, p1, actionElement, false);
-                    matrix.set(i, j, value);
-                }
-            }
-
-            for (ComputedElement actionElement : actionElements) {
-                int i = contingencyElements.size() + actionElement.getLocalIndex();
-                LfBranch lfBranch = actionElement.getLfBranch();
-                ClosedBranchSide1DcFlowEquationTerm p1 = actionElement.getLfBranchEquation();
-                rhs.set(i, 0, getAlphaRhsValue(states, p1, columnState, actionElement));
-
-                // loop on contingencies to fill bottom-left quadrant of the matrix
-                for (ComputedContingencyElement contingencyElement : contingencyElements) {
-                    int j = contingencyElement.getLocalIndex();
-                    double value = getAlphaMatrixValue(lfBranch, p1, contingencyElement, false);
-                    matrix.set(i, j, value);
-                }
-
-                // loop on actions to fill bottom-right quadrant of the matrix
-                for (ComputedElement actionElement2 : actionElements) {
-                    int j = contingencyElements.size() + actionElement2.getLocalIndex();
-                    double value = getAlphaMatrixValue(lfBranch, p1, actionElement2, i == j);
-                    matrix.set(i, j, value);
+            for (ComputedElement rowElement : allElements) {
+                int i = rowElement.getLocalIndex();
+                rhs.set(i, 0, getAlphaRhsValue(states, rowElement, columnState));
+                for (ComputedElement columnElement : allElements) {
+                    int j = columnElement.getLocalIndex();
+                    matrix.set(i, j, getAlphaMatrixValue(rowElement, columnElement, i == j));
                 }
             }
             try (LUDecomposition lu = matrix.decomposeLU()) {
                 lu.solve(rhs); // rhs now contains state matrix
             }
-            contingencyElements.forEach(element -> element.setAlphaForWoodburyComputation(rhs.get(element.getLocalIndex(), 0)));
-            actionElements.forEach(element -> element.setAlphaForWoodburyComputation(rhs.get(contingencyElements.size() + element.getLocalIndex(), 0)));
+            allElements.forEach(element -> element.setAlphaForWoodburyComputation(rhs.get(element.getLocalIndex(), 0)));
         }
     }
 
@@ -324,9 +318,9 @@ public class WoodburyEngine {
             setAlphas(preContingencyStates, columnIndex);
             for (int rowIndex = 0; rowIndex < preContingencyStates.getRowCount(); rowIndex++) {
                 double postContingencyValue = preContingencyStates.get(rowIndex, columnIndex);
-                for (ComputedContingencyElement contingencyElement : contingencyElements) {
+                for (ComputedElement contingencyElement : contingencyElements) {
                     postContingencyValue += contingencyElement.getAlphaForWoodburyComputation()
-                            * contingenciesStates.get(rowIndex, contingencyElement.getComputedElementIndex());
+                            * getStates(contingencyElement).get(rowIndex, contingencyElement.getComputedElementIndex());
                 }
                 preContingencyStates.set(rowIndex, columnIndex, postContingencyValue);
             }
@@ -360,9 +354,9 @@ public class WoodburyEngine {
 
     private double addToPostContingencyAndOperatorStrategyValue(double postContingencyAndOperatorStrategyValue, int rowIndex) {
         double updatedPostContingencyAndOperatorStrategyValue = postContingencyAndOperatorStrategyValue;
-        for (ComputedContingencyElement contingencyElement : contingencyElements) {
+        for (ComputedElement contingencyElement : contingencyElements) {
             updatedPostContingencyAndOperatorStrategyValue += contingencyElement.getAlphaForWoodburyComputation()
-                    * contingenciesStates.get(rowIndex, contingencyElement.getComputedElementIndex());
+                    * getStates(contingencyElement).get(rowIndex, contingencyElement.getComputedElementIndex());
         }
         for (ComputedElement actionElement : actionElements) {
             updatedPostContingencyAndOperatorStrategyValue += actionElement.getAlphaForWoodburyComputation()

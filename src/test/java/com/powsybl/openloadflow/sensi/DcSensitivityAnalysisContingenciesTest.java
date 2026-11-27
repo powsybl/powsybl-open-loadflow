@@ -2812,6 +2812,8 @@ class DcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
                                                   new Contingency("bus", new BusContingency("b2")));
         List<SensitivityFactor> factors = List.of(createBranchFlowPerInjectionIncrease("l34", "l4"));
         SensitivityAnalysisParameters sensiParameters = createParameters(true, "b1", true);
+        // the HVDC line has a droop control: this test checks the loss of a VSC station operated in set point mode
+        sensiParameters.getLoadFlowParameters().setHvdcAcEmulation(false);
         SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters);
