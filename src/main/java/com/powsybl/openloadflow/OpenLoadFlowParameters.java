@@ -230,6 +230,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
 
     public static final String REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME = "reactiveLimitsMaxPqPvSwitch";
 
+    public static final String REACTIVE_LIMITS_PQ_PV_SWITCH_VOLTAGE_DEADBAND_PARAM_NAME = "reactiveLimitsPqPvSwitchVoltageDeadband";
+
     public static final String PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME = "phaseShifterControlMode";
 
     private static final String ALWAYS_UPDATE_NETWORK_PARAM_NAME = "alwaysUpdateNetwork";
@@ -485,6 +487,9 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         new Parameter(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, ParameterType.INTEGER,
             "Reactive limits maximum Pq Pv switch",
             ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
+        new Parameter(REACTIVE_LIMITS_PQ_PV_SWITCH_VOLTAGE_DEADBAND_PARAM_NAME, ParameterType.DOUBLE,
+            "Reactive limits voltage deadband (in per unit) the controlled voltage must exceed to switch a bus at a reactive limit back from PQ to PV",
+            ReactiveLimitsOuterLoop.PQ_PV_SWITCH_VOLTAGE_DEADBAND_DEFAULT_VALUE, ParameterScope.FUNCTIONAL, GENERATOR_VOLTAGE_CONTROL_CATEGORY_KEY),
         new Parameter(NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_PARAM_NAME, ParameterType.STRING,
             "Newton-Raphson stopping criteria type",
             NEWTONRAPHSON_STOPPING_CRITERIA_TYPE_DEFAULT_VALUE.name(), getEnumPossibleValues(NewtonRaphsonStoppingCriteriaType.class), ParameterScope.FUNCTIONAL, NEWTON_RAPHSON_CATEGORY_KEY),
@@ -759,6 +764,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
     private boolean secondaryVoltageControl = LfNetworkParameters.SECONDARY_VOLTAGE_CONTROL_DEFAULT_VALUE;
 
     private int reactiveLimitsMaxPqPvSwitch = ReactiveLimitsOuterLoop.MAX_SWITCH_PQ_PV_DEFAULT_VALUE;
+
+    private double reactiveLimitsPqPvSwitchVoltageDeadband = ReactiveLimitsOuterLoop.PQ_PV_SWITCH_VOLTAGE_DEADBAND_DEFAULT_VALUE;
 
     private PhaseShifterControlMode phaseShifterControlMode = PHASE_SHIFTER_CONTROL_MODE_DEFAULT_VALUE;
 
@@ -1285,6 +1292,17 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         return this;
     }
 
+    public double getReactiveLimitsPqPvSwitchVoltageDeadband() {
+        return reactiveLimitsPqPvSwitchVoltageDeadband;
+    }
+
+    public OpenLoadFlowParameters setReactiveLimitsPqPvSwitchVoltageDeadband(double reactiveLimitsPqPvSwitchVoltageDeadband) {
+        this.reactiveLimitsPqPvSwitchVoltageDeadband = checkParameterValue(reactiveLimitsPqPvSwitchVoltageDeadband,
+                reactiveLimitsPqPvSwitchVoltageDeadband >= 0,
+                REACTIVE_LIMITS_PQ_PV_SWITCH_VOLTAGE_DEADBAND_PARAM_NAME);
+        return this;
+    }
+
     public int getReactiveLimitsMaxPqPvSwitch() {
         return reactiveLimitsMaxPqPvSwitch;
     }
@@ -1784,6 +1802,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
             .ifPresent(this::setIncrementalTransformerRatioTapControlOuterLoopMaxTapShift);
         config.getOptionalBooleanProperty(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME).ifPresent(this::setSecondaryVoltageControl);
         config.getOptionalIntProperty(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME).ifPresent(this::setReactiveLimitsMaxPqPvSwitch);
+        config.getOptionalDoubleProperty(REACTIVE_LIMITS_PQ_PV_SWITCH_VOLTAGE_DEADBAND_PARAM_NAME).ifPresent(this::setReactiveLimitsPqPvSwitchVoltageDeadband);
         config.getOptionalEnumProperty(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, PhaseShifterControlMode.class)
             .ifPresent(this::setPhaseShifterControlMode);
         config.getOptionalBooleanProperty(ALWAYS_UPDATE_NETWORK_PARAM_NAME).ifPresent(this::setAlwaysUpdateNetwork);
@@ -1927,6 +1946,8 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .ifPresent(prop -> this.setSecondaryVoltageControl(Boolean.parseBoolean(prop)));
         Optional.ofNullable(properties.get(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME))
                 .ifPresent(prop -> this.setReactiveLimitsMaxPqPvSwitch(Integer.parseInt(prop)));
+        Optional.ofNullable(properties.get(REACTIVE_LIMITS_PQ_PV_SWITCH_VOLTAGE_DEADBAND_PARAM_NAME))
+                .ifPresent(prop -> this.setReactiveLimitsPqPvSwitchVoltageDeadband(Double.parseDouble(prop)));
         Optional.ofNullable(properties.get(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME))
                 .ifPresent(prop -> this.setPhaseShifterControlMode(PhaseShifterControlMode.valueOf(prop)));
         Optional.ofNullable(properties.get(ALWAYS_UPDATE_NETWORK_PARAM_NAME))
@@ -2070,6 +2091,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
         map.put(INCREMENTAL_TRANSFORMER_RATIO_TAP_CONTROL_OUTER_LOOP_MAX_TAP_SHIFT_PARAM_NAME, incrementalTransformerRatioTapControlOuterLoopMaxTapShift);
         map.put(SECONDARY_VOLTAGE_CONTROL_PARAM_NAME, secondaryVoltageControl);
         map.put(REACTIVE_LIMITS_MAX_SWITCH_PQ_PV_PARAM_NAME, reactiveLimitsMaxPqPvSwitch);
+        map.put(REACTIVE_LIMITS_PQ_PV_SWITCH_VOLTAGE_DEADBAND_PARAM_NAME, reactiveLimitsPqPvSwitchVoltageDeadband);
         map.put(PHASE_SHIFTER_CONTROL_MODE_PARAM_NAME, phaseShifterControlMode);
         map.put(ALWAYS_UPDATE_NETWORK_PARAM_NAME, alwaysUpdateNetwork);
         map.put(MOST_MESHED_SLACK_BUS_SELECTOR_MAX_NOMINAL_VOLTAGE_PERCENTILE_PARAM_NAME, mostMeshedSlackBusSelectorMaxNominalVoltagePercentile);
@@ -2502,6 +2524,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 extension1.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift() == extension2.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift() &&
                 extension1.isSecondaryVoltageControl() == extension2.isSecondaryVoltageControl() &&
                 extension1.getReactiveLimitsMaxPqPvSwitch() == extension2.getReactiveLimitsMaxPqPvSwitch() &&
+                extension1.getReactiveLimitsPqPvSwitchVoltageDeadband() == extension2.getReactiveLimitsPqPvSwitchVoltageDeadband() &&
                 extension1.getPhaseShifterControlMode() == extension2.getPhaseShifterControlMode() &&
                 extension1.isAlwaysUpdateNetwork() == extension2.isAlwaysUpdateNetwork() &&
                 extension1.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() == extension2.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile() &&
@@ -2591,6 +2614,7 @@ public class OpenLoadFlowParameters extends AbstractExtension<LoadFlowParameters
                 .setIncrementalTransformerRatioTapControlOuterLoopMaxTapShift(extension.getIncrementalTransformerRatioTapControlOuterLoopMaxTapShift())
                 .setSecondaryVoltageControl(extension.isSecondaryVoltageControl())
                 .setReactiveLimitsMaxPqPvSwitch(extension.getReactiveLimitsMaxPqPvSwitch())
+                .setReactiveLimitsPqPvSwitchVoltageDeadband(extension.getReactiveLimitsPqPvSwitchVoltageDeadband())
                 .setPhaseShifterControlMode(extension.getPhaseShifterControlMode())
                 .setAlwaysUpdateNetwork(extension.isAlwaysUpdateNetwork())
                 .setMostMeshedSlackBusSelectorMaxNominalVoltagePercentile(extension.getMostMeshedSlackBusSelectorMaxNominalVoltagePercentile())

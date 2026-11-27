@@ -128,6 +128,16 @@ When PowSyBl Core [`useReactiveLimits`](inv:powsyblcore:*:*:#param-lf-use-reacti
 is switching from PQ to PV type. After this number of PQ/PV type switch, the equipment will not change PV/PQ type anymore.<br>
 The default value is `3` and it must be greater or equal to `0`.
 
+(param-lf-reactive-limits-pq-pv-switch-voltage-deadband)=
+#### reactiveLimitsPqPvSwitchVoltageDeadband
+When PowSyBl Core [`useReactiveLimits`](inv:powsyblcore:*:*:#param-lf-use-reactive-limits) LoadFlow Parameter is set to `true`, an equipment performing voltage control
+that has been switched from PV to PQ type at a reactive limit is switched back to PV type when its controlled voltage is on the side of its target that more reactive power
+(at a minimum limit) or less reactive power (at a maximum limit) would correct. This parameter is the margin, in per unit, by which the controlled voltage must miss its target
+for that switch back: below a minimum limit, the voltage must be lower than its target minus this margin; above a maximum limit, higher than its target plus this margin.<br>
+A small margin prevents a group of generators that all reach their reactive limit while the controlled voltage is a hair from its target from switching back and forth
+at each outer loop iteration until [`reactiveLimitsMaxPqPvSwitch`](#reactivelimitsmaxpqpvswitch) stops them.<br>
+The default value is `0` (no margin) and it must be greater or equal to `0`.
+
 (param-lf-reactive-power-dispatch-mode)=
 #### reactivePowerDispatchMode
 This parameter defines how reactive power is split among network elements with controls (voltage or reactive power).
