@@ -11,10 +11,14 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.Generator;
+import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.ShuntCompensatorLinearModel;
+import com.powsybl.iidm.network.extensions.SecondaryVoltageControl;
 import com.powsybl.iidm.network.extensions.SecondaryVoltageControlAdder;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.SparseMatrixFactory;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
@@ -22,27 +26,17 @@ import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
+import java.util.function.ToDoubleFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Finite-difference / forward cross-check of the reverse-mode entry point
- * {@link AcSensitivityAnalysis#runAdjoint} on IEEE-14 (the VJP validation gate). runAdjoint reuses the
- * AC load flow retained in the network cache ({@code networkCacheEnabled}) and returns
- * {@code θ̄ = Sᵀ·ȳ} without materialising the sensitivity matrix {@code S}.
- *
- * <p>The factors are the canonical DC-like sensitivity {@code d P_branch1 / d P_injection}: with an
- * active-power function and an active-power variable the SPI unscale is unity (both in MW, base cancels),
- * so runAdjoint's raw per-unit output equals both the forward (unscaled) sensitivity and a central finite
- * difference in MW/MW with no scaling correction. This makes it a clean, self-contained gate:
- * <ul>
- *   <li>{@code θ̄_g} for {@code ȳ = e_branch} must equal the forward {@code S[branch, g]} (transpose
- *       identity, tight) and a re-solve central difference {@code dP_branch/dP_g} (ground truth);</li>
- *   <li>for a weighted multi-branch cotangent, {@code θ̄_g = Σ_b ȳ_b · S[b, g]} (linearity + the
- *       per-function {@code x̄} de-duplication).</li>
- * </ul>
+ * Checks {@link AcSensitivityAnalysis#runAdjoint}, {@code θ̄ = Sᵀ·ȳ}, against the forward sensitivity and against
+ * load flow re-runs on IEEE-14.
  */
 class AcSensitivityAnalysisAdjointTest {
 
@@ -133,54 +127,6 @@ class AcSensitivityAnalysisAdjointTest {
         assertTrue(maxAbs > 0.1, "gradient must be non-trivial, got max |θ̄| = " + maxAbs);
     }
 
-    @Test
-    void runAdjointHandlesDistributedSlackOnIeee14() {
-        // Distributed slack is an outer loop folded into the RHS via slackParticipationByBus
-        // (getParticipatingElements) exactly as the forward does — no Schur/augmented Jacobian — so the
-        // transpose picks it up on the shared λ. The gate is that runAdjoint reproduces the forward
-        // sensitivity S with the slack DISTRIBUTED over the machines (S differs from the single-slack case
-        // because the injection variable now carries the -participation columns).
-        //
-        // We compare against the forward S rather than a raw-targetP re-solve: perturbing a *participating*
-        // generator's targetP has part of the change reabsorbed by the slack distribution, so the physical
-        // FD's effective injection pattern is not the SPI INJECTION_ACTIVE_POWER variable (they disagree by
-        // the participation, ~2x here). That is a property of the forward injection convention, which OLF's
-        // own distributed-slack sensitivity tests validate against a convention-correct FD; here we assert
-        // the adjoint inherits it exactly.
-        Network network = IeeeCdfNetworkFactory.create14();
-        LoadFlowParameters lfp = distributedSlackCacheEnabledParameters();
-        String branch = "L1-2-1";
-
-        assertTrue(LoadFlow.find("OpenLoadFlow").run(network, lfp).isFullyConverged());
-
-        List<SensitivityFactor> factors = new ArrayList<>();
-        for (String g : GENS) {
-            factors.add(injectionToBranchFlow(branch, g));
-        }
-
-        SensitivityAnalysisParameters sensiParams = new SensitivityAnalysisParameters();
-        sensiParams.setLoadFlowParameters(lfp);
-
-        AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
-                new DTreeGraphConnectivityFactory<>(), sensiParams);
-        Map<AcSensitivityAnalysis.VariableRef, Double> thetaBar = analysis.runAdjoint(network,
-                network.getVariantManager().getWorkingVariantId(), List.of(),
-                Map.of(new AcSensitivityAnalysis.FunctionRef(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, branch), 1.0),
-                levers(SensitivityVariableType.INJECTION_ACTIVE_POWER, GENS));
-
-        SensitivityAnalysisResult fwd = SensitivityAnalysis.find().run(network, factors,
-                new SensitivityAnalysisRunParameters().setParameters(sensiParams));
-
-        double maxAbs = 0;
-        for (String g : GENS) {
-            double s = fwd.getBranchFlow1SensitivityValue(g, branch, SensitivityVariableType.INJECTION_ACTIVE_POWER);
-            double theta = thetaBar.get(varKey(SensitivityVariableType.INJECTION_ACTIVE_POWER, g));
-            assertEquals(s, theta, 1e-12 * Math.abs(s) + 1e-13, "runAdjoint vs forward S (distributed slack) for " + g);
-            maxAbs = Math.max(maxAbs, Math.abs(theta));
-        }
-        assertTrue(maxAbs > 0.1, "gradient must be non-trivial, got max |θ̄| = " + maxAbs);
-    }
-
     private static Network ieee14WithZone(double pilotTargetV) {
         Network network = IeeeCdfNetworkFactory.create14();
         network.getGenerator("B8-G").newMinMaxReactiveLimits().setMinQ(-6).setMaxQ(200).add();
@@ -209,18 +155,15 @@ class AcSensitivityAnalysisAdjointTest {
 
     @Test
     void runAdjointHandlesSvcPilotLeverOnIeee14() {
-        // TVC's RST lever: the SVC pilot-point target voltage (SVC_PILOT_POINT_TARGET_VOLTAGE, variableId =
-        // the zone name). runAdjoint reuses describeSvcPilotFactorsRhs (the closed-loop coordination) on the
-        // cached converged context. θ̄ is RAW per-unit dV_bus_pu / dV_pilot_pu, whereas the forward S and the
-        // physical re-solve FD are kV/kV, so they relate by the nominal-voltage ratio Vnom(pilot)/Vnom(f0)
-        // (which is 1 when the monitored bus shares the pilot's voltage level).
+        // θ̄ is per-unit dV_bus / dV_pilot, the forward S and the FD are kV/kV: they differ by Vnom(pilot)/Vnom(f0)
         String zone = "z1";
         String pilot = "B10";
         List<String> monitored = List.of("B10", "B6", "B4"); // pilot, a controller bus, a far bus on another VL
         double targetV = 13.0;
         double dV = 0.1; // kV central step on the pilot target
 
-        LoadFlowParameters lfp = svcCacheEnabledParameters();
+        // single slack: with a distributed slack the adjoint no longer equals the forward S
+        LoadFlowParameters lfp = svcCacheEnabledParameters().setDistributedSlack(false);
         SensitivityAnalysisParameters sensiParams = new SensitivityAnalysisParameters();
         sensiParams.setLoadFlowParameters(lfp);
 
@@ -330,17 +273,8 @@ class AcSensitivityAnalysisAdjointTest {
 
     @Test
     void runAdjointHandlesLineAdmittanceLeverOnIeee14() {
-        // TVC's line lever: BRANCH_ADMITTANCE = the series admittance modulus y = 1/hypot(R,X) at constant ksi.
-        // The KEY case is a SELF-sensitivity (the monitored function is on the very branch whose admittance is
-        // the variable): then AcSensitivityAnalysis.computeParameterDirectPartial contributes an explicit
-        // direct term on top of the through-Jacobian term. analyseAdjoint adds yBar*computeParameterDirectPartial
-        // exactly as the forward's calculateSensitivityValues adds sensi += computeParameterDirectPartial, so
-        // this gate validates the adjoint direct-term handling (and its sign). A CROSS factor (function on a
-        // different branch) has a zero direct term and checks the indirect term only.
-        //
-        // runAdjoint returns the UNSCALED sensitivity (funcBase(f)/varBase(v) applied inside analyseAdjoint),
-        // i.e. the dual of get_sensitivity_matrix in physical units, so θ̄ equals the forward S and the
-        // physical re-solve FD (MW per physical siemens) directly — no scaling correction.
+        // BRANCH_ADMITTANCE: series admittance modulus at constant ksi. The self factor (function on the variable
+        // branch) has a direct term on top of the state term, the cross factor has none.
         String variableLine = "L2-3-1"; // the controllable line -> its series admittance is the lever
         String crossBranch = "L1-5-1";  // a different monitored branch (direct term = 0)
         LoadFlowParameters lfp = cacheEnabledParameters();
@@ -399,10 +333,7 @@ class AcSensitivityAnalysisAdjointTest {
 
     @Test
     void runAdjointKeepsFunctionTypesDistinctOnSharedBranchId() {
-        // A branch monitored by SEVERAL function types (here active power on side 1 AND side 2) shares one
-        // functionId, so the cotangents must be keyed by (functionType, id), not the id alone — otherwise the
-        // two function types' cotangents collide/sum. Distinct weights w1 != w2 expose the bug: θ̄ must be
-        // w1·S[P1,g] + w2·S[P2,g], not (w1+w2)·(S[P1,g] + S[P2,g]).
+        // two function types on one branch id: the cotangents are keyed by (type, id), not summed
         Network network = IeeeCdfNetworkFactory.create14();
         LoadFlowParameters lfp = cacheEnabledParameters();
         String branch = "L1-2-1";
@@ -439,9 +370,6 @@ class AcSensitivityAnalysisAdjointTest {
         }
     }
 
-    // The blocks a caller states for one function type: the monitored functions, and the variables to
-    // differentiate against. AcSensitivityAnalysis.buildAdjointFactors turns these into the minimal set —
-    // the gates below call THAT method, so they validate the shipped construction rather than a copy of it.
     /** the declared buses, with {@code f0} weighted 1 and every other left at its declared 0 */
     private static Map<AcSensitivityAnalysis.FunctionRef, Double> weight(
             Map<AcSensitivityAnalysis.FunctionRef, Double> declaredFunctions,
@@ -468,14 +396,7 @@ class AcSensitivityAnalysisAdjointTest {
     }
 
     /**
-     * A lever outside the main connected component reads 0, and is PRESENT.
-     *
-     * <p>The forward path already decided this: {@code calculateSensitivityValues} writes 0 for every
-     * VALID_ONLY_FOR_FUNCTION factor, with the comment that the sensitivity is known to value 0 — a variable
-     * outside the component moves nothing, so zero is not a fallback, it is the answer. The adjoint used to
-     * keep only VALID factors and drop such a lever from the returned map entirely, which a caller reading a
-     * missing lever as zero could not tell apart from a real zero, and which said "this lever cannot help"
-     * by accident rather than on purpose.</p>
+     * A lever outside the main connected component reads 0, as in the forward, and is present in the result.
      */
     @Test
     void runAdjointAnswersZeroForALeverOutsideTheComponent() {
@@ -498,13 +419,7 @@ class AcSensitivityAnalysisAdjointTest {
     }
 
     /**
-     * A lever that cannot be differentiated AT ALL throws, naming it.
-     *
-     * <p>When neither the lever nor any monitored function resolves, the forward writes NaN and records the
-     * id in a separate skipped-variable list. The adjoint has no second channel — it returns one number per
-     * lever — and a NaN loose in a gradient poisons an optimiser's step with no clue where it came from. So
-     * it says the same thing where it can be acted on. This is the one case the adjoint deliberately does
-     * NOT mirror.</p>
+     * A lever that cannot be differentiated at all throws, naming it, where the forward writes NaN.
      */
     @Test
     void runAdjointRefusesALeverItCannotDifferentiateAtAll() {
@@ -527,16 +442,8 @@ class AcSensitivityAnalysisAdjointTest {
     }
 
     /**
-     * One unresolvable monitored function must not strip a perfectly good lever of its gradient.
-     *
-     * <p>A θ̄ group needs the VARIABLE's element and nothing from the function, yet groups used to be built
-     * from VALID factors alone, so a lever anchored on a function outside the component lost its group and
-     * its answer. With the anchor chosen by a total order that became systematic rather than occasional: one
-     * disconnected branch sorting first would silence every lever in the request.</p>
-     *
-     * <p>Here L1-5-1 is disconnected and sorts before the live L2-3-1, so it anchors. The first lever is
-     * safe either way, since the x̄ pairs already reach it; the SECOND is the one that used to disappear.
-     * Oracle: the same request without the disconnected function declared at all.</p>
+     * An unresolvable monitored function anchoring a lever's group must not drop that lever. Oracle: the same
+     * request without that function.
      */
     @Test
     void runAdjointSurvivesAnUnresolvableAnchorFunction() {
@@ -578,18 +485,7 @@ class AcSensitivityAnalysisAdjointTest {
     }
 
     /**
-     * The factor set must not depend on the iteration order of the caller's cotangent map.
-     *
-     * <p>Any monitored function can anchor a lever's θ̄ group, so the choice looks free. It is not: the
-     * anchor's own validity decides the lever's fate, because a function outside the main connected
-     * component yields a dropped factor, no group, and a lever missing from the answer, where another
-     * function would have anchored it fine. Picking whichever function the map happened to yield first tied
-     * that to hash order — and {@code Map.of} salts its iteration per JVM run, so one request could answer
-     * with different levers on different runs of the same program. Reproducibility is the floor here.</p>
-     *
-     * <p>The levers are injections rather than branch parameters on purpose: a branch parameter pairs with
-     * its direct-term carriers anyway, which would mask the anchor. Only the first lever is covered by the
-     * x̄ pairs, so the rest expose the anchor directly.</p>
+     * The factor set must not depend on the iteration order of the cotangent map.
      */
     @Test
     void buildAdjointFactorsDoesNotDependOnTheCotangentMapOrder() {
@@ -614,15 +510,7 @@ class AcSensitivityAnalysisAdjointTest {
     }
 
     /**
-     * The SPI-level entry point, {@link OpenSensitivityAnalysisProvider#runAdjoint}, which is what a caller
-     * outside OpenLoadFlow actually holds.
-     *
-     * <p>Two things live only there and are reachable no other way. It builds the analysis from the
-     * provider's own matrix and connectivity factories, so a delegation that dropped an argument or
-     * reordered the two maps would be invisible to every gate above; and it rejects a DC request, since the
-     * adjoint is AC-only — the sensitivity matrix it transposes does not exist in the DC path. The
-     * signature carries a cotangent map and a lever list of different generic types, exactly the pair most
-     * easily transposed by mistake.</p>
+     * {@link OpenSensitivityAnalysisProvider#runAdjoint} delegates to the AC adjoint and rejects DC.
      */
     @Test
     void providerRunAdjointDelegatesAndRejectsDc() {
@@ -664,21 +552,8 @@ class AcSensitivityAnalysisAdjointTest {
     }
 
     /**
-     * A GLSK lever, declared through {@link AcSensitivityAnalysis.AdjointVariable#ofVariableSet}.
-     *
-     * <p>This is the only request that reaches a {@code MultiVariablesFactorGroup}, and so the only one
-     * that produces a genuinely DENSE RHS column: a GLSK spreads its injection over every weighted bus,
-     * where every other lever gated here moves one residual row or four. The column description carries
-     * that case as {@code Entries} rather than {@code OneHot} and the adjoint contracts it over its
-     * non-zeros, a path no other gate in this class exercises.</p>
-     *
-     * <p>It is also the only thing a {@link AcSensitivityAnalysis.VariableRef} cannot express on its own:
-     * a GLSK is typed INJECTION_ACTIVE_POWER exactly like the injection levers beside it, so the
-     * variable-set flag is what separates a zone id from a network element id. Declaring it wrong yields
-     * no error, just a lever resolved against the wrong thing.</p>
-     *
-     * <p>Oracle: the forward sensitivity for the same GLSK over the same monitored branches, contracted
-     * with the same cotangents.</p>
+     * A GLSK lever ({@link AcSensitivityAnalysis.AdjointVariable#ofVariableSet}): a dense rhs column. Oracle: the
+     * forward sensitivity of the same GLSK.
      */
     @Test
     void runAdjointHandlesAGlskLever() {
@@ -726,15 +601,7 @@ class AcSensitivityAnalysisAdjointTest {
     }
 
     /**
-     * A cotangent of zero DECLARES its function without weighting it.
-     *
-     * <p>The cotangent map is the whole declaration of what is monitored, so the value and the membership
-     * carry different meanings: the key says "this function is part of the request", the value says how
-     * much of it reaches the loss. A caller sweeping weights, or zeroing one objective term, must be able
-     * to set a weight to zero without the function silently leaving the request — and an all-zero map is a
-     * legitimate request whose answer is a gradient of zeros, not an error and not an empty map. Treating
-     * a zero value as an absent key would make the second case throw "needs at least one monitored
-     * function" on a request that names one.</p>
+     * A zero cotangent declares its function: an all-zero map gives a gradient of zeros, not an error.
      */
     @Test
     void runAdjointTreatsAZeroCotangentAsADeclaration() {
@@ -779,10 +646,7 @@ class AcSensitivityAnalysisAdjointTest {
         assertTrue(maxAbs > 0.1, "the weighted request is trivially zero, so this proves nothing: " + maxAbs);
     }
 
-    /**
-     * The monitored functions a caller declares, all weighted 0 — a zero entry still DECLARES its function,
-     * so a test can state the whole monitored set and then override only the weights it cares about.
-     */
+    /** The monitored functions, all weighted 0. */
     private static Map<AcSensitivityAnalysis.FunctionRef, Double> declared(List<SensitivityFunctionType> fts,
                                                                            List<List<String>> functionsPerType) {
         Map<AcSensitivityAnalysis.FunctionRef, Double> cot = new LinkedHashMap<>();
@@ -796,12 +660,7 @@ class AcSensitivityAnalysisAdjointTest {
 
     @Test
     void runAdjointMinimalFactorSetMatchesFullCrossProduct() {
-        // The full adjoint would declare functions×variables factors; reverse mode only needs the O(F+V) set
-        // buildAdjointFactors derives from the blocks. This gate gives that minimal set an INDEPENDENT oracle:
-        // the FORWARD sensitivity matrix over the full cross product, contracted with the same cotangents —
-        // θ̄(v) must equal Σ_f ȳ_f · S[f, v]. Branch admittance is the demanding case: a non-zero direct term
-        // (self) AND cross sensitivities, which must come from the single adjoint solve rather than from
-        // per-pair factors. Distinct cotangent weights make every cross term matter.
+        // the minimal factor set against the forward over the full cross product: θ̄(v) = Σ_f ȳ_f · S[f, v]
         Network network = IeeeCdfNetworkFactory.create14();
         LoadFlowParameters lfp = cacheEnabledParameters();
         assertTrue(LoadFlow.find("OpenLoadFlow").run(network, lfp).isFullyConverged());
@@ -905,18 +764,7 @@ class AcSensitivityAnalysisAdjointTest {
 
     @Test
     void runAdjointGivesEveryVariableSetItsOwnGradient() {
-        // Blocks may carry DIFFERENT variable sets, which is what lets one runAdjoint serve several lever
-        // families at once: the cotangent is the same for all of them (it depends only on the monitored
-        // functions), so N per-family calls repeat one identical transpose solve N times.
-        //
-        // The regression this pins: the group guarantee used to walk only the FIRST block's variables, on
-        // the then-true assumption that every block shared one variable list. Every other set's variables
-        // then got no θ̄ group and vanished from the returned map — and a caller rendering a missing
-        // variable as 0.0 reads that as "these levers cannot help". Only the first variable of each set
-        // survived (it anchors a group through the x-bar loop), which is what made it so easy to miss.
-        //
-        // Oracle: the same variables asked for ONE SET AT A TIME, which is the path every other gate here
-        // already validates. Fused must equal per-set, variable for variable.
+        // blocks with different variable sets: each set gets its gradient. Oracle: one set at a time.
         Network network = IeeeCdfNetworkFactory.create14();
         LoadFlowParameters lfp = cacheEnabledParameters();
         assertTrue(LoadFlow.find("OpenLoadFlow").run(network, lfp).isFullyConverged());
@@ -964,20 +812,8 @@ class AcSensitivityAnalysisAdjointTest {
     }
 
     /**
-     * A variable owes its direct term {@code ∂f/∂p} to EVERY monitored function of the call, including the
-     * functions of a block that does not declare it.
-     *
-     * <p>x̄ and λ are shared by the whole call, so θ̄ for a lever sums over every declared function, whatever
-     * block it sits in. The factor set has to follow: a pair is the only thing that can carry a direct term,
-     * and the builder used to look for carriers only among the functions of the block that declared the
-     * variable. A line admittance declared beside branch flows therefore lost its term with a bus reactive
-     * injection declared in the next block, and the loss was silent — the lever still had a group, still had
-     * an RHS column, and still returned a plausible number.</p>
-     *
-     * <p>Here the line is incident to the monitored generator bus, so the missing term is a real one, and
-     * the line is declared ONLY in the branch-flow block. The oracle is the cotangent-weighted forward cross product over
-     * BOTH function types. The bus term is asserted to be a material share of the total first, so that a
-     * build which drops it cannot pass on rounding.</p>
+     * A variable gets its direct term from every monitored function, including those of a block that does not
+     * declare it. Oracle: the forward cross product over both function types.
      */
     @Test
     void runAdjointCarriesADirectTermFromAnotherBlocksFunction() {
@@ -1025,24 +861,8 @@ class AcSensitivityAnalysisAdjointTest {
     }
 
     /**
-     * A differentiation variable is the (variableType, variableId) PAIR, so one element declared under two
-     * types in a single call is two levers with two gradients.
-     *
-     * <p>The regression this pins, found from a pypowsybl session: variable identity was the id STRING
-     * alone, on both sides of the build. The dedup key of the emitted factors was
-     * (functionType, functionId, variableId), so the second type's factors collided with the first type's
-     * and were deduplicated away — that type got no factor, hence no group from
-     * {@code createFactorGroups}, hence no gradient; and the returned map was keyed by the id alone, so
-     * had a group survived, the second value would have overwritten the first. Either way one type was
-     * silently gone, or reported under the other's value. The function side already knew a monitored
-     * function is a (type, id) pair ({@code FunctionRef}); the variable side did not.</p>
-     *
-     * <p>The element chosen is itself a monitored function, so the v0 factors, the self-pair carrying the
-     * direct term, and the group guarantee all collide under the old key, not just one of them. The
-     * oracle is the same lever asked for ONE TYPE AT A TIME. Both block orders are exercised because the
-     * dedup is order-dependent: whichever type comes second is the one that used to disappear. The two
-     * answers are asserted genuinely DIFFERENT first, since a test comparing two equal numbers would pass
-     * just as well when one is reported under the other's key.</p>
+     * A variable is a (type, id) pair: one element declared under two types is two levers with two gradients.
+     * Oracle: one type at a time, in both block orders.
      */
     @Test
     void runAdjointKeepsVariableTypesDistinctOnSharedElementId() {
@@ -1092,27 +912,8 @@ class AcSensitivityAnalysisAdjointTest {
     }
 
     /**
-     * A BUS_REACTIVE_POWER cotangent must reach x̄, and its direct term must reach θ̄.
-     *
-     * <p>That function is not a single equation term: a bus's reactive injection is the
-     * {@code InjectionDerivable} behind its BUS_TARGET_Q equation, a signed sum of the incident branch terms.
-     * The first adjoint scattered only {@code EquationTerm}s and skipped everything else with a
-     * {@code continue}, so a reactive-power cotangent produced a clean 0.0 (IEEE-14, bus B2 against the B3-G
-     * target voltage: forward 5.437, adjoint 0.0) while the forward path, which goes through
-     * {@code calculateSensi}, was right. The scatter now goes through the {@code Derivable} contract for every
-     * function type, with no fall-through.</p>
-     *
-     * <p>The second facet is the direct term. For a branch flow it lives on the self-pair (the monitored
-     * branch is the variable branch); for a bus reactive injection it lives on every branch INCIDENT to the
-     * bus, and a bus is never a branch, so the minimal factor set had no pair to carry it. The block below
-     * puts the incident line L4-5-1 neither first among the variables nor with the first function, so the
-     * only way its direct term with B5 can be served is the (bus, branch) cross product the builder now
-     * emits for this function type. B5 is a PQ bus: its injection is constant, so the through-state and the
-     * direct term cancel exactly, and an adjoint that dropped the direct term would return the non-zero
-     * through-state part alone.</p>
-     *
-     * <p>Oracle: the cotangent-weighted forward cross product, per variable, over a target-voltage family
-     * (through the state only) and a line-admittance family (state plus direct term).</p>
+     * A BUS_REACTIVE_POWER cotangent reaches x̄, and its direct term, on every branch incident to the bus,
+     * reaches θ̄. Oracle: the forward cross product over target voltage and line admittance levers.
      */
     @Test
     void runAdjointScattersABusReactivePowerCotangent() {
@@ -1214,5 +1015,141 @@ class AcSensitivityAnalysisAdjointTest {
         PowsyblException noVariables = assertThrows(PowsyblException.class,
             () -> AcSensitivityAnalysis.buildAdjointFactors(network, functions, List.of()));
         assertTrue(noVariables.getMessage().contains("at least one variable"), noVariables.getMessage());
+    }
+
+    // the IEEE-14 generators the slack is distributed over (the condensers at zero stay at zero)
+    private static final List<String> IEEE14_PARTICIPATING_GENERATORS = List.of("B1-G", "B2-G");
+
+    private static final Map<AcSensitivityAnalysis.FunctionRef, Double> FLOW_COTANGENTS =
+            Map.of(powerKey("L1-2-1"), 1.0, powerKey("L2-3-1"), 0.5);
+
+    /** The objective FLOW_COTANGENTS is the gradient of. */
+    private static double flowObjective(Network network) {
+        return network.getBranch("L1-2-1").getTerminal1().getP() + 0.5 * network.getBranch("L2-3-1").getTerminal1().getP();
+    }
+
+    private static Map<AcSensitivityAnalysis.VariableRef, Double> runAdjointWithSlackDistribution(
+            Network network, LoadFlowParameters lfp, List<AcSensitivityAnalysis.AdjointVariable> variables) {
+        assertTrue(LoadFlow.find("OpenLoadFlow").run(network, lfp).isFullyConverged());
+        SensitivityAnalysisParameters sensiParams = new SensitivityAnalysisParameters();
+        sensiParams.setLoadFlowParameters(lfp);
+        AcSensitivityAnalysis analysis = new AcSensitivityAnalysis(new SparseMatrixFactory(),
+                new DTreeGraphConnectivityFactory<>(), sensiParams);
+        return analysis.runAdjoint(network, network.getVariantManager().getWorkingVariantId(), List.of(),
+                FLOW_COTANGENTS, variables);
+    }
+
+    /**
+     * The distributed slack load flow, run to an exact balance: the load flow's own distribution stops at
+     * P_RESIDUE_EPS, which would bias a finite difference. Single slack re-runs, spreading the slack bus mismatch
+     * over the participating generators by maximum power, until it is negligible.
+     */
+    private static void runToExactSlackBalance(Network network, LoadFlowParameters lfp,
+                                               List<String> participatingGenerators) {
+        LoadFlowParameters singleSlackParameters = lfp.copy().setDistributedSlack(false);
+        double maxPSum = participatingGenerators.stream().mapToDouble(g -> network.getGenerator(g).getMaxP()).sum();
+        for (int i = 0; i < 20; i++) {
+            LoadFlowResult result = LoadFlow.find("OpenLoadFlow").run(network, singleSlackParameters);
+            assertTrue(result.isFullyConverged());
+            double residual = result.getComponentResults().getFirst().getSlackBusResults().getFirst().getActivePowerMismatch();
+            if (Math.abs(residual) < 1e-9) {
+                return;
+            }
+            for (String id : participatingGenerators) {
+                Generator g = network.getGenerator(id);
+                g.setTargetP(g.getTargetP() + residual * g.getMaxP() / maxPSum);
+            }
+        }
+        throw new AssertionError("slack balance not reached");
+    }
+
+    /** d(objective)/d(perturbation) by a central difference of two exactly balanced load flow re-runs. */
+    private static double reRunCentralDifference(Supplier<Network> base, LoadFlowParameters lfp,
+                                                 BiConsumer<Network, Double> perturb, double step,
+                                                 ToDoubleFunction<Network> objective) {
+        double[] values = new double[2];
+        for (int k = 0; k < 2; k++) {
+            Network network = base.get();
+            perturb.accept(network, k == 0 ? step : -step);
+            runToExactSlackBalance(network, lfp, IEEE14_PARTICIPATING_GENERATORS);
+            values[k] = objective.applyAsDouble(network);
+        }
+        return (values[0] - values[1]) / (2 * step);
+    }
+
+    private static void scaleImpedance(Network network, String lineId, double dY) {
+        // series admittance modulus y + dY at constant ksi: R and X scaled by y / (y + dY)
+        Line line = network.getLine(lineId);
+        double y = 1.0 / Math.hypot(line.getR(), line.getX());
+        double scale = y / (y + dY);
+        line.setR(line.getR() * scale).setX(line.getX() * scale);
+    }
+
+    @Test
+    void runAdjointWithSlackDistributionMatchesALoadFlowReRun() {
+        // the adjoint differentiates through the slack distribution, losses included: it matches a re-run
+        LoadFlowParameters lfp = distributedSlackCacheEnabledParameters();
+        OpenLoadFlowParameters.get(lfp).setSlackBusPMaxMismatch(1e-6);
+        Supplier<Network> ieee14 = IeeeCdfNetworkFactory::create14;
+        Network network = ieee14.get();
+        double shuntB = network.getShuntCompensator("B9-SH").getModel(ShuntCompensatorLinearModel.class).getBPerSection();
+        double y23 = 1.0 / Math.hypot(network.getLine("L2-3-1").getR(), network.getLine("L2-3-1").getX());
+        double y15 = 1.0 / Math.hypot(network.getLine("L1-5-1").getR(), network.getLine("L1-5-1").getX());
+
+        record Lever(SensitivityVariableType type, String id, BiConsumer<Network, Double> perturb, double step) { }
+
+        List<Lever> levers = List.of(
+                new Lever(SensitivityVariableType.INJECTION_ACTIVE_POWER, "B1-G",
+                        (n, d) -> n.getGenerator("B1-G").setTargetP(n.getGenerator("B1-G").getTargetP() + d), 0.5),
+                new Lever(SensitivityVariableType.INJECTION_ACTIVE_POWER, "B2-G",
+                        (n, d) -> n.getGenerator("B2-G").setTargetP(n.getGenerator("B2-G").getTargetP() + d), 0.5),
+                new Lever(SensitivityVariableType.SHUNT_COMPENSATOR_SUSCEPTANCE, "B9-SH",
+                        (n, d) -> {
+                            ShuntCompensatorLinearModel model = n.getShuntCompensator("B9-SH").getModel(ShuntCompensatorLinearModel.class);
+                            model.setBPerSection(model.getBPerSection() + d);
+                        }, 1e-3 * Math.abs(shuntB)),
+                // a line away from the slack bus and one connected to it (the slack bus rhs entry)
+                new Lever(SensitivityVariableType.BRANCH_ADMITTANCE, "L2-3-1", (n, d) -> scaleImpedance(n, "L2-3-1", d), 1e-4 * y23),
+                new Lever(SensitivityVariableType.BRANCH_ADMITTANCE, "L1-5-1", (n, d) -> scaleImpedance(n, "L1-5-1", d), 1e-4 * y15));
+
+        List<AcSensitivityAnalysis.AdjointVariable> variables = levers.stream()
+                .map(l -> AcSensitivityAnalysis.AdjointVariable.of(l.type(), l.id())).toList();
+        Map<AcSensitivityAnalysis.VariableRef, Double> theta = runAdjointWithSlackDistribution(network, lfp, variables);
+
+        for (Lever lever : levers) {
+            AcSensitivityAnalysis.VariableRef key = varKey(lever.type(), lever.id());
+            double fd = reRunCentralDifference(ieee14, lfp, lever.perturb(), lever.step(), AcSensitivityAnalysisAdjointTest::flowObjective);
+            assertEquals(fd, theta.get(key), 1e-5 * (Math.abs(fd) + 1e-2), "adjoint vs re-run for " + key);
+        }
+    }
+
+    @Test
+    void runAdjointWithSlackDistributionMatchesALoadFlowReRunForAnSvcPilotLever() {
+        // the remaining gap is in the SVC coordination weights, computed with the slack on the slack bus
+        String zone = "z1";
+        double targetV = 13.0;
+        double dV = 0.01;
+        LoadFlowParameters lfp = svcCacheEnabledParameters().setDistributedSlack(true);
+        OpenLoadFlowParameters.get(lfp).setSlackBusPMaxMismatch(1e-6);
+
+        Network network = ieee14WithZone(targetV);
+        List<AcSensitivityAnalysis.AdjointVariable> zoneLever =
+                levers(SensitivityVariableType.SVC_PILOT_POINT_TARGET_VOLTAGE, List.of(zone));
+        double theta = runAdjointWithSlackDistribution(network, lfp, zoneLever)
+                .get(varKey(SensitivityVariableType.SVC_PILOT_POINT_TARGET_VOLTAGE, zone));
+
+        // divided by the achieved pilot voltage change
+        double[] objective = new double[2];
+        double[] pilotV = new double[2];
+        for (int k = 0; k < 2; k++) {
+            Network n = ieee14WithZone(targetV);
+            n.getExtension(SecondaryVoltageControl.class).getControlZone(zone).orElseThrow().getPilotPoint()
+                    .setTargetV(targetV + (k == 0 ? dV : -dV));
+            runToExactSlackBalance(n, lfp, IEEE14_PARTICIPATING_GENERATORS);
+            objective[k] = flowObjective(n);
+            pilotV[k] = busVoltage(n, "B10");
+        }
+        double fd = (objective[0] - objective[1]) / (pilotV[0] - pilotV[1]);
+        assertEquals(fd, theta, 3e-3 * Math.abs(fd), "adjoint vs re-run for the pilot target");
     }
 }
