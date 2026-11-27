@@ -158,7 +158,8 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
 
     @Override
     public double[] getLimitScalings(TwoSides side, LimitScalingManager limitScalingManager, LoadingLimits limits) {
-        return new double[] {};
+        BoundaryLine boundaryLine = side == TwoSides.ONE ? boundaryLine1Ref.get() : boundaryLine2Ref.get();
+        return createLimitScalings(limitScalingManager, limits, boundaryLine.getTerminal().getVoltageLevel().getNominalV());
     }
 
     @Override
