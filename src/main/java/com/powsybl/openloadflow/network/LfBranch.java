@@ -13,6 +13,7 @@ import com.powsybl.iidm.network.LoadingLimits;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.openloadflow.network.util.NetworkStateBranchFlows;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
@@ -332,8 +333,7 @@ public interface LfBranch extends LfElement, LfCopyable<LfBranch, LfNetwork> {
     boolean isTransformerReactivePowerControlled();
 
     List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
-                                          boolean createExtension, Map<String, LfBranchResults> zeroImpedanceFlows,
-                                          LoadFlowModel loadFlowModel);
+                                          boolean createExtension, NetworkStateBranchFlows branchFlows);
 
     double computeApparentPower1();
 
