@@ -34,6 +34,8 @@ public class DefaultAcOuterLoopConfig extends AbstractAcOuterLoopConfig {
         createFreezingHvdcACEmulationOuterLoop(parametersExt).ifPresent(outerLoops::add);
         // AC emulation
         createHvdcAcEmulationLimitsOuterLoop(parameters).ifPresent(outerLoops::add);
+        // AC-DC converter active power limits
+        createAcDcConverterPowerLimitsOuterLoop(parametersExt).ifPresent(outerLoops::add);
         // area interchange control
         createAreaInterchangeControlOuterLoop(parameters, parametersExt, loadFlowParametersOverride).ifPresent(outerLoops::add);
         // secondary voltage control

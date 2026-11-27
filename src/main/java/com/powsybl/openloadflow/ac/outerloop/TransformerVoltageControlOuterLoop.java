@@ -13,12 +13,12 @@ import com.powsybl.openloadflow.ac.outerloop.tap.GeneratorVoltageControlManager;
 import com.powsybl.openloadflow.ac.outerloop.tap.TransformerRatioManager;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopResult;
 import com.powsybl.openloadflow.lf.outerloop.OuterLoopStatus;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.TransformerVoltageControl;
 import com.powsybl.openloadflow.network.VoltageControl;
-import com.powsybl.openloadflow.util.Reports;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,9 +146,9 @@ public class TransformerVoltageControlOuterLoop extends AbstractTransformerVolta
 
             contextData.step = Step.COMPLETE;
         } else {
-            ReportNode summary = Reports.reportTransformerControlTapLimit(reportNode, outOfBoundTransformerIds.size());
+            ReportNode summary = LfReports.reportTransformerControlTapLimit(reportNode, outOfBoundTransformerIds.size());
             LOGGER.info(summary.getMessage());
-            outOfBoundTransformerIds.forEach(id -> Reports.reportTransformerControlTapLimitDetail(summary, id));
+            outOfBoundTransformerIds.forEach(id -> LfReports.reportTransformerControlTapLimitDetail(summary, id));
         }
         // In any case, the loop must run again.
         return new OuterLoopResult(this, OuterLoopStatus.UNSTABLE);

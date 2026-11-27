@@ -10,14 +10,14 @@ package com.powsybl.openloadflow.dc;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
-import com.powsybl.openloadflow.network.EurostagFactory;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.LfNetworkParameters;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.ServiceParameterResolver;
+import com.powsybl.openloadflow.test.networks.EurostagFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 

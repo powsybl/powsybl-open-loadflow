@@ -15,22 +15,14 @@ import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder
 import com.powsybl.iidm.network.test.BoundaryLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
-import com.powsybl.loadflow.LoadFlow;
-import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.openloadflow.CommonTestConfig;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.OpenLoadFlowProvider;
-import com.powsybl.openloadflow.ServiceParameterResolver;
 import com.powsybl.openloadflow.network.impl.Networks;
-import com.powsybl.openloadflow.sa.LimitScalingManager;
+import com.powsybl.openloadflow.test.networks.*;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.EvaluableConstants;
 import org.apache.commons.lang3.Range;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,14 +41,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
-@ExtendWith(ServiceParameterResolver.class)
 class LfNetworkTest extends AbstractSerDeTest {
-
-    private final CommonTestConfig commonTestConfig;
-
-    LfNetworkTest(CommonTestConfig commonTestConfig) {
-        this.commonTestConfig = commonTestConfig;
-    }
 
     @Override
     @BeforeEach
@@ -146,90 +131,6 @@ class LfNetworkTest extends AbstractSerDeTest {
         assertEquals(2, lfNetworks.size());
         LfNetwork lfNetwork = lfNetworks.get(0);
         assertEquals(0.0, lfNetwork.getGeneratorById("cs2").getParticipationFactor(), 1E-6);
-    }
-
-    @Test
-    void testMultipleConnectedComponentsACMainComponent() {
-        Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-
-        assertTrue(result.isFullyConverged());
-
-        //Default is only compute load flow on the main component
-        assertEquals(1, result.getComponentResults().size());
-        assertEquals(ComponentConstants.MAIN_NUM, result.getComponentResults().get(0).getConnectedComponentNum());
-    }
-
-    @Test
-    void testMultipleConnectedComponentsACAllComponents() {
-        Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-
-        assertTrue(result.isFullyConverged());
-        assertEquals(2, result.getComponentResults().size());
-    }
-
-    @Test
-    void testMultipleConnectedComponentsDCMainComponent() {
-        Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setDc(true);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-
-        assertTrue(result.isFullyConverged());
-
-        // Default is only compute load flow on the main component
-        assertEquals(1, result.getComponentResults().size());
-        assertEquals(ComponentConstants.MAIN_NUM, result.getComponentResults().get(0).getConnectedComponentNum());
-    }
-
-    @Test
-    void testMultipleConnectedComponentsDCAllComponents() {
-        Network network = ConnectedComponentNetworkFactory.createTwoUnconnectedCC();
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED)
-                .setVoltageInitMode(LoadFlowParameters.VoltageInitMode.DC_VALUES);
-        parameters.setDc(true);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-
-        assertTrue(result.isFullyConverged());
-        assertEquals(2, result.getComponentResults().size());
-    }
-
-    @Test
-    void testMultipleConnectedComponentsMainSynchronousMode() {
-        // Network initially has two one connected component and two synchronous components
-        Network network = HvdcNetworkFactory.createTwoCcLinkedByAHvdcWithGenerators();
-        // Splitting the connected components in two connected components, it now has 3 synchronous components
-        network.getLine("l12").disconnect();
-        network.getLine("l13").disconnect();
-        network.getGenerator("g2").setMaxP(3); // Increasing MaxP to allow slack bus distribution
-        network.getGenerator("g6").setMaxP(3); // Increasing MaxP to allow slack bus distribution
-
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-
-        parameters.setComponentMode(LoadFlowParameters.ComponentMode.ALL_CONNECTED);
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-        assertEquals(3, result.getComponentResults().size());
-
-        parameters.setComponentMode(LoadFlowParameters.ComponentMode.MAIN_CONNECTED);
-        result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-        assertEquals(2, result.getComponentResults().size());
-
-        parameters.setComponentMode(LoadFlowParameters.ComponentMode.MAIN_SYNCHRONOUS);
-        result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
-        assertEquals(1, result.getComponentResults().size());
     }
 
     private static void testGraphViz(Network network, boolean breakers, String ref) throws IOException {
@@ -501,17 +402,10 @@ class LfNetworkTest extends AbstractSerDeTest {
         Network network = FourBusNetworkFactory.createBaseNetwork();
         network.getSubstations().forEach(substation -> substation.setCountry(Country.FR));
 
-        LoadFlow.Runner loadFlowRunner = new LoadFlow.Runner(new OpenLoadFlowProvider(commonTestConfig.matrixFactory()));
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setReadSlackBus(false);
-        OpenLoadFlowParameters parametersExt = OpenLoadFlowParameters.create(parameters);
-
         // Setup a slack bus selection method with a filter on country that we do not have in the network (for it to fail)
-        parametersExt.setSlackBusSelectionMode(SlackBusSelectionMode.FIRST);
-        parametersExt.setSlackBusCountryFilter(Set.of(Country.BE));
-
-        LoadFlowResult result = loadFlowRunner.run(network, parameters);
-        assertTrue(result.isFullyConverged());
+        List<LfNetwork> lfNetworks = Networks.load(network, new FirstSlackBusSelector(Set.of(Country.BE)));
+        List<LfBus> slackBuses = lfNetworks.get(0).getSynchronousNetworks().getFirst().getSlackBuses();
+        assertEquals(List.of("b1_vl_0"), slackBuses.stream().map(LfBus::getId).toList());
     }
 
     @Test

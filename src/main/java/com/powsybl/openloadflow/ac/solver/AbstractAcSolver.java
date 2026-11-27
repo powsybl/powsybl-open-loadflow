@@ -11,10 +11,10 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.*;
+import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.network.LfBus;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.util.PerUnit;
-import com.powsybl.openloadflow.util.Reports;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 
@@ -110,7 +110,7 @@ public abstract class AbstractAcSolver implements AcSolver {
     protected AcSolverStatus reportAndReturnStatus(Logger logger, NewtonRaphsonStoppingCriteria.TestResult testResult, ReportNode iterationReportNode) {
         logger.debug("|f(x)|={}", testResult.getNorm());
         if (detailedReport) {
-            Reports.reportSolverNorm(iterationReportNode, testResult.getNorm());
+            LfReports.reportSolverNorm(iterationReportNode, testResult.getNorm());
         }
         if (detailedReport || logger.isTraceEnabled()) {
             reportAndLogLargestMismatchByAcEquationType(iterationReportNode, equationSystem, equationVector.getArray(), logger);
@@ -143,8 +143,8 @@ public abstract class AbstractAcSolver implements AcSolver {
         }
 
         if (reportNode != null) {
-            Reports.BusReport busReport = new Reports.BusReport(bus.getId(), equationMismatch, busNominalV, busV, busPhi, busSumP, busSumQ);
-            Reports.reportNewtonRaphsonLargestMismatches(reportNode, getEquationTypeDescription(acEquationType), busReport);
+            LfReports.BusReport busReport = new LfReports.BusReport(bus.getId(), equationMismatch, busNominalV, busV, busPhi, busSumP, busSumQ);
+            LfReports.reportNewtonRaphsonLargestMismatches(reportNode, getEquationTypeDescription(acEquationType), busReport);
         }
     }
 }

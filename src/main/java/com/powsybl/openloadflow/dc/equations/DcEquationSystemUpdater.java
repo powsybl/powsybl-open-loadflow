@@ -8,8 +8,8 @@
 package com.powsybl.openloadflow.dc.equations;
 
 import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.openloadflow.equations.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.equations.EquationSystem;
-import com.powsybl.openloadflow.lf.AbstractEquationSystemUpdater;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.util.EvaluableConstants;
 

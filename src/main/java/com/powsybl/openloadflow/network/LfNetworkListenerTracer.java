@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network;
 
+import com.powsybl.iidm.network.AcDcConverter;
 import com.powsybl.iidm.network.TwoSides;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -172,5 +173,17 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     public void onHvdcAcEmulationStatusChange(LfHvdc hvdc, LfHvdc.AcEmulationControl.AcEmulationStatus acEmulationStatus) {
         LOGGER.trace("onHvdcAcEmulationStatusChange(hvdc={}, acEmulationStatus={})", hvdc, acEmulationStatus);
         delegate.onHvdcAcEmulationStatusChange(hvdc, acEmulationStatus);
+    }
+
+    @Override
+    public void onAcDcConverterControlModeChange(LfAcDcConverter converter, AcDcConverter.ControlMode newControlMode) {
+        LOGGER.trace("onAcDcConverterControlModeChange(converter={}, newControlMode={})", converter, newControlMode);
+        delegate.onAcDcConverterControlModeChange(converter, newControlMode);
+    }
+
+    @Override
+    public void onAcDcConverterTargetPChange(LfAcDcConverter converter, double newTargetP) {
+        LOGGER.trace("onAcDcConverterTargetPChange(converter={}, newTargetP={})", converter, newTargetP);
+        delegate.onAcDcConverterTargetPChange(converter, newTargetP);
     }
 }
