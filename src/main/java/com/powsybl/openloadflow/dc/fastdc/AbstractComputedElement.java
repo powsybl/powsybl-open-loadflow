@@ -8,7 +8,12 @@
 package com.powsybl.openloadflow.dc.fastdc;
 
 import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
+import com.powsybl.openloadflow.dc.equations.DcEquationType;
+import com.powsybl.openloadflow.dc.equations.DcVariableType;
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.network.LfBranch;
+import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 
 import java.util.Objects;
 
@@ -57,6 +62,30 @@ abstract class AbstractComputedElement {
     }
 
     public ClosedBranchSide1DcFlowEquationTerm getLfBranchEquation() {
+        return branchEquation;
+    }
+
+    public LfElement getLfElement() {
+        return lfBranch;
+    }
+
+    public LfBus getBus1() {
+        return lfBranch.getBus1();
+    }
+
+    public LfBus getBus2() {
+        return lfBranch.getBus2();
+    }
+
+    public int getPh1VarRow() {
+        return branchEquation.getPh1Var().getRow();
+    }
+
+    public int getPh2VarRow() {
+        return branchEquation.getPh2Var().getRow();
+    }
+
+    public EquationTerm<DcVariableType, DcEquationType> getEquation() {
         return branchEquation;
     }
 }
