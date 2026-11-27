@@ -74,8 +74,8 @@ public class OpenBranchSide1CurrentMagnitudeEquationTerm extends AbstractOpenSid
     }
 
     public static double di2dv2(double y, double cosKsi, double sinKsi, double g1, double b1, double g2, double b2, double v2, double ph2) {
-        return (reI2(y, cosKsi, sinKsi, g1, b1, g2, b2, v2, ph2) * dreI2dv2(y, cosKsi, sinKsi, g1, b1, g2, b2, ph2)
-                + imI2(y, cosKsi, sinKsi, g1, b1, g2, b2, v2, ph2) * dimI2dv2(y, cosKsi, sinKsi, g1, b1, g2, b2, ph2)) / i2(y, cosKsi, sinKsi, g1, b1, g2, b2, v2, ph2);
+        // i2 is linear in v2, and a quotient by i2 would be 0/0 on a branch without shunt admittance
+        return FastMath.hypot(dreI2dv2(y, cosKsi, sinKsi, g1, b1, g2, b2, ph2), dimI2dv2(y, cosKsi, sinKsi, g1, b1, g2, b2, ph2));
     }
 
     @Override

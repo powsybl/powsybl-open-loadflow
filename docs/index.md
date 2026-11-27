@@ -7,6 +7,7 @@ PowSyBl Open Load Flow provides:
 - An open-source implementation of the [LoadFlow API from PowSyBl Core](inv:powsyblcore:*:*#simulation/loadflow/index), supporting DC and AC calculations.
 - An open-source implementation of the [SecurityAnalysis API from PowSyBl Core](inv:powsyblcore:*:*#simulation/security/index), supporting DC and AC calculations.
 - An open-source implementation of the [SensitivityAnalysis API from PowSyBl Core](inv:powsyblcore:*:*#simulation/sensitivity/index), supporting DC and AC calculations.
+- An experimental AC [state estimator](state_estimation/index.md), reusing the network model and equation terms of the load flow, ahead of the [StateEstimation API proposed for PowSyBl Core](https://github.com/powsybl/powsybl-core/pull/4144).
 
 Most of the code is written in Java. It only relies on native code for the [KLU](http://faculty.cse.tamu.edu/davis/suitesparse.html) sparse linear solver.
 Linux, Windows and MacOS are supported. KLU is distributed with license LGPL-2.1+.
@@ -52,6 +53,7 @@ hidden: true
 loadflow/index.md
 security/index.md
 sensitivity/index.md
+state_estimation/index.md
 detailed_models_description/index.md
 advanced_programming/index.md
 ```
