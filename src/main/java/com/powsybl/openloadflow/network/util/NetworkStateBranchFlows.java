@@ -36,6 +36,10 @@ public class NetworkStateBranchFlows {
         this.dcPowerFactor = dcPowerFactor;
     }
 
+    public boolean isZeroImpedance(LfBranch branch) {
+        return branch.isZeroImpedance(loadFlowModel);
+    }
+
     /**
      * Gets the flows (active power, reactive power and current, per unit) at both sides of a branch in the current
      * network state:
@@ -63,6 +67,10 @@ public class NetworkStateBranchFlows {
             // not part of any zero impedance network: no flow can go through a zero impedance branch open at one side
             double side1 = branch.getBus1() != null ? 0 : Double.NaN;
             double side2 = branch.getBus2() != null ? 0 : Double.NaN;
+            if (loadFlowModel == LoadFlowModel.DC) {
+                // reactive power is not modeled in DC
+                return new LfBranch.LfBranchResults(side1, side2, Double.NaN, Double.NaN, side1, side2);
+            }
             return new LfBranch.LfBranchResults(side1, side2, side1, side2, side1, side2);
         }
         branch.getNetwork().updateZeroImpedanceCache(loadFlowModel);
