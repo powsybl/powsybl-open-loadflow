@@ -10,9 +10,11 @@ package com.powsybl.openloadflow;
 import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.config.InMemoryModuleConfigRepository;
 import com.powsybl.commons.config.InMemoryPlatformConfig;
 import com.powsybl.commons.config.MapModuleConfig;
 import com.powsybl.commons.config.PlatformConfig;
+import com.powsybl.commons.config.StackedModuleConfigRepository;
 import com.powsybl.commons.config.YamlModuleConfigRepository;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterType;
@@ -339,21 +341,30 @@ class OpenLoadFlowParametersTest {
 
     @Test
     void testParametersWithConfigAndLoader() {
-        OLFDefaultParametersLoaderMock loader = new OLFDefaultParametersLoaderMock("test");
+        // runtime configuration layer: defaults shipped by an application, below the user configuration
+        InMemoryModuleConfigRepository runtimeRepository = new InMemoryModuleConfigRepository(fileSystem);
+        MapModuleConfig runtimeOlfConfig = runtimeRepository.createModuleConfig("open-loadflow-default-parameters");
+        runtimeOlfConfig.setStringProperty("slackDistributionFailureBehavior", "FAIL");
+        runtimeOlfConfig.setStringProperty("maxOuterLoopIterations", "30");
 
-        MapModuleConfig moduleConfig = platformConfig.createModuleConfig("open-loadflow-default-parameters");
-        moduleConfig.setStringProperty("maxOuterLoopIterations", "50");
-
-        LoadFlowParameters parameters = new LoadFlowParameters(List.of(loader), platformConfig);
-        OpenLoadFlowParameters olfParameters = parameters.getExtensionByName("open-load-flow-parameters");
+        Path configDir = fileSystem.getPath("inmemory");
+        PlatformConfig runtimeOnlyConfig = new PlatformConfig(runtimeRepository, configDir);
+        LoadFlowParameters parameters = LoadFlowParameters.load(runtimeOnlyConfig);
+        OpenLoadFlowParameters olfParameters = parameters.getExtension(OpenLoadFlowParameters.class);
         assertNotNull(olfParameters);
         assertEquals(SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());
         assertEquals(30, olfParameters.getMaxOuterLoopIterations());
 
-        olfParameters.update(platformConfig);
+        // user configuration wins over the runtime layer
+        InMemoryModuleConfigRepository userRepository = new InMemoryModuleConfigRepository(fileSystem);
+        MapModuleConfig moduleConfig = userRepository.createModuleConfig("open-loadflow-default-parameters");
+        moduleConfig.setStringProperty("maxOuterLoopIterations", "50");
+        PlatformConfig stackedConfig = new PlatformConfig(
+                new StackedModuleConfigRepository(userRepository, runtimeRepository), configDir);
+
+        olfParameters.update(stackedConfig);
         assertEquals(SlackDistributionFailureBehavior.FAIL, olfParameters.getSlackDistributionFailureBehavior());
         assertEquals(50, olfParameters.getMaxOuterLoopIterations());
-
     }
 
     @Test
