@@ -33,6 +33,23 @@ Or to build the documentation in latex format:
 make latexpdf
 ~~~
 
+### LikeC4 diagrams
+
+The design pages embed interactive [LikeC4](https://likec4.dev) diagrams, whose sources are in `design/likec4`.
+They are rendered by a JavaScript bundle generated with Node.js (generated on ReadTheDocs before the Sphinx build).
+Without this bundle the documentation still builds, but the diagrams are not displayed.
+
+To generate the bundle, run from the "docs" directory:
+~~~bash
+npm ci
+npm run likec4:build
+~~~
+
+To edit the diagrams with a live preview:
+~~~bash
+npm run likec4:start
+~~~
+
 ### Preview the result
 
 Then open `_build/html/index.html` in your browser.
