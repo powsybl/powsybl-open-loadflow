@@ -1,0 +1,133 @@
+// Concepts of the equation system framework, used by docs/advanced_programming/equation_system
+
+specification {
+  element framework {
+    style {
+      color primary
+    }
+  }
+  element concept {
+    style {
+      color green
+    }
+  }
+  element vector {
+    style {
+      shape storage
+      color sky
+    }
+  }
+  element solver {
+    style {
+      shape person
+      color slate
+    }
+  }
+}
+
+model {
+
+  eqSolver = solver 'Solver' {
+    description 'Code solving f(x) = t: Newton-Raphson, a single linear solve, sensitivity computation...'
+  }
+
+  eqFramework = framework 'Equation system framework' {
+    description 'Generic framework to build and solve systems of equations f(x) = t'
+
+    quantity = concept 'Quantity types' {
+      description 'Two enums: the variable types and the equation types. Each type has a symbol and an element type.'
+    }
+    variable = concept 'Variable' {
+      description 'Unknown identified by (variable type, element number). Gets a row when referenced by an active equation.'
+    }
+    term = concept 'Equation term' {
+      description 'Function of some variables: value, partial derivatives and optional constant part (rhs). Can be deactivated.'
+    }
+    equation = concept 'Equation' {
+      description 'Sum of active terms, identified by (equation type, element number). Gets a column when active.'
+    }
+    equationArray = concept 'Equation array' {
+      description 'Vectorized form: one equation per element of a type, terms evaluated by arrays'
+    }
+    equationSystem = concept 'Equation system' {
+      description 'Creates and owns variables, equations and equation arrays. Notifies listeners of changes.'
+    }
+    index = concept 'Equation system index' {
+      description 'Sorts active equations (columns) and referenced variables (rows), updated lazily'
+    }
+    stateVector = vector 'State vector' {
+      description 'x: variable values, indexed by row'
+    }
+    equationVector = vector 'Equation vector' {
+      description 'f(x): equation values, indexed by column, recomputed lazily'
+    }
+    targetVector = vector 'Target vector' {
+      description 't: equation targets, indexed by column'
+    }
+    jacobian = vector 'Jacobian matrix' {
+      description 'Partial derivatives (rows: variables, columns: equations) and their LU decomposition, updated lazily'
+    }
+  }
+
+  eqFramework.variable -> eqFramework.quantity 'typed by'
+  eqFramework.equation -> eqFramework.quantity 'typed by'
+  eqFramework.equation -> eqFramework.term 'sums'
+  eqFramework.equationArray -> eqFramework.term 'sums, vectorized'
+  eqFramework.term -> eqFramework.variable 'depends on'
+  eqFramework.term -> eqFramework.stateVector 'reads x'
+  eqFramework.equationSystem -> eqFramework.variable 'creates'
+  eqFramework.equationSystem -> eqFramework.equation 'creates'
+  eqFramework.equationSystem -> eqFramework.equationArray 'creates'
+  eqFramework.equationSystem -> eqFramework.stateVector 'owns'
+  eqFramework.index -> eqFramework.equationSystem 'listens to'
+  eqFramework.index -> eqFramework.equation 'assigns columns'
+  eqFramework.index -> eqFramework.variable 'assigns rows'
+  eqFramework.equationVector -> eqFramework.equation 'evaluates'
+  eqFramework.equationVector -> eqFramework.index 'listens to'
+  eqFramework.equationVector -> eqFramework.stateVector 'listens to'
+  eqFramework.targetVector -> eqFramework.index 'listens to'
+  eqFramework.jacobian -> eqFramework.equation 'differentiates'
+  eqFramework.jacobian -> eqFramework.index 'listens to'
+  eqFramework.jacobian -> eqFramework.stateVector 'listens to'
+
+  eqSolver -> eqFramework.equationSystem 'builds'
+  eqSolver -> eqFramework.stateVector 'initializes and updates'
+  eqSolver -> eqFramework.equationVector 'reads f(x)'
+  eqSolver -> eqFramework.targetVector 'reads t'
+  eqSolver -> eqFramework.jacobian 'solves with'
+}
+
+views {
+
+  view equationConcepts of eqFramework {
+    title 'Equation system concepts'
+    description 'Concepts of the equation system framework and how a solver uses them'
+    include eqFramework.*, eqSolver
+  }
+
+  dynamic view newtonIteration {
+    title 'Newton-Raphson iteration'
+    description 'One iteration: evaluate the mismatch, solve with the Jacobian, update the state'
+    eqSolver -> eqFramework.equationVector 'get f(x)'
+    eqFramework.equationVector -> eqFramework.equation 'evaluate, if invalid'
+    eqFramework.equation -> eqFramework.term 'evaluate active terms'
+    eqFramework.term -> eqFramework.stateVector 'read x'
+    eqSolver -> eqFramework.targetVector 'get t, mismatch = f(x) - t'
+    eqSolver -> eqFramework.jacobian 'solveTransposed(mismatch): dx'
+    eqFramework.jacobian -> eqFramework.equation 'differentiate and factorize, if invalid'
+    eqSolver -> eqFramework.stateVector 'x = x - dx'
+    eqFramework.stateVector -> eqFramework.equationVector 'state updated: values invalid'
+    eqFramework.stateVector -> eqFramework.jacobian 'state updated: values invalid'
+  }
+
+  dynamic view structureChange {
+    title 'Structure change'
+    description 'Deactivating an equation: the index and everything indexed by it are invalidated, then rebuilt lazily'
+    eqSolver -> eqFramework.equation 'setActive(false)'
+    eqFramework.equation -> eqFramework.equationSystem 'equation deactivated'
+    eqFramework.equationSystem -> eqFramework.index 'equation deactivated'
+    eqFramework.index -> eqFramework.equationVector 'equation removed: vector invalid'
+    eqFramework.index -> eqFramework.targetVector 'equation removed: vector invalid'
+    eqFramework.index -> eqFramework.jacobian 'equation removed: structure invalid'
+  }
+}
