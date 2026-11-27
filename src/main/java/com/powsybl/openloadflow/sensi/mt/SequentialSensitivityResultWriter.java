@@ -15,6 +15,7 @@ import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -29,6 +30,7 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
     private final SensitivityResultWriter sensitivityResultWriter;
     private final ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 1, 1, TimeUnit.MINUTES, new LinkedBlockingQueue<>());
     private final Map<Integer, Boolean> baseCaseSensitivityValueWritten = new ConcurrentHashMap<>();
+    private final Set<Integer> preContingencyStateStatusWritten = ConcurrentHashMap.newKeySet();
     static final int VALUE_BATCH_SIZE = 100;
     private final ThreadLocal<List<SensitivityRecord>> localBatch = ThreadLocal.withInitial(() -> new ArrayList<>(VALUE_BATCH_SIZE));
 
@@ -61,20 +63,24 @@ public class SequentialSensitivityResultWriter implements SensitivityResultWrite
                                  LoadFlowResult.ComponentResult.Status status, String statusText) {
         flush(); // send all previous values to the writer in case it expects ordered data
 
-        // Not called for the base case. No need to manage duplicate calls.
+        // pre-contingency operator strategies are computed by every thread: write their status only once
+        if (contingencyIndex == -1 && !preContingencyStateStatusWritten.add(operatorStrategyIndex)) {
+            return;
+        }
         executor.execute(() -> sensitivityResultWriter.writeStateStatus(contingencyIndex, operatorStrategyIndex,
                 connectedComponentNum, synchronousComponentNum, status, statusText));
-
     }
 
     @Override
     public void computationComplete() {
-        sensitivityResultWriter.computationComplete();
+        // computation completion is managed by OpenSensitivityAnalysisProvider on the wrapped writer
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public boolean isComputationComplete() {
-        return sensitivityResultWriter.isComputationComplete();
+        // computation completion is managed by OpenSensitivityAnalysisProvider on the wrapped writer
+        throw new UnsupportedOperationException();
     }
 
     public void flush() {
