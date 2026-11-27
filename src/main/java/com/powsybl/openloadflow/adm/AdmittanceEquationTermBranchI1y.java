@@ -30,7 +30,7 @@ public class AdmittanceEquationTermBranchI1y extends AbstractAdmittanceEquationT
 
     public AdmittanceEquationTermBranchI1y(LfBranch branch, LfBus bus1, LfBus bus2, VariableSet<AdmittanceVariableType> variableSet) {
         super(branch, bus1, bus2, variableSet);
-        g12 = rho * zInvSquare * (r * cosA + x * sinA);
+        g12 = rho * zInvSquare * (r * cosA - x * sinA);
         b12 = -rho * zInvSquare * (x * cosA + r * sinA);
         g1g12sum = rho * rho * (gPi1 + r * zInvSquare);
         b1b12sum = rho * rho * (bPi1 - x * zInvSquare);

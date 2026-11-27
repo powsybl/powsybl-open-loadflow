@@ -79,9 +79,10 @@ public abstract class AbstractAdmittanceEquationTerm extends AbstractElementEqua
             zInvSquare = 1 / (z * z);
         });
 
+        // the phase shift of the Pi model is already in radians, as used by the AC equations
         double alpha = piModel.getA1();
-        cosA = Math.cos(Math.toRadians(alpha));
-        sinA = Math.sin(Math.toRadians(alpha));
+        cosA = Math.cos(alpha);
+        sinA = Math.sin(alpha);
 
         gPi1 = piModel.getG1();
         bPi1 = piModel.getB1();
