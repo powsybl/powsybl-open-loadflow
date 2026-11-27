@@ -55,7 +55,7 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     private final Evaluator<V> evaluator;
 
-    // for each equation element number, term numbers
+    // for each equation element number, term numbers: null for an equation that has no term in this array
     private TIntArrayList[] termNumsByEquationElementNum;
     private TIntArrayList termNumsConcatenated;
     private int[] termNumsConcatenatedStartIndices;
@@ -94,14 +94,13 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
         }
         this.equationArray = Objects.requireNonNull(equationArray);
         termNumsConcatenatedStartIndices = new int[equationArray.getElementCount() + 1];
+        // the list of an equation is created with its first term: a term array may hold terms for few equations
         termNumsByEquationElementNum = new TIntArrayList[equationArray.getElementCount()];
-        for (int elementNum = 0; elementNum < equationArray.getElementCount(); elementNum++) {
-            termNumsByEquationElementNum[elementNum] = new TIntArrayList(10);
-        }
     }
 
     public TIntArrayList getTermNumsForEquationElementNum(int equationElementNum) {
-        return termNumsByEquationElementNum[equationElementNum];
+        TIntArrayList termNums = termNumsByEquationElementNum[equationElementNum];
+        return termNums != null ? termNums : new TIntArrayList(0);
     }
 
     public int[] getTermNumsConcatenatedStartIndices() {
@@ -134,7 +133,12 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
 
     public EquationTermArray<V, E> addTerm(int equationElementNum, int termElementNum) {
         int termNum = termElementNums.size();
-        termNumsByEquationElementNum[equationElementNum].add(termNum);
+        TIntArrayList termNums = termNumsByEquationElementNum[equationElementNum];
+        if (termNums == null) {
+            termNums = new TIntArrayList(2);
+            termNumsByEquationElementNum[equationElementNum] = termNums;
+        }
+        termNums.add(termNum);
         if (termNumByTermElementNum.put(termElementNum, termNum) != -1) {
             throw new PowsyblException("A term element with same number already exists: " + termElementNum);
         }
@@ -148,10 +152,12 @@ public class EquationTermArray<V extends Enum<V> & Quantity, E extends Enum<E> &
     }
 
     public void compress() {
-        termNumsConcatenated = new TIntArrayList(equationArray.getElementCount() * 2);
+        termNumsConcatenated = new TIntArrayList(termElementNums.size());
         for (int i = 0; i < termNumsByEquationElementNum.length; i++) {
             int iStart = termNumsConcatenated.size();
-            termNumsConcatenated.addAll(termNumsByEquationElementNum[i]);
+            if (termNumsByEquationElementNum[i] != null) {
+                termNumsConcatenated.addAll(termNumsByEquationElementNum[i]);
+            }
             termNumsConcatenatedStartIndices[i] = iStart;
         }
         termNumsConcatenatedStartIndices[termNumsByEquationElementNum.length] = termNumsConcatenated.size();
