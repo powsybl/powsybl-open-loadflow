@@ -11,7 +11,6 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.contingency.BranchContingency;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
-import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
@@ -120,26 +119,70 @@ public final class ConnectivityBreakAnalysis {
         }
     }
 
+    /**
+     * @param hvdcElements the HVDC AC emulation droop couplings of the network with their +1/-1 states: they are used as
+     *                     additional Woodbury contingency elements when an HVDC line (or one of its buses) is lost
+     */
     public record ConnectivityBreakAnalysisResults(List<ConnectivityAnalysisResult> nonBreakingConnectivityAnalysisResults,
                                                    List<ConnectivityAnalysisResult> connectivityBreakingAnalysisResults,
                                                    DenseMatrix contingenciesStates,
-                                                   Map<String, ComputedContingencyElement> contingencyElementByBranch) {
+                                                   Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                   HvdcElements hvdcElements) {
     }
 
     private ConnectivityBreakAnalysis() {
     }
 
-    private record States(DenseMatrix contingencyStates, DenseMatrix actionStates) {
+    private record States(DenseMatrix contingencyStates, DenseMatrix actionStates, HvdcElements hvdcElements) {
     }
 
-    private static void detectPotentialConnectivityBreak(LfNetwork lfNetwork, DenseMatrix contingencyStates, List<PropagatedContingency> contingencies,
+    /**
+     * HVDC AC emulation droop couplings of the network with their +1/-1 states. In the linear mode of the AC emulation,
+     * the droop law couples the two buses of the HVDC line like a virtual branch, so the sensitivity based connectivity
+     * criterion must observe the flow through these couplings too: otherwise a group of branches cutting the AC network
+     * but bridged by such a coupling would be wrongly considered as not breaking the connectivity (an HVDC line is not an
+     * edge of the AC connectivity graph).
+     */
+    public record HvdcElements(Map<String, ComputedHvdcAcEmulationElement> elementById, DenseMatrix states) {
+
+        public static final HvdcElements NONE = new HvdcElements(Collections.emptyMap(), DenseMatrix.EMPTY);
+
+        public static HvdcElements create(DcLoadFlowContext loadFlowContext) {
+            Map<String, ComputedHvdcAcEmulationElement> elementById = createHvdcElementsIndexById(loadFlowContext);
+            if (elementById.isEmpty()) {
+                return NONE;
+            }
+            return new HvdcElements(elementById, ComputedElement.calculateElementsStates(loadFlowContext, elementById.values()));
+        }
+
+        public Collection<ComputedHvdcAcEmulationElement> elements() {
+            return elementById.values();
+        }
+
+        public boolean isEmpty() {
+            return elementById.isEmpty();
+        }
+    }
+
+    private static Map<String, ComputedHvdcAcEmulationElement> createHvdcElementsIndexById(DcLoadFlowContext loadFlowContext) {
+        Map<String, ComputedHvdcAcEmulationElement> hvdcElementById = new LinkedHashMap<>();
+        for (LfHvdc hvdc : loadFlowContext.getNetwork().getHvdcs()) {
+            if (hvdc.isAcEmulation() && hvdc.getBus1() != null && hvdc.getBus2() != null) {
+                hvdcElementById.put(hvdc.getId(), new ComputedHvdcAcEmulationElement(hvdc, loadFlowContext.getEquationSystem()));
+            }
+        }
+        ComputedElement.setComputedElementIndexes(hvdcElementById.values());
+        return hvdcElementById;
+    }
+
+    private static void detectPotentialConnectivityBreak(LfNetwork lfNetwork, DenseMatrix contingencyStates, HvdcElements hvdcElements,
+                                                         List<PropagatedContingency> contingencies,
                                                          Map<String, ComputedContingencyElement> contingencyElementByBranch,
-                                                         EquationSystem<DcVariableType, DcEquationType> equationSystem,
                                                          List<ConnectivityAnalysisResult> nonBreakingConnectivityAnalysisResults,
                                                          List<PropagatedContingency> potentiallyBreakingConnectivityContingencies) {
         for (PropagatedContingency contingency : contingencies) {
-            if (isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(lfNetwork, new States(contingencyStates, DenseMatrix.EMPTY), contingency, contingencyElementByBranch,
-                    Collections.emptyList(), Collections.emptyMap(), equationSystem)) { // connectivity broken
+            if (isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(lfNetwork, new States(contingencyStates, DenseMatrix.EMPTY, hvdcElements), contingency, contingencyElementByBranch,
+                    Collections.emptyList(), Collections.emptyMap())) { // connectivity broken
                 potentiallyBreakingConnectivityContingencies.add(contingency);
             } else {
                 nonBreakingConnectivityAnalysisResults.add(ConnectivityAnalysisResult.createNonBreakingConnectivityAnalysisResult(contingency, null, lfNetwork));
@@ -154,8 +197,7 @@ public final class ConnectivityBreakAnalysis {
     private static boolean isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(LfNetwork lfNetwork, States states, PropagatedContingency contingency,
                                                                                              Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                                                              List<LfAction> operatorStrategyLfActions,
-                                                                                             Map<LfAction, List<ComputedElement>> actionElementByBranch,
-                                                                                             EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+                                                                                             Map<LfAction, List<ComputedElement>> actionElementByBranch) {
         List<ComputedContingencyElement> contingencyElements = contingency != null ? contingency.getBranchIdsToOpen().keySet().stream()
                                                                                      .map(contingencyElementByBranch::get)
                                                                                      .toList()
@@ -170,25 +212,25 @@ public final class ConnectivityBreakAnalysis {
                 .flatMap(Collection::stream)
                 .filter(actionElement -> actionElement instanceof ComputedSwitchBranchElement computedSwitchBranchElement && !computedSwitchBranchElement.isEnabled())
                 .toList();
-        return isGroupOfElementsBreakingConnectivity(lfNetwork, states.contingencyStates(), contingencyElements, states.actionStates(), actionElements, equationSystem);
+        return isGroupOfElementsBreakingConnectivity(states.contingencyStates(), contingencyElements, states.actionStates(), actionElements, states.hvdcElements());
     }
 
-    private static boolean isGroupOfElementsBreakingConnectivity(LfNetwork lfNetwork, DenseMatrix contingenciesStates,
+    private static boolean isGroupOfElementsBreakingConnectivity(DenseMatrix contingenciesStates,
                                                                  List<ComputedContingencyElement> contingencyElements,
                                                                  DenseMatrix actionStates, List<ComputedElement> actionElements,
-                                                                 EquationSystem<DcVariableType, DcEquationType> equationSystem) {
+                                                                 HvdcElements hvdcElements) {
         // use a sensitivity-criterion to detect the loss of connectivity after a contingency
         // we consider a +1 -1 on a line, and we observe the sensitivity of these injections on the other contingency elements
         // if the sum of the sensitivities (in absolute value) is 1, it means that all the flow is going through the lines with a non-zero sensitivity
         // thus, losing these lines will lose the connectivity
+        // the HVDC AC emulation droop couplings are observed too, as they are not edges of the AC connectivity graph
         List<ComputedElement> computedElements = Stream.concat(contingencyElements.stream(), actionElements.stream()).toList();
+        List<ComputedElement> observedElements = Stream.concat(computedElements.stream(), hvdcElements.elements().stream()).toList();
         for (ComputedElement element : computedElements) {
             double sum = 0d;
-            for (ComputedElement element2 : computedElements) {
-                LfBranch branch = lfNetwork.getBranchById(element2.getLfBranch().getId());
-                ClosedBranchSide1DcFlowEquationTerm p = equationSystem.getEquationTerm(ElementType.BRANCH, branch.getNum(), ClosedBranchSide1DcFlowEquationTerm.class);
-                DenseMatrix elementMatrix = element instanceof ComputedContingencyElement ? contingenciesStates : actionStates;
-                double value = Math.abs(p.calculateSensi(elementMatrix, element.getComputedElementIndex()));
+            DenseMatrix elementMatrix = element instanceof ComputedContingencyElement ? contingenciesStates : actionStates;
+            for (ComputedElement element2 : observedElements) {
+                double value = Math.abs(element2.getEquation().calculateSensi(elementMatrix, element.getComputedElementIndex()));
                 sum += value;
             }
 
@@ -218,7 +260,7 @@ public final class ConnectivityBreakAnalysis {
         List<ComputedElement> modifyingConnectivityCandidates = Stream.concat(
                 contingency != null ? contingency.getBranchIdsToOpen().keySet().stream().map(contingencyElementByBranch::get) : Stream.empty(),
                 lfActions.stream().map(actionElementByBranch::get).flatMap(Collection::stream)
-        ).sorted(Comparator.comparing(element -> element.getLfBranch().getId())).toList();
+        ).sorted(Comparator.comparing(element -> element.getLfElement().getId())).toList();
 
         // we confirm the breaking of connectivity by network connectivity
         ConnectivityAnalysisResult connectivityAnalysisResult = null;
@@ -254,8 +296,7 @@ public final class ConnectivityBreakAnalysis {
     }
 
     private static boolean isBreakingConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity, ComputedElement element) {
-        LfBranch lfBranch = element.getLfBranch();
-        return connectivity.getComponentNumber(lfBranch.getBus1()) != connectivity.getComponentNumber(lfBranch.getBus2());
+        return connectivity.getComponentNumber(element.getBus1()) != connectivity.getComponentNumber(element.getBus2());
     }
 
     /**
@@ -270,8 +311,8 @@ public final class ConnectivityBreakAnalysis {
         // At each step we look if the reconnection was needed on the connectivity level by maintaining a list of grouped connected components.
         List<Set<Integer>> reconnectedCc = new ArrayList<>();
         for (ComputedElement element : breakingConnectivityElements) {
-            int cc1 = connectivity.getComponentNumber(element.getLfBranch().getBus1());
-            int cc2 = connectivity.getComponentNumber(element.getLfBranch().getBus2());
+            int cc1 = connectivity.getComponentNumber(element.getBus1());
+            int cc2 = connectivity.getComponentNumber(element.getBus2());
 
             Set<Integer> recCc1 = reconnectedCc.stream().filter(s -> s.contains(cc1)).findFirst().orElseGet(() -> new HashSet<>(List.of(cc1)));
             Set<Integer> recCc2 = reconnectedCc.stream().filter(s -> s.contains(cc2)).findFirst().orElseGet(() -> Set.of(cc2));
@@ -279,7 +320,7 @@ public final class ConnectivityBreakAnalysis {
                 // cc1 and cc2 are still separated:
                 // - mark the element as needed to reconnect all connected components together
                 // - update the list of grouped connected components
-                elementsToReconnect.add(element.getLfBranch().getId());
+                elementsToReconnect.add(element.getLfElement().getId());
                 reconnectedCc.remove(recCc2);
                 if (recCc1.size() == 1) {
                     // adding the new set (the list of grouped connected components is not initialized with the singleton sets)
@@ -335,6 +376,12 @@ public final class ConnectivityBreakAnalysis {
 
     public static ConnectivityBreakAnalysisResults run(DcLoadFlowContext loadFlowContext, List<PropagatedContingency> contingencies,
                                                        List<String> permanentContingencyBranchIds) {
+        return run(loadFlowContext, contingencies, permanentContingencyBranchIds, HvdcElements.create(loadFlowContext));
+    }
+
+    public static ConnectivityBreakAnalysisResults run(DcLoadFlowContext loadFlowContext, List<PropagatedContingency> contingencies,
+                                                       List<String> permanentContingencyBranchIds, HvdcElements hvdcElements) {
+        Objects.requireNonNull(hvdcElements);
         // index contingency elements by branch id (including permanent contingency branches)
         Map<String, ComputedContingencyElement> contingencyElementByBranch = createContingencyElementsIndexByBranchId(contingencies,
                 loadFlowContext.getNetwork(), loadFlowContext.getEquationSystem(), permanentContingencyBranchIds);
@@ -354,7 +401,7 @@ public final class ConnectivityBreakAnalysis {
         // connectivity and other contingencies that potentially break connectivity
         LOGGER.info("Running sensitivity based connectivity analysis...");
         Stopwatch stopwatch = Stopwatch.createStarted();
-        detectPotentialConnectivityBreak(loadFlowContext.getNetwork(), contingenciesStates, contingencies, contingencyElementByBranch, loadFlowContext.getEquationSystem(),
+        detectPotentialConnectivityBreak(loadFlowContext.getNetwork(), contingenciesStates, hvdcElements, contingencies, contingencyElementByBranch,
                 nonBreakingConnectivityAnalysisResults, potentiallyBreakingConnectivityContingencies);
         stopwatch.stop();
         LOGGER.info("Sensitivity based connectivity analysis done in {} ms, {} contingencies do not break connectivity, {} contingencies potentially break connectivity",
@@ -375,7 +422,8 @@ public final class ConnectivityBreakAnalysis {
         LOGGER.info("Graph based connectivity analysis done in {} ms, {} contingencies do not break connectivity, {} contingencies break connectivity",
                 stopwatch.elapsed(TimeUnit.MILLISECONDS), nonBreakingConnectivityAnalysisResults.size(), connectivityBreakingAnalysisResults.size());
 
-        return new ConnectivityBreakAnalysisResults(nonBreakingConnectivityAnalysisResults, connectivityBreakingAnalysisResults, contingenciesStates, contingencyElementByBranch);
+        return new ConnectivityBreakAnalysisResults(nonBreakingConnectivityAnalysisResults, connectivityBreakingAnalysisResults, contingenciesStates, contingencyElementByBranch,
+                hvdcElements);
     }
 
     /**
@@ -386,6 +434,18 @@ public final class ConnectivityBreakAnalysis {
                                                                                                                      ConnectivityAnalysisResult postContingencyConnectivityAnalysisResult,
                                                                                                                      Map<String, ComputedContingencyElement> contingencyElementByBranch,
                                                                                                                      DenseMatrix contingenciesStates,
+                                                                                                                     LfOperatorStrategy operatorStrategy,
+                                                                                                                     Map<LfAction, List<ComputedElement>> actionElementsIndexByLfAction,
+                                                                                                                     DenseMatrix actionsStates) {
+        return processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(loadFlowContext, postContingencyConnectivityAnalysisResult,
+                contingencyElementByBranch, contingenciesStates, HvdcElements.NONE, operatorStrategy, actionElementsIndexByLfAction, actionsStates);
+    }
+
+    public static ConnectivityAnalysisResult processPostContingencyAndPostOperatorStrategyConnectivityAnalysisResult(DcLoadFlowContext loadFlowContext,
+                                                                                                                     ConnectivityAnalysisResult postContingencyConnectivityAnalysisResult,
+                                                                                                                     Map<String, ComputedContingencyElement> contingencyElementByBranch,
+                                                                                                                     DenseMatrix contingenciesStates,
+                                                                                                                     HvdcElements hvdcElements,
                                                                                                                      LfOperatorStrategy operatorStrategy,
                                                                                                                      Map<LfAction, List<ComputedElement>> actionElementsIndexByLfAction,
                                                                                                                      DenseMatrix actionsStates) {
@@ -406,8 +466,8 @@ public final class ConnectivityBreakAnalysis {
         PropagatedContingency contingency = postContingencyConnectivityAnalysisResult.getPropagatedContingency();
 
         // verify if the connectivity is potentially modified, and returns post contingency connectivity result if this is not the case
-        boolean isConnectivityPotentiallyModified = isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(lfNetwork, new States(contingenciesStates, actionsStates), contingency,
-                contingencyElementByBranch, operatorStrategy.getActions(), actionElementsIndexByLfAction, loadFlowContext.getEquationSystem());
+        boolean isConnectivityPotentiallyModified = isConnectivityPotentiallyModifiedByContingencyAndOperatorStrategy(lfNetwork,
+                new States(contingenciesStates, actionsStates, hvdcElements), contingency, contingencyElementByBranch, operatorStrategy.getActions(), actionElementsIndexByLfAction);
         if (!isConnectivityPotentiallyModified) {
             return postContingencyConnectivityAnalysisResult.withOperatorStrategy(operatorStrategy);
         }

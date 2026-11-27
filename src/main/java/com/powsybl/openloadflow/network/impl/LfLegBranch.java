@@ -11,7 +11,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.sa.LimitScalingManager;
+import com.powsybl.openloadflow.network.util.NetworkStateBranchFlows;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 import com.powsybl.security.results.ThreeWindingsTransformerResult;
@@ -163,8 +163,7 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
 
     @Override
     public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
-                                                 boolean createExtension, Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows,
-                                                 LoadFlowModel loadFlowModel) {
+                                                 boolean createExtension, NetworkStateBranchFlows branchFlows) {
         throw new PowsyblException("Unsupported type of branch for branch result: " + getId());
     }
 
@@ -234,12 +233,8 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
                 .setQ(q1 * PerUnit.SB);
     }
 
-    private static LfBranchResults extractLegBranchResults(LfLegBranch leg) {
-        return new LfBranchResults(leg.p1.eval(), Double.NaN, leg.q1.eval(), Double.NaN, leg.i1.eval(), Double.NaN);
-    }
-
     public static ThreeWindingsTransformerResult createThreeWindingsTransformerResult(LfNetwork network, String threeWindingsTransformerId, boolean createResultExtension,
-                                                                                      Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows, LoadFlowModel loadFlowModel) {
+                                                                                      NetworkStateBranchFlows branchFlows) {
         LfLegBranch leg1 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 1));
         LfLegBranch leg2 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 2));
         LfLegBranch leg3 = (LfLegBranch) network.getBranchById(LfLegBranch.getId(threeWindingsTransformerId, 3));
@@ -248,12 +243,9 @@ public final class LfLegBranch extends AbstractImpedantLfBranch {
         double i2Base = PerUnit.ib(leg2.legRef.get().getTerminal().getVoltageLevel().getNominalV());
         double i3Base = PerUnit.ib(leg3.legRef.get().getTerminal().getVoltageLevel().getNominalV());
 
-        LfBranchResults legBranchResults1 = leg1.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(leg1.getId())
-                : extractLegBranchResults(leg1);
-        LfBranchResults legBranchResults2 = leg2.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(leg2.getId())
-                : extractLegBranchResults(leg2);
-        LfBranchResults legBranchResults3 = leg3.isZeroImpedance(loadFlowModel) ? zeroImpedanceFlows.get(leg3.getId())
-                : extractLegBranchResults(leg3);
+        LfBranchResults legBranchResults1 = branchFlows.getFlows(leg1);
+        LfBranchResults legBranchResults2 = branchFlows.getFlows(leg2);
+        LfBranchResults legBranchResults3 = branchFlows.getFlows(leg3);
 
         double flowP1 = legBranchResults1.p1() * PerUnit.SB;
         double flowP2 = legBranchResults2.p1() * PerUnit.SB;

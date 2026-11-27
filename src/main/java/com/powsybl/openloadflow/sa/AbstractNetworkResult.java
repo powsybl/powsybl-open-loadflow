@@ -8,10 +8,9 @@
 package com.powsybl.openloadflow.sa;
 
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.impl.LfLegBranch;
 import com.powsybl.openloadflow.network.impl.LfStarBus;
 import com.powsybl.openloadflow.network.impl.Transformers;
-import com.powsybl.openloadflow.network.util.ZeroImpedanceFlows;
+import com.powsybl.openloadflow.network.util.NetworkStateBranchFlows;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
@@ -23,8 +22,6 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import static com.powsybl.openloadflow.network.LfBranch.BranchType.*;
-
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
  */
@@ -34,30 +31,16 @@ public abstract class AbstractNetworkResult {
 
     protected final StateMonitorIndex monitorIndex;
 
-    protected final StateMonitorIndex zeroImpedanceMonitorIndex;
-
     protected final boolean createResultExtension;
-
-    protected final LoadFlowModel loadFlowModel;
-
-    protected final double dcPowerFactor;
 
     protected Map<LfBranch, Integer> phaseTapChangerInfos = new HashMap<>();
 
-    static final List<LfBranch.BranchType> T3WT_BRANCH_TYPES = List.of(TRANSFO_3_LEG_1, TRANSFO_3_LEG_2, TRANSFO_3_LEG_3);
-
-    public record StateMonitorIndexes(StateMonitorIndex monitorIndex, StateMonitorIndex zeroImpedanceMonitorIndex) {
-    }
-
     protected final Map<LfBranch, ChangedPhaseTapChanger> changedPhaseTapChangers = new HashMap<>();
 
-    protected AbstractNetworkResult(LfNetwork network, StateMonitorIndexes monitorIndexes, boolean createResultExtension, LoadFlowModel loadFlowModel, double dcPowerFactor) {
+    protected AbstractNetworkResult(LfNetwork network, StateMonitorIndex monitorIndex, boolean createResultExtension) {
         this.network = Objects.requireNonNull(network);
-        this.monitorIndex = Objects.requireNonNull(monitorIndexes.monitorIndex);
-        this.zeroImpedanceMonitorIndex = Objects.requireNonNull(monitorIndexes.zeroImpedanceMonitorIndex);
+        this.monitorIndex = Objects.requireNonNull(monitorIndex);
         this.createResultExtension = createResultExtension;
-        this.loadFlowModel = loadFlowModel;
-        this.dcPowerFactor = dcPowerFactor;
     }
 
     protected void addResults(StateMonitor monitor, Consumer<LfBranch> branchConsumer, Predicate<LfBranch> isBranchDisabled,
@@ -110,43 +93,7 @@ public abstract class AbstractNetworkResult {
         }
     }
 
-    public abstract void update();
-
-    private boolean isATransfo3WBranch(LfBranch lfBranch) {
-        return T3WT_BRANCH_TYPES.contains(lfBranch.getBranchType());
-    }
-
-    private boolean isContainingAMonitoredBranch(LfZeroImpedanceNetwork zeroImpedanceNetwork, StateMonitor monitor) {
-        for (LfBranch lfBranch : zeroImpedanceNetwork.getGraph().edgeSet()) {
-            if (isATransfo3WBranch(lfBranch)) {
-                LfLegBranch lfLegBranch = (LfLegBranch) lfBranch;
-                if (monitor.getThreeWindingsTransformerIds().contains(lfLegBranch.getTwt().getId())) {
-                    return true;
-                }
-            } else {
-                if (monitor.getBranchIds().contains(lfBranch.getId())) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    protected Map<String, LfBranch.LfBranchResults> storeResultsForZeroImpedanceBranches(StateMonitor monitor, LfNetwork network) {
-        Map<String, LfBranch.LfBranchResults> zeroImpedanceFlows = new LinkedHashMap<>();
-        if (monitor.getBranchIds().isEmpty() && monitor.getThreeWindingsTransformerIds().isEmpty()) {
-            // Nothing to store as no branches are monitored
-            return zeroImpedanceFlows;
-        }
-        for (LfZeroImpedanceNetwork zeroImpedanceNetwork : network.getZeroImpedanceNetworks(loadFlowModel)) {
-            if (isContainingAMonitoredBranch(zeroImpedanceNetwork, monitor)) {
-                new ZeroImpedanceFlows(zeroImpedanceNetwork.getGraph(), zeroImpedanceNetwork.getSpanningTree(), loadFlowModel, dcPowerFactor)
-                        .computeFlows(true, zeroImpedanceFlows);
-            }
-        }
-        return zeroImpedanceFlows;
-    }
+    public abstract void update(NetworkStateBranchFlows branchFlows);
 
     public Map<LfBranch, ChangedPhaseTapChanger> getChangedPhaseTapChangers() {
         return changedPhaseTapChangers;

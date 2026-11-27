@@ -15,6 +15,7 @@ import com.powsybl.iidm.network.test.BoundaryLineNetworkFactory;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.test.networks.*;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -366,7 +367,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = Networks.load(network, networkParameters);
         LfNetwork lfNetwork = lfNetworks.getFirst();
 
-        Optional<LfDcLine> dl34pBisOrEmpty = lfNetwork.getDcLines().stream().filter(lfDcLine -> Objects.equals(lfDcLine.getId(), "dl34p_bis")).findFirst();
+        Optional<LfDcBranch> dl34pBisOrEmpty = lfNetwork.getDcBranches().stream().filter(lfDcLine -> Objects.equals(lfDcLine.getId(), "dl34p_bis")).findFirst();
         assertTrue(dl34pBisOrEmpty.isPresent());
     }
 
@@ -382,7 +383,7 @@ class LfNetworkLoaderImplTest extends AbstractLoadFlowNetworkFactory {
         List<LfNetwork> lfNetworks = Networks.load(network, networkParameters);
         LfNetwork lfNetwork = lfNetworks.getFirst();
 
-        Optional<LfDcLine> dl34pBisOrEmpty = lfNetwork.getDcLines().stream().filter(lfDcLine -> Objects.equals(lfDcLine.getId(), "dl34p_bis")).findFirst();
+        Optional<LfDcBranch> dl34pBisOrEmpty = lfNetwork.getDcBranches().stream().filter(lfDcLine -> Objects.equals(lfDcLine.getId(), "dl34p_bis")).findFirst();
         assertTrue(dl34pBisOrEmpty.isEmpty());
     }
 

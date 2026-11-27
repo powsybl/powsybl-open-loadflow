@@ -14,6 +14,7 @@ import com.powsybl.contingency.BranchContingency;
 import com.powsybl.contingency.SwitchContingency;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.PhaseTapChanger;
+import com.powsybl.iidm.network.extensions.HvdcAngleDroopActivePowerControlAdder;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.DcLoadFlowEngine;
@@ -26,19 +27,18 @@ import com.powsybl.openloadflow.network.action.LfActionUtils;
 import com.powsybl.openloadflow.network.action.LfPhaseTapChangerAction;
 import com.powsybl.openloadflow.network.action.LfSwitchAction;
 import com.powsybl.openloadflow.network.impl.LfNetworkLoaderImpl;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.test.LoadFlowAssert;
+import com.powsybl.openloadflow.test.networks.FourBusNetworkFactory;
+import com.powsybl.openloadflow.test.networks.HvdcNetworkFactory;
+import com.powsybl.openloadflow.test.networks.NodeBreakerNetworkFactory;
+import com.powsybl.openloadflow.test.networks.PhaseControlFactory;
+import com.powsybl.openloadflow.util.PerUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian {@literal <geoffroy.jamgotchian at rte-france.com>}
@@ -239,6 +239,53 @@ class WoodburyEngineTest {
             engine.toPostContingencyAndOperatorStrategyStates(flowStates);
             var flows = calculateFlows(lfNetwork, flowStates, Set.of("C", "B3"));
             assertArrayEquals(flowsRef, flows, LoadFlowAssert.DELTA_POWER);
+        }
+    }
+
+    /**
+     * The droop law of an HVDC line in AC emulation couples its two buses like a virtual branch of power k: removing it
+     * with the Woodbury formula must give the same flows as a DC load flow where the converter stations are disconnected.
+     */
+    @Test
+    void testHvdcAcEmulationLoss() {
+        Network hvdcNetworkRef = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        hvdcNetworkRef.getHvdcLine("hvdc34").newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180).withP0(50f).withEnabled(true).add();
+        hvdcNetworkRef.getHvdcLine("hvdc34").getConverterStation1().getTerminal().disconnect();
+        hvdcNetworkRef.getHvdcLine("hvdc34").getConverterStation2().getTerminal().disconnect();
+        double[] flowsRef = calculateFlows(hvdcNetworkRef);
+
+        Network hvdcNetwork = HvdcNetworkFactory.createWithHvdcInAcEmulation();
+        hvdcNetwork.getHvdcLine("hvdc34").setMaxP(1000)
+                .newExtension(HvdcAngleDroopActivePowerControlAdder.class)
+                .withDroop(180).withP0(50f).withEnabled(true).add();
+        dcParameters.getNetworkParameters().setHvdcAcEmulation(true);
+
+        LfNetwork lfNetwork = LfNetwork.load(hvdcNetwork, new LfNetworkLoaderImpl(), dcParameters.getNetworkParameters()).getFirst();
+        try (DcLoadFlowContext context = new DcLoadFlowContext(lfNetwork, dcParameters)) {
+            new DcLoadFlowEngine(context)
+                    .run();
+
+            LfHvdc hvdc = lfNetwork.getHvdcById("hvdc34");
+            ComputedHvdcAcEmulationElement hvdcElement = new ComputedHvdcAcEmulationElement(hvdc, context.getEquationSystem());
+            List<ComputedHvdcAcEmulationElement> hvdcElements = List.of(hvdcElement);
+            ComputedElement.setComputedElementIndexes(hvdcElements);
+            assertEquals(hvdc, hvdcElement.getLfElement());
+            assertEquals(hvdc.getBus1(), hvdcElement.getBus1());
+            assertEquals(hvdc.getBus2(), hvdcElement.getBus2());
+            assertEquals(180 * 180 / Math.PI / PerUnit.SB, hvdcElement.getPower(), 1e-12);
+            DenseMatrix hvdcStates = ComputedElement.calculateElementsStates(context, hvdcElements);
+
+            WoodburyEngine engine = new WoodburyEngine(dcParameters.getEquationSystemCreationParameters(), hvdcElements, DenseMatrix.EMPTY, hvdcStates,
+                    Collections.emptyList(), DenseMatrix.EMPTY);
+
+            // the constant term p0 of the droop law is removed from the target vector as the HVDC line is disabled
+            DisabledNetwork disabledNetwork = new DisabledNetwork(Collections.emptySet(), Collections.emptySet(), Set.of(hvdc));
+            double[] dx = WoodburyEngine.runDcLoadFlowWithModifiedTargetVector(context, disabledNetwork, Collections.emptyList(), ReportNode.NO_OP);
+            DenseMatrix flowStates = new DenseMatrix(dx.length, 1, dx);
+            engine.toPostContingencyStates(flowStates);
+
+            assertArrayEquals(flowsRef, calculateFlows(lfNetwork, flowStates, Collections.emptySet()), LoadFlowAssert.DELTA_POWER);
         }
     }
 

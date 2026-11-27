@@ -12,7 +12,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.openloadflow.LoadFlowParametersOverride;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.outerloop.*;
-import com.powsybl.openloadflow.network.util.ActivePowerDistribution;
+import com.powsybl.openloadflow.lf.util.ActivePowerDistribution;
 import com.powsybl.openloadflow.util.PerUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +57,22 @@ public abstract class AbstractAcOuterLoopConfig implements AcOuterLoopConfig {
     protected static Optional<AcOuterLoop> createHvdcAcEmulationLimitsOuterLoop(LoadFlowParameters parameters) {
         if (parameters.isHvdcAcEmulation()) {
             return Optional.of(new AcHvdcAcEmulationLimitsOuterLoop());
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * @param parametersExt Parameters specific to OpenLoadFlow
+     * @return an optional with AcDcConverterPowerLimitsOuterLoop if parameter useActiveLimits is set to true, or empty
+     * otherwise
+     */
+    protected static Optional<AcOuterLoop> createAcDcConverterPowerLimitsOuterLoop(OpenLoadFlowParameters parametersExt) {
+        if (parametersExt.isUseActiveLimits()) {
+            double effectiveMaxActivePowerMismatch = switch (parametersExt.getNewtonRaphsonStoppingCriteriaType()) {
+                case UNIFORM_CRITERIA -> parametersExt.getNewtonRaphsonConvEpsPerEq();
+                case PER_EQUATION_TYPE_CRITERIA -> parametersExt.getMaxActivePowerMismatch() / PerUnit.SB;
+            };
+            return Optional.of(new AcDcConverterPowerLimitsOuterLoop(effectiveMaxActivePowerMismatch));
         }
         return Optional.empty();
     }
