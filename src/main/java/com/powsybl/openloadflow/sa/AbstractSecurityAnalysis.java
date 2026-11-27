@@ -170,7 +170,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 .setContingencyPropagation(securityAnalysisParametersExt.isContingencyPropagation())
                 .setShuntCompensatorVoltageControlOn(isShuntCompensatorVoltageControlOn(lfParameters))
                 .setSlackDistributionOnConformLoad(lfParameters.getBalanceType() == LoadFlowParameters.BalanceType.PROPORTIONAL_TO_CONFORM_LOAD)
-                .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation());
+                .setHvdcAcEmulation(lfParameters.isHvdcAcEmulation())
+                .setKeepOnlyNecessarySwitches(securityAnalysisParametersExt.isKeepOnlyNecessarySwitches());
 
         SecurityAnalysisResult finalResult;
 

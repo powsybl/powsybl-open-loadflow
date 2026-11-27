@@ -25,6 +25,22 @@ public class PropagatedContingencyCreationParameters {
 
     private boolean hvdcAcEmulation = LoadFlowParameters.DEFAULT_HVDC_AC_EMULATION_ON;
 
+    private boolean keepOnlyNecessarySwitches = false;
+
+    /**
+     * Whether a contingency keeps only the switches that separate parts that stay connected to the network: a switch
+     * that only cuts off a part the contingency loses anyway is not kept, and the equipment of that part is lost
+     * instead. The network then keeps fewer switches, and its matrices are smaller.
+     */
+    public boolean isKeepOnlyNecessarySwitches() {
+        return keepOnlyNecessarySwitches;
+    }
+
+    public PropagatedContingencyCreationParameters setKeepOnlyNecessarySwitches(boolean keepOnlyNecessarySwitches) {
+        this.keepOnlyNecessarySwitches = keepOnlyNecessarySwitches;
+        return this;
+    }
+
     public boolean isContingencyPropagation() {
         return contingencyPropagation;
     }

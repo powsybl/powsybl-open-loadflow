@@ -96,10 +96,12 @@ public class PropagatedContingency {
     public static List<PropagatedContingency> createList(Network network, List<Contingency> contingencies, LfTopoConfig topoConfig,
                                                          PropagatedContingencyCreationParameters creationParameters, int startIndex) {
         List<PropagatedContingency> propagatedContingencies = new ArrayList<>();
+        Set<Switch> operatedSwitches = new HashSet<>(topoConfig.getSwitchesToOpen());
+        operatedSwitches.addAll(topoConfig.getSwitchesToClose());
         for (int index = 0; index < contingencies.size(); index++) {
             Contingency contingency = contingencies.get(index);
             PropagatedContingency propagatedContingency =
-                    PropagatedContingency.create(network, contingency, index + startIndex, topoConfig, creationParameters);
+                    PropagatedContingency.create(network, contingency, index + startIndex, topoConfig, creationParameters, operatedSwitches);
             propagatedContingencies.add(propagatedContingency);
             topoConfig.getSwitchesToOpen().addAll(propagatedContingency.switchesToOpen);
             topoConfig.getBusIdsToLose().addAll(propagatedContingency.busIdsToLose);
@@ -108,7 +110,7 @@ public class PropagatedContingency {
     }
 
     private static PropagatedContingency create(Network network, Contingency contingency, int index, LfTopoConfig topoConfig,
-                                                PropagatedContingencyCreationParameters creationParameters) {
+                                                PropagatedContingencyCreationParameters creationParameters, Set<Switch> operatedSwitches) {
         Set<Switch> switchesToOpen = new HashSet<>();
         Set<Terminal> terminalsToDisconnect = new HashSet<>();
         Set<String> busIdsToLose = new HashSet<>();
@@ -166,9 +168,157 @@ public class PropagatedContingency {
                     terminalsToDisconnect.addAll(getTerminals(identifiable));
             }
         }
+        if (creationParameters.isKeepOnlyNecessarySwitches()) {
+            keepOnlyNecessarySwitches(switchesToOpen, terminalsToDisconnect, operatedSwitches);
+        }
         PropagatedContingency propagatedContingency = new PropagatedContingency(contingency, index, switchesToOpen, terminalsToDisconnect, busIdsToLose);
         propagatedContingency.complete(topoConfig, creationParameters);
         return propagatedContingency;
+    }
+
+    private static int find(int[] parent, int element) {
+        int root = element;
+        while (parent[root] != root) {
+            root = parent[root];
+        }
+        int current = element;
+        while (parent[current] != root) {
+            int next = parent[current];
+            parent[current] = root;
+            current = next;
+        }
+        return root;
+    }
+
+    /** Whether a terminal leads out of its voltage level, to the rest of the network. */
+    private static boolean leadsOut(Terminal terminal) {
+        Connectable<?> connectable = terminal.getConnectable();
+        return connectable instanceof Branch<?> || connectable instanceof ThreeWindingsTransformer
+                || connectable instanceof HvdcConverterStation<?> || connectable instanceof BoundaryLine;
+    }
+
+    /**
+     * Drops the switches a contingency would open that only cut off a part it loses anyway, and disconnects the
+     * terminals of that part instead: the network then keeps no switch for them. With all the switches of the
+     * contingency open, a part of a voltage level is alive when it holds a terminal that leads out of the voltage level
+     * and that the contingency does not disconnect. A switch between two alive parts (a coupler that splits a voltage
+     * level in two) is kept. The dead parts joined by opened switches make groups: a group that touches two alive parts
+     * or more separates them (a lost busbar section between two others), and keeps its switches; the switches of any
+     * other group are dropped, and the terminals of its parts disconnected. Voltage levels in bus/breaker topology keep
+     * their switches.
+     * <p>A switch the actions operate does not join parts, as a strategy may open it: a dead part may separate two parts
+     * that it joins.
+     * A group also keeps its switches when dropping them would not give the same network as opening them:
+     * <ul>
+     *     <li>when a switch the actions operate touches one of its parts: a strategy may close that switch and bring the
+     *     part back, with the terminals the contingency did not disconnect;</li>
+     *     <li>when its parts hold no terminal to disconnect (a busbar section lost on its own): the contingency would then
+     *     lose nothing, and have no result, where opening its switches loses the bus of the busbar section.</li>
+     * </ul>
+     */
+    private static void keepOnlyNecessarySwitches(Set<Switch> switchesToOpen, Set<Terminal> terminalsToDisconnect,
+                                                  Set<Switch> operatedSwitches) {
+        if (switchesToOpen.isEmpty()) {
+            return;
+        }
+        Set<String> openedIds = new HashSet<>();
+        Map<VoltageLevel, List<Switch>> switchesByVoltageLevel = new LinkedHashMap<>();
+        for (Switch sw : switchesToOpen) {
+            openedIds.add(sw.getId());
+            switchesByVoltageLevel.computeIfAbsent(sw.getVoltageLevel(), k -> new ArrayList<>()).add(sw);
+        }
+        for (Map.Entry<VoltageLevel, List<Switch>> e : switchesByVoltageLevel.entrySet()) {
+            VoltageLevel voltageLevel = e.getKey();
+            if (voltageLevel.getTopologyKind() != TopologyKind.NODE_BREAKER) {
+                continue;
+            }
+            VoltageLevel.NodeBreakerView view = voltageLevel.getNodeBreakerView();
+            int nodeCount = view.getMaximumNodeIndex() + 1;
+            int[] parent = new int[nodeCount];
+            for (int node = 0; node < nodeCount; node++) {
+                parent[node] = node;
+            }
+            // a switch the actions operate may be opened by a strategy: the parts do not count on it
+            for (Switch sw : view.getSwitches()) {
+                if (!sw.isOpen() && !openedIds.contains(sw.getId()) && !operatedSwitches.contains(sw)) {
+                    parent[find(parent, view.getNode1(sw.getId()))] = find(parent, view.getNode2(sw.getId()));
+                }
+            }
+            for (VoltageLevel.NodeBreakerView.InternalConnection connection : view.getInternalConnections()) {
+                parent[find(parent, connection.getNode1())] = find(parent, connection.getNode2());
+            }
+            boolean[] alive = new boolean[nodeCount];
+            Map<Integer, List<Terminal>> terminalsByPart = new HashMap<>();
+            for (int node : view.getNodes()) {
+                Terminal terminal = view.getOptionalTerminal(node).orElse(null);
+                if (terminal == null || terminal.getConnectable() instanceof BusbarSection) {
+                    continue;
+                }
+                int part = find(parent, node);
+                if (leadsOut(terminal) && !terminalsToDisconnect.contains(terminal)) {
+                    alive[part] = true;
+                }
+                terminalsByPart.computeIfAbsent(part, k -> new ArrayList<>()).add(terminal);
+            }
+            // the dead parts joined by opened switches make groups; a group that touches two alive parts or more
+            // separates them, and keeps its switches
+            int[] group = new int[nodeCount];
+            for (int part = 0; part < nodeCount; part++) {
+                group[part] = part;
+            }
+            for (Switch sw : e.getValue()) {
+                int part1 = find(parent, view.getNode1(sw.getId()));
+                int part2 = find(parent, view.getNode2(sw.getId()));
+                if (!alive[part1] && !alive[part2]) {
+                    group[find(group, part1)] = find(group, part2);
+                }
+            }
+            Map<Integer, Set<Integer>> aliveNeighbours = new HashMap<>();
+            for (Switch sw : e.getValue()) {
+                int part1 = find(parent, view.getNode1(sw.getId()));
+                int part2 = find(parent, view.getNode2(sw.getId()));
+                if (alive[part1] != alive[part2]) {
+                    int dead = alive[part1] ? part2 : part1;
+                    aliveNeighbours.computeIfAbsent(find(group, dead), k -> new HashSet<>()).add(alive[part1] ? part1 : part2);
+                }
+            }
+            // the groups that keep their switches although they separate nothing
+            Set<Integer> keptGroups = new HashSet<>();
+            for (Switch sw : view.getSwitches()) {
+                if (operatedSwitches.contains(sw)) {
+                    for (int part : new int[] {find(parent, view.getNode1(sw.getId())), find(parent, view.getNode2(sw.getId()))}) {
+                        if (!alive[part]) {
+                            keptGroups.add(find(group, part));
+                        }
+                    }
+                }
+            }
+            Set<Integer> groupsWithTerminals = new HashSet<>();
+            for (int part : terminalsByPart.keySet()) {
+                if (!alive[part]) {
+                    groupsWithTerminals.add(find(group, part));
+                }
+            }
+            Set<Integer> disconnectedParts = new HashSet<>();
+            for (Switch sw : e.getValue()) {
+                int part1 = find(parent, view.getNode1(sw.getId()));
+                int part2 = find(parent, view.getNode2(sw.getId()));
+                if (alive[part1] && alive[part2]) {
+                    continue;
+                }
+                int deadGroup = find(group, alive[part1] ? part2 : part1);
+                if (aliveNeighbours.getOrDefault(deadGroup, Set.of()).size() >= 2
+                        || keptGroups.contains(deadGroup) || !groupsWithTerminals.contains(deadGroup)) {
+                    continue;
+                }
+                switchesToOpen.remove(sw);
+                for (int part : new int[] {part1, part2}) {
+                    if (!alive[part] && disconnectedParts.add(part)) {
+                        terminalsToDisconnect.addAll(terminalsByPart.getOrDefault(part, List.of()));
+                    }
+                }
+            }
+        }
     }
 
     private <K> void addBranchToOpen(K branchId, DisabledBranchStatus status, Map<K, DisabledBranchStatus> branchIdsToOpen) {
