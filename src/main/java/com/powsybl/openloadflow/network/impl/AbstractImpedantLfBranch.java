@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.util.ZeroImpedanceFlowsCache;
+import com.powsybl.openloadflow.network.util.NetworkStateBranchFlows;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
@@ -512,9 +512,9 @@ public abstract class AbstractImpedantLfBranch extends AbstractLfBranch {
         return getBus2() != null ? getBus2().getAngle() : Double.NaN;
     }
 
-    protected BranchResult buildBranchResult(ZeroImpedanceFlowsCache zeroImpedanceFlowsCache, double currentScale1, double currentScale2,
+    protected BranchResult buildBranchResult(NetworkStateBranchFlows branchFlows, double currentScale1, double currentScale2,
                                              double preContingencyBranchP1, double preContingencyBranchOfContingencyP1) {
-        LfBranchResults lfBranchResults = zeroImpedanceFlowsCache.getFlows(this);
+        LfBranchResults lfBranchResults = branchFlows.getFlows(this);
 
         double flowP1 = lfBranchResults.p1() * PerUnit.SB;
         double flowQ1 = lfBranchResults.q1() * PerUnit.SB;

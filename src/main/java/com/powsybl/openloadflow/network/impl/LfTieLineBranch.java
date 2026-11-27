@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.util.ZeroImpedanceFlowsCache;
+import com.powsybl.openloadflow.network.util.NetworkStateBranchFlows;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
@@ -97,13 +97,13 @@ public class LfTieLineBranch extends AbstractImpedantLfBranch {
 
     @Override
     public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
-                                                 boolean createExtension, ZeroImpedanceFlowsCache zeroImpedanceFlowsCache) {
+                                                 boolean createExtension, NetworkStateBranchFlows branchFlows) {
         double nominalV1 = getHalf1().getTerminal().getVoltageLevel().getNominalV();
         double nominalV2 = getHalf2().getTerminal().getVoltageLevel().getNominalV();
         double currentScale1 = PerUnit.ib(nominalV1);
         double currentScale2 = PerUnit.ib(nominalV2);
 
-        var branchResult = buildBranchResult(zeroImpedanceFlowsCache, currentScale1, currentScale2, preContingencyBranchP1, preContingencyBranchOfContingencyP1);
+        var branchResult = buildBranchResult(branchFlows, currentScale1, currentScale2, preContingencyBranchP1, preContingencyBranchOfContingencyP1);
 
         var half1Result = new BranchResult(getHalf1().getId(), branchResult.getP1(), branchResult.getQ1(), branchResult.getI1(), Double.NaN, Double.NaN, Double.NaN, branchResult.getFlowTransfer());
         var half2Result = new BranchResult(getHalf2().getId(), branchResult.getP2(), branchResult.getQ2(), branchResult.getI2(), Double.NaN, Double.NaN, Double.NaN, branchResult.getFlowTransfer());

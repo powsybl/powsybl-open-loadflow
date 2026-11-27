@@ -7,6 +7,7 @@
  */
 package com.powsybl.openloadflow.network.util;
 
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -23,11 +24,11 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * @author Damien Jeandemange {@literal <damien.jeandemange at artelys.com>}
  */
-class ZeroImpedanceFlowsCacheTest {
+class NetworkStateBranchFlowsTest {
 
     private LfNetwork lfNetwork;
 
-    private ZeroImpedanceFlowsCache cache;
+    private NetworkStateBranchFlows branchFlows;
 
     @BeforeEach
     void setUp() {
@@ -37,7 +38,7 @@ class ZeroImpedanceFlowsCacheTest {
         network.getLine("l34").setR(0).setX(0);
         network.getLine("l14").setR(0).setX(0).getTerminal(TwoSides.TWO).disconnect();
         lfNetwork = Networks.load(network, new LfNetworkParameters()).getFirst();
-        cache = new ZeroImpedanceFlowsCache(LoadFlowModel.AC, 1.0);
+        branchFlows = new NetworkStateBranchFlows(LoadFlowModel.AC, 1.0);
     }
 
     @Test
@@ -49,17 +50,17 @@ class ZeroImpedanceFlowsCacheTest {
         assertTrue(l34.isZeroImpedance(LoadFlowModel.AC));
         assertFalse(l13.isZeroImpedance(LoadFlowModel.AC));
 
-        assertNotNull(cache.getFlows(l13));
-        assertEquals(0, cache.getComputedZeroImpedanceNetworkCount());
+        assertNotNull(branchFlows.getFlows(l13));
+        assertEquals(0, branchFlows.getComputedZeroImpedanceNetworkCount());
 
-        assertNotNull(cache.getFlows(l12));
-        assertEquals(1, cache.getComputedZeroImpedanceNetworkCount());
+        assertNotNull(branchFlows.getFlows(l12));
+        assertEquals(1, branchFlows.getComputedZeroImpedanceNetworkCount());
 
-        assertNotNull(cache.getFlows(l12));
-        assertEquals(1, cache.getComputedZeroImpedanceNetworkCount());
+        assertNotNull(branchFlows.getFlows(l12));
+        assertEquals(1, branchFlows.getComputedZeroImpedanceNetworkCount());
 
-        assertNotNull(cache.getFlows(l34));
-        assertEquals(2, cache.getComputedZeroImpedanceNetworkCount());
+        assertNotNull(branchFlows.getFlows(l34));
+        assertEquals(2, branchFlows.getComputedZeroImpedanceNetworkCount());
     }
 
     @Test
@@ -68,8 +69,16 @@ class ZeroImpedanceFlowsCacheTest {
         assertTrue(l14.isZeroImpedance(LoadFlowModel.AC));
         assertNull(l14.getBus2());
 
-        LfBranch.LfBranchResults flows = cache.getFlows(l14);
-        assertEquals(0, cache.getComputedZeroImpedanceNetworkCount());
+        LfBranch.LfBranchResults flows = branchFlows.getFlows(l14);
+        assertEquals(0, branchFlows.getComputedZeroImpedanceNetworkCount());
         assertEquals(new LfBranch.LfBranchResults(0, Double.NaN, 0, Double.NaN, 0, Double.NaN), flows);
+    }
+
+    @Test
+    void testDisabledBranch() {
+        LfBranch l12 = lfNetwork.getBranchById("l12");
+        l12.setDisabled(true);
+        PowsyblException e = assertThrows(PowsyblException.class, () -> branchFlows.getFlows(l12));
+        assertEquals("Flows of disabled branch 'l12' are not available", e.getMessage());
     }
 }

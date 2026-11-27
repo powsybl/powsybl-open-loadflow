@@ -41,7 +41,7 @@ import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
-import com.powsybl.openloadflow.network.util.ZeroImpedanceFlowsCache;
+import com.powsybl.openloadflow.network.util.NetworkStateBranchFlows;
 import com.powsybl.openloadflow.sa.extensions.ContingencyLoadFlowParameters;
 import com.powsybl.openloadflow.util.Indexed;
 import com.powsybl.openloadflow.util.Lists2;
@@ -448,8 +448,8 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
     protected abstract LoadFlowEngine<V, E, P, R> createLoadFlowEngine(C context);
 
-    protected ZeroImpedanceFlowsCache createZeroImpedanceFlowsCache(SecurityAnalysisParameters securityAnalysisParameters) {
-        return new ZeroImpedanceFlowsCache(getLoadFlowModel(), securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
+    protected NetworkStateBranchFlows createNetworkStateBranchFlows(SecurityAnalysisParameters securityAnalysisParameters) {
+        return new NetworkStateBranchFlows(getLoadFlowModel(), securityAnalysisParameters.getLoadFlowParameters().getDcPowerFactor());
     }
 
     protected P copyParameters(P parameters) {
@@ -501,7 +501,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
                 afterPreContingencySimulation(p);
 
                 // update network result
-                preContingencyNetworkResult.update(createZeroImpedanceFlowsCache(securityAnalysisParameters));
+                preContingencyNetworkResult.update(createNetworkStateBranchFlows(securityAnalysisParameters));
 
                 // detect violations
                 preContingencyLimitViolationManager.detectViolations(lfNetwork);
@@ -606,7 +606,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
         if (status.equals(PostContingencyComputationStatus.CONVERGED)) {
             // update network result
-            postContingencyNetworkResult.update(createZeroImpedanceFlowsCache(securityAnalysisParameters));
+            postContingencyNetworkResult.update(createNetworkStateBranchFlows(securityAnalysisParameters));
 
             // detect violations
             postContingencyLimitViolationManager.detectViolations(network);
@@ -674,7 +674,7 @@ public abstract class AbstractSecurityAnalysis<V extends Enum<V> & Quantity, E e
 
         if (status.equals(PostContingencyComputationStatus.CONVERGED)) {
             // update network result
-            postActionsNetworkResult.update(createZeroImpedanceFlowsCache(securityAnalysisParameters));
+            postActionsNetworkResult.update(createNetworkStateBranchFlows(securityAnalysisParameters));
 
             // detect violations
             postActionsViolationManager.detectViolations(network);

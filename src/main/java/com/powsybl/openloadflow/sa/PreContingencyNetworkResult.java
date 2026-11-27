@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfNetwork;
 import com.powsybl.openloadflow.network.impl.LfLegBranch;
-import com.powsybl.openloadflow.network.util.ZeroImpedanceFlowsCache;
+import com.powsybl.openloadflow.network.util.NetworkStateBranchFlows;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
@@ -41,18 +41,18 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
         threeWindingsTransformerResults.clear();
     }
 
-    private void addResults(StateMonitor monitor, Predicate<LfBranch> isBranchDisabled, ZeroImpedanceFlowsCache zeroImpedanceFlowsCache) {
+    private void addResults(StateMonitor monitor, Predicate<LfBranch> isBranchDisabled, NetworkStateBranchFlows branchFlows) {
         addResults(monitor,
-                branch -> branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension, zeroImpedanceFlowsCache)
+                branch -> branch.createBranchResult(Double.NaN, Double.NaN, createResultExtension, branchFlows)
                 .forEach(branchResult -> branchResults.put(branchResult.getBranchId(), branchResult)),
                 isBranchDisabled,
                 bus -> bus.createBusResults().forEach(busResult -> busResults.put("%s_%s".formatted(busResult.getVoltageLevelId(), busResult.getBusId()), busResult)),
-                id -> threeWindingsTransformerResults.put(id, LfLegBranch.createThreeWindingsTransformerResult(network, id, createResultExtension, zeroImpedanceFlowsCache)));
+                id -> threeWindingsTransformerResults.put(id, LfLegBranch.createThreeWindingsTransformerResult(network, id, createResultExtension, branchFlows)));
     }
 
     @Override
-    public void update(ZeroImpedanceFlowsCache zeroImpedanceFlowsCache) {
-        update(LfBranch::isDisabled, zeroImpedanceFlowsCache);
+    public void update(NetworkStateBranchFlows branchFlows) {
+        update(LfBranch::isDisabled, branchFlows);
     }
 
     @Override
@@ -65,10 +65,10 @@ public class PreContingencyNetworkResult extends AbstractNetworkResult {
                         b -> b.getPhaseTapChanger().orElseThrow().getTapPosition()));
     }
 
-    public void update(Predicate<LfBranch> isBranchDisabled, ZeroImpedanceFlowsCache zeroImpedanceFlowsCache) {
+    public void update(Predicate<LfBranch> isBranchDisabled, NetworkStateBranchFlows branchFlows) {
         clear();
-        addResults(monitorIndex.getNoneStateMonitor(), isBranchDisabled, zeroImpedanceFlowsCache);
-        addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, zeroImpedanceFlowsCache);
+        addResults(monitorIndex.getNoneStateMonitor(), isBranchDisabled, branchFlows);
+        addResults(monitorIndex.getAllStateMonitor(), isBranchDisabled, branchFlows);
         storeInitialPhaseTapChangerInfo();
         updateChangedPhaseTapChanger();
     }

@@ -10,7 +10,7 @@ package com.powsybl.openloadflow.sa;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.LfStarBus;
 import com.powsybl.openloadflow.network.impl.Transformers;
-import com.powsybl.openloadflow.network.util.ZeroImpedanceFlowsCache;
+import com.powsybl.openloadflow.network.util.NetworkStateBranchFlows;
 import com.powsybl.security.monitor.StateMonitor;
 import com.powsybl.security.monitor.StateMonitorIndex;
 import com.powsybl.security.results.BranchResult;
@@ -93,7 +93,7 @@ public abstract class AbstractNetworkResult {
         }
     }
 
-    public abstract void update(ZeroImpedanceFlowsCache zeroImpedanceFlowsCache);
+    public abstract void update(NetworkStateBranchFlows branchFlows);
 
     public Map<LfBranch, ChangedPhaseTapChanger> getChangedPhaseTapChangers() {
         return changedPhaseTapChangers;

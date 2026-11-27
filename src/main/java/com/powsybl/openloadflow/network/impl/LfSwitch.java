@@ -14,7 +14,7 @@ import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.iidm.network.Switch;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.*;
-import com.powsybl.openloadflow.network.util.ZeroImpedanceFlowsCache;
+import com.powsybl.openloadflow.network.util.NetworkStateBranchFlows;
 import com.powsybl.openloadflow.util.Evaluable;
 import com.powsybl.security.results.BranchResult;
 import org.slf4j.Logger;
@@ -380,7 +380,7 @@ public class LfSwitch extends AbstractLfBranch {
 
     @Override
     public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
-                                                 boolean createExtension, ZeroImpedanceFlowsCache zeroImpedanceFlowsCache) {
+                                                 boolean createExtension, NetworkStateBranchFlows branchFlows) {
         throw new PowsyblException("Unsupported type of branch for branch result: " + getSwitch().getId());
     }
 
