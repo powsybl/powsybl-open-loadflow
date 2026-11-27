@@ -209,7 +209,7 @@ class DcSensitivityAnalysisHvdcAcEmulationTest extends AbstractSensitivityAnalys
 
         LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
         for (Contingency contingency : contingencies) {
-            assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency(contingency.getId())));
+            assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(SensitivityState.postContingency(contingency.getId())).getFirst().status());
             List<String> lostBranchIds = contingency.getElements().stream().map(ContingencyElement::getId).toList();
             Network reference = applyToCopy(network, n -> disconnect(n, lostBranchIds.toArray(new String[0])));
             List<String> remainingBranchIds = SIX_BUSES_BRANCHES.stream().filter(id -> !lostBranchIds.contains(id)).toList();
@@ -232,7 +232,7 @@ class DcSensitivityAnalysisHvdcAcEmulationTest extends AbstractSensitivityAnalys
         // when the HVDC line is lost, the droop coupling and the constant term p0 of the droop law disappear
         LoadFlowParameters lfParameters = sensiParameters.getLoadFlowParameters();
         Network reference = applyToCopy(network, n -> disconnect(n, "cs3", "cs4"));
-        assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency("hvdc34")));
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(SensitivityState.postContingency("hvdc34")).getFirst().status());
         assertReferenceFlowsMatch(reference, lfParameters, result, SensitivityState.postContingency("hvdc34"), SIX_BUSES_BRANCHES);
         assertSensitivitiesMatchFiniteDifference(reference, lfParameters, result, SensitivityState.postContingency("hvdc34"), "g5", SIX_BUSES_BRANCHES);
     }
@@ -280,7 +280,7 @@ class DcSensitivityAnalysisHvdcAcEmulationTest extends AbstractSensitivityAnalys
         });
         List<String> mainComponentBranchIds = "nothing".equals(isolatedSide) ? List.of("l12", "l13", "l23", "l25", "l56") : List.of("l12", "l13", "l23");
         SensitivityState state = SensitivityState.postContingency(contingency.getId());
-        assertEquals(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(state));
+        assertEquals(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(state).getFirst().status());
         assertReferenceFlowsMatch(reference, sensiParameters.getLoadFlowParameters(), result, state, mainComponentBranchIds);
         if ("nothing".equals(isolatedSide)) {
             assertSensitivitiesMatchFiniteDifference(reference, sensiParameters.getLoadFlowParameters(), result, state, "g5", mainComponentBranchIds);

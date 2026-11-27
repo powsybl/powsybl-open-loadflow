@@ -19,6 +19,7 @@ import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.serde.test.MetrixTutorialSixBusesFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.test.CommonTestConfig;
@@ -71,8 +72,8 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         assertEquals(5, result.getValues(contSimpleState).size());
         assertEquals(5, result.getValues(contDoubleState).size());
 
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contSimpleState));
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contDoubleState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contSimpleState).getFirst().status());
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contDoubleState).getFirst().status());
 
         // sensi N
         assertEquals(0.05d,
@@ -182,8 +183,8 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
 
         var contSimpleState = SensitivityState.postContingency("l23");
         var contAndOpStratState = new SensitivityState("l23", "open l14");
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contSimpleState));
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contAndOpStratState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contSimpleState).getFirst().status());
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contAndOpStratState).getFirst().status());
 
         // should give results equivalent to the previous test with a double contingency
 
@@ -299,7 +300,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setOperatorStrategies(operatorStrategies).setActions(actions));
 
         SensitivityState osState = new SensitivityState("L1", "OS");
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(osState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(osState).getFirst().status());
 
         // reference: physically apply the contingency and both actions on a cloned variant, then a plain DC sensi
         String refVariant = "ref";
@@ -366,8 +367,8 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setActions(actions));
 
         // without the fix the analysis throws "Matrix is singular"; once fixed, both states must be computed
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency("L1")));
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(new SensitivityState("L1", "OS")));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(SensitivityState.postContingency("L1")).getFirst().status());
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(new SensitivityState("L1", "OS")).getFirst().status());
     }
 
     @Test
@@ -398,8 +399,8 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setActions(actions));
 
         // without the fix the analysis throws "Matrix is singular"; once fixed, both states must be computed
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency("l12")));
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(new SensitivityState("l12", "reconnect dead-ends")));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(SensitivityState.postContingency("l12")).getFirst().status());
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(new SensitivityState("l12", "reconnect dead-ends")).getFirst().status());
     }
 
     @Test
@@ -433,7 +434,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setOperatorStrategies(operatorStrategies)
                 .setActions(actions));
 
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(SensitivityState.postContingency("l12")));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(SensitivityState.postContingency("l12")).getFirst().status());
     }
 
     /**
@@ -464,7 +465,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setOperatorStrategies(operatorStrategies)
                 .setActions(actions));
         var opStratState = new SensitivityState("S_SO_1", "strategyGen");
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(opStratState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(opStratState).getFirst().status());
 
         // reference: apply the contingency and the generator setpoint to a cloned variant, then run a plain DC sensi
         String modifiedVariantId = "contingencyAndGen";
@@ -528,8 +529,8 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
 
         var contSimpleState = SensitivityState.postContingency("l23");
         var contAndOpStratState = new SensitivityState("l23", "reclose l23");
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contSimpleState));
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contAndOpStratState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contSimpleState).getFirst().status());
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contAndOpStratState).getFirst().status());
 
         // sensi N
         assertEquals(0.05d,
@@ -643,8 +644,8 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
 
         var contSimpleState = SensitivityState.postContingency("l23");
         var contAndOpStratState = new SensitivityState("l23", "reclose l35");
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contSimpleState));
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contAndOpStratState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contSimpleState).getFirst().status());
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contAndOpStratState).getFirst().status());
 
         // sensi N-1
         assertEquals(-0.4d,
@@ -730,9 +731,9 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         var contState = SensitivityState.postContingency("L2_bis");
         var contAndOpenCState = new SensitivityState("L2_bis", "open C");
         var contAndCloseCState = new SensitivityState("L2_bis", "close C");
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contState));
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contAndOpenCState));
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contAndCloseCState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contState).getFirst().status());
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contAndOpenCState).getFirst().status());
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contAndCloseCState).getFirst().status());
 
         // reference flow N, 200MW on each
         assertEquals(200d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
@@ -781,7 +782,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setActions(actions));
 
         var opStratState = new SensitivityState("S_SO_1", "strategyPstChange");
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(opStratState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(opStratState).getFirst().status());
 
         // build reference: apply contingency and PST action to a cloned variant, then run classical sensi
         String modifiedVariantId = "contingencyAndPst";
@@ -898,7 +899,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setActions(actions));
 
         var opStratState = new SensitivityState("S_SO_1", "strategyGen");
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(opStratState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(opStratState).getFirst().status());
 
         // build reference by applying contingency and generator action to a cloned variant, then run classical sensi
         String modifiedVariantId = "contingencyAndGen";
@@ -986,7 +987,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setActions(actions));
 
         var opStratState = new SensitivityState("S_SO_1", "strategyLoad");
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(opStratState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(opStratState).getFirst().status());
 
         // build reference by applying contingency and load action to a cloned variant, then run classical sensi
         String modifiedVariantId = "contingencyAndLoad";
@@ -1045,7 +1046,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
 
         var openCState = new SensitivityState(null, "open C");
         assertEquals(1, result.getStateStatuses().size());
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(openCState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(openCState).getFirst().status());
 
         // reference flow N, 300MW on each
         assertEquals(300d, result.getFunctionReferenceValue(SensitivityState.PRE_CONTINGENCY, "L1", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
@@ -1082,7 +1083,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setContingencies(contingencies)
                 .setParameters(sensiParameters));
         assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, resultWithoutAction.getStateStatus(new SensitivityState("S_SO_1", null)));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, resultWithoutAction.getStateComponentStatuses(new SensitivityState("S_SO_1", null)).getFirst().status());
 
         // second run with a PST action: the cached networks must be evicted and reloaded with the PST retained
         List<Action> actions = List.of(new PhaseTapChangerTapPositionAction("pstChange", "NE_NO_1", false, 1));
@@ -1096,7 +1097,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setActions(actions));
         assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
         var opStratState = new SensitivityState("S_SO_1", "strategyPstChange");
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(opStratState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(opStratState).getFirst().status());
 
         // and the same run again reuses the cache
         var cachedValues = NetworkCache.DC_SENSI_INSTANCE.findEntry(network).orElseThrow().getValues();
@@ -1107,7 +1108,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setActions(actions));
         assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
         assertSame(cachedValues, NetworkCache.DC_SENSI_INSTANCE.findEntry(network).orElseThrow().getValues());
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, resultAgain.getStateStatus(opStratState));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, resultAgain.getStateComponentStatuses(opStratState).getFirst().status());
 
         // an action with another id operating the same PST leads to the same topo config: the cache is reused too
         List<Action> otherActions = List.of(new PhaseTapChangerTapPositionAction("pstChange2", "NE_NO_1", false, 1));
@@ -1121,7 +1122,7 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
                 .setActions(otherActions));
         assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
         assertSame(cachedValues, NetworkCache.DC_SENSI_INSTANCE.findEntry(network).orElseThrow().getValues());
-        assertSame(SensitivityAnalysisResult.Status.SUCCESS, resultOtherId.getStateStatus(new SensitivityState("S_SO_1", "strategyPstChange2")));
+        assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, resultOtherId.getStateComponentStatuses(new SensitivityState("S_SO_1", "strategyPstChange2")).getFirst().status());
 
         // build reference: apply contingency and PST action to a cloned variant, then run classical sensi
         String modifiedVariantId = "contingencyAndPst";
@@ -1186,8 +1187,8 @@ class DcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
         for (int run = 0; run < 2; run++) {
             SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
             assertEquals(1, NetworkCache.DC_SENSI_INSTANCE.getEntryCount());
-            assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contSimpleState));
-            assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(contAndOpStratState));
+            assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contSimpleState).getFirst().status());
+            assertSame(LoadFlowResult.ComponentResult.Status.CONVERGED, result.getStateComponentStatuses(contAndOpStratState).getFirst().status());
             assertEquals(-2.4d, result.getFunctionReferenceValue(contSimpleState, "l12", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
             assertEquals(1.4d, result.getFunctionReferenceValue(contSimpleState, "l13", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);
             assertEquals(-2.4d, result.getFunctionReferenceValue(contAndOpStratState, "l12", SensitivityFunctionType.BRANCH_ACTIVE_POWER_1), LoadFlowAssert.DELTA_POWER);

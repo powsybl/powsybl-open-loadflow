@@ -54,7 +54,7 @@
         <asciitable.version>0.3.2</asciitable.version>
         <archunit.version>1.5.1</archunit.version>
 
-        <powsybl-core.version>7.4.0</powsybl-core.version>
+        <powsybl-core.version>7.5.0-RC1</powsybl-core.version>
 
         <!--  This is required for later correct replacement of argline -->
         <argLine/>

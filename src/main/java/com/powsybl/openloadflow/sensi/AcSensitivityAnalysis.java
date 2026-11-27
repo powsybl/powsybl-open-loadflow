@@ -15,6 +15,7 @@ import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.strategy.OperatorStrategy;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
 import com.powsybl.openloadflow.NetworkCache;
@@ -208,12 +209,14 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
 
         if (!runLoadFlow(context, false)) {
             // write contingency status
-            resultWriter.writeStateStatus(contingencyIndex, operatorStrategyIndex, SensitivityAnalysisResult.Status.FAILURE);
+            resultWriter.writeStateStatus(contingencyIndex, operatorStrategyIndex, lfNetwork.getNumCC(), lfNetwork.getSynchronousNetworks().getFirst().getNumSC(),
+                    LoadFlowResult.ComponentResult.Status.FAILED, "");
             return;
         }
 
         // write contingency status
-        resultWriter.writeStateStatus(contingencyIndex, operatorStrategyIndex, SensitivityAnalysisResult.Status.SUCCESS);
+        resultWriter.writeStateStatus(contingencyIndex, operatorStrategyIndex, lfNetwork.getNumCC(), lfNetwork.getSynchronousNetworks().getFirst().getNumSC(),
+                LoadFlowResult.ComponentResult.Status.CONVERGED, "");
 
         // if we have at least one bus target voltage linked to a ratio tap changer, we have to rebuild the AC equation
         // system obtained just before the transformer steps rounding.
@@ -1015,7 +1018,8 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             calculateSensitivityValues(validFactorHolder.getFactorsForContingency(lfNetworkChange.getContingencyId()),
                     factorGroups, factorsStates, lfNetworkChange.getContingencyIndex(), lfNetworkChange.getOperatorStrategyIndex(), resultWriter);
             // write contingency status
-            resultWriter.writeStateStatus(lfNetworkChange.getContingencyIndex(), lfNetworkChange.getOperatorStrategyIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
+            resultWriter.writeStateStatus(lfNetworkChange.getContingencyIndex(), lfNetworkChange.getOperatorStrategyIndex(), lfNetwork.getNumCC(),
+                    lfNetwork.getSynchronousNetworks().getFirst().getNumSC(), LoadFlowResult.ComponentResult.Status.NO_CALCULATION, "");
         }
     }
 
