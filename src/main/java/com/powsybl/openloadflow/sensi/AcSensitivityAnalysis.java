@@ -13,7 +13,10 @@ import com.powsybl.commons.report.ReportNode;
 import com.powsybl.contingency.Contingency;
 import com.powsybl.contingency.ContingencyContext;
 import com.powsybl.contingency.strategy.OperatorStrategy;
+import com.powsybl.iidm.network.Bus;
+import com.powsybl.iidm.network.Line;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.Terminal;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.MatrixFactory;
@@ -34,6 +37,7 @@ import com.powsybl.openloadflow.lf.util.LfReports;
 import com.powsybl.openloadflow.lf.util.ParticipatingElement;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.action.*;
+import com.powsybl.openloadflow.network.impl.LfBranchImpl;
 import com.powsybl.openloadflow.network.impl.LfNetworkList;
 import com.powsybl.openloadflow.network.impl.Networks;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
@@ -60,8 +64,61 @@ import java.util.stream.Collectors;
  */
 public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariableType, AcEquationType> {
 
+    /**
+     * While {@link #runAdjoint} reads its factors: the network parameters to build an open line's branch with, and the
+     * branches built so far by line id (empty when the line cannot be reconnected). {@code null} otherwise, so the
+     * forward analysis never sees an open line.
+     */
+    private LfNetworkParameters openLineParameters;
+    private Map<String, Optional<LfBranch>> openLineBranches;
+
     public AcSensitivityAnalysis(MatrixFactory matrixFactory, GraphConnectivityFactory<LfBus, LfBranch> connectivityFactory, SensitivityAnalysisParameters parameters) {
         super(matrixFactory, connectivityFactory, parameters);
+    }
+
+    /**
+     * In {@link #runAdjoint}, a {@code BRANCH_ADMITTANCE} lever on a line open at both sides, which the solved network
+     * does not hold, differentiates the line it would be once reconnected: a branch built from the line, between the
+     * buses its two terminals would connect to (see {@link #createOpenLineBranch}). The branch is not added to the
+     * network, so the load flow and its Jacobian stay the open line's: the gradient is the derivative of the loss
+     * w.r.t. the line's series admittance at {@code y = 0}, the first-order gain of reconnecting it. The line's own
+     * monitored functions do not resolve (the line is not in the network), so it has no direct term.
+     */
+    @Override
+    protected LfBranch findBranchParameterVariableElement(Network network, LfNetwork lfNetwork, String variableId,
+                                                          SensitivityVariableType variableType, boolean breakers) {
+        LfBranch branch = super.findBranchParameterVariableElement(network, lfNetwork, variableId, variableType, breakers);
+        if (branch != null || openLineBranches == null || variableType != SensitivityVariableType.BRANCH_ADMITTANCE
+                || lfNetwork.getBranchById(variableId) != null) {
+            return branch; // the forward analysis, another parameter, or a branch of the network (open at one side)
+        }
+        return openLineBranches.computeIfAbsent(variableId, id -> Optional.ofNullable(
+                createOpenLineBranch(network, lfNetwork, id, breakers, openLineParameters))).orElse(null);
+    }
+
+    /**
+     * The branch of line {@code lineId}, open at both sides, between the buses of {@code lfNetwork} its terminals would
+     * connect to: {@code null} when it is not such a line, or when a terminal would connect to a bus the network does
+     * not hold (outside the main component, or a bus with nothing else connected), or both to the same bus.
+     * The branch is detached: the network and its buses do not know it. Package-private for tests.
+     */
+    static LfBranch createOpenLineBranch(Network network, LfNetwork lfNetwork, String lineId, boolean breakers,
+                                         LfNetworkParameters parameters) {
+        Line line = network.getLine(lineId);
+        if (line == null || line.getTerminal1().isConnected() || line.getTerminal2().isConnected()) {
+            return null;
+        }
+        LfBus bus1 = connectableLfBus(line.getTerminal1(), lfNetwork, breakers);
+        LfBus bus2 = connectableLfBus(line.getTerminal2(), lfNetwork, breakers);
+        if (bus1 == null || bus2 == null || bus1 == bus2 || bus1.isDisabled() || bus2.isDisabled()) {
+            return null;
+        }
+        return LfBranchImpl.create(line, lfNetwork, bus1, bus2, new LfTopoConfig(), parameters);
+    }
+
+    private static LfBus connectableLfBus(Terminal terminal, LfNetwork lfNetwork, boolean breakers) {
+        Bus bus = breakers ? terminal.getBusBreakerView().getConnectableBus() : terminal.getBusView().getConnectableBus();
+        return bus != null ? lfNetwork.getBusById(bus.getId()) : null;
     }
 
     private void calculateSensitivityValues(List<LfSensitivityFactor<AcVariableType, AcEquationType>> lfFactors,
@@ -419,8 +476,16 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                 .collect(Collectors.toMap(SensitivityVariableSet::getId, Function.identity()));
         // the reader may rewrite a function id (BUS_VOLTAGE resolved to its bus-view bus): both the cotangent lookup
         // and the gradient map go back to the declared factor through the factor index
-        SensitivityFactorHolder<AcVariableType, AcEquationType> allFactorHolder =
-                readAndCheckFactors(network, variableSetsById, new SensitivityFactorModelReader(factors, network), lfNetwork, breakers);
+        SensitivityFactorHolder<AcVariableType, AcEquationType> allFactorHolder;
+        openLineParameters = context.getParameters().getNetworkParameters();
+        openLineBranches = new HashMap<>();
+        try {
+            allFactorHolder = readAndCheckFactors(network, variableSetsById, new SensitivityFactorModelReader(factors, network),
+                                                  lfNetwork, breakers);
+        } finally {
+            openLineParameters = null;
+            openLineBranches = null;
+        }
         // xBar needs the function equation term (VALID factors only); a variable group only needs the variable to
         // have resolved (VALID or ZERO), so an unresolvable function does not strip a lever of its group
         List<LfSensitivityFactor<AcVariableType, AcEquationType>> allLfFactors = allFactorHolder.getAllFactors();

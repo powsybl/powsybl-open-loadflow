@@ -1344,6 +1344,16 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
         }
     }
 
+    /**
+     * The element a branch parameter variable (R, X or Y) differentiates: the network's branch, when it is connected at
+     * both sides; {@code null} otherwise, and the variable then reads 0.
+     */
+    protected LfBranch findBranchParameterVariableElement(Network network, LfNetwork lfNetwork, String variableId,
+                                                          SensitivityVariableType variableType, boolean breakers) {
+        LfBranch branch = lfNetwork.getBranchById(variableId);
+        return branch != null && branch.getBus1() != null && branch.getBus2() != null ? branch : null;
+    }
+
     protected SensitivityFactorHolder<V, E> readAndCheckFactors(Network network, Map<String, SensitivityVariableSet> variableSetsById,
                                                              SensitivityFactorReader factorReader, LfNetwork lfNetwork, boolean breakers) {
         final SensitivityFactorHolder<V, E> factorHolder = new SensitivityFactorHolder<>();
@@ -1481,8 +1491,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             variableElement = findBusTargetVoltageVariableElement(network, variableId, breakers, lfNetwork);
                             break;
                         case BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE:
-                            LfBranch varBranch = lfNetwork.getBranchById(variableId);
-                            variableElement = varBranch != null && varBranch.getBus1() != null && varBranch.getBus2() != null ? varBranch : null;
+                            variableElement = findBranchParameterVariableElement(network, lfNetwork, variableId, variableType, breakers);
                             break;
                         case SVC_PILOT_POINT_TARGET_VOLTAGE:
                             variableElement = findSvcPilotBus(lfNetwork, variableId);
@@ -1502,8 +1511,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                             break;
                         case BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE:
-                            LfBranch varBranch2 = lfNetwork.getBranchById(variableId);
-                            variableElement = varBranch2 != null && varBranch2.getBus1() != null && varBranch2.getBus2() != null ? varBranch2 : null;
+                            variableElement = findBranchParameterVariableElement(network, lfNetwork, variableId, variableType, breakers);
                             break;
                         case SVC_PILOT_POINT_TARGET_VOLTAGE:
                             variableElement = findSvcPilotBus(lfNetwork, variableId);
@@ -1523,8 +1531,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             variableElement = injectionBusId != null ? lfNetwork.getBusById(injectionBusId) : null;
                             break;
                         case BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE:
-                            LfBranch varBranch3 = lfNetwork.getBranchById(variableId);
-                            variableElement = varBranch3 != null && varBranch3.getBus1() != null && varBranch3.getBus2() != null ? varBranch3 : null;
+                            variableElement = findBranchParameterVariableElement(network, lfNetwork, variableId, variableType, breakers);
                             break;
                         case SVC_PILOT_POINT_TARGET_VOLTAGE:
                             variableElement = findSvcPilotBus(lfNetwork, variableId);
@@ -1542,8 +1549,7 @@ abstract class AbstractSensitivityAnalysis<V extends Enum<V> & Quantity, E exten
                             yield variableInjectionBusId != null ? lfNetwork.getBusById(variableInjectionBusId) : null;
                         }
                         case BRANCH_RESISTANCE, BRANCH_REACTANCE, BRANCH_ADMITTANCE -> {
-                            LfBranch varBranch4 = lfNetwork.getBranchById(variableId);
-                            yield varBranch4 != null && varBranch4.getBus1() != null && varBranch4.getBus2() != null ? varBranch4 : null;
+                            yield findBranchParameterVariableElement(network, lfNetwork, variableId, variableType, breakers);
                         }
                         case SVC_PILOT_POINT_TARGET_VOLTAGE -> findSvcPilotBus(lfNetwork, variableId);
                         default -> throw createVariableTypeNotSupportedWithFunctionTypeException(variableType, functionType);
