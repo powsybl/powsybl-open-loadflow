@@ -47,9 +47,10 @@ and flows of adjacent impedant branches, for monitored branches (state monitors)
 (limit violations detection).
 
 Please note that:
-- When zero impedance branches form a loop, the flow distribution among the branches of the loop cannot be determined:
-  only the branches of a spanning tree of the zero impedance subnetwork carry flow, the other ones are reported with a zero flow.
-  Reported flows and limit violations on such parallel zero impedance branches thus depend on the spanning tree that has been chosen.
+- When zero impedance branches form a loop, there is not a unique way to distribute the power flow among the branches of the loop.
+  OpenLoadFlow provides the unique distribution adhering to::
+  - only the branches of a spanning tree of the zero impedance subnetwork carry flow, the other ones are reported with a zero flow.
+  - Reported flows and limit violations on such parallel zero impedance branches thus depend on the spanning tree that has been chosen.
 - In DC, as for impedant branches, reactive power of zero impedance branches is not computed and apparent power limits are not checked.
 - With `dcFastMode`, zero impedance branches are always replaced by minimum impedance lines.
 

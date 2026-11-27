@@ -176,9 +176,7 @@ public class LimitViolationManager {
 
     /**
      * Flows are given as {@link Evaluable} rather than values so that only the limited quantities are evaluated: most
-     * branches only have current limits, and AC active/reactive power evaluation is costly. As detection runs for every
-     * branch in every state, evaluating all flows was measured about 5% slower (whole detection time) on a 28k branches
-     * network.
+     * branches only have current limits, and AC active/reactive power evaluation adds a small performance cost.
      */
     private void detectBranchSideViolations(LfBranch branch, LfBus bus, BranchSideLimits limits, Evaluable i, Evaluable p, Evaluable q, TwoSides side) {
         if (!limits.current().isEmpty()) {
