@@ -1012,7 +1012,19 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             // we need to force the state vector to be re-initialized from base case network state
             AcStateVectorUtil.initStateVector(lfNetwork, context.getEquationSystem(), context.getParameters().getVoltageInitializer());
 
-            calculateSensitivityValues(validFactorHolder.getFactorsForContingency(lfNetworkChange.getContingencyId()),
+            // A factor with an ALL contingency context is shared with the base case and every other contingency: it still
+            // holds the predefined results and function reference of the last simulated network change. As the network
+            // change has no impact, reset them to their base case values.
+            List<LfSensitivityFactor<AcVariableType, AcEquationType>> contingencyFactors = validFactorHolder.getFactorsForContingency(lfNetworkChange.getContingencyId());
+            contingencyFactors.forEach(lfFactor -> {
+                lfFactor.setSensitivityValuePredefinedResult(null);
+                lfFactor.setFunctionPredefinedResult(null);
+                lfFactor.updateStatus();
+            });
+            setPredefinedResults(contingencyFactors, new DisabledNetwork(), null);
+            setFunctionReferences(contingencyFactors);
+
+            calculateSensitivityValues(contingencyFactors,
                     factorGroups, factorsStates, lfNetworkChange.getContingencyIndex(), lfNetworkChange.getOperatorStrategyIndex(), resultWriter);
             // write contingency status
             resultWriter.writeStateStatus(lfNetworkChange.getContingencyIndex(), lfNetworkChange.getOperatorStrategyIndex(), SensitivityAnalysisResult.Status.NO_IMPACT);
