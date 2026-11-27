@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.network.util;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.openloadflow.network.LfBranch;
@@ -72,13 +71,5 @@ class NetworkStateBranchFlowsTest {
         LfBranch.LfBranchResults flows = branchFlows.getFlows(l14);
         assertEquals(0, branchFlows.getComputedZeroImpedanceNetworkCount());
         assertEquals(new LfBranch.LfBranchResults(0, Double.NaN, 0, Double.NaN, 0, Double.NaN), flows);
-    }
-
-    @Test
-    void testDisabledBranch() {
-        LfBranch l12 = lfNetwork.getBranchById("l12");
-        l12.setDisabled(true);
-        PowsyblException e = assertThrows(PowsyblException.class, () -> branchFlows.getFlows(l12));
-        assertEquals("Flows of disabled branch 'l12' are not available", e.getMessage());
     }
 }

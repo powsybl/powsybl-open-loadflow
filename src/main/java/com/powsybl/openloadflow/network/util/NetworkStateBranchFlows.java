@@ -7,7 +7,6 @@
  */
 package com.powsybl.openloadflow.network.util;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfZeroImpedanceNetwork;
 import com.powsybl.openloadflow.network.LoadFlowModel;
@@ -48,15 +47,13 @@ public class NetworkStateBranchFlows {
      *     as no flow can go through it.</li>
      * </ul>
      *
-     * @param branch a branch of the network, not disabled
+     * The caller is responsible for not requesting flows of a branch disabled in the considered network state: flows
+     * of such a branch are meaningless for an impedant branch, and null for a zero impedance branch.
+     *
+     * @param branch a branch of the network, not disabled in the considered network state
      * @return the flows at both sides of the branch
-     * @throws PowsyblException if the branch is disabled
      */
     public LfBranch.LfBranchResults getFlows(LfBranch branch) {
-        if (branch.isDisabled()) {
-            // equation terms would still evaluate as if closed, and a disabled branch is not a zero impedance network edge
-            throw new PowsyblException("Flows of disabled branch '" + branch.getId() + "' are not available");
-        }
         if (!branch.isZeroImpedance(loadFlowModel)) {
             return new LfBranch.LfBranchResults(branch.getP1().eval(), branch.getP2().eval(),
                     branch.getQ1().eval(), branch.getQ2().eval(),
