@@ -19,6 +19,8 @@ import com.powsybl.openloadflow.network.util.UniformValueVoltageInitializer;
 import com.powsybl.openloadflow.test.networks.FourBusNetworkFactory;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -146,5 +148,70 @@ class EquationArrayTest {
             assertArrayEquals(expectedRowIndices, rowIndices);
             assertArrayEquals(expectedColumnStarts, columnStarts);
         }
+    }
+
+    /**
+     * A term array has no list of terms for an equation that has none in it. Such an equation gives an empty list, the
+     * lists by equation are those the concatenated lists are made of, and the equation can be deactivated and
+     * activated again.
+     */
+    @Test
+    void testEquationWithoutTermInATermArray() {
+        Network network = EurostagTutorialExample1Factory.create();
+        LfNetwork lfNetwork = LfNetwork.load(network, new LfNetworkLoaderImpl(), new FirstSlackBusSelector()).get(0);
+        // no branch has its side 2 at the bus of the generator, nor its side 1 at the bus of the load
+        LfBus generatorBus = lfNetwork.getBranchById("NGEN_NHV1").getBus1();
+        LfBus loadBus = lfNetwork.getBranchById("NHV2_NLOAD").getBus2();
+
+        EquationSystem<AcVariableType, AcEquationType> equationSystem = createEquationSystem(lfNetwork);
+        EquationSystem<AcVariableType, AcEquationType> equationSystem2 = createEquationSystemUsingArrayEquations(lfNetwork);
+        EquationArray<AcVariableType, AcEquationType> equationArray = equationSystem2.getEquationArray(AcEquationType.BUS_TARGET_P).orElseThrow();
+        EquationTermArray<AcVariableType, AcEquationType> side1Array = equationArray.getTermArrays().get(0);
+        EquationTermArray<AcVariableType, AcEquationType> side2Array = equationArray.getTermArrays().get(1);
+        assertEquals(1, side1Array.getTermNumsForEquationElementNum(generatorBus.getNum()).size());
+        assertTrue(side2Array.getTermNumsForEquationElementNum(generatorBus.getNum()).isEmpty());
+        assertTrue(side1Array.getTermNumsForEquationElementNum(loadBus.getNum()).isEmpty());
+        assertEquals(1, side2Array.getTermNumsForEquationElementNum(loadBus.getNum()).size());
+
+        // the list of each equation is its part of the concatenated lists, in the same order
+        for (EquationTermArray<AcVariableType, AcEquationType> termArray : equationArray.getTermArrays()) {
+            int[] startIndices = termArray.getTermNumsConcatenatedStartIndices();
+            int termCount = 0;
+            for (int elementNum = 0; elementNum < equationArray.getElementCount(); elementNum++) {
+                int[] termNums = termArray.getTermNumsForEquationElementNum(elementNum).toArray();
+                assertEquals(termCount, startIndices[elementNum]);
+                assertArrayEquals(termNums, termArray.getTermNumsConcatenated().toArray(startIndices[elementNum], termNums.length));
+                termCount += termNums.length;
+            }
+            assertEquals(termCount, startIndices[equationArray.getElementCount()]);
+            assertEquals(lfNetwork.getBranches().size(), termCount);
+            assertEquals(termCount, termArray.getTermNumsConcatenated().size());
+        }
+
+        // the equation of the load bus off, then on again: the variables and the values are those of the objects
+        assertSameVariablesAndValues(equationSystem, equationSystem2);
+        equationSystem.getEquation(loadBus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow().setActive(false);
+        equationArray.getElement(loadBus.getNum()).setActive(false);
+        assertEquals(lfNetwork.getBuses().size() - 1, equationSystem2.getIndex().getColumnCount());
+        assertSameVariablesAndValues(equationSystem, equationSystem2);
+        equationSystem.getEquation(loadBus.getNum(), AcEquationType.BUS_TARGET_P).orElseThrow().setActive(true);
+        equationArray.getElement(loadBus.getNum()).setActive(true);
+        assertEquals(lfNetwork.getBuses().size(), equationSystem2.getIndex().getColumnCount());
+        assertSameVariablesAndValues(equationSystem, equationSystem2);
+    }
+
+    private static void assertSameVariablesAndValues(EquationSystem<AcVariableType, AcEquationType> equationSystem,
+                                                     EquationSystem<AcVariableType, AcEquationType> equationSystem2) {
+        assertEquals(describeVariables(equationSystem), describeVariables(equationSystem2));
+        try (EquationVector<AcVariableType, AcEquationType> equationVector = new EquationVector<>(equationSystem);
+             EquationVector<AcVariableType, AcEquationType> equationVector2 = new EquationVector<>(equationSystem2)) {
+            assertArrayEquals(equationVector.getArray(), equationVector2.getArray());
+        }
+    }
+
+    private static List<String> describeVariables(EquationSystem<AcVariableType, AcEquationType> equationSystem) {
+        return equationSystem.getIndex().getSortedVariablesToFind().stream()
+                .map(variable -> variable.getType() + " " + variable.getElementNum() + " at row " + variable.getRow())
+                .toList();
     }
 }
