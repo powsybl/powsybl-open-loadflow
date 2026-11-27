@@ -194,6 +194,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow();
         if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
             return ((ReactiveCapabilityCurve) reactiveLimits).getMinQ(activePower * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
+        } else if (reactiveLimits.getKind() == ReactiveLimitsKind.SHAPE) {
+            return ((ReactiveCapabilityShape) reactiveLimits).getMinQ(activePower * PerUnit.SB, targetV * getBus().getNominalV());
         } else {
             return reactiveLimits.getMinQ(activePower * PerUnit.SB) / PerUnit.SB;
         }
@@ -206,6 +208,8 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
         ReactiveLimits reactiveLimits = getReactiveLimits().orElseThrow();
         if (reactiveLimits.getKind() == ReactiveLimitsKind.CURVE) {
             return ((ReactiveCapabilityCurve) reactiveLimits).getMaxQ(activePower * PerUnit.SB, extrapolateReactiveLimits) / PerUnit.SB;
+        } else if (reactiveLimits.getKind() == ReactiveLimitsKind.SHAPE) {
+            return ((ReactiveCapabilityShape) reactiveLimits).getMaxQ(activePower * PerUnit.SB, targetV * getBus().getNominalV());
         } else {
             return reactiveLimits.getMaxQ(activePower * PerUnit.SB) / PerUnit.SB;
         }
@@ -242,6 +246,21 @@ public abstract class AbstractLfGenerator extends AbstractLfInjection implements
                         rangeQ = reactiveLimits.getMaxQ(targetP * PerUnit.SB) - reactiveLimits.getMinQ(targetP * PerUnit.SB);
                     } else {
                         throw new PowsyblException("Unsupported reactive range mode: " + rangeMode);
+                    }
+                    break;
+
+                case SHAPE:
+                    ReactiveCapabilityShape reactiveCapabilityShape = (ReactiveCapabilityShape) reactiveLimits;
+                    // TODO : RangeQ is computed only in the ReactiveRangeMode.TARGET_P way. MAX and MIN are not supported yet
+                    if (rangeMode == ReactiveRangeMode.MIN || rangeMode == ReactiveRangeMode.MAX || rangeMode == ReactiveRangeMode.TARGET_P) {
+                        if (getBus() != null) {
+                            rangeQ = reactiveCapabilityShape.getMaxQ(targetP * PerUnit.SB, targetV * getBus().getNominalV())
+                                    - reactiveCapabilityShape.getMinQ(targetP * PerUnit.SB, targetV * getBus().getNominalV());
+                        } else {
+                            rangeQ = reactiveCapabilityShape.getMaxQ(targetP * PerUnit.SB) - reactiveCapabilityShape.getMinQ(targetP * PerUnit.SB);
+                        }
+                    } else {
+                        throw new PowsyblException("Unsupported reactive range mode for reactive capability shapes: " + rangeMode);
                     }
                     break;
 
