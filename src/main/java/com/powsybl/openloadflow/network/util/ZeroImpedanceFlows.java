@@ -33,7 +33,8 @@ public class ZeroImpedanceFlows {
         this.dcPowerFactor = dcPowerFactor;
     }
 
-    public void computeFlows(boolean provideResults, Map<String, LfBranch.LfBranchResults> resultsMap) {
+    public Map<LfBranch, LfBranch.LfBranchResults> compute() {
+        Map<LfBranch, LfBranch.LfBranchResults> results = new LinkedHashMap<>();
         Set<LfBus> processed = new HashSet<>();
 
         graph.vertexSet().stream().sorted(Comparator.comparingInt(LfElement::getNum)).forEach(lfBus -> {
@@ -41,40 +42,14 @@ public class ZeroImpedanceFlows {
                 return;
             }
             TreeByLevels treeByLevels = new TreeByLevels(graph, tree, lfBus, loadFlowModel, dcPowerFactor);
-            if (provideResults) {
-                treeByLevels.buildFlowResults(resultsMap);
-            } else {
-                treeByLevels.updateFlows();
-            }
+            treeByLevels.computeFlows(results);
             processed.addAll(treeByLevels.getProcessedLfBuses());
         });
 
         // zero flows for all zero impedance branches outside the tree
         graph.edgeSet().stream().filter(branch -> !tree.getEdges().contains(branch))
-                .forEach(branch -> {
-                    if (provideResults) {
-                        resultsMap.put(branch.getId(), new LfBranch.LfBranchResults(0.0, 0.0, 0.0, 0.0, 0.0, 0.0));
-                    } else {
-                        branch.updateFlows(0.0, 0.0, 0.0, 0.0);
-                    }
-                });
-    }
-
-    public void computeAndProvideResults(Map<String, LfBranch.LfBranchResults> resultsMap) {
-        Set<LfBus> processed = new HashSet<>();
-
-        graph.vertexSet().stream().sorted(Comparator.comparingInt(LfElement::getNum)).forEach(lfBus -> {
-            if (processed.contains(lfBus)) {
-                return;
-            }
-            TreeByLevels treeByLevels = new TreeByLevels(graph, tree, lfBus, loadFlowModel, dcPowerFactor);
-            treeByLevels.buildFlowResults(resultsMap);
-            processed.addAll(treeByLevels.getProcessedLfBuses());
-        });
-
-        // zero flows for all zero impedance branches outside the tree
-        graph.edgeSet().stream().filter(branch -> !tree.getEdges().contains(branch))
-                .forEach(branch -> resultsMap.put(branch.getId(), new LfBranch.LfBranchResults(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)));
+                .forEach(branch -> results.put(branch, new LfBranch.LfBranchResults(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)));
+        return results;
     }
 
     private static final class TreeByLevels {
@@ -133,7 +108,7 @@ public class ZeroImpedanceFlows {
             return branch.getBus1().equals(bus) ? branch.getBus2() : branch.getBus1();
         }
 
-        private void updateFlows() {
+        private void computeFlows(Map<LfBranch, LfBranch.LfBranchResults> results) {
             Map<LfBus, PQ> descendantZeroImpedanceFlow = new HashMap<>();
 
             // traverse the tree from leaves to root
@@ -146,27 +121,7 @@ public class ZeroImpedanceFlows {
                     PQ branchFlow = balance.add(z0flow);
 
                     LfBranch branch = parent.get(bus);
-                    updateBranchFlows(branch, bus, branchFlow.negate(), branchFlow);
-                    descendantZeroImpedanceFlow.merge(getOtherSideBus(branch, bus), branchFlow, PQ::add);
-                });
-                level--;
-            }
-        }
-
-        private void buildFlowResults(Map<String, LfBranch.LfBranchResults> resultsMap) {
-            Map<LfBus, PQ> descendantZeroImpedanceFlow = new HashMap<>();
-
-            // traverse the tree from leaves to root
-            // (The root itself does not need to be processed)
-            int level = levels.size() - 1;
-            while (level >= 1) {
-                levels.get(level).forEach(bus -> {
-                    PQ balance = balanceWithImpedance(bus);
-                    PQ z0flow = getDescendantZeroImpedanceFlow(descendantZeroImpedanceFlow, bus);
-                    PQ branchFlow = balance.add(z0flow);
-
-                    LfBranch branch = parent.get(bus);
-                    buildBranchFlows(resultsMap, branch, bus, branchFlow.negate(), branchFlow);
+                    putBranchFlows(results, branch, bus, branchFlow.negate(), branchFlow);
                     descendantZeroImpedanceFlow.merge(getOtherSideBus(branch, bus), branchFlow, PQ::add);
                 });
                 level--;
@@ -207,14 +162,6 @@ public class ZeroImpedanceFlows {
             return descendantZeroImpedanceFlow.containsKey(bus) ? descendantZeroImpedanceFlow.get(bus) : new PQ(0.0, 0.0);
         }
 
-        private void updateBranchFlows(LfBranch branch, LfBus bus, PQ pqBus, PQ pqOtherBus) {
-            if (branch.getBus1() != null && branch.getBus1().equals(bus)) {
-                branch.updateFlows(pqBus.p, pqBus.q, pqOtherBus.p, pqOtherBus.q);
-            } else {
-                branch.updateFlows(pqOtherBus.p, pqOtherBus.q, pqBus.p, pqBus.q);
-            }
-        }
-
         private double computeCurrent(double p, double q, double v) {
             if (loadFlowModel == LoadFlowModel.AC) {
                 return Math.hypot(p, q) / v;
@@ -224,7 +171,7 @@ public class ZeroImpedanceFlows {
             }
         }
 
-        private void buildBranchFlows(Map<String, LfBranch.LfBranchResults> resultsMap, LfBranch branch, LfBus bus, PQ pqBus, PQ pqOtherBus) {
+        private void putBranchFlows(Map<LfBranch, LfBranch.LfBranchResults> results, LfBranch branch, LfBus bus, PQ pqBus, PQ pqOtherBus) {
             double p1 = 0;
             double q1 = 0;
             double i1 = 0;
@@ -250,7 +197,7 @@ public class ZeroImpedanceFlows {
                 i2 = computeCurrent(p2, q2, branch.getBus2().getV());
             }
 
-            resultsMap.put(branch.getId(), new LfBranch.LfBranchResults(p1, p2, q1, q2, i1, i2));
+            results.put(branch, new LfBranch.LfBranchResults(p1, p2, q1, q2, i1, i2));
         }
 
         private PQ getBranchFlow(LfBranch branch, LfBus bus) {
