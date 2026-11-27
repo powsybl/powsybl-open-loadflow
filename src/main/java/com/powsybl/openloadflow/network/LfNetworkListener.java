@@ -39,6 +39,12 @@ public interface LfNetworkListener {
 
     void onGenerationReactivePowerTargetChange(LfBus bus, double oldGenerationTargetQ, double newGenerationTargetQ);
 
+    /**
+     * A generator disabled or enabled, or its control type changed: which generators count in the targets of its bus
+     * changed, whatever their target values.
+     */
+    void onGeneratorStatusChange(LfGenerator generator);
+
     void onDisableChange(LfElement element, boolean disabled);
 
     void onTapPositionChange(LfBranch branch, int oldPosition, int newPosition, boolean modifiedTapImpedance);

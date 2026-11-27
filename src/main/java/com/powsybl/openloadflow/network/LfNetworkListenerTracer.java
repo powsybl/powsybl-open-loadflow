@@ -107,6 +107,12 @@ public class LfNetworkListenerTracer implements LfNetworkListener {
     }
 
     @Override
+    public void onGeneratorStatusChange(LfGenerator generator) {
+        LOGGER.trace("onGeneratorStatusChange(generatorId='{}')", generator.getId());
+        delegate.onGeneratorStatusChange(generator);
+    }
+
+    @Override
     public void onGenerationReactivePowerTargetChange(LfBus bus, double oldGenerationTargetQ, double newGenerationTargetQ) {
         LOGGER.trace("onGenerationReactivePowerTargetChange(busId='{}', oldGenerationTargetQ={}, newGenerationTargetQ={})",
                 bus.getId(), oldGenerationTargetQ, newGenerationTargetQ);
