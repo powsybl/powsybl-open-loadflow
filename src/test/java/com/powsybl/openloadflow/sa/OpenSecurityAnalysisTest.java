@@ -5220,6 +5220,148 @@ class OpenSecurityAnalysisTest extends AbstractOpenSecurityAnalysisTest {
         assertEquals(expectedL12P1, result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l12").getP1(), DELTA_POWER);
     }
 
+    @ParameterizedTest
+    @CsvSource(useHeadersInDisplayName = true, textBlock = """
+            dc,    side
+            false, ONE
+            true,  ONE
+            false, TWO
+            true,  TWO
+        """)
+    void testMonitoredZeroImpedanceBranchConnectedOneSide(boolean dc, TwoSides side) {
+        Network network = FourBusNetworkFactory.create();
+
+        LoadFlowParameters loadFlowParameters = new LoadFlowParameters()
+                .setDc(dc);
+        OpenLoadFlowParameters.create(loadFlowParameters)
+                .setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
+
+        Line l14 = network.getLine("l14");
+        l14.setR(0.0)
+                .setX(0.0)
+                .getTerminal(side).disconnect();
+        l14.getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(1).add();
+        l14.getOrCreateSelectedOperationalLimitsGroup2().newCurrentLimits().setPermanentLimit(1).add();
+        List<Contingency> contingencies = List.of(Contingency.line("l12"));
+
+        List<StateMonitor> monitors = List.of(new StateMonitor(ContingencyContext.all(), Set.of("l14"), Collections.emptySet(), Collections.emptySet()));
+
+        SecurityAnalysisResult result = assertDoesNotThrow(() -> runSecurityAnalysis(network, contingencies, monitors, loadFlowParameters));
+        BranchResult preContingencyResult = result.getPreContingencyResult().getNetworkResult().getBranchResult("l14");
+        BranchResult postContingencyResult = result.getPostContingencyResults().getFirst().getNetworkResult().getBranchResult("l14");
+        for (BranchResult branchResult : List.of(preContingencyResult, postContingencyResult)) {
+            double connectedSideP = side == TwoSides.ONE ? branchResult.getP2() : branchResult.getP1();
+            double connectedSideI = side == TwoSides.ONE ? branchResult.getI2() : branchResult.getI1();
+            double openSideP = side == TwoSides.ONE ? branchResult.getP1() : branchResult.getP2();
+            assertEquals(0, connectedSideP, DELTA_POWER);
+            assertEquals(0, connectedSideI, DELTA_I);
+            assertTrue(Double.isNaN(openSideP));
+        }
+        assertTrue(result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations().stream().noneMatch(v -> v.getSubjectId().equals("l14")));
+        assertTrue(result.getPostContingencyResults().getFirst().getLimitViolationsResult().getLimitViolations().stream().noneMatch(v -> v.getSubjectId().equals("l14")));
+    }
+
+    private static LimitViolation assertViolation(List<LimitViolation> violations, String subjectId, LimitViolationType type, ThreeSides side, double expectedValue) {
+        LimitViolation violation = violations.stream()
+                .filter(v -> v.getSubjectId().equals(subjectId) && v.getLimitType() == type && v.getSide() == side)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No " + type + " violation on " + subjectId + " side " + side));
+        assertEquals(expectedValue, violation.getValue(), type == LimitViolationType.CURRENT ? DELTA_I : DELTA_POWER);
+        return violation;
+    }
+
+    @ParameterizedTest(name = "DC = {0}")
+    @ValueSource(booleans = {false, true})
+    void testZeroImpedanceBranchViolations(boolean dc) {
+        Network network = createWith3BusesNonImpedantSubNetwork();
+        // impedant line in parallel of l34: tripping it increases the flow through zero impedance branch l23
+        network.newLine()
+                .setId("l54")
+                .setBus1("b5")
+                .setConnectableBus1("b5")
+                .setBus2("b4")
+                .setConnectableBus2("b4")
+                .setR(0)
+                .setX(0.1)
+                .add();
+        network.getLine("l23").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(0.8).add();
+        network.getLine("l25").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(100).add();
+        network.getLine("l25").getOrCreateSelectedOperationalLimitsGroup2().newApparentPowerLimits().setPermanentLimit(0.1).add();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters().setDc(dc);
+        OpenLoadFlowParameters.create(lfParameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId("b6_vl_0")
+                .setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
+        SecurityAnalysisParameters saParameters = new SecurityAnalysisParameters().setLoadFlowParameters(lfParameters);
+
+        List<Contingency> contingencies = List.of(Contingency.line("l54"));
+        List<Action> actions = List.of(new TerminalsConnectionAction("open_l12", "l12", true));
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("strategy", ContingencyContext.specificContingency("l54"), new TrueCondition(), List.of("open_l12")));
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, contingencies, Collections.emptyList(), saParameters, operatorStrategies, actions, ReportNode.NO_OP);
+
+        // apparent power limits are not checked in DC (no reactive power)
+        List<LimitViolation> preViolations = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations();
+        assertEquals(dc ? 1 : 2, preViolations.size());
+        assertViolation(preViolations, "l25", LimitViolationType.CURRENT, ThreeSides.ONE, dc ? 1443.376 : 1715.784);
+        if (!dc) {
+            assertViolation(preViolations, "l25", LimitViolationType.APPARENT_POWER, ThreeSides.TWO, 2.572);
+        }
+
+        // all the flow to b4 goes through l23 which is now overloaded
+        List<LimitViolation> postViolations = result.getPostContingencyResults().getFirst().getLimitViolationsResult().getLimitViolations();
+        assertEquals(dc ? 2 : 3, postViolations.size());
+        assertViolation(postViolations, "l23", LimitViolationType.ACTIVE_POWER, ThreeSides.ONE, 1.0);
+        assertViolation(postViolations, "l25", LimitViolationType.CURRENT, ThreeSides.ONE, dc ? 1732.051 : 2079.084);
+        if (!dc) {
+            assertViolation(postViolations, "l25", LimitViolationType.APPARENT_POWER, ThreeSides.TWO, 3.080);
+        }
+
+        // opening l12 removes l25 violations, l23 is still overloaded
+        List<LimitViolation> postActionViolations = result.getOperatorStrategyResults().getFirst().getLimitViolationsResult().getLimitViolations();
+        assertEquals(1, postActionViolations.size());
+        assertViolation(postActionViolations, "l23", LimitViolationType.ACTIVE_POWER, ThreeSides.ONE, 1.0);
+    }
+
+    @ParameterizedTest(name = "DC = {0}")
+    @ValueSource(booleans = {false, true})
+    void testZeroImpedanceThreeWindingsTransformerLegViolation(boolean dc) {
+        Network network = createWithNonImpedantThreeWindingsTransformer();
+        network.getThreeWindingsTransformer("t3wt").getLeg3().getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(1000).add();
+
+        LoadFlowParameters lfParameters = new LoadFlowParameters().setDc(dc);
+        OpenLoadFlowParameters.create(lfParameters)
+                .setSlackBusSelectionMode(SlackBusSelectionMode.NAME)
+                .setSlackBusId("b6_vl_0")
+                .setLowImpedanceBranchMode(OpenLoadFlowParameters.LowImpedanceBranchMode.REPLACE_BY_ZERO_IMPEDANCE_LINE);
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, List.of(), Collections.emptyList(), lfParameters);
+
+        List<LimitViolation> violations = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations();
+        assertEquals(1, violations.size());
+        assertViolation(violations, "t3wt", LimitViolationType.CURRENT, ThreeSides.THREE, dc ? 1732.051 : 2091.290);
+    }
+
+    /**
+     * l25 is part of a zero impedance subnetwork and l56 is not. Both carry about 2090 A, have a 3000 A limit
+     * and get a 0.5 limit scaling, so both must be reported as violated.
+     */
+    @Test
+    void testLimitScalingsOnZeroImpedanceBranch() {
+        Network network = createWith3BusesNonImpedantSubNetwork();
+        network.getLine("l25").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(3000).add();
+        network.getLine("l56").getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits().setPermanentLimit(3000).add();
+        List<LimitScaling> limitScalings = List.of(LimitScaling.builder(LimitType.CURRENT, 0.5).build());
+
+        SecurityAnalysisResult result = runSecurityAnalysis(network, Collections.emptyList(), Collections.emptyList(), limitScalings, new SecurityAnalysisParameters());
+
+        List<LimitViolation> violations = result.getPreContingencyResult().getLimitViolationsResult().getLimitViolations();
+        assertEquals(2, violations.size());
+        assertEquals(0.5, assertViolation(violations, "l25", LimitViolationType.CURRENT, ThreeSides.ONE, 2091.290).getLimitScaling());
+        assertEquals(0.5, assertViolation(violations, "l56", LimitViolationType.CURRENT, ThreeSides.ONE, 2085.417).getLimitScaling());
+    }
+
     @ParameterizedTest(name = "DC = {0}")
     @ValueSource(booleans = {false, true})
     void testZeroFlowTransfer(boolean dc) {

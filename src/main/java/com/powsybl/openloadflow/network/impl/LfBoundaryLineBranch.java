@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.network.impl;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.PhaseTapChanger;
 import com.powsybl.openloadflow.network.*;
+import com.powsybl.openloadflow.network.util.NetworkStateBranchFlows;
 import com.powsybl.openloadflow.util.PerUnit;
 import com.powsybl.security.results.BranchResult;
 
@@ -91,12 +92,11 @@ public class LfBoundaryLineBranch extends AbstractImpedantLfBranch {
 
     @Override
     public List<BranchResult> createBranchResult(double preContingencyBranchP1, double preContingencyBranchOfContingencyP1,
-                                                 boolean createExtension, Map<String, LfBranchResults> zeroImpedanceFlows,
-                                                 LoadFlowModel loadFlowModel) {
+                                                 boolean createExtension, NetworkStateBranchFlows branchFlows) {
         // in a security analysis, we don't have any way to monitor the flows at boundary side. So in the branch result,
         // we follow the convention side 1 for network side and side 2 for boundary side.
         double currentScale = PerUnit.ib(getBoundaryLine().getTerminal().getVoltageLevel().getNominalV());
-        return List.of(buildBranchResult(loadFlowModel, zeroImpedanceFlows, currentScale, currentScale, Double.NaN, Double.NaN));
+        return List.of(buildBranchResult(branchFlows, currentScale, currentScale, Double.NaN, Double.NaN));
     }
 
     private <T extends LoadingLimits> Supplier<Map<String, T>> toMapIndexedByOperationalLimitsGroupId(Function<OperationalLimitsGroup, Optional<T>> limitsGetter) {
