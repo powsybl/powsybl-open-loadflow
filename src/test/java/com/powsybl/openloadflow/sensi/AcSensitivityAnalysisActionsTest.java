@@ -23,21 +23,24 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.serde.NetworkSerDe;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.DenseMatrixFactory;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.graph.EvenShiloachGraphDecrementalConnectivityFactory;
-import com.powsybl.openloadflow.network.FourBusNetworkFactory;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
-import com.powsybl.openloadflow.network.NodeBreakerNetworkFactory;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.LoadFlowAssert;
+import com.powsybl.openloadflow.test.networks.FourBusNetworkFactory;
+import com.powsybl.openloadflow.test.networks.NodeBreakerNetworkFactory;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -468,5 +471,92 @@ class AcSensitivityAnalysisActionsTest extends AbstractSensitivityAnalysisTest {
 
         Mockito.verify(connectivityFactory, Mockito.never()).create();
         Mockito.verify(connectivityFactory, Mockito.atLeastOnce()).supportsIncremental();
+    }
+
+    private static SensitivityAnalysisParameters createMultiThreadParameters(int threadCount) {
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true)
+                .setOperatorStrategiesCalculationMode(SensitivityOperatorStrategiesCalculationMode.CONTINGENCIES_AND_OPERATOR_STRATEGIES);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_GENERATION_P_MAX);
+        sensiParameters.addExtension(OpenSensitivityAnalysisParameters.class,
+                OpenSensitivityAnalysisParameters.getOrDefault(sensiParameters).setThreadCount(threadCount));
+        return sensiParameters;
+    }
+
+    @Test
+    void testOperatorStrategyOnSpecificContingencyMultiThread() {
+        Network network = FourBusNetworkFactory.create();
+        runAcLf(network);
+
+        // with 2 threads, each contingency is in its own partition: the operator strategy references a contingency
+        // which is absent from the other partition
+        List<Contingency> contingencies = List.of(new Contingency("l23", new BranchContingency("l23")),
+                new Contingency("l34", new BranchContingency("l34")));
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g2")),
+                network.getBranchStream().toList());
+        List<OperatorStrategy> operatorStrategies = List.of(new OperatorStrategy("open l14",
+                ContingencyContext.specificContingency("l23"),
+                new TrueCondition(), List.of("open l14")));
+        List<Action> actions = List.of(new TerminalsConnectionAction("open l14", "l14", true));
+
+        SensitivityAnalysisResult expected = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(createMultiThreadParameters(1))
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions));
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(createMultiThreadParameters(2))
+                .setOperatorStrategies(operatorStrategies)
+                .setActions(actions));
+
+        List<SensitivityState> states = List.of(SensitivityState.PRE_CONTINGENCY, SensitivityState.postContingency("l23"),
+                SensitivityState.postContingency("l34"), new SensitivityState("l23", "open l14"));
+        for (SensitivityState state : states) {
+            assertEquals(5, result.getValues(state).size());
+            for (SensitivityFactor factor : factors) {
+                assertEquals(expected.getSensitivityValue(state, factor.getVariableId(), factor.getFunctionId(), factor.getFunctionType(), factor.getVariableType()),
+                        result.getSensitivityValue(state, factor.getVariableId(), factor.getFunctionId(), factor.getFunctionType(), factor.getVariableType()),
+                        LoadFlowAssert.DELTA_SENSITIVITY_VALUE);
+                assertEquals(expected.getFunctionReferenceValue(state, factor.getFunctionId(), factor.getFunctionType()),
+                        result.getFunctionReferenceValue(state, factor.getFunctionId(), factor.getFunctionType()),
+                        LoadFlowAssert.DELTA_POWER);
+            }
+        }
+        assertSame(SensitivityAnalysisResult.Status.SUCCESS, result.getStateStatus(new SensitivityState("l23", "open l14")));
+        // the operator strategy is not applied to the other contingency
+        assertTrue(result.getValues(new SensitivityState("l34", "open l14")).isEmpty());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 2})
+    void testInvalidOperatorStrategy(int threadCount) {
+        Network network = FourBusNetworkFactory.create();
+        runAcLf(network);
+
+        List<Contingency> contingencies = List.of(new Contingency("l23", new BranchContingency("l23")),
+                new Contingency("l34", new BranchContingency("l34")));
+        List<SensitivityFactor> factors = createFactorMatrix(List.of(network.getGenerator("g2")),
+                network.getBranchStream().toList());
+        List<Action> actions = List.of(new TerminalsConnectionAction("open l14", "l14", true));
+
+        var unknownContingencyRunParameters = new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(createMultiThreadParameters(threadCount))
+                .setOperatorStrategies(List.of(new OperatorStrategy("open l14", ContingencyContext.specificContingency("unknown"),
+                        new TrueCondition(), List.of("open l14"))))
+                .setActions(actions);
+        CompletionException e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, unknownContingencyRunParameters));
+        assertEquals("Operator strategy 'open l14' is associated to contingency 'unknown' but this contingency is not present in the list",
+                e.getCause().getMessage());
+
+        var unknownActionRunParameters = new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(createMultiThreadParameters(threadCount))
+                .setOperatorStrategies(List.of(new OperatorStrategy("open l14", ContingencyContext.specificContingency("l23"),
+                        new TrueCondition(), List.of("unknown"))))
+                .setActions(actions);
+        e = assertThrows(CompletionException.class, () -> sensiRunner.run(network, factors, unknownActionRunParameters));
+        assertEquals("Operator strategy 'open l14' is associated to action 'unknown' but this action is not present in the list",
+                e.getCause().getMessage());
     }
 }

@@ -14,6 +14,7 @@ import com.powsybl.math.solver.KinsolParameters;
 import com.powsybl.math.solver.KinsolResult;
 import com.powsybl.math.solver.KinsolStatus;
 import com.powsybl.openloadflow.ac.equations.AcEquationType;
+import com.powsybl.openloadflow.ac.equations.AcStateVectorUtil;
 import com.powsybl.openloadflow.ac.equations.AcVariableType;
 import com.powsybl.openloadflow.equations.EquationSystem;
 import com.powsybl.openloadflow.equations.EquationVector;
@@ -56,7 +57,7 @@ public class NewtonKrylov extends AbstractAcSolver {
     @Override
     public AcSolverResult run(VoltageInitializer voltageInitializer, ReportNode reportNode) {
         // initialize state vector
-        AcSolverUtil.initStateVector(network, equationSystem, voltageInitializer);
+        AcStateVectorUtil.initStateVector(network, equationSystem, voltageInitializer);
 
         KinsolParameters kinsolParameters = new KinsolParameters()
                 .setMaxIters(parameters.getMaxIterations())

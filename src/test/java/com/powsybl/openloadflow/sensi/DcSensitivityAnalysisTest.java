@@ -21,7 +21,6 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.test.PhaseShifterTestCaseFactory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.math.matrix.SparseMatrixFactory;
-import com.powsybl.openloadflow.CommonTestConfig;
 import com.powsybl.openloadflow.NetworkCache;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
@@ -34,7 +33,9 @@ import com.powsybl.openloadflow.graph.dtree.DTreeGraphConnectivityFactory;
 import com.powsybl.openloadflow.network.*;
 import com.powsybl.openloadflow.network.impl.PropagatedContingency;
 import com.powsybl.openloadflow.network.impl.PropagatedContingencyCreationParameters;
-import com.powsybl.openloadflow.util.LoadFlowAssert;
+import com.powsybl.openloadflow.test.CommonTestConfig;
+import com.powsybl.openloadflow.test.LoadFlowAssert;
+import com.powsybl.openloadflow.test.networks.*;
 import com.powsybl.sensitivity.*;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -1236,7 +1237,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         for (int i = 0; i < 3000; i++) {
             LfBranch branch = Mockito.mock(LfBranch.class);
             ComputedContingencyElement contingencyElement = Mockito.mock(ComputedContingencyElement.class);
-            Mockito.when(contingencyElement.getLfBranch()).thenReturn(branch);
+            Mockito.when(contingencyElement.getLfElement()).thenReturn(branch);
             contingencyElements.add(contingencyElement);
         }
         e = assertThrows(PowsyblException.class, () -> ComputedElement.initRhs(equationSystem, contingencyElements));
