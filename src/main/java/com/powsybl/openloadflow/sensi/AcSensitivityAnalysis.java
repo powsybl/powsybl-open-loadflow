@@ -463,7 +463,10 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
             gradientByGroup.put(new VariableRef(declared.getVariableType(), declared.getVariableId()),
                     thetaBar[group.getIndex()]);
         }
-        return assembleGradients(variables, gradientByGroup, statusesByLever(factors, allLfFactors));
+        // a function resolved when its factor is VALID (lever resolved too) or VALID_ONLY_FOR_FUNCTION (lever did not)
+        boolean anyFunctionResolved = allLfFactors.stream().anyMatch(f -> f.getStatus() == LfSensitivityFactor.Status.VALID
+                || f.getStatus() == LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION);
+        return assembleGradients(variables, gradientByGroup, statusesByLever(factors, allLfFactors), anyFunctionResolved);
     }
 
     /**
@@ -482,14 +485,19 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
     }
 
     /**
-     * One entry per declared lever, in declaration order. A lever without a group but with a
-     * VALID_ONLY_FOR_FUNCTION factor is outside the main component and reads 0, as the forward path writes.
-     * A SKIP lever (neither it nor any monitored function resolved) throws: the forward path writes NaN and
-     * reports the id separately, but a NaN in a gradient cannot be traced back by an optimiser.
+     * One entry per declared lever, in declaration order. A lever without a group did not resolve to an element
+     * of the main component, and reads 0, as the forward path writes for its VALID_ONLY_FOR_FUNCTION factors,
+     * as long as at least one monitored function resolved. The lever's own factors cannot decide this alone:
+     * an unresolved lever is only paired with the anchor function (plus direct-term carriers for a branch
+     * parameter), so an anchor outside the main component would make it SKIP although other monitored
+     * functions resolved fine. Only when no monitored function resolved at all does an unresolved lever
+     * throw: the forward path writes NaN and reports the id separately, but a NaN in a gradient cannot be
+     * traced back by an optimiser.
      */
     private static Map<VariableRef, Double> assembleGradients(List<AdjointVariable> variables,
                                                               Map<VariableRef, Double> gradientByGroup,
-                                                              Map<VariableRef, Set<LfSensitivityFactor.Status>> statusesByLever) {
+                                                              Map<VariableRef, Set<LfSensitivityFactor.Status>> statusesByLever,
+                                                              boolean anyFunctionResolved) {
         List<VariableRef> unresolved = new ArrayList<>();
         Map<VariableRef, Double> gradientByVariable = new LinkedHashMap<>();
         for (AdjointVariable v : variables) {
@@ -498,7 +506,7 @@ public class AcSensitivityAnalysis extends AbstractSensitivityAnalysis<AcVariabl
                     statusesByLever.getOrDefault(v.ref(), EnumSet.noneOf(LfSensitivityFactor.Status.class));
             if (gradient != null) {
                 gradientByVariable.put(v.ref(), gradient);
-            } else if (statuses.contains(LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)) {
+            } else if (anyFunctionResolved || statuses.contains(LfSensitivityFactor.Status.VALID_ONLY_FOR_FUNCTION)) {
                 gradientByVariable.put(v.ref(), 0.0);
             } else {
                 unresolved.add(v.ref());

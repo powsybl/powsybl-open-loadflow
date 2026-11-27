@@ -569,6 +569,48 @@ class AcSensitivityAnalysisAdjointTest {
         }
     }
 
+    /**
+     * A lever outside the main component reads 0 even when its anchor function is outside it too.
+     *
+     * <p>An unresolved lever is paired with the anchor function only, so its own factor statuses say SKIP as
+     * soon as the anchor does not resolve, although other monitored functions do. That is not the "cannot
+     * differentiate at all" case: the lever's answer is 0 like in {@link #runAdjointAnswersZeroForALeverOutsideTheComponent},
+     * whichever function the total order picked as its anchor.</p>
+     *
+     * <p>Here L1-5-1 is disconnected and sorts before the live L2-3-1, so it anchors the disconnected B6-G.</p>
+     */
+    @Test
+    void runAdjointAnswersZeroForALeverOutsideTheComponentWhateverItsAnchor() {
+        Network network = IeeeCdfNetworkFactory.create14();
+        network.getLine("L1-5-1").getTerminal1().disconnect();
+        network.getLine("L1-5-1").getTerminal2().disconnect();
+        network.getGenerator("B6-G").getTerminal().disconnect();
+        LoadFlowParameters lfp = cacheEnabledParameters();
+        assertTrue(LoadFlow.find("OpenLoadFlow").run(network, lfp).isFullyConverged());
+
+        AcSensitivityAnalysis analysis = newAnalysis(lfp);
+        String variantId = network.getVariantManager().getWorkingVariantId();
+        List<AcSensitivityAnalysis.AdjointVariable> vars =
+                levers(SensitivityVariableType.INJECTION_ACTIVE_POWER, List.of("B3-G", "B6-G"));
+
+        Map<AcSensitivityAnalysis.FunctionRef, Double> liveOnly = Map.of(powerKey("L2-3-1"), 0.75);
+        Map<AcSensitivityAnalysis.FunctionRef, Double> withDeadAnchor = new LinkedHashMap<>(liveOnly);
+        withDeadAnchor.put(powerKey("L1-5-1"), 0.0); // sorts first, so it anchors every lever's group
+
+        Map<AcSensitivityAnalysis.VariableRef, Double> expected =
+                analysis.runAdjoint(network, variantId, List.of(), liveOnly, vars);
+        Map<AcSensitivityAnalysis.VariableRef, Double> actual =
+                analysis.runAdjoint(network, variantId, List.of(), withDeadAnchor, vars);
+
+        AcSensitivityAnalysis.VariableRef live = varKey(SensitivityVariableType.INJECTION_ACTIVE_POWER, "B3-G");
+        AcSensitivityAnalysis.VariableRef gone = varKey(SensitivityVariableType.INJECTION_ACTIVE_POWER, "B6-G");
+        assertEquals(0.0, actual.get(gone), 0, "a lever outside the component reads zero, whatever its anchor");
+        assertTrue(Math.abs(expected.get(live)) > 0.1,
+                "the connected lever is trivially zero, so this proves nothing: " + expected.get(live));
+        assertEquals(expected.get(live), actual.get(live), 1e-12 * Math.abs(expected.get(live)) + 1e-13,
+                "a dead anchor moved the gradient of the connected lever");
+    }
+
     /** The emitted factors as a comparable set, since SensitivityFactor has no value equality. */
     private static Set<String> factorKeys(List<SensitivityFactor> factors) {
         return factors.stream()
