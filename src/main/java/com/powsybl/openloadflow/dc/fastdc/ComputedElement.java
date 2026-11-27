@@ -17,16 +17,17 @@ import com.powsybl.math.matrix.DenseMatrix;
 import com.powsybl.math.matrix.Matrix;
 import com.powsybl.openloadflow.dc.DcLoadFlowContext;
 import com.powsybl.openloadflow.dc.equations.AbstractClosedBranchDcFlowEquationTerm;
-import com.powsybl.openloadflow.dc.equations.ClosedBranchSide1DcFlowEquationTerm;
 import com.powsybl.openloadflow.dc.equations.DcApproximationType;
 import com.powsybl.openloadflow.dc.equations.DcEquationSystemCreationParameters;
 import com.powsybl.openloadflow.dc.equations.DcEquationType;
 import com.powsybl.openloadflow.dc.equations.DcVariableType;
 import com.powsybl.openloadflow.equations.Equation;
 import com.powsybl.openloadflow.equations.EquationSystem;
+import com.powsybl.openloadflow.equations.EquationTerm;
 import com.powsybl.openloadflow.graph.GraphConnectivity;
 import com.powsybl.openloadflow.network.LfBranch;
 import com.powsybl.openloadflow.network.LfBus;
+import com.powsybl.openloadflow.network.LfElement;
 import com.powsybl.openloadflow.network.PiModel;
 import com.powsybl.openloadflow.network.TapPositionChange;
 import com.powsybl.openloadflow.network.action.AbstractLfBranchAction;
@@ -60,9 +61,25 @@ public interface ComputedElement {
 
     void setAlphaForWoodburyComputation(double alphaForPostContingencyStates);
 
-    LfBranch getLfBranch();
+    /**
+     * The network element whose coupling between {@link #getBus1()} and {@link #getBus2()} is modified: a branch, or an
+     * HVDC line in AC emulation whose droop law couples its two buses like a virtual branch. Elements sharing the same
+     * network element share the same +1/-1 right-hand side column.
+     */
+    LfElement getLfElement();
 
-    ClosedBranchSide1DcFlowEquationTerm getLfBranchEquation();
+    LfBus getBus1();
+
+    LfBus getBus2();
+
+    int getPh1VarRow();
+
+    int getPh2VarRow();
+
+    /**
+     * The side 1 active power flow equation term of the coupling, used to evaluate the flow through the element.
+     */
+    EquationTerm<DcVariableType, DcEquationType> getEquation();
 
     void applyToConnectivity(GraphConnectivity<LfBus, LfBranch> connectivity);
 
@@ -73,10 +90,9 @@ public interface ComputedElement {
      */
     static void setComputedElementIndexes(Collection<? extends ComputedElement> elements) {
         AtomicInteger index = new AtomicInteger(0);
-        Map<LfBranch, Integer> branchesToRhsIndex = new HashMap<>();
+        Map<LfElement, Integer> elementsToRhsIndex = new HashMap<>();
         for (ComputedElement element : elements) {
-            LfBranch elementLfBranch = element.getLfBranch();
-            Integer elementIndex = branchesToRhsIndex.computeIfAbsent(elementLfBranch, lfBranch -> index.getAndIncrement());
+            Integer elementIndex = elementsToRhsIndex.computeIfAbsent(element.getLfElement(), lfElement -> index.getAndIncrement());
             element.setComputedElementIndex(elementIndex);
         }
     }
@@ -89,16 +105,15 @@ public interface ComputedElement {
     }
 
     /**
-     * Fills the right hand side with +1/-1 to model a branch contingency or action.
+     * Fills the right hand side with +1/-1 to model a branch (or HVDC AC emulation coupling) contingency or action.
      */
     private static void fillRhs(EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<? extends ComputedElement> computedElements, Matrix rhs) {
         for (ComputedElement element : computedElements) {
-            LfBranch lfBranch = element.getLfBranch();
-            if (lfBranch.getBus1() == null || lfBranch.getBus2() == null) {
+            LfBus bus1 = element.getBus1();
+            LfBus bus2 = element.getBus2();
+            if (bus1 == null || bus2 == null) {
                 continue;
             }
-            LfBus bus1 = lfBranch.getBus1();
-            LfBus bus2 = lfBranch.getBus2();
             if (bus1.isSlack()) {
                 Equation<DcVariableType, DcEquationType> p = equationSystem.getEquation(bus2.getNum(), DcEquationType.BUS_TARGET_P).orElseThrow(IllegalStateException::new);
                 rhs.set(p.getColumn(), element.getComputedElementIndex(), -1);
@@ -115,9 +130,9 @@ public interface ComputedElement {
     }
 
     static DenseMatrix initRhs(EquationSystem<DcVariableType, DcEquationType> equationSystem, Collection<? extends ComputedElement> elements) {
-        // the number of columns of the rhs equals the number of distinct branches affected by the computed elements
-        // those affecting the same branch share the same column
-        int columnCount = (int) elements.stream().map(ComputedElement::getLfBranch).filter(Objects::nonNull).distinct().count();
+        // the number of columns of the rhs equals the number of distinct network elements affected by the computed elements
+        // those affecting the same network element share the same column
+        int columnCount = (int) elements.stream().map(ComputedElement::getLfElement).filter(Objects::nonNull).distinct().count();
         // otherwise, defining the rhs matrix will result in integer overflow
         int equationCount = equationSystem.getIndex().getColumnCount();
         int maxElements = Integer.MAX_VALUE / (equationCount * Double.BYTES);
@@ -140,7 +155,7 @@ public interface ComputedElement {
                                                                                     DcEquationSystemCreationParameters creationParameters) {
         Map<LfAction, List<ComputedElement>> computedElements = lfActionById.values().stream()
             .flatMap(lfAction -> computeActionElementsIndexByLfAction(lfAction, equationSystem, creationParameters))
-            .filter(e -> e.getValue().stream().filter(b -> b.getLfBranchEquation() == null).findAny().isEmpty())
+            .filter(e -> e.getValue().stream().filter(b -> b.getEquation() == null).findAny().isEmpty())
             .collect(Collectors.toMap(
                 Map.Entry::getKey,
                 Map.Entry::getValue,

@@ -1237,7 +1237,7 @@ class DcSensitivityAnalysisTest extends AbstractSensitivityAnalysisTest {
         for (int i = 0; i < 3000; i++) {
             LfBranch branch = Mockito.mock(LfBranch.class);
             ComputedContingencyElement contingencyElement = Mockito.mock(ComputedContingencyElement.class);
-            Mockito.when(contingencyElement.getLfBranch()).thenReturn(branch);
+            Mockito.when(contingencyElement.getLfElement()).thenReturn(branch);
             contingencyElements.add(contingencyElement);
         }
         e = assertThrows(PowsyblException.class, () -> ComputedElement.initRhs(equationSystem, contingencyElements));
