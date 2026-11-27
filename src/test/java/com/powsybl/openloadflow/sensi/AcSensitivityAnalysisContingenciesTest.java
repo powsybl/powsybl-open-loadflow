@@ -1267,6 +1267,43 @@ class AcSensitivityAnalysisContingenciesTest extends AbstractSensitivityAnalysis
     }
 
     @Test
+    void testNoImpactContingencyAfterImpactingContingencyWithAllContext() {
+        Network network = ConnectedComponentNetworkFactory.createTwoCcLinkedByTwoLines();
+        // l45 is already open: a contingency on l45 has no impact
+        Line l45 = network.getLine("l45");
+        l45.getTerminal1().disconnect();
+        l45.getTerminal2().disconnect();
+
+        SensitivityAnalysisParameters sensiParameters = createParameters(false, "b1_vl_0", true);
+        sensiParameters.getLoadFlowParameters().setBalanceType(LoadFlowParameters.BalanceType.PROPORTIONAL_TO_LOAD);
+
+        // the impacting contingency is simulated first, so that the factor shared by all contingencies
+        // holds its post-contingency state when the no-impact contingency is processed
+        List<Contingency> contingencies = List.of(
+                new Contingency("l24", new BranchContingency("l24")),
+                new Contingency("l45", new BranchContingency("l45")));
+
+        // ALL contingency context: one factor object shared by the base case and every contingency
+        List<SensitivityFactor> factors = List.of(new SensitivityFactor(SensitivityFunctionType.BRANCH_ACTIVE_POWER_1, "l46",
+                SensitivityVariableType.INJECTION_ACTIVE_POWER, "g2", false, ContingencyContext.all()));
+
+        SensitivityAnalysisRunParameters runParameters = new SensitivityAnalysisRunParameters()
+                .setContingencies(contingencies)
+                .setParameters(sensiParameters);
+        SensitivityAnalysisResult result = sensiRunner.run(network, factors, runParameters);
+
+        double baseCaseReference = result.getBranchFlow1FunctionReferenceValue("l46");
+        double baseCaseSensitivity = result.getBranchFlow1SensitivityValue("g2", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER);
+        // the impacting contingency changes the flow, otherwise this test would not check anything
+        assertNotEquals(baseCaseReference, result.getBranchFlow1FunctionReferenceValue("l24", "l46"), LoadFlowAssert.DELTA_POWER);
+
+        // the no-impact contingency gives the base case results, not the ones of the previous contingency
+        assertEquals(SensitivityAnalysisResult.Status.NO_IMPACT, result.getStateStatus(SensitivityState.postContingency("l45")));
+        assertEquals(baseCaseReference, result.getBranchFlow1FunctionReferenceValue("l45", "l46"), LoadFlowAssert.DELTA_POWER);
+        assertEquals(baseCaseSensitivity, result.getBranchFlow1SensitivityValue("l45", "g2", "l46", SensitivityVariableType.INJECTION_ACTIVE_POWER), LoadFlowAssert.DELTA_POWER);
+    }
+
+    @Test
     void testSwitchContingency() {
         Network network = NodeBreakerNetworkFactory.create();
 
