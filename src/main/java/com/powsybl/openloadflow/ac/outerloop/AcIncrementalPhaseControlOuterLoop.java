@@ -10,6 +10,7 @@ package com.powsybl.openloadflow.ac.outerloop;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.math.matrix.DenseMatrix;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcLoadFlowContext;
 import com.powsybl.openloadflow.ac.AcLoadFlowParameters;
 import com.powsybl.openloadflow.ac.AcOuterLoopContext;
@@ -40,7 +41,11 @@ public class AcIncrementalPhaseControlOuterLoop
         implements AcOuterLoop {
 
     public AcIncrementalPhaseControlOuterLoop() {
-        super(LoggerFactory.getLogger(AcIncrementalPhaseControlOuterLoop.class));
+        this(OpenLoadFlowParameters.INCREMENTAL_CONTROL_INTERACTION_SCOPE_DEFAULT_VALUE);
+    }
+
+    public AcIncrementalPhaseControlOuterLoop(OpenLoadFlowParameters.IncrementalControlInteractionScope interactionScope) {
+        super(LoggerFactory.getLogger(AcIncrementalPhaseControlOuterLoop.class), interactionScope);
     }
 
     @Override

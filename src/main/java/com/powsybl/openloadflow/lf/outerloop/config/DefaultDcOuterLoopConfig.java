@@ -31,7 +31,7 @@ public class DefaultDcOuterLoopConfig extends AbstractDcOuterLoopConfig {
         // ac emulation
         createHvdcAcEmulationLimitsOuterLoop(parameters).ifPresent(outerLoops::add);
         // incremental phase control
-        createIncrementalPhaseControlOuterLoop(parameters).ifPresent(outerLoops::add);
+        createIncrementalPhaseControlOuterLoop(parameters, parametersExt.getIncrementalControlInteractionScope()).ifPresent(outerLoops::add);
         // area interchange control
         createAreaInterchangeControlOuterLoop(parameters, parametersExt, loadFlowParametersOverride).ifPresent(outerLoops::add);
         return outerLoops;

@@ -31,7 +31,7 @@ public class ExplicitDcOuterLoopConfig extends AbstractDcOuterLoopConfig {
 
     private static Optional<DcOuterLoop> createOuterLoop(String name, LoadFlowParameters parameters, OpenLoadFlowParameters parametersExt, LoadFlowParametersOverride loadFlowParametersOverride) {
         return switch (name) {
-            case AbstractIncrementalPhaseControlOuterLoop.NAME -> createIncrementalPhaseControlOuterLoop(parameters);
+            case AbstractIncrementalPhaseControlOuterLoop.NAME -> createIncrementalPhaseControlOuterLoop(parameters, parametersExt.getIncrementalControlInteractionScope());
             case AbstractAreaInterchangeControlOuterLoop.NAME -> createAreaInterchangeControlOuterLoop(parameters, parametersExt, loadFlowParametersOverride);
             case AbstractHvdcAcEmulationLimitsOuterLoop.NAME -> createHvdcAcEmulationLimitsOuterLoop(parameters);
             default -> throw new PowsyblException("Unknown outer loop '" + name + "' for DC load flow");
